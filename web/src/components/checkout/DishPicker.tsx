@@ -10,12 +10,19 @@ import {
   DIETARY_TAGS,
   HEAT_STEPS,
   MEAL_TYPES,
+  type BoxPricing,
   type Dish,
   type DishOption,
   type HeatingInstruction,
   type PersonalisationOptions,
 } from '@/lib/aonik/types';
-import { useCart, type CartLine, type CartPersonalisation } from '@/lib/cart/CartProvider';
+import {
+  boxPricePence,
+  cartTotals,
+  useCart,
+  type CartLine,
+  type CartPersonalisation,
+} from '@/lib/cart/CartProvider';
 import { formatPrice } from '@/lib/format';
 
 import styles from './DishPicker.module.css';
@@ -34,6 +41,8 @@ import styles from './DishPicker.module.css';
  */
 interface DishPickerProps {
   dishes: Dish[];
+  /** Box pricing feeds the modal's totals, box-full copy and expand view. */
+  pricing: BoxPricing;
   personalisation: PersonalisationOptions;
   /** Reheating guidance for the personaliser's shared info panels. */
   heating: HeatingInstruction[];
@@ -150,11 +159,46 @@ function scaled(value: number, factor: number): string {
 
 /* -------------------------------------------------------------------------- */
 
-interface Editor {
+/**
+ * The modal's navigable state, snapshotted into `hist` on every choice so the
+ * header's back button retraces steps exactly as the template's `modalBack`.
+ */
+interface EditorNav {
+  /** What the customer is doing with an in-box dish. Not-in-box is always 'add'. */
+  mode: 'update' | 'add' | 'view' | null;
+  /** A mode has been committed (the chooser may still be open for its pickers). */
+  chosen: boolean;
+  /** The "What would you like to do?" card is expanded. */
+  whatOpen: boolean;
+  /** The line being updated; null while the version picker awaits a choice. */
+  targetLineId: string | null;
+  /** How many units of the target line the update applies to. */
+  updateCount: number;
+  /** The Yes side of the personalise fork. */
+  personalise: boolean;
+  draft: CartPersonalisation;
+}
+
+interface Editor extends EditorNav {
   dish: Dish;
-  /** Set when editing a line already in the box, rather than adding a new one. */
-  lineId: string | null;
-  quantity: number;
+  /** The personalise panel accordion. */
+  persOpen: boolean;
+  /** The in-modal "Make your box larger?" view replacing the right column. */
+  expandOpen: boolean;
+  expandQty: number;
+  hist: EditorNav[];
+}
+
+function navSnapshot(editor: Editor): EditorNav {
+  return {
+    mode: editor.mode,
+    chosen: editor.chosen,
+    whatOpen: editor.whatOpen,
+    targetLineId: editor.targetLineId,
+    updateCount: editor.updateCount,
+    personalise: editor.personalise,
+    draft: editor.draft,
+  };
 }
 
 /**
@@ -173,8 +217,9 @@ function CardPip({ size, lit }: { size: number; lit: boolean }) {
 /** The step-2 template names the top heat "Hot" (the dish page says "High"). */
 const CARD_HEAT_LABELS: Record<number, string> = { 1: 'Mild', 2: 'Medium', 3: 'Hot' };
 
-export function DishPicker({ dishes, personalisation, heating }: DishPickerProps) {
-  const { boxSize, lines, hydrated, addLine, removeLine, setQuantity } = useCart();
+export function DishPicker({ dishes, pricing, personalisation, heating }: DishPickerProps) {
+  const { boxSize, isCustom: boxIsCustom, lines, hydrated, addLine, removeLine, setQuantity, setBoxSize } =
+    useCart();
 
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<PickerFilters>(NO_FILTERS);
@@ -183,10 +228,24 @@ export function DishPicker({ dishes, personalisation, heating }: DishPickerProps
   const [showTop, setShowTop] = useState(false);
 
   const [editor, setEditor] = useState<Editor | null>(null);
-  const [enabled, setEnabled] = useState(false);
-  const [draft, setDraft] = useState<CartPersonalisation | null>(null);
-  /** The right-hand personalise panel is collapsible, as the template's is. */
-  const [persOpen, setPersOpen] = useState(true);
+  /**
+   * Extra dish spaces consented to via "Make your box larger?". Display-only:
+   * billing already prices dishes beyond the box at `pricing.extraDishPence`,
+   * exactly the template's expanded-box price (box price + £N per added space).
+   */
+  const [expandedTo, setExpandedTo] = useState(0);
+  /** The count stepper's "you can update up to N" tooltip. */
+  const [updTip, setUpdTip] = useState(false);
+  const updTipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** The template's flash toast ("NAME added to your box"). */
+  const [toast, setToast] = useState('');
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flash = useCallback((message: string) => {
+    setToast(message);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(''), 2600);
+  }, []);
 
   /** Which card's signature ⓘ tooltip is open (tap support; hover is CSS). */
   const [sigTipFor, setSigTipFor] = useState<string | null>(null);
@@ -408,25 +467,74 @@ export function DishPicker({ dishes, personalisation, heating }: DishPickerProps
 
   /* ---- Personaliser --------------------------------------------------------- */
 
+  // The template's `openModal`: an in-box dish opens on the mode chooser with
+  // nothing selected; `personalise` in opts (the card's Edit / Personalise
+  // links) jumps straight into update mode, via the pickers when needed.
   const openEditor = useCallback(
-    (dish: Dish, line?: CartLine) => {
+    (dish: Dish, line?: CartLine, opts?: { personalise?: boolean }) => {
       editorOpenerRef.current = document.activeElement as HTMLElement | null;
-      setEditor({ dish, lineId: line?.lineId ?? null, quantity: line?.quantity ?? 1 });
-      setEnabled(Boolean(line?.personalisation));
-      setDraft(line?.personalisation ?? abbysChoice(dish, personalisation));
-      setPersOpen(true);
+      const dishLines = linesByDish.get(dish.id) ?? [];
+      const inBox = dishLines.length > 0;
+      const target = line ?? (inBox ? dishLines[0] : undefined);
+      const seedPers = target?.personalisation ?? abbysChoice(dish, personalisation);
+      const chosen = inBox ? opts?.personalise !== undefined : true;
+      const needPicker = dishLines.length > 1 || (target?.quantity ?? 0) > 1;
+      setEditor({
+        dish,
+        mode: inBox ? (chosen ? 'update' : null) : 'add',
+        chosen,
+        whatOpen: inBox ? !chosen || needPicker : true,
+        targetLineId: target?.lineId ?? null,
+        updateCount: target?.quantity ?? 1,
+        personalise: opts?.personalise ?? Boolean(target?.personalisation),
+        draft: seedPers,
+        persOpen: true,
+        expandOpen: false,
+        expandQty: 1,
+        hist: [],
+      });
+      setUpdTip(false);
     },
-    [personalisation],
+    [linesByDish, personalisation],
   );
 
   const closeEditor = useCallback(() => {
     setEditor(null);
-    setDraft(null);
-    setEnabled(false);
     // Hand focus back to the control that opened the dialog.
     editorOpenerRef.current?.focus();
     editorOpenerRef.current = null;
   }, []);
+
+  /** Apply a navigation step, snapshotting the previous one for Back. */
+  const navSet = useCallback((patch: Partial<EditorNav>) => {
+    setEditor((current) =>
+      current ? { ...current, ...patch, hist: [...current.hist, navSnapshot(current)] } : current,
+    );
+  }, []);
+
+  /** Patch without recording history (drafts, accordions, steppers). */
+  const patchEditor = useCallback((patch: Partial<Editor>) => {
+    setEditor((current) => (current ? { ...current, ...patch } : current));
+  }, []);
+
+  const setDraft = useCallback((draft: CartPersonalisation) => {
+    setEditor((current) => (current ? { ...current, draft } : current));
+  }, []);
+
+  // The head's back button retraces choices; from the first screen it closes.
+  const modalBack = useCallback(() => {
+    if (!editor) return;
+    if (editor.expandOpen) {
+      patchEditor({ expandOpen: false });
+      return;
+    }
+    if (editor.hist.length) {
+      const previous = editor.hist[editor.hist.length - 1];
+      setEditor({ ...editor, ...previous, hist: editor.hist.slice(0, -1) });
+      return;
+    }
+    closeEditor();
+  }, [editor, patchEditor, closeEditor]);
 
   // Escape closes the personaliser, focus moves into it, and the page behind it
   // must not scroll.
@@ -458,30 +566,410 @@ export function DishPicker({ dishes, personalisation, heating }: DishPickerProps
     };
   }, []);
 
+  /* ---- Modal derivations (template `renderVals` locals) ---------------------- */
+
   const abbys = editor ? abbysChoice(editor.dish, personalisation) : null;
+  const enabled = editor?.personalise ?? false;
+  const draft = editor?.draft ?? null;
   const isCustom = Boolean(enabled && draft && abbys && !sameChoice(draft, abbys));
   const changePence = isCustom && draft ? choiceSurcharge(draft, personalisation) : 0;
+
+  const editorLines = editor ? (linesByDish.get(editor.dish.id) ?? []) : [];
+  const inBox = editorLines.length > 0;
+  const editing = editor?.mode === 'update';
+  const adding = editor?.mode === 'add';
+  const viewing = editor?.mode === 'view';
+  const targetLine = editor?.targetLineId
+    ? (editorLines.find((line) => line.lineId === editor.targetLineId) ?? null)
+    : null;
+  const updCount = Math.min(Math.max(1, editor?.updateCount ?? 1), targetLine?.quantity ?? 1);
+  const dishInBoxQty = editorLines.reduce((total, line) => total + line.quantity, 0);
+
+  const usedCount = lines.reduce((total, line) => total + line.quantity, 0);
+  /** Box capacity including spaces consented to via the expand view. */
+  const effectiveSize = Math.max(boxSize ?? 0, expandedTo);
+  const boxLabel = `${effectiveSize}-dish box`;
+  const boxFull = boxSize !== null && usedCount >= effectiveSize;
+  const remaining = Math.max(0, effectiveSize - usedCount);
+
+  // "Updated estimated total": box + surcharges + extra dishes, as the summary bills them.
+  const grandTotalPence =
+    boxSize === null ? 0 : cartTotals({ boxSize, isCustom: boxIsCustom, lines }, pricing).totalPence;
+  const origPers = targetLine?.personalisation ?? abbys;
+  const changedFromOrig =
+    targetLine && draft && origPers ? !sameChoice(draft, origPers) : true;
+  // The template prices the change against the whole line, not the chosen count.
+  const deltaPence =
+    draft && origPers
+      ? (choiceSurcharge(draft, personalisation) - choiceSurcharge(origPers, personalisation)) *
+        (targetLine?.quantity ?? 1)
+      : 0;
+
+  /* ---- Mode handlers (template `setModeUpdate` / `setModeAdd` / …) ----------- */
+
+  const setModeUpdate = useCallback(() => {
+    if (!editor || !abbys) return;
+    if (editor.mode === 'update') {
+      navSet({ mode: null, chosen: false, whatOpen: true });
+      return;
+    }
+    const dishLines = linesByDish.get(editor.dish.id) ?? [];
+    const multi = dishLines.length > 1;
+    const target =
+      (editor.targetLineId
+        ? dishLines.find((line) => line.lineId === editor.targetLineId)
+        : undefined) ?? dishLines[0];
+    const needPicker = multi || (target?.quantity ?? 0) > 1;
+    navSet({
+      mode: 'update',
+      chosen: true,
+      whatOpen: needPicker,
+      targetLineId: multi ? null : (target?.lineId ?? null),
+      updateCount: multi ? 1 : (target?.quantity ?? 1),
+      personalise: !multi,
+      draft: multi ? abbys : (target?.personalisation ?? abbys),
+    });
+  }, [editor, abbys, linesByDish, navSet]);
+
+  const setModeAdd = useCallback(() => {
+    if (!editor || !abbys) return;
+    if (editor.mode === 'add') {
+      navSet({ mode: null, chosen: false, whatOpen: true, personalise: false });
+      return;
+    }
+    navSet({ mode: 'add', chosen: true, whatOpen: true, personalise: false, draft: abbys });
+  }, [editor, abbys, navSet]);
+
+  const onJustViewing = useCallback(() => {
+    if (!editor) return;
+    if (editor.mode === 'view') navSet({ mode: null, chosen: false, whatOpen: true });
+    else navSet({ mode: 'view', chosen: true, whatOpen: false });
+  }, [editor, navSet]);
+
+  const selectVersion = useCallback(
+    (lineId: string) => {
+      if (!editor || !abbys) return;
+      const seed = (linesByDish.get(editor.dish.id) ?? []).find(
+        (line) => line.lineId === lineId,
+      );
+      navSet({
+        targetLineId: lineId,
+        updateCount: seed?.quantity ?? 1,
+        draft: seed?.personalisation ?? abbys,
+        personalise: true,
+      });
+      setUpdTip(false);
+    },
+    [editor, abbys, linesByDish, navSet],
+  );
+
+  const incUpdateCount = useCallback(() => {
+    if (!editor) return;
+    const max = targetLine?.quantity ?? 1;
+    if (editor.updateCount >= max) {
+      setUpdTip(true);
+      if (updTipTimer.current) clearTimeout(updTipTimer.current);
+      updTipTimer.current = setTimeout(() => setUpdTip(false), 2600);
+      return;
+    }
+    patchEditor({ updateCount: editor.updateCount + 1 });
+    setUpdTip(false);
+  }, [editor, targetLine, patchEditor]);
+
+  const decUpdateCount = useCallback(() => {
+    if (!editor) return;
+    patchEditor({ updateCount: Math.max(1, editor.updateCount - 1) });
+    setUpdTip(false);
+  }, [editor, patchEditor]);
+
+  /* ---- Commit + expand ------------------------------------------------------- */
 
   const commit = useCallback(() => {
     if (!editor || !draft || !abbys) return;
     const custom = enabled && !sameChoice(draft, abbys);
     const dish = editor.dish;
+    const pers = enabled ? draft : abbys;
+    const surcharge =
+      (dish.upgradePence ?? 0) + (custom ? choiceSurcharge(pers, personalisation) : 0);
 
-    if (editor.lineId) removeLine(editor.lineId);
+    if (editor.mode !== 'update') {
+      // Add (in-box "Add another" and every not-in-box add).
+      if (boxFull) {
+        patchEditor({ expandOpen: true, expandQty: 1 });
+        return;
+      }
+      addLine({
+        dishId: dish.id,
+        slug: dish.slug,
+        title: dish.title,
+        imageUrl: dish.imageUrl,
+        quantity: 1,
+        personalisation: custom ? pers : undefined,
+        surchargePence: surcharge,
+      });
+      closeEditor();
+      flash(dish.title + (custom ? ' added — personalised' : ' added to your box'));
+      return;
+    }
 
+    // Update: move `updCount` units of the target line onto the new
+    // personalisation. `addLine` merges into a twin line when one exists.
+    if (!targetLine) {
+      closeEditor();
+      return;
+    }
+    const count = updCount;
+    if (count >= targetLine.quantity) removeLine(targetLine.lineId);
+    else setQuantity(targetLine.lineId, targetLine.quantity - count);
     addLine({
       dishId: dish.id,
       slug: dish.slug,
       title: dish.title,
       imageUrl: dish.imageUrl,
-      quantity: editor.quantity,
-      personalisation: custom ? draft : undefined,
-      surchargePence:
-        (dish.upgradePence ?? 0) + (custom ? choiceSurcharge(draft, personalisation) : 0),
+      quantity: count,
+      personalisation: custom ? pers : undefined,
+      surchargePence: surcharge,
     });
-
     closeEditor();
-  }, [editor, draft, abbys, enabled, personalisation, addLine, removeLine, closeEditor]);
+    flash(
+      dish.title +
+        (targetLine.quantity > 1
+          ? ` — ${count} ${count === 1 ? 'dish' : 'dishes'} updated`
+          : ' updated'),
+    );
+  }, [
+    editor,
+    draft,
+    abbys,
+    enabled,
+    personalisation,
+    boxFull,
+    targetLine,
+    updCount,
+    addLine,
+    removeLine,
+    setQuantity,
+    patchEditor,
+    closeEditor,
+    flash,
+  ]);
+
+  const openExpand = useCallback(
+    () => patchEditor({ expandOpen: true, expandQty: 1 }),
+    [patchEditor],
+  );
+
+  // "Make your box larger?" — consent to more dish spaces. Billing needs no
+  // mutation (`cartTotals` already prices overflow at `extraDishPence`); the
+  // consented size drives the capacity gate and the labels.
+  const expandRoom = Math.max(1, pricing.custom.maxDishes - effectiveSize);
+  const expandQty = Math.max(1, Math.min(expandRoom, editor?.expandQty ?? 1));
+  const expandNewSize = effectiveSize + expandQty;
+  const expandNewPricePence =
+    boxSize === null
+      ? 0
+      : boxPricePence(boxSize, boxIsCustom, pricing) +
+        Math.max(0, expandNewSize - boxSize) * pricing.extraDishPence;
+
+  const confirmExpand = useCallback(() => {
+    if (!editor) return;
+    setExpandedTo(expandNewSize);
+    patchEditor({
+      expandOpen: false,
+      mode: 'add',
+      chosen: true,
+      personalise: false,
+      whatOpen: false,
+    });
+    flash(`Your box is now ${expandNewSize} dishes`);
+  }, [editor, expandNewSize, patchEditor, flash]);
+
+  const chooseExpandPreset = useCallback(
+    (dishCount: number) => {
+      setBoxSize(dishCount, false);
+      setExpandedTo(0);
+      patchEditor({
+        expandOpen: false,
+        mode: 'add',
+        chosen: true,
+        personalise: false,
+        whatOpen: false,
+      });
+      flash(`Your box is now ${dishCount} dishes`);
+    },
+    [setBoxSize, patchEditor, flash],
+  );
+
+  /* ---- Foot CTA machine (template lines 3846-3864) --------------------------- */
+
+  const cta = (() => {
+    if (!editor) {
+      return { title: '', sub: '', sub2: '', label: '', disabled: false, ghost: false, action: commit };
+    }
+    const dish = editor.dish;
+    const sigUp = dish.isSignature ? (dish.upgradePence ?? 0) : 0;
+
+    if (inBox) {
+      if (!editor.chosen || !editor.mode) {
+        return {
+          title: 'Select an action to continue',
+          sub: 'No changes yet',
+          sub2: '',
+          label: 'Choose an action',
+          disabled: true,
+          ghost: false,
+          action: commit,
+        };
+      }
+      if (viewing) {
+        return {
+          title: 'No changes will be made',
+          sub: 'Your box stays the same',
+          sub2: '',
+          label: 'Back to dishes',
+          disabled: false,
+          ghost: true,
+          action: closeEditor,
+        };
+      }
+      if (editing) {
+        const saveLabel =
+          updCount > 1
+            ? `Save changes to ${updCount} dishes`
+            : targetLine && targetLine.quantity > 1
+              ? 'Save changes to 1 dish'
+              : 'Save changes';
+        if (!changedFromOrig) {
+          return {
+            title: 'No changes made',
+            sub: 'Your dish will stay the same',
+            sub2: '',
+            label: saveLabel,
+            disabled: true,
+            ghost: false,
+            action: commit,
+          };
+        }
+        if (deltaPence > 0) {
+          return {
+            title: `Personalisation +${formatPrice(deltaPence)}`,
+            sub: `Updated estimated total ${formatPrice(grandTotalPence + deltaPence)}`,
+            sub2: 'This will replace your current dish',
+            label: saveLabel,
+            disabled: false,
+            ghost: false,
+            action: commit,
+          };
+        }
+        if (deltaPence < 0) {
+          return {
+            title: `Reset to Abby’s choice · ${formatPrice(-deltaPence)} removed`,
+            sub: `Updated estimated total ${formatPrice(grandTotalPence + deltaPence)}`,
+            sub2: 'This will replace your current dish',
+            label: saveLabel,
+            disabled: false,
+            ghost: false,
+            action: commit,
+          };
+        }
+        return {
+          title: 'Changes ready to save',
+          sub: 'Your updated dish will replace the current one',
+          sub2: '',
+          label: saveLabel,
+          disabled: false,
+          ghost: false,
+          action: commit,
+        };
+      }
+      // mode === 'add'
+      if (boxFull) {
+        return {
+          title: 'More box space is needed',
+          sub: `Your ${boxLabel} is full`,
+          sub2: 'Choose a larger box to continue',
+          label: 'Make box larger',
+          disabled: false,
+          ghost: false,
+          action: openExpand,
+        };
+      }
+      return {
+        title: 'Included in your box',
+        sub: `1 of ${remaining} remaining ${remaining === 1 ? 'space' : 'spaces'} will be used`,
+        sub2:
+          `This will add another ${dish.title}` +
+          (sigUp ? ` (+${formatPrice(sigUp)} signature upgrade)` : ''),
+        label: 'Add another to box',
+        disabled: false,
+        ghost: false,
+        action: commit,
+      };
+    }
+
+    // Not in the box yet: the template's footNote branch.
+    if (boxFull) {
+      return {
+        title: `Your ${boxLabel} is full`,
+        sub: 'Make it larger to add more',
+        sub2: '',
+        label: 'Make your box larger',
+        disabled: false,
+        ghost: false,
+        action: openExpand,
+      };
+    }
+    if (dish.isSignature && sigUp) {
+      return {
+        title: 'Abby’s Signature',
+        sub:
+          `+${formatPrice(sigUp)} signature upgrade` +
+          (isCustom && changePence !== 0 ? ` · +${formatPrice(changePence)} personalisation` : ''),
+        sub2: 'Added on top of your box price',
+        label: `Add to your box · +${formatPrice(sigUp)}`,
+        disabled: false,
+        ghost: false,
+        action: commit,
+      };
+    }
+    if (isCustom) {
+      return {
+        title: 'Personalised your way',
+        sub: changePence !== 0 ? `+${formatPrice(changePence)} personalisation` : 'No extra cost',
+        sub2: changePence > 0 ? 'Added to base price' : '',
+        label: `Add to your box${changePence > 0 ? ` · +${formatPrice(changePence)} extra` : ''}`,
+        disabled: false,
+        ghost: false,
+        action: commit,
+      };
+    }
+    return {
+      title: 'As Abby designed it',
+      sub: 'No extra cost',
+      sub2: '',
+      label: 'Add to your box',
+      disabled: false,
+      ghost: false,
+      action: commit,
+    };
+  })();
+
+  /* ---- Right-column visibility (template `showPersonalise` etc.) ------------- */
+
+  const showPersonalise = inBox
+    ? Boolean(
+        editor &&
+          editor.chosen &&
+          !viewing &&
+          !(adding && boxFull) &&
+          !(adding && !editor.personalise) &&
+          !(editing && editorLines.length > 1 && !editor.targetLineId),
+      )
+    : true;
+  const showSpaceBanner = inBox && adding && !boxFull;
+  const showInBoxHeader = inBox && !showSpaceBanner;
+  const showVersionPicker = editing && editorLines.length > 1;
+  const showCountPicker = editing && Boolean(targetLine && targetLine.quantity > 1);
 
   // Someone deep-linked past step 1: there is no box to fill yet.
   if (hydrated && boxSize === null) {
@@ -881,7 +1369,7 @@ export function DishPicker({ dishes, personalisation, heating }: DishPickerProps
                               <button
                                 type="button"
                                 className={styles.editLine}
-                                onClick={() => openEditor(dish, single)}
+                                onClick={() => openEditor(dish, single, { personalise: true })}
                               >
                                 Edit
                               </button>
@@ -901,7 +1389,7 @@ export function DishPicker({ dishes, personalisation, heating }: DishPickerProps
                           <button
                             type="button"
                             className={styles.persLink}
-                            onClick={() => openEditor(dish, single ?? undefined)}
+                            onClick={() => openEditor(dish, single ?? undefined, { personalise: true })}
                           >
                             <svg
                               width="16"
@@ -1057,7 +1545,7 @@ export function DishPicker({ dishes, personalisation, heating }: DishPickerProps
               <button
                 type="button"
                 className={styles.dialogBack}
-                onClick={closeEditor}
+                onClick={modalBack}
                 aria-label="Back"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -1086,7 +1574,7 @@ export function DishPicker({ dishes, personalisation, heating }: DishPickerProps
             </div>
 
             <div className={styles.dialogBody} id="dm-body">
-              <div className={styles.dmCols}>
+              <div className={styles.dmCols} data-inbox={inBox || undefined}>
                 {/* ---- Left: the dish itself -------------------------------- */}
                 <div className={styles.dmLeft}>
                   <div className={styles.dmHero}>
@@ -1265,12 +1753,589 @@ export function DishPicker({ dishes, personalisation, heating }: DishPickerProps
 
                 {/* ---- Right: actions + personalise ------------------------- */}
                 <div className={styles.dmRight}>
+                  {editor.expandOpen ? (
+                    /* ---- "Make your box larger?" swaps the whole column ----- */
+                    <div className={styles.expandView}>
+                      <button
+                        type="button"
+                        className={styles.expandBack}
+                        onClick={() => patchEditor({ expandOpen: false })}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M15 6l-6 6 6 6" />
+                        </svg>
+                        Back to {editor.dish.title}
+                      </button>
+                      <h3 className={styles.expandTitle}>Make your box larger?</h3>
+                      <p className={styles.expandIntro}>
+                        Your {boxLabel} is full. Add more dish spaces and your total updates
+                        immediately.
+                      </p>
+                      <div className={styles.expandCard}>
+                        <div className={styles.expandCardTitle}>
+                          How many more dish spaces would you like?
+                        </div>
+                        <div className={styles.expandStepper}>
+                          <button
+                            type="button"
+                            className={styles.expandStepBtn}
+                            onClick={() => patchEditor({ expandQty: Math.max(1, expandQty - 1) })}
+                            disabled={expandQty <= 1}
+                            aria-label="Fewer dishes"
+                          >
+                            −
+                          </button>
+                          <div className={styles.expandCount}>
+                            <input
+                              className={styles.expandInput}
+                              value={expandQty}
+                              inputMode="numeric"
+                              aria-label="Extra dishes"
+                              onChange={(event) => {
+                                const parsed = Number.parseInt(event.target.value, 10);
+                                patchEditor({
+                                  expandQty: Number.isFinite(parsed)
+                                    ? Math.max(1, Math.min(expandRoom, parsed))
+                                    : 1,
+                                });
+                              }}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            className={styles.expandStepBtn}
+                            onClick={() =>
+                              patchEditor({ expandQty: Math.min(expandRoom, expandQty + 1) })
+                            }
+                            disabled={expandQty >= expandRoom}
+                            aria-label="More dishes"
+                          >
+                            +
+                          </button>
+                        </div>
+                        <div className={styles.expandRule} aria-hidden="true" />
+                        <div className={styles.expandRow}>
+                          <span>New box size</span>
+                          <span className={styles.expandRowValue}>{expandNewSize} dishes</span>
+                        </div>
+                        <div className={styles.expandRow}>
+                          <span>Updated box price</span>
+                          <span className={styles.expandRowValue}>
+                            {formatPrice(expandNewPricePence)}
+                          </span>
+                        </div>
+                      </div>
+                      <button type="button" className={styles.expandCta} onClick={confirmExpand}>
+                        Expand to {expandNewSize} dishes — {formatPrice(expandNewPricePence)}
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <line x1="4" y1="12" x2="19" y2="12" />
+                          <path d="M13 6l6 6-6 6" />
+                        </svg>
+                      </button>
+                      {pricing.presets.some((offer) => offer.dishCount > effectiveSize) ? (
+                        <>
+                          <div className={styles.expandOr} aria-hidden="true">
+                            <span className={styles.expandOrLine} />
+                            <span className={styles.expandOrLabel}>Or choose a preset</span>
+                            <span className={styles.expandOrLine} />
+                          </div>
+                          <div className={styles.expandPresets}>
+                            {pricing.presets
+                              .filter((offer) => offer.dishCount > effectiveSize)
+                              .map((offer) => (
+                                <button
+                                  key={offer.id}
+                                  type="button"
+                                  className={styles.expandPreset}
+                                  onClick={() => chooseExpandPreset(offer.dishCount)}
+                                >
+                                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <path d="M3 8l9-4 9 4-9 4-9-4z" />
+                                    <path d="M3 8v8l9 4 9-4V8" />
+                                    <path d="M12 12v8" />
+                                  </svg>
+                                  <span className={styles.expandPresetLabel}>{offer.name}</span>
+                                  <span className={styles.expandPresetPrice}>
+                                    {formatPrice(offer.pricePence)}
+                                  </span>
+                                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--taupe)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <path d="M9 6l6 6-6 6" />
+                                  </svg>
+                                </button>
+                              ))}
+                          </div>
+                        </>
+                      ) : null}
+                      <button
+                        type="button"
+                        className={styles.expandKeep}
+                        onClick={() => patchEditor({ expandOpen: false })}
+                      >
+                        Keep my current box
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      {inBox ? (
+                        <>
+                          {/* Mobile in-box hero (CSS shows it ≤760 only). */}
+                          <div className={styles.dmMobHero} aria-hidden="true">
+                            <Image
+                              src={editor.dish.imageUrl}
+                              alt=""
+                              width={430}
+                              height={150}
+                              className={styles.dmMobHeroImage}
+                            />
+                            <span className={styles.dmMobHeroPill}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--blush)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M5 12.5l4.5 4.5L19 7" />
+                              </svg>
+                              In your box
+                            </span>
+                          </div>
+
+                          {showSpaceBanner ? (
+                            <div className={styles.spaceBanner}>
+                              <span className={styles.spaceBannerCheck} aria-hidden="true">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--blush)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M5 12.5l4.5 4.5L19 7" />
+                                </svg>
+                              </span>
+                              <span className={styles.spaceBannerText}>
+                                <span className={styles.spaceBannerTitle}>Box updated</span>
+                                <span className={styles.spaceBannerSub}>
+                                  {usedCount} of {effectiveSize} dishes selected ·{' '}
+                                  {remaining} {remaining === 1 ? 'space' : 'spaces'} remaining
+                                </span>
+                              </span>
+                            </div>
+                          ) : null}
+
+                          {showInBoxHeader ? (
+                            <div className={styles.inBoxHead}>
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M2.5 11.5h19" />
+                                <path d="M4 11.5a8 8 0 0 0 16 0" />
+                                <path d="M8.8 3.4c-.9 1.1.9 1.9 0 3" />
+                                <path d="M14 3.4c-.9 1.1.9 1.9 0 3" />
+                              </svg>
+                              <span className={styles.inBoxHeadText}>
+                                {dishInBoxQty}{' '}
+                                <span className={styles.inBoxHeadName}>{editor.dish.title}</span>{' '}
+                                already in your box
+                              </span>
+                            </div>
+                          ) : null}
+
+                          {/* ---- "What would you like to do?" ----------------- */}
+                          <div className={styles.whatCard}>
+                            <div className={styles.whatHead}>
+                              <span className={styles.whatTitle}>What would you like to do?</span>
+                            </div>
+
+                            {editor.whatOpen ? (
+                              <div className={styles.whatBody}>
+                                <div className={styles.whatList}>
+                                  {!(editor.chosen && adding) ? (
+                                    /* Update card, holding version + count pickers. */
+                                    <div
+                                      className={styles.modeCard}
+                                      data-selected={editing || undefined}
+                                    >
+                                      <div
+                                        role="button"
+                                        tabIndex={0}
+                                        className={styles.modeCardHead}
+                                        onClick={setModeUpdate}
+                                        onKeyDown={(event) => {
+                                          if (event.key === 'Enter' || event.key === ' ') {
+                                            event.preventDefault();
+                                            setModeUpdate();
+                                          }
+                                        }}
+                                      >
+                                        <span className={styles.modeDot} aria-hidden="true">
+                                          {editing ? (
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--white)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                              <path d="M20 6L9 17l-5-5" />
+                                            </svg>
+                                          ) : null}
+                                        </span>
+                                        <span className={styles.modeText}>
+                                          <span className={styles.modeLabel}>
+                                            {editorLines.length > 1
+                                              ? 'Update an existing dish'
+                                              : 'Update the dish already in your box'}
+                                          </span>
+                                          <span className={styles.modeSub}>
+                                            {editorLines.length > 1
+                                              ? 'Change one or more dishes already in your box.'
+                                              : 'Make changes to the dish you’ve already added.'}
+                                          </span>
+                                        </span>
+                                      </div>
+
+                                      {showVersionPicker ? (
+                                        <div className={styles.versionPicker}>
+                                          <div className={styles.pickerRule} aria-hidden="true" />
+                                          <span className={styles.pickerTitle}>
+                                            Which dish would you like to update?
+                                          </span>
+                                          <div className={styles.versionList}>
+                                            {editorLines.map((line) => (
+                                              <button
+                                                key={line.lineId}
+                                                type="button"
+                                                className={styles.versionRow}
+                                                data-selected={
+                                                  line.lineId === editor.targetLineId || undefined
+                                                }
+                                                onClick={() => selectVersion(line.lineId)}
+                                              >
+                                                <span className={styles.forkDot} aria-hidden="true">
+                                                  {line.lineId === editor.targetLineId ? (
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--white)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                                      <path d="M20 6L9 17l-5-5" />
+                                                    </svg>
+                                                  ) : null}
+                                                </span>
+                                                <span className={styles.versionText}>
+                                                  <span className={styles.versionLabel}>
+                                                    {personalisationSummary(
+                                                      line.personalisation,
+                                                      personalisation,
+                                                    )}
+                                                  </span>
+                                                  <span className={styles.versionQty}>
+                                                    {line.quantity}{' '}
+                                                    {line.quantity === 1
+                                                      ? 'dish in your box'
+                                                      : 'dishes in your box'}
+                                                  </span>
+                                                </span>
+                                              </button>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      ) : null}
+
+                                      {showCountPicker ? (
+                                        <div className={styles.countPicker}>
+                                          <div className={styles.pickerRuleWide} aria-hidden="true" />
+                                          <span className={styles.pickerTitleWide}>
+                                            How many would you like to update?
+                                          </span>
+                                          <div className={styles.countRow}>
+                                            <button
+                                              type="button"
+                                              className={styles.countBtn}
+                                              onClick={decUpdateCount}
+                                              disabled={updCount <= 1}
+                                              aria-label="Fewer dishes"
+                                            >
+                                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+                                                <path d="M5 12h14" />
+                                              </svg>
+                                            </button>
+                                            <div className={styles.countValue}>
+                                              <span className={styles.countNumber}>{updCount}</span>
+                                              <span className={styles.countOf}>
+                                                of {targetLine?.quantity ?? 0} dishes
+                                              </span>
+                                            </div>
+                                            <span className={styles.countIncWrap}>
+                                              <button
+                                                type="button"
+                                                className={styles.countBtn}
+                                                onClick={incUpdateCount}
+                                                aria-label="More dishes"
+                                              >
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+                                                  <path d="M12 5v14M5 12h14" />
+                                                </svg>
+                                              </button>
+                                              {updTip ? (
+                                                <span className={styles.countTip} role="status">
+                                                  You can update up to {targetLine?.quantity ?? 0}{' '}
+                                                  currently in your box.
+                                                  <span
+                                                    className={styles.countTipArrow}
+                                                    aria-hidden="true"
+                                                  />
+                                                </span>
+                                              ) : null}
+                                            </span>
+                                          </div>
+                                          <div className={styles.countHelper}>
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                              <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+                                              <path d="M21 3.5v4.2h-4.2" />
+                                            </svg>
+                                            <span>
+                                              You can update all {targetLine?.quantity ?? 0}{' '}
+                                              <span className={styles.countHelperName}>
+                                                {editor.dish.title}
+                                              </span>{' '}
+                                              already in your box.
+                                            </span>
+                                          </div>
+                                        </div>
+                                      ) : null}
+                                    </div>
+                                  ) : null}
+
+                                  {!editor.chosen || adding ? (
+                                    <>
+                                      {/* Add another card. */}
+                                      <button
+                                        type="button"
+                                        className={styles.modeCard}
+                                        data-selected={adding || undefined}
+                                        onClick={setModeAdd}
+                                      >
+                                        <span className={styles.modeCardHead}>
+                                          <span className={styles.modeDot} aria-hidden="true">
+                                            {adding ? (
+                                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--white)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M20 6L9 17l-5-5" />
+                                              </svg>
+                                            ) : null}
+                                          </span>
+                                          <span className={styles.modeText}>
+                                            <span className={styles.modeLabel}>
+                                              Add another of this dish
+                                            </span>
+                                            <span className={styles.modeSub}>
+                                              {editorLines.length > 1
+                                                ? 'Keep your current dishes and add a new one.'
+                                                : 'Keep your current dish and add another, personalised to your preferences below.'}
+                                            </span>
+                                          </span>
+                                        </span>
+                                      </button>
+
+                                      {adding ? (
+                                        <div className={styles.addPanel}>
+                                          {!boxFull ? (
+                                            <>
+                                              <div className={styles.addPanelTitle}>
+                                                Personalise this one?
+                                              </div>
+                                              <div className={styles.addForkList}>
+                                                <button
+                                                  type="button"
+                                                  className={styles.addForkOption}
+                                                  data-selected={editor.personalise || undefined}
+                                                  onClick={() => navSet({ personalise: true })}
+                                                >
+                                                  <span
+                                                    className={styles.addForkDot}
+                                                    aria-hidden="true"
+                                                  >
+                                                    {editor.personalise ? (
+                                                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--white)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M20 6L9 17l-5-5" />
+                                                      </svg>
+                                                    ) : null}
+                                                  </span>
+                                                  Yes, personalise it
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  className={styles.addForkOption}
+                                                  data-selected={!editor.personalise || undefined}
+                                                  onClick={() =>
+                                                    navSet({ personalise: false, draft: abbys })
+                                                  }
+                                                >
+                                                  <span
+                                                    className={styles.addForkDot}
+                                                    aria-hidden="true"
+                                                  >
+                                                    {!editor.personalise ? (
+                                                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--white)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M20 6L9 17l-5-5" />
+                                                      </svg>
+                                                    ) : null}
+                                                  </span>
+                                                  No — keep as Abby designed it
+                                                </button>
+                                              </div>
+                                            </>
+                                          ) : (
+                                            <div
+                                              role="button"
+                                              tabIndex={0}
+                                              className={styles.addFullCard}
+                                              onClick={openExpand}
+                                              onKeyDown={(event) => {
+                                                if (event.key === 'Enter' || event.key === ' ') {
+                                                  event.preventDefault();
+                                                  openExpand();
+                                                }
+                                              }}
+                                            >
+                                              <span
+                                                className={styles.addFullCircle}
+                                                aria-hidden="true"
+                                              >
+                                                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                                  <path d="M3 8l9-4 9 4-9 4-9-4z" />
+                                                  <path d="M3 8v8l9 4 9-4V8" />
+                                                  <path d="M12 12v8" />
+                                                </svg>
+                                              </span>
+                                              <span className={styles.addFullTitle}>
+                                                Your {boxLabel} is full
+                                              </span>
+                                              <span className={styles.addFullSub}>
+                                                Make it larger to add another {editor.dish.title}.{' '}
+                                                <span className={styles.addFullStrong}>
+                                                  Your personalisation opens once there’s room.
+                                                </span>
+                                              </span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      ) : null}
+
+                                      {editor.chosen && adding ? (
+                                        <button
+                                          type="button"
+                                          className={styles.viewLink}
+                                          onClick={() =>
+                                            navSet({
+                                              chosen: false,
+                                              mode: null,
+                                              personalise: false,
+                                            })
+                                          }
+                                        >
+                                          View other options
+                                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--taupe)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                            <path d="M9 6l6 6-6 6" />
+                                          </svg>
+                                        </button>
+                                      ) : null}
+                                    </>
+                                  ) : null}
+
+                                  {!editor.chosen ? (
+                                    /* Just browsing card. */
+                                    <button
+                                      type="button"
+                                      className={styles.modeCard}
+                                      data-selected={viewing || undefined}
+                                      onClick={onJustViewing}
+                                    >
+                                      <span className={styles.modeCardHead}>
+                                        <span className={styles.modeDot} aria-hidden="true">
+                                          {viewing ? (
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--white)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                              <path d="M20 6L9 17l-5-5" />
+                                            </svg>
+                                          ) : null}
+                                        </span>
+                                        <span className={styles.modeText}>
+                                          <span className={styles.modeLabel}>
+                                            Just browsing — no changes
+                                          </span>
+                                          <span className={styles.modeSub}>
+                                            View details without making any changes.
+                                          </span>
+                                        </span>
+                                      </span>
+                                    </button>
+                                  ) : null}
+
+                                  {editor.chosen && !adding ? (
+                                    <button
+                                      type="button"
+                                      className={styles.viewLink}
+                                      onClick={() =>
+                                        navSet({ chosen: false, mode: null, personalise: false })
+                                      }
+                                    >
+                                      View other options
+                                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--taupe)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                        <path d="M9 6l6 6-6 6" />
+                                      </svg>
+                                    </button>
+                                  ) : null}
+                                </div>
+                              </div>
+                            ) : editor.chosen ? (
+                              /* Collapsed: the committed choice + reopen link. */
+                              <div className={styles.whatClosed}>
+                                <div
+                                  role="button"
+                                  tabIndex={0}
+                                  className={styles.chosenCard}
+                                  onClick={() =>
+                                    navSet({ mode: null, chosen: false, whatOpen: true })
+                                  }
+                                  onKeyDown={(event) => {
+                                    if (event.key === 'Enter' || event.key === ' ') {
+                                      event.preventDefault();
+                                      navSet({ mode: null, chosen: false, whatOpen: true });
+                                    }
+                                  }}
+                                >
+                                  <span
+                                    className={`${styles.modeDot} ${styles.modeDotChecked}`}
+                                    aria-hidden="true"
+                                  >
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--white)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M20 6L9 17l-5-5" />
+                                    </svg>
+                                  </span>
+                                  <span className={styles.modeText}>
+                                    <span className={styles.modeLabel}>
+                                      {adding
+                                        ? 'Add another of this dish'
+                                        : viewing
+                                          ? 'Just browsing — no changes'
+                                          : editorLines.length > 1
+                                            ? 'Update an existing dish'
+                                            : 'Update the dish already in your box'}
+                                    </span>
+                                    <span className={styles.modeSub}>
+                                      {adding
+                                        ? editorLines.length > 1
+                                          ? 'Keep your current dishes and add a new one.'
+                                          : 'Keep your current dish and add another.'
+                                        : viewing
+                                          ? 'View details without making any changes.'
+                                          : editorLines.length > 1
+                                            ? 'Change one or more dishes already in your box.'
+                                            : 'Make changes to the dish you’ve already added.'}
+                                    </span>
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  className={styles.viewLink}
+                                  onClick={() => navSet({ whatOpen: true, chosen: false })}
+                                >
+                                  View other options
+                                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--taupe)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <path d="M9 6l6 6-6 6" />
+                                  </svg>
+                                </button>
+                              </div>
+                            ) : null}
+                          </div>
+                        </>
+                      ) : null}
+
+                      {showPersonalise ? (
                   <div className={styles.persPanel} id="dm-personalise">
                     <button
                       type="button"
                       className={styles.persPanelHead}
-                      onClick={() => setPersOpen((open) => !open)}
-                      aria-expanded={persOpen}
+                      onClick={() => patchEditor({ persOpen: !editor.persOpen })}
+                      aria-expanded={editor.persOpen}
                     >
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
                         <line x1="4" y1="8" x2="20" y2="8" />
@@ -1280,29 +2345,32 @@ export function DishPicker({ dishes, personalisation, heating }: DishPickerProps
                       </svg>
                       <span className={styles.persPanelTitles}>
                         <span className={styles.persPanelTitle}>
-                          {editor.lineId
+                          {inBox && (editing || adding)
                             ? 'Personalise this dish'
                             : 'Would you like to personalise this dish?'}
                         </span>
-                        {!persOpen ? (
+                        {!editor.persOpen ? (
                           <span className={styles.persPanelSummary}>
-                            {personalisationSummary(enabled ? draft : undefined, personalisation)}
+                            {personalisationSummary(
+                              enabled && isCustom ? draft : undefined,
+                              personalisation,
+                            )}
                           </span>
                         ) : null}
                       </span>
-                      {isCustom ? (
+                      {inBox && editing ? (
                         <span
                           role="button"
                           tabIndex={0}
                           className={styles.persReset}
                           onClick={(event) => {
                             event.stopPropagation();
-                            setDraft(abbys);
+                            patchEditor({ personalise: true, draft: abbys });
                           }}
                           onKeyDown={(event) => {
                             if (event.key === 'Enter' || event.key === ' ') {
                               event.stopPropagation();
-                              setDraft(abbys);
+                              patchEditor({ personalise: true, draft: abbys });
                             }
                           }}
                         >
@@ -1311,7 +2379,7 @@ export function DishPicker({ dishes, personalisation, heating }: DishPickerProps
                       ) : null}
                       <svg
                         className={styles.persPanelChevron}
-                        data-open={persOpen || undefined}
+                        data-open={editor.persOpen || undefined}
                         width="22"
                         height="22"
                         viewBox="0 0 24 24"
@@ -1326,22 +2394,33 @@ export function DishPicker({ dishes, personalisation, heating }: DishPickerProps
                       </svg>
                     </button>
 
-                    {persOpen ? (
+                    {editor.persOpen ? (
                     <div className={styles.persPanelBody}>
-              <p className={styles.dialogIntro}>
-                Choose your portion size, swap proteins, change sides or adjust heat.{' '}
-                <span className={styles.dialogIntroSoft}>
-                  Price and nutrition update as you personalise.
-                </span>
-              </p>
+              {inBox && editing ? (
+                <p className={styles.dialogIntro}>
+                  Your current choices are shown below.
+                  <br />
+                  <span className={styles.dialogIntroSoft}>
+                    Price and nutrition update as you personalise.
+                  </span>
+                </p>
+              ) : (
+                <p className={styles.dialogIntro}>
+                  Choose your portion size, swap proteins, change sides or adjust heat.{' '}
+                  <span className={styles.dialogIntroSoft}>
+                    Price and nutrition update as you personalise.
+                  </span>
+                </p>
+              )}
 
+              {!inBox ? (
               <div className={styles.fork}>
                 <button
                   type="button"
                   className={styles.forkOption}
                   data-selected={enabled || undefined}
                   aria-pressed={enabled}
-                  onClick={() => setEnabled(true)}
+                  onClick={() => navSet({ personalise: true })}
                 >
                   <span className={styles.forkDot} aria-hidden="true">
                     {enabled ? (
@@ -1366,10 +2445,7 @@ export function DishPicker({ dishes, personalisation, heating }: DishPickerProps
                   className={styles.forkOption}
                   data-selected={!enabled || undefined}
                   aria-pressed={!enabled}
-                  onClick={() => {
-                    setEnabled(false);
-                    setDraft(abbys);
-                  }}
+                  onClick={() => navSet({ personalise: false, draft: abbys })}
                 >
                   <span className={styles.forkDot} aria-hidden="true">
                     {!enabled ? (
@@ -1381,6 +2457,7 @@ export function DishPicker({ dishes, personalisation, heating }: DishPickerProps
                   <span className={styles.forkLabel}>No, keep as Abby designed it</span>
                 </button>
               </div>
+              ) : null}
 
               {enabled ? (
                 <>
@@ -1523,60 +2600,81 @@ export function DishPicker({ dishes, personalisation, heating }: DishPickerProps
                     </div>
                     ) : null}
                   </div>
+                      ) : null}
+
+                      {inBox ? (
+                        <div className={styles.dmMobJumps}>
+                          {[
+                            { label: 'Nutrition', target: 'dish-nutrition' },
+                            { label: 'Ingredients & allergens', target: 'dish-ingredients' },
+                            { label: 'How to heat', target: 'dish-heating' },
+                          ].map((jump, index) => (
+                            <span key={jump.target} className={styles.dmJumpWrap}>
+                              {index > 0 ? (
+                                <span className={styles.dmJumpSep} aria-hidden="true">
+                                  ·
+                                </span>
+                              ) : null}
+                              <button
+                                type="button"
+                                className={styles.dmJump}
+                                onClick={() =>
+                                  document
+                                    .getElementById(jump.target)
+                                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                                }
+                              >
+                                {jump.label}
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                  <path d="M12 5v14" />
+                                  <path d="M6 13l6 6 6-6" />
+                                </svg>
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </>
+                  )}
                 </div>
               </div>
             </div>
 
-            <div className={styles.dialogFoot}>
-              <div className={styles.dmCtaRow}>
-                <div className={styles.footNote}>
-                  <span className={styles.footTitle}>
-                    {editor.dish.isSignature
-                      ? 'Abby’s Signature'
-                      : isCustom
-                        ? 'Personalised your way'
-                        : 'As Abby designed it'}
+            {!editor.expandOpen ? (
+              <div className={styles.dialogFoot}>
+                <div className={styles.dmCtaRow}>
+                  <div className={styles.footNote}>
+                    <span className={styles.footTitle}>{cta.title}</span>
+                    <span className={styles.footSub}>{cta.sub}</span>
+                    {cta.sub2 ? <span className={styles.footSub2}>{cta.sub2}</span> : null}
+                  </div>
+                  <span className={styles.footDivider} aria-hidden="true" />
+                  <span className={styles.dmCtaWrap}>
+                    <button
+                      type="button"
+                      className={styles.dmCta}
+                      data-ghost={cta.ghost || undefined}
+                      onClick={cta.action}
+                      disabled={cta.disabled}
+                    >
+                      {cta.label}
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <line x1="4" y1="12" x2="19" y2="12" />
+                        <path d="M13 6l6 6-6 6" />
+                      </svg>
+                    </button>
                   </span>
-                  <span className={styles.footSub}>
-                    {editor.dish.isSignature && editor.dish.upgradePence
-                      ? `+${formatPrice(editor.dish.upgradePence)} signature upgrade${
-                          isCustom && changePence !== 0
-                            ? ` · +${formatPrice(changePence)} personalisation`
-                            : ''
-                        }`
-                      : isCustom && changePence !== 0
-                        ? `+${formatPrice(changePence)} personalisation`
-                        : 'No extra cost'}
-                  </span>
-                  {editor.dish.isSignature ? (
-                    <span className={styles.footSub2}>Added on top of your box price</span>
-                  ) : isCustom && changePence > 0 ? (
-                    <span className={styles.footSub2}>Added to base price</span>
-                  ) : null}
                 </div>
-                <span className={styles.footDivider} aria-hidden="true" />
-                <span className={styles.dmCtaWrap}>
-                  <button type="button" className={styles.dmCta} onClick={commit}>
-                    {editor.lineId
-                      ? 'Save changes'
-                      : `Add to your box${
-                          editor.dish.isSignature && editor.dish.upgradePence
-                            ? ` · +${formatPrice(editor.dish.upgradePence)}`
-                            : isCustom && changePence > 0
-                              ? ` · +${formatPrice(changePence)} extra`
-                              : ''
-                        }`}
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <line x1="4" y1="12" x2="19" y2="12" />
-                      <path d="M13 6l6 6-6 6" />
-                    </svg>
-                  </button>
-                </span>
               </div>
-            </div>
+            ) : null}
           </div>
         </div>
       ) : null}
+
+      {/* The template's flash toast: fixed above the mobile bar, slides away. */}
+      <div className={styles.toast} data-show={toast || undefined} role="status">
+        {toast}
+      </div>
 
       {/* Floating "Top": kept in the DOM so it can fade rather than pop. */}
       <button

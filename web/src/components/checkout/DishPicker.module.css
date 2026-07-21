@@ -1811,6 +1811,854 @@
   opacity: 0.45;
 }
 
+/* ---- In-box: header, banners, mode chooser --------------------------------------------- */
+
+/* 150px hero shown in the right column on mobile when the dish is in the box. */
+.dmMobHero {
+  display: none;
+  position: relative;
+  height: 150px;
+  margin-bottom: 14px;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.dmMobHeroImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dmMobHeroPill {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: var(--radius-pill);
+  background: var(--green-forest);
+  color: var(--blush);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.spaceBanner {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border: var(--border-hairline) solid var(--sand-2);
+  border-radius: 14px;
+  background: var(--surface-bright);
+}
+
+.spaceBannerCheck {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--green-forest);
+}
+
+.spaceBannerText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.spaceBannerTitle {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+
+.spaceBannerSub {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 14px;
+  color: var(--green-forest);
+}
+
+.inBoxHead {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 12px;
+}
+
+.inBoxHead svg {
+  flex: 0 0 auto;
+}
+
+.inBoxHeadText {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+
+.inBoxHeadName {
+  color: var(--green-forest);
+}
+
+.whatCard {
+  margin-bottom: 22px;
+  border: var(--border-hairline) solid var(--sand-2);
+  border-radius: 16px;
+  background: var(--surface-card);
+  overflow: hidden;
+}
+
+.whatHead {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px 14px;
+  text-align: left;
+}
+
+.whatTitle {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 21px;
+  line-height: 1.15;
+  color: var(--green-forest);
+}
+
+.whatBody,
+.whatClosed {
+  padding: 0 18px 18px;
+}
+
+.whatList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* One action card: Update (a div holding its pickers), Add another, browsing. */
+.modeCard {
+  border: 1.5px solid var(--sand-2);
+  border-radius: 16px;
+  background: var(--surface-card);
+  overflow: hidden;
+  text-align: left;
+  padding: 0;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease;
+}
+
+.modeCard:hover {
+  border-color: var(--green-forest);
+}
+
+.modeCard[data-selected] {
+  border-color: var(--green-forest);
+  background: var(--surface-bright);
+}
+
+.modeCardHead {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 18px;
+  cursor: pointer;
+  text-align: left;
+}
+
+/* 24px circle + 2px ring, as the template draws the mode radios (28px outer). */
+.modeDot {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--taupe);
+  border-radius: 50%;
+  background: transparent;
+}
+
+.modeCard[data-selected] .modeDot,
+.modeDotChecked {
+  border-color: var(--green-forest);
+  background: var(--green-forest);
+}
+
+.modeText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.modeLabel {
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 18px;
+  line-height: 1.2;
+  color: var(--green-forest);
+}
+
+.modeSub {
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--taupe);
+}
+
+/* Version picker, inside the update card. */
+.versionPicker {
+  padding: 0 18px 18px;
+}
+
+.pickerRule {
+  height: 1px;
+  background: var(--sand-2);
+  margin: 0 0 14px;
+}
+
+.pickerTitle {
+  display: block;
+  text-align: center;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 11.5px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--text-body);
+}
+
+.versionList {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.versionRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 15px;
+  border: 1.5px solid var(--sand-2);
+  border-radius: 12px;
+  background: var(--surface-card);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease;
+}
+
+.versionRow:hover {
+  border-color: var(--green-forest);
+}
+
+.versionRow[data-selected] {
+  border-color: var(--green-forest);
+  background: var(--surface-bright);
+}
+
+.versionRow[data-selected] .forkDot {
+  border-color: var(--green-forest);
+  background: var(--green-forest);
+}
+
+.versionText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.versionLabel {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 14px;
+  color: var(--green-forest);
+}
+
+.versionQty {
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  color: var(--taupe);
+}
+
+/* Count picker, inside the update card. */
+.countPicker {
+  padding: 2px 18px 20px;
+}
+
+.pickerRuleWide {
+  height: 1px;
+  background: var(--sand-2);
+  margin: 0 0 18px;
+}
+
+.pickerTitleWide {
+  display: block;
+  text-align: center;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 11.5px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-body);
+}
+
+.countRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+  margin-top: 16px;
+}
+
+.countBtn {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  box-sizing: border-box;
+  border: 1.5px solid var(--brass);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--brass);
+  cursor: pointer;
+  transition: background 0.16s ease, opacity 0.16s ease;
+}
+
+.countBtn:hover:not(:disabled) {
+  background: rgb(194 142 60 / 0.1);
+}
+
+.countBtn:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.countValue {
+  min-width: 72px;
+  text-align: center;
+}
+
+.countNumber {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 42px;
+  line-height: 1;
+  color: var(--green-forest);
+}
+
+.countOf {
+  display: block;
+  margin-top: 6px;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 11px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--text-body);
+}
+
+.countIncWrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.countTip {
+  position: absolute;
+  right: -6px;
+  left: auto;
+  bottom: calc(100% + 12px);
+  width: max-content;
+  max-width: min(240px, 68vw);
+  padding: 10px 13px;
+  border: var(--border-hairline) solid var(--brass);
+  border-radius: 12px;
+  background: var(--green-forest);
+  color: var(--blush);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  line-height: 1.45;
+  text-align: center;
+  box-shadow: var(--shadow-raised);
+  z-index: 5;
+}
+
+.countTipArrow {
+  position: absolute;
+  right: 22px;
+  top: 100%;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid var(--green-forest);
+}
+
+.countHelper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--taupe);
+}
+
+.countHelper svg {
+  flex: 0 0 auto;
+}
+
+.countHelperName {
+  color: var(--green-forest);
+  font-weight: var(--weight-semibold);
+}
+
+/* "Personalise this one?" panel hanging off the Add card. */
+.addPanel {
+  margin: -6px 2px 2px;
+  border: 1.5px solid var(--sand-2);
+  border-top: none;
+  border-radius: 0 0 14px 14px;
+  background: var(--surface-card);
+  padding: 4px 16px 15px 42px;
+}
+
+.addPanelTitle {
+  margin: 12px 0 10px;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--taupe);
+}
+
+.addForkList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.addForkOption {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--sand-2);
+  border-radius: 11px;
+  background: var(--surface-card);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 14px;
+  color: var(--green-forest);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease;
+}
+
+.addForkOption:hover {
+  border-color: var(--green-forest);
+}
+
+.addForkOption[data-selected] {
+  border-color: var(--green-forest);
+  background: var(--surface-bright);
+}
+
+/* 20px circle + 2px ring (24px outer). */
+.addForkDot {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--taupe);
+  border-radius: 50%;
+  background: transparent;
+}
+
+.addForkOption[data-selected] .addForkDot {
+  border-color: var(--green-forest);
+  background: var(--green-forest);
+}
+
+/* Box-full notice inside the Add card. */
+.addFullCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-left: -26px;
+  padding: 20px 6px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.addFullCircle {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: rgb(194 142 60 / 0.14);
+}
+
+.addFullTitle {
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 21px;
+  line-height: 1.15;
+  color: var(--green-forest);
+}
+
+.addFullSub {
+  max-width: 300px;
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--taupe);
+}
+
+.addFullStrong {
+  color: var(--green-forest);
+  font-weight: 700;
+}
+
+/* Collapsed chooser: the committed choice. */
+.chosenCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 16px 18px;
+  border: 1.5px solid var(--green-forest);
+  border-radius: 16px;
+  background: var(--surface-bright);
+  text-align: left;
+  cursor: pointer;
+}
+
+.viewLink {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+  padding: 14px 16px;
+  border: var(--border-hairline) solid var(--sand-2);
+  border-radius: 12px;
+  background: var(--surface-card);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 14px;
+  color: var(--green-forest);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.16s ease;
+}
+
+.viewLink:hover {
+  border-color: var(--green-forest);
+}
+
+.whatClosed .viewLink {
+  margin-top: 12px;
+}
+
+/* Second jump-link row: bottom of the right column on in-box mobile. */
+.dmMobJumps {
+  display: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 8px;
+  margin: 8px 0 4px;
+}
+
+/* ---- "Make your box larger?" ------------------------------------------------------------ */
+
+.expandView {
+  display: block;
+}
+
+.expandBack {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 14.5px;
+  color: var(--green-forest);
+  cursor: pointer;
+  transition: color 0.16s ease;
+}
+
+.expandBack:hover {
+  color: var(--brass);
+}
+
+.expandTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 26px;
+  line-height: 1.14;
+  color: var(--green-forest);
+}
+
+.expandIntro {
+  margin: 8px 0 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-body);
+}
+
+.expandCard {
+  margin-top: 18px;
+  padding: 20px;
+  border: var(--border-hairline) solid var(--sand-2);
+  border-radius: 16px;
+  background: var(--surface-raised);
+}
+
+.expandCardTitle {
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 18px;
+  line-height: 1.2;
+  color: var(--green-forest);
+}
+
+.expandStepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.expandStepBtn {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  box-sizing: border-box;
+  border: 1.5px solid var(--brass);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--brass);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.16s ease, opacity 0.16s ease;
+}
+
+.expandStepBtn:hover:not(:disabled) {
+  background: rgb(194 142 60 / 0.1);
+}
+
+.expandStepBtn:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.expandCount {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  box-sizing: border-box;
+  padding: 8px 16px;
+  border: 1.5px solid var(--brass);
+  border-radius: 12px;
+  background: var(--surface-bright);
+}
+
+.expandInput {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 30px;
+  line-height: 1.1;
+  color: var(--green-forest);
+}
+
+.expandRule {
+  height: 1px;
+  background: var(--sand-2);
+  margin: 18px 0 6px;
+}
+
+.expandRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 2px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--text-body);
+}
+
+.expandRowValue {
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 17px;
+  color: var(--green-forest);
+}
+
+.expandCta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 16px;
+  padding: 15px 22px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--green-forest);
+  color: var(--blush);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 15.5px;
+  cursor: pointer;
+  transition: filter 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.expandCta:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-raised);
+}
+
+.expandOr {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 20px auto 0;
+}
+
+.expandOrLine {
+  flex: 1;
+  height: 1px;
+  background: var(--sand-2);
+}
+
+.expandOrLabel {
+  flex: 0 0 auto;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--taupe);
+}
+
+.expandPresets {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.expandPreset {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: var(--border-hairline) solid var(--sand-2);
+  border-radius: 14px;
+  background: var(--surface-bright);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.16s ease;
+}
+
+.expandPreset:hover {
+  border-color: var(--green-forest);
+}
+
+.expandPreset svg {
+  flex: 0 0 auto;
+}
+
+.expandPresetLabel {
+  flex: 1 1 auto;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 16px;
+  color: var(--green-forest);
+}
+
+.expandPresetPrice {
+  flex: 0 0 auto;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 16px;
+  color: var(--green-forest);
+}
+
+.expandKeep {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  padding: 6px;
+  border: none;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 14.5px;
+  color: var(--green-forest);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--brass);
+  cursor: pointer;
+  transition: color 0.16s ease;
+}
+
+.expandKeep:hover {
+  color: var(--terracotta);
+  text-decoration-color: var(--terracotta);
+}
+
 /* ---- Foot ------------------------------------------------------------------------------ */
 
 .dialogFoot {
@@ -1881,7 +2729,6 @@
   font-family: var(--font-sans);
   font-weight: var(--weight-semibold);
   font-size: 15px;
-  letter-spacing: 0.01em;
   cursor: pointer;
   transition: filter 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
 }
@@ -1895,6 +2742,23 @@
 .dmCta:active {
   filter: brightness(0.94);
   transform: translateY(0);
+  box-shadow: none;
+}
+
+/* "Back to dishes" while just browsing. */
+.dmCta[data-ghost] {
+  border: 1.5px solid var(--sand-2);
+  background: var(--surface-bright);
+  color: var(--green-forest);
+  padding: 13px 24px;
+}
+
+.dmCta:disabled {
+  background: var(--sand-2);
+  color: var(--taupe);
+  cursor: not-allowed;
+  filter: none;
+  transform: none;
   box-shadow: none;
 }
 
@@ -1921,6 +2785,44 @@
 
   .footDivider {
     display: block;
+  }
+
+  /* In-box: the actions column leads, the dish detail follows (template
+     `.at-cols-inbox`) — its hero and description give way to the 150px
+     mob-hero and the jump nav inside the right column. */
+  .dmCols[data-inbox] {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dmCols[data-inbox] .dmRight {
+    order: -1;
+    border-top: none;
+  }
+
+  .dmCols[data-inbox] .dmLeft {
+    padding: 0 22px 4px;
+  }
+
+  .dmCols[data-inbox] .dmHero,
+  .dmCols[data-inbox] .dmLong,
+  .dmCols[data-inbox] .dmSigNote,
+  .dmCols[data-inbox] .dmShortcut {
+    display: none;
+  }
+
+  .dmCols[data-inbox] .dmDetails {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+
+  .dmCols[data-inbox] .dmMobHero {
+    display: block;
+  }
+
+  .dmCols[data-inbox] .dmMobJumps {
+    display: flex;
   }
 }
 
@@ -1966,6 +2868,35 @@
   to {
     transform: translateY(0);
   }
+}
+
+/* ---- Flash toast ------------------------------------------------------------------------ */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  z-index: 121;
+  padding: 13px 22px;
+  border-radius: 18px;
+  background: var(--green-forest);
+  color: var(--blush);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  line-height: 1.45;
+  letter-spacing: 0.01em;
+  text-align: center;
+  white-space: pre-line;
+  box-shadow: var(--shadow-raised);
+  transform: translateX(-50%) translateY(200%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.28s ease, opacity 0.28s ease;
+}
+
+.toast[data-show] {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
 }
 
 /* ---- Back to top ------------------------------------------------------------------------ */

@@ -67,7 +67,12 @@ export default async function BoxDishesPage() {
             <span className={styles.flavourSoft}>Never a bouillon, stock cube or additive.</span>
           </p>
 
-          <DishPicker dishes={dishes} personalisation={personalisation} heating={heating} />
+          <DishPicker
+            dishes={dishes}
+            pricing={pricing}
+            personalisation={personalisation}
+            heating={heating}
+          />
         </div>
 
         <aside className={styles.aside} aria-label="Your box">
