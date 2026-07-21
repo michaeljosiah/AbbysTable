@@ -16,12 +16,15 @@ export const metadata: Metadata = {
 export default async function BoxReviewPage() {
   const client = getAonikClient();
 
-  const [dishes, extras, pricing, personalisation, delivery] = await Promise.all([
+  // `heating` feeds the shared info panels inside the edit-personalisation
+  // modal, exactly as on Step 2.
+  const [dishes, extras, pricing, personalisation, delivery, heating] = await Promise.all([
     client.getDishes(),
     client.getExtras(),
     client.getBoxPricing(),
     client.getPersonalisationOptions(),
     client.getDeliveryWindow(),
+    client.getHeatingInstructions(),
   ]);
 
   return (
@@ -48,6 +51,7 @@ export default async function BoxReviewPage() {
         extras={extras}
         pricing={pricing}
         personalisation={personalisation}
+        heating={heating}
         earliestDeliveryLabel={formatDeliveryDate(delivery.earliestDeliveryDate)}
         heading={
           <>

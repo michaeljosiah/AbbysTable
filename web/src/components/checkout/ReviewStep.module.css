@@ -119,6 +119,7 @@
   padding: 0;
   background: var(--surface-bright);
   line-height: 0;
+  cursor: pointer;
 }
 
 .orderThumb img {
@@ -151,9 +152,10 @@
   line-height: 1.2;
   color: var(--text-heading);
   text-decoration: none;
+  cursor: pointer;
 }
 
-a.orderName:hover {
+.orderName:hover {
   color: var(--brass);
 }
 
@@ -585,6 +587,28 @@ a.orderName:hover {
   .summaryColumn {
     top: 96px;
   }
+}
+
+/* ---- Edit-personalisation modal (step-4 variants of the shared dish modal) ------------- */
+
+/* The panel head is static here — no collapse, no reset link. */
+.persHeadStatic {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px 6px;
+}
+
+.persBodyStatic {
+  padding: 6px 20px 20px;
+}
+
+/* The step-4 foot pads 15/24 with the safe-area allowance. */
+.dmFootStatic {
+  flex: 0 0 auto;
+  padding: 15px 24px calc(15px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--sand-2);
+  background: var(--surface-bright);
 }
 
 /* ---- Mobile bar + order-summary sheet (template step 4) -------------------------------- */

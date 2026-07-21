@@ -99,7 +99,7 @@ function abbysKey(group: DishOption[]): string {
 }
 
 /** The template's `DEFAULT`: Abby's choice per group, at the dish's own heat. */
-function abbysChoice(dish: Dish, options: PersonalisationOptions): CartPersonalisation {
+export function abbysChoice(dish: Dish, options: PersonalisationOptions): CartPersonalisation {
   return {
     portion: abbysKey(options.portions),
     protein: abbysKey(options.proteins),
@@ -108,7 +108,7 @@ function abbysChoice(dish: Dish, options: PersonalisationOptions): CartPersonali
   };
 }
 
-function sameChoice(a: CartPersonalisation, b: CartPersonalisation): boolean {
+export function sameChoice(a: CartPersonalisation, b: CartPersonalisation): boolean {
   return (
     a.portion === b.portion &&
     a.protein === b.protein &&
@@ -118,7 +118,7 @@ function sameChoice(a: CartPersonalisation, b: CartPersonalisation): boolean {
 }
 
 /** Per-unit surcharge for a personalised line: the selected options, summed. */
-function choiceSurcharge(choice: CartPersonalisation, options: PersonalisationOptions): number {
+export function choiceSurcharge(choice: CartPersonalisation, options: PersonalisationOptions): number {
   return (
     (findOption(options.portions, choice.portion)?.pricePence ?? 0) +
     (findOption(options.proteins, choice.protein)?.pricePence ?? 0) +
@@ -215,7 +215,7 @@ function CardPip({ size, lit }: { size: number; lit: boolean }) {
 }
 
 /** The step-2 template names the top heat "Hot" (the dish page says "High"). */
-const CARD_HEAT_LABELS: Record<number, string> = { 1: 'Mild', 2: 'Medium', 3: 'Hot' };
+export const CARD_HEAT_LABELS: Record<number, string> = { 1: 'Mild', 2: 'Medium', 3: 'Hot' };
 
 export function DishPicker({ dishes, pricing, personalisation, heating }: DishPickerProps) {
   const { boxSize, isCustom: boxIsCustom, lines, hydrated, addLine, removeLine, setQuantity, setBoxSize } =
@@ -2707,7 +2707,7 @@ export function DishPicker({ dishes, pricing, personalisation, heating }: DishPi
 
 /* -------------------------------------------------------------------------- */
 
-function OptionGroup({
+export function OptionGroup({
   legend,
   caption,
   icon,
@@ -2762,7 +2762,7 @@ function OptionGroup({
 }
 
 /** Macros for the chosen portion, scaled from the catalogue's per-serving figures. */
-function Nutrition({
+export function Nutrition({
   dish,
   choice,
   options,
