@@ -587,16 +587,271 @@ a.orderName:hover {
   }
 }
 
+/* ---- Mobile bar + order-summary sheet (template step 4) -------------------------------- */
+
+.mobileBar {
+  display: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  align-items: stretch;
+  padding: 0 20px env(safe-area-inset-bottom, 0px);
+  border-top: 1px solid var(--sand);
+  background: var(--surface-raised);
+  box-shadow: 0 -6px 24px rgb(21 41 31 / 0.08);
+}
+
+.barSummary {
+  flex: 1 1 auto;
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  padding: 14px 14px 14px 0;
+  margin: 0;
+  cursor: pointer;
+  text-align: left;
+  touch-action: manipulation;
+}
+
+.barIcon {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--surface-card);
+}
+
+.barText {
+  min-width: 0;
+}
+
+.barTitle {
+  display: block;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--body-xs);
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--brass);
+}
+
+.barCount {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-sans);
+  font-size: var(--body-md);
+  color: var(--text-heading);
+}
+
+.barTotal {
+  display: block;
+  margin-top: 1px;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 22px;
+  line-height: 1.1;
+  color: var(--text-heading);
+}
+
+.barChevron {
+  flex: 0 0 auto;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  padding: 0 var(--space-2);
+  color: var(--brass);
+}
+
+.barChevron svg {
+  transition: transform 0.18s ease;
+}
+
+.barChevron[data-open] svg {
+  transform: rotate(180deg);
+}
+
+.barDivider {
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: 1px;
+  margin: 14px 14px 14px 0;
+  background: var(--sand-2);
+}
+
+.barCta {
+  flex: 0 0 auto;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 22px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--action-dark);
+  color: var(--text-on-dark);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--body-md);
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.sheetOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgb(21 41 31 / 0.5);
+}
+
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 95;
+  display: flex;
+  flex-direction: column;
+  max-height: 88vh;
+  border-radius: 22px 22px 0 0;
+  background: var(--surface-bright);
+  box-shadow: 0 -12px 44px rgb(21 41 31 / 0.28);
+  overflow: hidden;
+  animation: sheetUp 0.26s ease;
+}
+
+.sheetTop {
+  flex: 0 0 auto;
+  padding: 10px 22px 0;
+}
+
+.sheetHandle {
+  width: 42px;
+  height: 4px;
+  margin: 0 auto 14px;
+  border-radius: var(--radius-pill);
+  background: var(--sand-2);
+}
+
+.sheetHeadRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.sheetTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 22px;
+  color: var(--text-heading);
+}
+
+.sheetClose {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: var(--surface-bright);
+  color: var(--text-heading);
+  cursor: pointer;
+}
+
+.sheetScroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 14px 22px 12px;
+}
+
+.sheetFoot {
+  flex: 0 0 auto;
+  padding: 14px 22px calc(16px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--sand-2);
+}
+
+.sheetTotalRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 18px;
+  color: var(--text-heading);
+}
+
+.sheetTotalValue {
+  font-size: 21px;
+}
+
+.sheetCta {
+  margin-top: 12px;
+  padding: 12px 22px;
+}
+
+.sheetDeliveryNote {
+  margin: 12px 0 0;
+  text-align: center;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.sheetDeliveryNote strong {
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+@keyframes sheetUp {
+  from {
+    transform: translateY(100%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 860px) {
   .shell {
     grid-template-columns: minmax(0, 1fr);
     gap: 0;
   }
 
-  /* The summary stacks below the groups rather than floating beside them. */
+  /* The template hides the sidebar and floats the fixed bar instead. */
   .summaryColumn {
-    position: static;
-    margin-top: 20px;
+    display: none;
+  }
+
+  .mobileBar {
+    display: flex;
   }
 
   .summaryCard {

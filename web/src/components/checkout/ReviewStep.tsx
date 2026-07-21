@@ -54,6 +54,8 @@ export function ReviewStep({
   const [boxOpen, setBoxOpen] = useState(true);
   const [extrasOpen, setExtrasOpen] = useState(true);
   const [openOption, setOpenOption] = useState<string | null>(null);
+  /** The mobile bar's order-summary sheet. */
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const dishById = useMemo(() => new Map(dishes.map((dish) => [dish.id, dish])), [dishes]);
   const extraById = useMemo(() => new Map(extras.map((extra) => [extra.id, extra])), [extras]);
@@ -98,6 +100,21 @@ export function ReviewStep({
     return () => document.removeEventListener('keydown', onKey);
   }, [openOption]);
 
+  // The sheet locks the page behind it and closes on Escape, as on steps 2-3.
+  useEffect(() => {
+    if (!sheetOpen) return;
+    const onKey = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') setSheetOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = previous;
+    };
+  }, [sheetOpen]);
+
   if (hydrated && boxSize === null) {
     return (
       <div className={styles.noBox}>
@@ -112,6 +129,91 @@ export function ReviewStep({
   const boxLabel = `${boxSize ?? pricing.custom.minDishes}-dish box`;
   const dishCount = lines.reduce((total, line) => total + line.quantity, 0);
   const boxCountLabel = `${boxLabel} · ${Math.min(dishCount, boxSize ?? 0)} of ${boxSize ?? 0}`;
+  const barCountLabel =
+    `${dishCount} ${dishCount === 1 ? 'dish' : 'dishes'}` +
+    (extrasSum.quantity > 0
+      ? ` · ${extrasSum.quantity} ${extrasSum.quantity === 1 ? 'extra' : 'extras'}`
+      : '');
+
+  // The summary rows render twice: in the sidebar card and the mobile sheet.
+  const summaryRowsJsx = (
+    <>
+      <div className={styles.summaryRow}>
+        <span className={styles.summaryLabel}>{boxLabel}</span>
+        <span className={styles.summaryValue}>{formatPriceExact(totals.boxPence)}</span>
+      </div>
+      <div className={styles.summaryRule} />
+
+      {split.signaturePence > 0 ? (
+        <>
+          <div className={styles.summaryRow}>
+            <span className={styles.summaryLabel}>Signature upgrades</span>
+            <span className={styles.summaryValue}>+{formatPriceExact(split.signaturePence)}</span>
+          </div>
+          <div className={styles.summaryRecon}>
+            {split.signatureItems
+              .map((item) => `${item.name} +${formatPrice(item.pence)}`)
+              .join('  ·  ')}
+          </div>
+          <div className={styles.summaryRule} />
+        </>
+      ) : null}
+
+      {split.personalisationPence > 0 ? (
+        <>
+          <div className={styles.summaryRow}>
+            <span className={styles.summaryLabel}>Personalisation</span>
+            <span className={styles.summaryValue}>
+              +{formatPriceExact(split.personalisationPence)}
+            </span>
+          </div>
+          <div className={styles.summaryRecon}>
+            {split.personalisedItems
+              .map((item) => `${item.name} +${formatPrice(item.pence)}`)
+              .join('  ·  ')}
+          </div>
+          <div className={styles.summaryRule} />
+        </>
+      ) : null}
+
+      {totals.extraDishes > 0 ? (
+        <>
+          <div className={styles.summaryRow}>
+            <span className={styles.summaryLabel}>Extra dishes</span>
+            <span className={styles.summaryValue}>+{formatPriceExact(totals.extraPence)}</span>
+          </div>
+          <div className={styles.summaryRule} />
+        </>
+      ) : null}
+
+      {extrasSum.quantity > 0 ? (
+        <>
+          <div className={styles.summaryRow}>
+            <span className={styles.summaryLabel}>Extras</span>
+            <span className={styles.summaryValue}>+{formatPriceExact(extrasSum.totalPence)}</span>
+          </div>
+          <div className={styles.summaryRecon}>
+            {extrasSum.quantity} {extrasSum.quantity === 1 ? 'item' : 'items'}
+          </div>
+          <div className={styles.summaryRule} />
+        </>
+      ) : null}
+
+      {pricing.delivery ? (
+        <div className={styles.summaryRow}>
+          <span className={styles.summaryLabel}>Delivery</span>
+          <span className={styles.summaryDelivery}>
+            <span className={styles.summaryWas}>{formatPrice(pricing.delivery.listPence)}</span>
+            <span className={styles.summaryNow}>
+              {pricing.delivery.pricePence === 0
+                ? 'Free'
+                : formatPrice(pricing.delivery.pricePence)}
+            </span>
+          </span>
+        </div>
+      ) : null}
+    </>
+  );
 
   return (
     <div className={styles.shell}>
@@ -371,88 +473,7 @@ export function ReviewStep({
             <span>Order summary</span>
           </div>
 
-          <div className={styles.summaryBody}>
-            <div className={styles.summaryRow}>
-              <span className={styles.summaryLabel}>{boxLabel}</span>
-              <span className={styles.summaryValue}>{formatPriceExact(totals.boxPence)}</span>
-            </div>
-            <div className={styles.summaryRule} />
-
-            {split.signaturePence > 0 ? (
-              <>
-                <div className={styles.summaryRow}>
-                  <span className={styles.summaryLabel}>Signature upgrades</span>
-                  <span className={styles.summaryValue}>
-                    +{formatPriceExact(split.signaturePence)}
-                  </span>
-                </div>
-                <div className={styles.summaryRecon}>
-                  {split.signatureItems
-                    .map((item) => `${item.name} +${formatPrice(item.pence)}`)
-                    .join('  ·  ')}
-                </div>
-                <div className={styles.summaryRule} />
-              </>
-            ) : null}
-
-            {split.personalisationPence > 0 ? (
-              <>
-                <div className={styles.summaryRow}>
-                  <span className={styles.summaryLabel}>Personalisation</span>
-                  <span className={styles.summaryValue}>
-                    +{formatPriceExact(split.personalisationPence)}
-                  </span>
-                </div>
-                <div className={styles.summaryRecon}>
-                  {split.personalisedItems
-                    .map((item) => `${item.name} +${formatPrice(item.pence)}`)
-                    .join('  ·  ')}
-                </div>
-                <div className={styles.summaryRule} />
-              </>
-            ) : null}
-
-            {totals.extraDishes > 0 ? (
-              <>
-                <div className={styles.summaryRow}>
-                  <span className={styles.summaryLabel}>Extra dishes</span>
-                  <span className={styles.summaryValue}>+{formatPriceExact(totals.extraPence)}</span>
-                </div>
-                <div className={styles.summaryRule} />
-              </>
-            ) : null}
-
-            {extrasSum.quantity > 0 ? (
-              <>
-                <div className={styles.summaryRow}>
-                  <span className={styles.summaryLabel}>Extras</span>
-                  <span className={styles.summaryValue}>
-                    +{formatPriceExact(extrasSum.totalPence)}
-                  </span>
-                </div>
-                <div className={styles.summaryRecon}>
-                  {extrasSum.quantity} {extrasSum.quantity === 1 ? 'item' : 'items'}
-                </div>
-                <div className={styles.summaryRule} />
-              </>
-            ) : null}
-
-            {pricing.delivery ? (
-              <div className={styles.summaryRow}>
-                <span className={styles.summaryLabel}>Delivery</span>
-                <span className={styles.summaryDelivery}>
-                  <span className={styles.summaryWas}>
-                    {formatPrice(pricing.delivery.listPence)}
-                  </span>
-                  <span className={styles.summaryNow}>
-                    {pricing.delivery.pricePence === 0
-                      ? 'Free'
-                      : formatPrice(pricing.delivery.pricePence)}
-                  </span>
-                </span>
-              </div>
-            ) : null}
-          </div>
+          <div className={styles.summaryBody}>{summaryRowsJsx}</div>
 
           <div className={styles.summaryFoot}>
             <div className={styles.totalRow}>
@@ -481,6 +502,99 @@ export function ReviewStep({
           </div>
         </div>
       </aside>
+
+      {/* ---- Mobile bar + order-summary sheet -------------------------------- */}
+      <div className={styles.mobileBar}>
+        <button
+          type="button"
+          className={styles.barSummary}
+          onClick={() => setSheetOpen(true)}
+          aria-label="View order summary"
+        >
+          <span className={styles.barIcon} aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 8l9-4 9 4-9 4-9-4z" />
+              <path d="M3 8v8l9 4 9-4V8" />
+              <path d="M12 12v8" />
+            </svg>
+          </span>
+          <span className={styles.barText}>
+            <span className={styles.barTitle}>Order summary</span>
+            <span className={styles.barCount}>{barCountLabel}</span>
+            <span className={styles.barTotal}>{totalLabel}</span>
+          </span>
+          <span className={styles.barChevron} data-open={sheetOpen || undefined} aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 15l-6-6-6 6" />
+            </svg>
+          </span>
+        </button>
+        <span className={styles.barDivider} aria-hidden="true" />
+        <Link href="/box/checkout" className={styles.barCta}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <line x1="4" y1="12" x2="19" y2="12" />
+            <path d="M13 6l6 6-6 6" />
+          </svg>
+          Continue
+        </Link>
+      </div>
+
+      {sheetOpen ? (
+        <>
+          <div className={styles.sheetOverlay} onClick={() => setSheetOpen(false)} />
+          <div className={styles.sheet} role="dialog" aria-modal="true" aria-label="Order summary">
+            <div className={styles.sheetTop}>
+              <div className={styles.sheetHandle} aria-hidden="true" />
+              <div className={styles.sheetHeadRow}>
+                <span className={styles.sheetTitle}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M3 8l9-4 9 4-9 4-9-4z" />
+                    <path d="M3 8v8l9 4 9-4V8" />
+                    <path d="M12 12v8" />
+                  </svg>
+                  Order summary
+                </span>
+                <button
+                  type="button"
+                  className={styles.sheetClose}
+                  onClick={() => setSheetOpen(false)}
+                  aria-label="Close"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className={styles.sheetScroll}>{summaryRowsJsx}</div>
+            <div className={styles.sheetFoot}>
+              <div className={styles.sheetTotalRow}>
+                <span>Total</span>
+                <span className={styles.sheetTotalValue}>{totalLabel}</span>
+              </div>
+              <Link href="/box/checkout" className={`${styles.cta} ${styles.sheetCta}`}>
+                <span className={styles.ctaMain}>
+                  Continue to checkout
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <line x1="4" y1="12" x2="19" y2="12" />
+                    <path d="M13 6l6 6-6 6" />
+                  </svg>
+                </span>
+                <span className={styles.ctaSub}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M12 3l7 3v5c0 4.4-3 8.3-7 9.5C8 19.3 5 15.4 5 11V6z" />
+                    <path d="M9.5 12l1.8 1.8L15 10" />
+                  </svg>
+                  Secure checkout
+                </span>
+              </Link>
+              <p className={styles.sheetDeliveryNote}>
+                Earliest UK-wide delivery: <strong>{earliestDeliveryLabel}</strong>
+              </p>
+            </div>
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }

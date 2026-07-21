@@ -956,6 +956,37 @@ export function ExtrasStep({
               </div>
               <p className={styles.modalLong}>{modalExtra.longDescription}</p>
 
+              <div className={styles.modalJumps}>
+                {[
+                  { label: 'Nutrition', target: 'extra-nutrition' },
+                  { label: 'Ingredients & allergens', target: 'extra-ingredients' },
+                  { label: 'How to heat', target: 'extra-heating' },
+                ].map((jump, index) => (
+                  <span key={jump.target} className={styles.modalJumpWrap}>
+                    {index > 0 ? (
+                      <span className={styles.modalJumpSep} aria-hidden="true">
+                        ·
+                      </span>
+                    ) : null}
+                    <button
+                      type="button"
+                      className={styles.modalJump}
+                      onClick={() =>
+                        document
+                          .getElementById(jump.target)
+                          ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                      }
+                    >
+                      {jump.label}
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M12 5v14" />
+                        <path d="M6 13l6 6 6-6" />
+                      </svg>
+                    </button>
+                  </span>
+                ))}
+              </div>
+
               {modalExtra.option ? (
                 <div className={styles.modalOpt}>
                   <label className={styles.modalOptLabel} htmlFor="extra-option">
@@ -1025,7 +1056,7 @@ export function ExtrasStep({
                 </span>
               </div>
 
-              <ExtraInfoSection title="Full nutrition" icon="chart">
+              <ExtraInfoSection id="extra-nutrition" title="Full nutrition" icon="chart">
                 <div className={styles.nutCaption}>Per serving</div>
                 <div className={styles.nutRule} />
                 <div className={styles.nutGrid}>
@@ -1056,7 +1087,7 @@ export function ExtrasStep({
                 </div>
               </ExtraInfoSection>
 
-              <ExtraInfoSection title="Ingredients & allergens" icon="leaf">
+              <ExtraInfoSection id="extra-ingredients" title="Ingredients & allergens" icon="leaf">
                 <p className={styles.ingredients}>{modalExtra.ingredients}</p>
                 <div className={styles.allergenCard}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -1071,7 +1102,7 @@ export function ExtrasStep({
                 </div>
               </ExtraInfoSection>
 
-              <ExtraInfoSection title="How to heat" icon="steam">
+              <ExtraInfoSection id="extra-heating" title="How to heat" icon="steam">
                 <div className={styles.heatCard}>
                   <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <rect x="2.5" y="5" width="19" height="14" rx="1.5" />
@@ -1121,10 +1152,13 @@ export function ExtrasStep({
 
 /** Accordion section in the extra modal; open by default, as the template's. */
 function ExtraInfoSection({
+  id,
   title,
   icon,
   children,
 }: {
+  /** Anchor for the modal's jump links. */
+  id?: string;
   title: string;
   icon: 'chart' | 'leaf' | 'steam';
   children: ReactNode;
@@ -1132,7 +1166,7 @@ function ExtraInfoSection({
   const [open, setOpen] = useState(true);
 
   return (
-    <div className={styles.infoSection}>
+    <div className={styles.infoSection} id={id}>
       <button
         type="button"
         className={styles.infoSectionHead}

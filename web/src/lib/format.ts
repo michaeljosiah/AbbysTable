@@ -12,11 +12,11 @@ const GBP = new Intl.NumberFormat('en-GB', {
 
 /**
  * Formats pence as sterling, dropping the decimals on whole pounds:
- * 15000 -> "£150", 450 -> "£4.50".
+ * 15000 -> "£150", 450 -> "£4.50" (never the lone-digit "£4.5").
  */
 export function formatPrice(pence: number): string {
   const pounds = pence / 100;
-  return GBP.format(pounds);
+  return pence % 100 === 0 ? GBP.format(pounds) : GBP_EXACT.format(pounds);
 }
 
 const GBP_EXACT = new Intl.NumberFormat('en-GB', {
