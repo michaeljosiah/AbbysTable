@@ -19,8 +19,10 @@ body {
   margin: 0;
   background: var(--surface-page);
   font-family: var(--font-sans);
-  font-size: var(--body-md);
-  line-height: var(--line-body);
+  /* Every design template runs on the browser's 16px/normal baseline and
+     sets type per element; a global 15px/1.6 skews whatever inherits. */
+  font-size: 16px;
+  line-height: normal;
   color: var(--text-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

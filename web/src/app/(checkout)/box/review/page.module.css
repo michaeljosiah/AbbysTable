@@ -1,0 +1,92 @@
+/* Step 4 — page frame, back link and step heading (values from the template). */
+
+.page {
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding: 30px var(--space-7) 60px;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: 18px;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 14.5px;
+  line-height: normal;
+  color: var(--text-heading);
+  text-decoration: none;
+  transition: color 0.16s ease, gap 0.16s ease;
+}
+
+.back:hover {
+  gap: 11px;
+  color: var(--action-primary-hover);
+}
+
+.eyebrow {
+  display: block;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  line-height: normal;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+
+.heading {
+  margin: 12px 0 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 50px;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  color: var(--text-heading);
+}
+
+.intro {
+  margin: 14px 0 0;
+  max-width: 560px;
+  font-family: var(--font-sans);
+  font-size: var(--body-lg);
+  line-height: 1.55;
+  color: var(--text-body);
+}
+
+.introMobile {
+  display: none;
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-sans);
+  font-size: var(--body-md);
+  line-height: var(--line-snug);
+  color: var(--text-body);
+}
+
+@media (max-width: 1080px) {
+  .page {
+    padding: 26px 22px 40px;
+  }
+}
+
+@media (max-width: 860px) {
+  .page {
+    padding: 16px 20px 40px;
+  }
+
+  .eyebrow,
+  .intro {
+    display: none;
+  }
+
+  .introMobile {
+    display: block;
+  }
+
+  .heading {
+    margin-top: 4px;
+    font-size: 27px;
+  }
+
+}

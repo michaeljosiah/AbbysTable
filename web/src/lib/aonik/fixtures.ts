@@ -23,6 +23,7 @@
 
 import type {
   BoxOffer,
+  BoxPricing,
   DeliveryWindow,
   Dish,
   HeatingInstruction,
@@ -217,22 +218,54 @@ export const DISH_FIXTURES: Dish[] = [
   },
 ];
 
+/**
+ * Box catalogue, taken from the checkout templates (Step 1 / Step 2).
+ *
+ * These supersede the homepage template's "8 dishes for £150" and "£78 Taster",
+ * which do not reconcile with the builder and are treated as stale marketing
+ * copy. The homepage promo now derives its numbers from these tiers.
+ */
 export const BOX_FIXTURES: BoxOffer[] = [
   {
-    id: 'box-signature-eight',
-    name: "Abby's Box",
-    dishCount: 8,
-    pricePence: 15000,
-    blurb: 'Quality ingredients, traditional flavour and nothing unnecessary.',
+    id: 'box-6',
+    name: '6-dish box',
+    dishCount: 6,
+    pricePence: 9500,
+    // The template gives this card no badge; "Minimum order" is its blurb.
+    blurb: 'Minimum order',
   },
   {
-    id: 'box-taster-four',
-    name: 'Taster Box',
-    dishCount: 4,
-    pricePence: 7800,
-    blurb: 'New here? Start with four dishes.',
+    id: 'box-12',
+    name: '12-dish box',
+    dishCount: 12,
+    pricePence: 17000,
+    badge: 'Most popular',
+    savingPence: 1000,
+    blurb: 'A balanced weekly selection',
+  },
+  {
+    id: 'box-18',
+    name: '18-dish box',
+    dishCount: 18,
+    pricePence: 24000,
+    badge: 'Best value',
+    savingPence: 2500,
+    blurb: 'Ideal for larger tables',
   },
 ];
+
+export const BOX_PRICING_FIXTURE: BoxPricing = {
+  presets: BOX_FIXTURES,
+  custom: {
+    minDishes: 6,
+    maxDishes: 30,
+    perDishPence: 1700,
+    listPerDishPence: 1800,
+  },
+  extraDishPence: 1500,
+  // Both checkout templates show delivery as £10 struck through → Free.
+  delivery: { listPence: 1000, pricePence: 0 },
+};
 
 export const DELIVERY_FIXTURE: DeliveryWindow = {
   earliestDeliveryDate: '2026-08-06',

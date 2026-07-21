@@ -1,0 +1,33 @@
+/* Forest ground with blush type, per the dish templates. */
+.cta {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: var(--space-4) 20px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--action-dark);
+  color: var(--text-on-dark);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--body-lg);
+  letter-spacing: 0.01em;
+  line-height: normal;
+  cursor: pointer;
+  transition: filter 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.cta:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-raised);
+}
+
+.cta:active {
+  filter: brightness(0.94);
+  transform: translateY(0);
+  box-shadow: none;
+}

@@ -1,0 +1,145 @@
+/* Step 2 — "Add dishes to your box".
+   DishPicker measures the checkout header on mount/resize and publishes
+   `--stick-top` on the document root, so the filter bar and box summary stick
+   exactly beneath the real header at any width. The var() fallbacks in the
+   component styles cover the pre-measure paint. */
+.page {
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding: 30px var(--space-7) 60px;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: 18px;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 14.5px;
+  line-height: normal;
+  color: var(--text-heading);
+  text-decoration: none;
+  transition: color 0.16s ease, gap 0.16s ease;
+}
+
+.back:hover {
+  gap: 11px;
+  color: var(--action-primary-hover);
+}
+
+/* ---- Two-column shell -------------------------------------------------------- */
+
+.shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 372px;
+  gap: 44px;
+  align-items: start;
+}
+
+.column {
+  min-width: 0;
+}
+
+.aside {
+  min-width: 0;
+}
+
+/* ---- Intro ------------------------------------------------------------------- */
+
+.eyebrow {
+  display: block;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  line-height: normal;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+
+.heading {
+  margin: 12px 0 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 50px;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  color: var(--text-heading);
+}
+
+.intro {
+  margin: 14px 0 0;
+  max-width: 560px;
+  font-family: var(--font-sans);
+  font-size: var(--body-lg);
+  line-height: 1.55;
+  color: var(--text-body);
+}
+
+.flavour {
+  margin: 14px 0 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-semibold);
+  font-size: 18px;
+  line-height: var(--line-snug);
+  letter-spacing: -0.01em;
+  color: var(--green-deep);
+  white-space: nowrap;
+}
+
+.flavourSoft {
+  font-weight: var(--weight-regular);
+  font-style: italic;
+}
+
+@media (max-width: 1080px) {
+  .page {
+    padding: 26px 22px 40px;
+  }
+}
+
+@media (max-width: 1080px) and (min-width: 861px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 30px;
+  }
+
+  .flavour {
+    font-size: 17px;
+    white-space: normal;
+  }
+}
+
+/* Below this width the summary stops being a column and becomes the fixed bar
+   and sheet that `BoxSummary` renders for itself. */
+@media (max-width: 860px) {
+  .page {
+    padding: 16px 20px 40px;
+  }
+
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  /* The aside stays in the tree: BoxSummary hides its own card here and
+     renders the fixed bar + sheet instead. */
+
+  /* The compact header stepper already reads "Step 2 of 5" here, and the grid
+     should sit above the fold. */
+  .eyebrow,
+  .intro {
+    display: none;
+  }
+
+  .heading {
+    margin-top: 4px;
+    font-size: 27px;
+  }
+
+  .flavour {
+    font-size: var(--body-md);
+    white-space: normal;
+  }
+}

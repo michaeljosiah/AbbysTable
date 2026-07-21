@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Eyebrow, FilterPill, SectionHeading } from '@/components/ui';
 import { DISH_CATEGORIES, type Dish } from '@/lib/aonik/types';
@@ -17,25 +17,68 @@ const FEATURED = 'Featured dishes';
 
 const FILTERS = [FEATURED, ...DISH_CATEGORIES] as const;
 
+/** Smallest the scroll thumb is allowed to get, in px. */
+const MIN_THUMB = 28;
+
 interface MenuProps {
   dishes: Dish[];
 }
 
 export function Menu({ dishes }: MenuProps) {
   const [filter, setFilter] = useState<string>(FEATURED);
-  const [progress, setProgress] = useState(0);
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const thumbRef = useRef<HTMLSpanElement>(null);
 
   const visibleDishes =
     filter === FEATURED ? dishes : dishes.filter((dish) => dish.category === filter);
 
-  // Drives the thin progress rail beneath the carousel.
-  const handleScroll = useCallback(() => {
-    const el = scrollerRef.current;
-    if (!el) return;
-    const scrollable = el.scrollWidth - el.clientWidth;
-    setProgress(scrollable > 0 ? el.scrollLeft / scrollable : 0);
+  /**
+   * Sizes and positions the thumb to mirror the scroller, the way the design
+   * template does: width tracks the visible fraction, offset tracks progress.
+   * Written imperatively so scrolling does not re-render the whole rail.
+   */
+  const syncThumb = useCallback(() => {
+    const scroller = scrollerRef.current;
+    const track = trackRef.current;
+    const thumb = thumbRef.current;
+    if (!scroller || !track || !thumb) return;
+
+    const maxScroll = scroller.scrollWidth - scroller.clientWidth;
+    const trackWidth = track.clientWidth;
+    const visibleRatio =
+      scroller.scrollWidth > 0 ? Math.min(1, scroller.clientWidth / scroller.scrollWidth) : 1;
+    const thumbWidth = Math.max(MIN_THUMB, trackWidth * visibleRatio);
+    const progress =
+      maxScroll > 0 ? Math.min(1, Math.max(0, scroller.scrollLeft / maxScroll)) : 0;
+
+    thumb.style.width = `${thumbWidth}px`;
+    thumb.style.transform = `translateX(${progress * (trackWidth - thumbWidth)}px)`;
   }, []);
+
+  // Re-sync on resize, and whenever filtering changes how much there is to scroll.
+  useEffect(() => {
+    syncThumb();
+    window.addEventListener('resize', syncThumb);
+    return () => window.removeEventListener('resize', syncThumb);
+  }, [syncThumb, visibleDishes.length]);
+
+  /** Clicking the track jumps the rail to that position. */
+  const handleTrackClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    const scroller = scrollerRef.current;
+    const track = trackRef.current;
+    if (!scroller || !track) return;
+
+    const bounds = track.getBoundingClientRect();
+    const fraction = Math.min(1, Math.max(0, (event.clientX - bounds.left) / bounds.width));
+    const maxScroll = scroller.scrollWidth - scroller.clientWidth;
+    scroller.scrollTo({ left: fraction * maxScroll, behavior: 'smooth' });
+  };
+
+  const handleFilter = (option: string) => {
+    setFilter(option);
+    scrollerRef.current?.scrollTo({ left: 0 });
+  };
 
   return (
     <section id="menu" className={styles.section}>
@@ -67,7 +110,11 @@ export function Menu({ dishes }: MenuProps) {
 
         <div className={`${styles.filters} noScrollbar`} role="group" aria-label="Filter dishes">
           {FILTERS.map((option) => (
-            <FilterPill key={option} active={option === filter} onClick={() => setFilter(option)}>
+            <FilterPill
+              key={option}
+              active={option === filter}
+              onClick={() => handleFilter(option)}
+            >
               {option}
             </FilterPill>
           ))}
@@ -75,7 +122,7 @@ export function Menu({ dishes }: MenuProps) {
 
         <div
           ref={scrollerRef}
-          onScroll={handleScroll}
+          onScroll={syncThumb}
           className={`${styles.scroller} noScrollbar`}
           role="region"
           aria-label="Dishes"
@@ -83,16 +130,20 @@ export function Menu({ dishes }: MenuProps) {
         >
           {visibleDishes.map((dish) => (
             <div key={dish.id} className={styles.slide}>
-              <DishCard dish={dish} />
+              <DishCard dish={dish} href={`/menu/${dish.slug}`} />
             </div>
           ))}
         </div>
 
-        <div className={styles.progressTrack} aria-hidden="true">
-          <span
-            className={styles.progressThumb}
-            style={{ transform: `translateX(${progress * 150}%)` }}
-          />
+        {/* Pointer shortcut mirroring the scroller. Hidden from assistive tech:
+            the rail itself is focusable and scrolls with the arrow keys. */}
+        <div
+          ref={trackRef}
+          onClick={handleTrackClick}
+          className={styles.progressTrack}
+          aria-hidden="true"
+        >
+          <span ref={thumbRef} className={styles.progressThumb} />
         </div>
       </div>
     </section>

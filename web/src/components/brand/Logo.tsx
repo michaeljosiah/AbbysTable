@@ -8,7 +8,11 @@ import styles from './Logo.module.css';
  * Colour follows `currentColor`, so set it on the link that wraps this.
  */
 interface LogoProps {
-  /** Rendered width in px; height scales with the artwork's ratio. */
+  /**
+   * Rendered width in px. Omit BOTH dimensions to size the mark purely from
+   * CSS (`--logo-width`/`--logo-height` on a wrapping class) — an inline
+   * value would defeat media-query overrides.
+   */
   width?: number;
   height?: number;
   /** Shows the ® glyph alongside the mark. */
@@ -16,13 +20,17 @@ interface LogoProps {
   className?: string;
 }
 
-export function Logo({ width = 186, height = 32, withRegistered = true, className }: LogoProps) {
+export function Logo({ width, height, withRegistered = true, className }: LogoProps) {
+  const size: Record<string, string> = {};
+  if (width !== undefined) size['--logo-width'] = `${width}px`;
+  if (height !== undefined) size['--logo-height'] = `${height}px`;
+
   return (
     <span
       className={[styles.lockup, className].filter(Boolean).join(' ')}
       // Exposed as custom properties rather than inline width/height so a
       // consuming layout can resize the mark from a media query.
-      style={{ '--logo-width': `${width}px`, '--logo-height': `${height}px` } as CSSProperties}
+      style={size as CSSProperties}
     >
       <span className={styles.mark} role="img" aria-label="Abby's Table" />
       {withRegistered ? (

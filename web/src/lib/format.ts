@@ -19,6 +19,21 @@ export function formatPrice(pence: number): string {
   return GBP.format(pounds);
 }
 
+const GBP_EXACT = new Intl.NumberFormat('en-GB', {
+  style: 'currency',
+  currency: 'GBP',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+/**
+ * Always two decimals — the checkout templates price à-la-carte extras this
+ * way: 300 -> "£3.00".
+ */
+export function formatPriceExact(pence: number): string {
+  return GBP_EXACT.format(pence / 100);
+}
+
 const DELIVERY_DATE = new Intl.DateTimeFormat('en-GB', {
   day: 'numeric',
   month: 'long',

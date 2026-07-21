@@ -75,7 +75,7 @@ export function BoxesPromo({ mainBox, tasterBox, earliestDeliveryLabel }: BoxesP
           <span className={styles.taster}>
             New here?{' '}
             <Link className={styles.tasterLink} href="/menu">
-              Try the Taster Box — {spellCount(tasterBox.dishCount)} dishes,{' '}
+              Try the {tasterBox.name} — {spellCount(tasterBox.dishCount)} dishes,{' '}
               {formatPrice(tasterBox.pricePence)}
             </Link>
           </span>

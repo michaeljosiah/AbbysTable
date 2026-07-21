@@ -11,8 +11,10 @@
  * Server Components or Route Handlers.
  */
 
+import { EXTRA_FIXTURES } from './extras';
 import {
   BOX_FIXTURES,
+  BOX_PRICING_FIXTURE,
   DELIVERY_FIXTURE,
   DISH_FIXTURES,
   HEATING_FIXTURE,
@@ -20,8 +22,10 @@ import {
 } from './fixtures';
 import type {
   BoxOffer,
+  BoxPricing,
   DeliveryWindow,
   Dish,
+  Extra,
   HeatingInstruction,
   HomepageData,
   PersonalisationOptions,
@@ -35,10 +39,14 @@ export interface AonikClient {
   /** One dish by slug, or null when it does not exist. */
   getDishBySlug(slug: string): Promise<Dish | null>;
   getBoxOffers(): Promise<BoxOffer[]>;
+  /** Preset tiers, build-your-own scale and the extra-dish surcharge. */
+  getBoxPricing(): Promise<BoxPricing>;
   getDeliveryWindow(): Promise<DeliveryWindow>;
   /** Selectable portions, proteins, sides and heat for the dish personaliser. */
   getPersonalisationOptions(): Promise<PersonalisationOptions>;
   getHeatingInstructions(): Promise<HeatingInstruction[]>;
+  /** À-la-carte extras sold alongside the box (Step 3). */
+  getExtras(): Promise<Extra[]>;
 }
 
 /** Serves the design-template fixtures. Used until Aonik is reachable. */
@@ -59,6 +67,10 @@ export class MockAonikClient implements AonikClient {
     return BOX_FIXTURES;
   }
 
+  async getBoxPricing(): Promise<BoxPricing> {
+    return BOX_PRICING_FIXTURE;
+  }
+
   async getDeliveryWindow(): Promise<DeliveryWindow> {
     return DELIVERY_FIXTURE;
   }
@@ -69,6 +81,10 @@ export class MockAonikClient implements AonikClient {
 
   async getHeatingInstructions(): Promise<HeatingInstruction[]> {
     return HEATING_FIXTURE;
+  }
+
+  async getExtras(): Promise<Extra[]> {
+    return EXTRA_FIXTURES;
   }
 }
 
@@ -130,8 +146,16 @@ export class HttpAonikClient implements AonikClient {
     return this.get<BoxOffer[]>('/boxes');
   }
 
+  getBoxPricing(): Promise<BoxPricing> {
+    return this.get<BoxPricing>('/box-pricing');
+  }
+
   getDeliveryWindow(): Promise<DeliveryWindow> {
     return this.get<DeliveryWindow>('/delivery-window');
+  }
+
+  getExtras(): Promise<Extra[]> {
+    return this.get<Extra[]>('/extras');
   }
 }
 

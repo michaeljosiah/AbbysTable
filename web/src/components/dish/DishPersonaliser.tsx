@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { HEAT_LABELS, HEAT_STEPS, type Dish, type DishOption, type PersonalisationOptions } from '@/lib/aonik/types';
 import { formatPrice } from '@/lib/format';
@@ -16,6 +16,15 @@ import styles from './DishPersonaliser.module.css';
 interface DishPersonaliserProps {
   dish: Dish;
   options: PersonalisationOptions;
+  /**
+   * Reports the current choice so a parent can put it in the cart. Labels are
+   * emitted rather than option keys, because the cart is read by pages that have
+   * no access to the options catalogue.
+   */
+  onChange?: (selection: {
+    personalisation?: { portion: string; protein: string; side: string; heatStep: number };
+    surchargePence: number;
+  }) => void;
 }
 
 interface Selection {
@@ -34,7 +43,7 @@ function findOption(group: DishOption[], key: string): DishOption | undefined {
   return group.find((option) => option.key === key);
 }
 
-export function DishPersonaliser({ dish, options }: DishPersonaliserProps) {
+export function DishPersonaliser({ dish, options, onChange }: DishPersonaliserProps) {
   const initial: Selection = useMemo(
     () => ({
       portion: defaultKey(options.portions),
@@ -57,6 +66,24 @@ export function DishPersonaliser({ dish, options }: DishPersonaliserProps) {
       (findOption(options.sides, selection.side)?.pricePence ?? 0)
     );
   }, [enabled, options, selection]);
+
+  // Publish the choice upward whenever it changes.
+  useEffect(() => {
+    if (!onChange) return;
+    if (!enabled) {
+      onChange({ surchargePence: 0 });
+      return;
+    }
+    onChange({
+      personalisation: {
+        portion: findOption(options.portions, selection.portion)?.label ?? '',
+        protein: findOption(options.proteins, selection.protein)?.label ?? '',
+        side: findOption(options.sides, selection.side)?.label ?? '',
+        heatStep: selection.heatStep,
+      },
+      surchargePence,
+    });
+  }, [onChange, enabled, options, selection, surchargePence]);
 
   const summary = enabled
     ? [
@@ -129,8 +156,17 @@ export function DishPersonaliser({ dish, options }: DishPersonaliserProps) {
             setSheetOpen(true);
           }}
         >
-          <span className={styles.choiceLabel}>Yes, I&apos;d like to personalise this dish</span>
-          {enabled ? <span className={styles.choiceSummary}>{summary}</span> : null}
+          <span className={styles.choiceCheck} aria-hidden="true">
+            {enabled ? (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--white)" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12.5l4.5 4.5L19 7" />
+              </svg>
+            ) : null}
+          </span>
+          <span className={styles.choiceText}>
+            <span className={styles.choiceLabel}>Yes, I&apos;d like to personalise this dish</span>
+            {enabled ? <span className={styles.choiceSummary}>{summary}</span> : null}
+          </span>
         </button>
 
         <button
@@ -144,7 +180,16 @@ export function DishPersonaliser({ dish, options }: DishPersonaliserProps) {
             setSelection(initial);
           }}
         >
-          <span className={styles.choiceLabel}>No, keep as Abby designed it</span>
+          <span className={styles.choiceCheck} aria-hidden="true">
+            {!enabled ? (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--white)" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12.5l4.5 4.5L19 7" />
+              </svg>
+            ) : null}
+          </span>
+          <span className={styles.choiceText}>
+            <span className={styles.choiceLabel}>No, keep as Abby designed it</span>
+          </span>
         </button>
       </div>
 

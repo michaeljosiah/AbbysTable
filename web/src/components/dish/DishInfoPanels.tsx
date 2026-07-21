@@ -20,6 +20,52 @@ type PanelId = 'nutrition' | 'ingredients' | 'heating';
 
 const PANEL_IDS: PanelId[] = ['nutrition', 'ingredients', 'heating'];
 
+/** The template's 22px warning triangle beside the allergen statement. */
+function AllergenIcon() {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="var(--green-forest)"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M10.3 4.3 2.7 18a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z" />
+      <path d="M12 9v4" />
+      <path d="M12 17h.01" />
+    </svg>
+  );
+}
+
+const PANEL_ICONS: Record<PanelId, ReactNode> = {
+  nutrition: (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 20h18" />
+      <path d="M6 20v-6" />
+      <path d="M12 20V5" />
+      <path d="M18 20v-9" />
+    </svg>
+  ),
+  ingredients: (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 21V8" />
+      <path d="M12 8c0-2.2-1.4-4-3.2-4C8.8 6.2 10.2 8 12 8z" />
+      <path d="M12 8c0-2.2 1.4-4 3.2-4C15.2 6.2 13.8 8 12 8z" />
+    </svg>
+  ),
+  heating: (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M8 15c-1-1-1-2.4 0-3.4C9 10.6 9 9.2 8 8.2" />
+      <path d="M12 15c-1-1-1-2.4 0-3.4 1-1 1-2.4 0-3.4" />
+      <path d="M16 15c-1-1-1-2.4 0-3.4 1-1 1-2.4 0-3.4" />
+    </svg>
+  ),
+};
+
 function Panel({
   id,
   title,
@@ -43,7 +89,27 @@ function Panel({
           aria-expanded={open}
           aria-controls={`dish-${id}-body`}
         >
+          <span className={styles.icon} aria-hidden="true">
+            {PANEL_ICONS[id]}
+          </span>
           <span className={styles.title}>{title}</span>
+          <span
+            className={styles.backToTop}
+            role="button"
+            tabIndex={0}
+            onClick={(event) => {
+              event.stopPropagation();
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.stopPropagation();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            }}
+          >
+            Back to top
+          </span>
           <svg
             className={styles.chevron}
             data-open={open || undefined}
@@ -124,19 +190,25 @@ export function DishInfoPanels({ dish, heating }: DishInfoPanelsProps) {
         )}
 
         {dish.allergens ? (
-          <p className={styles.allergens}>
-            <strong>Allergens:</strong> {dish.allergens}
-          </p>
+          <div className={styles.allergens}>
+            <AllergenIcon />
+            <span>
+              <strong>Allergens:</strong> {dish.allergens}
+            </span>
+          </div>
         ) : (
           /* Never guess allergens. Absent data is stated plainly and routed to a human. */
-          <p className={styles.allergensMissing} role="note">
-            <strong>Allergen information is not yet published for this dish.</strong> If you have an
-            allergy or intolerance, please{' '}
-            <Link href="/#contact" className={styles.allergensLink}>
-              contact us
-            </Link>{' '}
-            before ordering.
-          </p>
+          <div className={styles.allergens} role="note">
+            <AllergenIcon />
+            <span>
+              <strong>Allergen information is not yet published for this dish.</strong> If you have
+              an allergy or intolerance, please{' '}
+              <Link href="/#contact" className={styles.allergensLink}>
+                contact us
+              </Link>{' '}
+              before ordering.
+            </span>
+          </div>
         )}
       </Panel>
 

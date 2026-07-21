@@ -80,8 +80,11 @@
   margin: 30px auto 0;
   border-radius: 3px;
   background: var(--sand-2);
+  cursor: pointer;
 }
 
+/* Width and offset are set imperatively from the scroller; the value here is
+   only what renders before hydration. */
 .progressThumb {
   position: absolute;
   top: 0;
@@ -90,7 +93,7 @@
   width: 40%;
   border-radius: 3px;
   background: var(--green-forest);
-  transition: transform 0.1s linear;
+  transition: transform 0.1s linear, width 0.18s ease;
 }
 
 @media (max-width: 768px) {

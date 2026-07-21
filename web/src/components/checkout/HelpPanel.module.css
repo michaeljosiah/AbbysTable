@@ -1,0 +1,517 @@
+/* ===========================================================================
+   "Questions?" slide-over — right-hand drawer on desktop, bottom sheet on
+   phones, matching the step 1 template.
+   =========================================================================== */
+
+.root {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+}
+
+.scrim {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: color-mix(in srgb, var(--green-deep) 50%, transparent);
+  cursor: pointer;
+}
+
+.panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  width: min(410px, 94vw);
+  height: 100%;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-raised);
+}
+
+.close {
+  position: absolute;
+  top: 15px;
+  right: 17px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-heading);
+  font-size: 23px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 26px 26px 30px;
+}
+
+.title {
+  margin-right: 46px;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 34px;
+  line-height: 1.1;
+  color: var(--text-heading);
+}
+
+.intro {
+  margin-top: var(--space-3);
+  font-family: var(--font-sans);
+  font-size: var(--body-md);
+  line-height: var(--line-snug);
+  color: var(--text-body);
+}
+
+/* ---- Search ------------------------------------------------------------------- */
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-top: 20px;
+  padding: 13px var(--space-4);
+  border: 1.5px solid var(--sand-2);
+  border-radius: 14px;
+  background: var(--surface-bright);
+  color: var(--text-muted);
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.search:focus-within {
+  border-color: var(--brass);
+  box-shadow: var(--shadow-focus);
+}
+
+.search svg {
+  flex: 0 0 auto;
+}
+
+.searchInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: var(--body-md);
+  color: var(--text-body);
+}
+
+.searchClear {
+  flex: 0 0 auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* ---- Result count + hint --------------------------------------------------------- */
+
+.countRow {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-top: 22px;
+}
+
+.count {
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 21px;
+  color: var(--text-heading);
+}
+
+.hint {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.hintMark {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 21px;
+  height: 21px;
+  padding: 0;
+  border: 1.5px solid var(--brass);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--brass);
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 12px;
+  cursor: help;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.hintMark:hover,
+.hintMark:focus-visible {
+  background: var(--action-brass);
+  color: var(--surface-raised);
+}
+
+.hintTip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  z-index: 5;
+  width: max-content;
+  max-width: min(240px, 66vw);
+  padding: 10px 13px;
+  border: var(--border-hairline) solid var(--brass);
+  border-radius: var(--radius-sm);
+  background: var(--surface-dark);
+  color: var(--text-on-dark);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  line-height: 1.45;
+  text-align: left;
+  box-shadow: var(--shadow-raised);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(5px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.hint:hover .hintTip,
+.hint:focus-within .hintTip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ---- Questions --------------------------------------------------------------------- */
+
+.faqs {
+  overflow: hidden;
+  margin-top: 14px;
+  border: var(--border-hairline) solid var(--sand-2);
+  border-radius: 14px;
+}
+
+.faq + .faq {
+  border-top: var(--border-hairline) solid var(--sand-2);
+}
+
+.faqQuestion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  padding: 17px 18px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 14.5px;
+  line-height: 1.35;
+  color: var(--text-heading);
+  transition: color 0.16s ease;
+}
+
+.faqQuestion:hover {
+  color: var(--brass);
+}
+
+.faqAnswer {
+  padding: 0 18px var(--space-4);
+  font-family: var(--font-sans);
+  font-size: var(--btn-size);
+  line-height: 1.55;
+  color: var(--text-body);
+}
+
+.chevron {
+  flex: 0 0 auto;
+  transition: transform 0.18s ease;
+}
+
+.chevron[data-open] {
+  transform: rotate(180deg);
+}
+
+.empty {
+  padding: var(--space-3) 2px 2px;
+  font-family: var(--font-sans);
+  font-size: var(--btn-size);
+  line-height: 1.55;
+  color: var(--text-body);
+}
+
+.viewAll {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  margin-top: var(--space-4);
+  padding: 15px 22px;
+  border: 1.5px solid var(--brass);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--body-md);
+  color: var(--brass);
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.viewAll:hover {
+  background: var(--action-brass);
+  color: var(--surface-raised);
+}
+
+/* ---- Still need help? --------------------------------------------------------------- */
+
+.stillNeedHelp {
+  margin-top: 30px;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 20px;
+  color: var(--text-heading);
+}
+
+.action {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  width: 100%;
+  padding: 15px var(--space-4);
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.chat {
+  margin-top: 14px;
+  border: 1.5px solid var(--sand-2);
+  border-radius: 14px;
+  background: var(--surface-bright);
+  transition: border-color 0.16s ease;
+}
+
+.chat:hover {
+  border-color: var(--green-forest);
+}
+
+.emailHead:hover {
+  background: var(--surface-bright);
+}
+
+.actionIcon {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--surface-blush);
+  color: var(--text-heading);
+}
+
+.actionText {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.actionTitle {
+  display: block;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--body-md);
+  color: var(--text-heading);
+}
+
+.actionSub {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-sans);
+  font-size: var(--body-sm);
+  color: var(--text-muted);
+}
+
+.actionArrow {
+  flex: 0 0 auto;
+  display: inline-flex;
+  color: var(--brass);
+}
+
+/* ---- Email us ------------------------------------------------------------------------ */
+
+.email {
+  overflow: hidden;
+  margin-top: var(--space-3);
+  border: 1.5px solid var(--sand-2);
+  border-radius: 14px;
+  background: var(--surface-bright);
+  transition: border-color 0.18s ease;
+}
+
+.email[data-open] {
+  border-color: var(--brass);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  padding: 2px var(--space-4) 18px;
+}
+
+.label {
+  margin-top: var(--space-2);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--body-sm);
+  color: var(--text-heading);
+}
+
+.label + .input {
+  margin-top: 6px;
+}
+
+.input {
+  width: 100%;
+  padding: var(--space-3) 14px;
+  border: 1.5px solid var(--sand-2);
+  border-radius: 11px;
+  background: var(--surface-raised);
+  font-family: var(--font-sans);
+  font-size: 14.5px;
+  line-height: var(--line-snug);
+  color: var(--text-body);
+  resize: vertical;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--brass);
+  box-shadow: var(--shadow-focus);
+}
+
+.send {
+  width: 100%;
+  margin-top: var(--space-4);
+  padding: 15px 20px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--action-dark);
+  color: var(--text-on-dark);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 15.5px;
+  cursor: pointer;
+  transition: filter 0.16s ease;
+}
+
+.send:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sent {
+  padding: var(--space-1) 18px 22px;
+  text-align: center;
+}
+
+.sentTick {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--surface-dark);
+  color: var(--text-on-dark);
+}
+
+.sentTitle {
+  margin-top: var(--space-3);
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 19px;
+  color: var(--text-heading);
+}
+
+.sentBody {
+  margin-top: 6px;
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  line-height: var(--line-snug);
+  color: var(--text-muted);
+}
+
+.sentAgain {
+  margin-top: 14px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--btn-size);
+  color: var(--text-heading);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--brass);
+}
+
+.footNote {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 14px;
+  padding: 0 2px;
+  font-family: var(--font-sans);
+  font-size: var(--body-sm);
+  color: var(--text-muted);
+}
+
+.footNote svg {
+  flex: 0 0 auto;
+}
+
+/* ---- Bottom sheet on phones ------------------------------------------------------------ */
+
+@media (max-width: 640px) {
+  .panel {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: auto;
+    max-height: 86vh;
+    border-radius: 22px 22px 0 0;
+  }
+
+  .title {
+    font-size: 27px;
+  }
+}

@@ -173,11 +173,90 @@ export interface BoxOffer {
   pricePence: number;
   /** Short supporting line rendered under the price. */
   blurb?: string;
+  /** Card flag, e.g. "Most popular", "Best value", "Minimum order". */
+  badge?: string;
+  /** Saving against the per-dish list price, in pence. */
+  savingPence?: number;
+}
+
+/** Build-your-own box: any count in range, priced per dish. */
+export interface CustomBoxPricing {
+  minDishes: number;
+  maxDishes: number;
+  /** What the customer pays per dish. */
+  perDishPence: number;
+  /** Struck-through list price per dish, for showing the saving. */
+  listPerDishPence: number;
+}
+
+/** Delivery charge line: struck-through list price and what is charged now. */
+export interface DeliveryPricing {
+  listPence: number;
+  pricePence: number;
+}
+
+/**
+ * The full box catalogue used by the builder. Preset tiers plus the
+ * build-your-own scale, and the surcharge for dishes added beyond the box.
+ */
+export interface BoxPricing {
+  presets: BoxOffer[];
+  custom: CustomBoxPricing;
+  /** Cost of one dish added on top of the chosen box size. */
+  extraDishPence: number;
+  /**
+   * Optional so the row disappears rather than showing an invented price when
+   * Aonik doesn't return one. The checkout templates publish £10 → Free.
+   */
+  delivery?: DeliveryPricing;
 }
 
 export interface DeliveryWindow {
   /** ISO-8601 date (YYYY-MM-DD) of the earliest dispatch slot. */
   earliestDeliveryDate: string;
+}
+
+/* ---- Extras (Step 3) ------------------------------------------------------ */
+
+export const EXTRA_CATEGORIES = ['Small chops', 'Sides', 'Snacks', 'Drinks', 'Sauces'] as const;
+export type ExtraCategory = (typeof EXTRA_CATEGORIES)[number];
+
+export interface ExtraOptionChoice {
+  key: string;
+  label: string;
+  /** Added to the base price when this choice is selected. */
+  addPence: number;
+}
+
+/** A single option group ("Size", "Heat") on an extra. */
+export interface ExtraOption {
+  kind: string;
+  choices: ExtraOptionChoice[];
+}
+
+export type ExtraServeStyle = 'hot' | 'chilled' | 'ambient';
+
+/**
+ * À-la-carte item sold alongside the box. Unlike dishes, the extras template
+ * publishes complete nutrition, ingredients and allergens for every item.
+ */
+export interface Extra {
+  id: string;
+  name: string;
+  category: ExtraCategory;
+  pricePence: number;
+  /** Card copy (2-line clamp). */
+  description: string;
+  /** Detail-modal copy. */
+  longDescription: string;
+  imageUrl: string;
+  option?: ExtraOption;
+  nutrition: DishNutrition;
+  ingredients: string;
+  allergens: string[];
+  serveStyle: ExtraServeStyle;
+  /** Reheating / serving guidance from the catalogue. */
+  heating: string;
 }
 
 /** Everything the homepage needs, resolved in one pass. */

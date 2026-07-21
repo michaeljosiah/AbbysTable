@@ -1,16 +1,18 @@
 import type { Metadata } from 'next';
 import { Cormorant_Garamond, Figtree, Playfair_Display } from 'next/font/google';
 
-import { AnnouncementBar } from '@/components/layout/AnnouncementBar';
-import { Footer } from '@/components/layout/Footer';
-import { Header } from '@/components/layout/Header';
-import { getAonikClient } from '@/lib/aonik/client';
-import { formatDeliveryDate } from '@/lib/format';
+import { CartProvider } from '@/lib/cart/CartProvider';
 
 import '@/styles/tokens.css';
 import './globals.css';
 
 /**
+ * Root layout: document, fonts and the cart.
+ *
+ * Chrome lives in the route groups — `(site)` carries the marketing header and
+ * footer, `(checkout)` carries the stepper — so the builder is not wrapped in
+ * navigation that would let someone wander out mid-order.
+ *
  * next/font downloads and self-hosts each family at build time, so there is no
  * runtime request to Google and no layout shift from a late webfont.
  */
@@ -47,18 +49,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // The announcement bar carries the live delivery date, so the chrome needs
-  // commerce data too — resolved here rather than threaded through every page.
-  const { earliestDeliveryDate } = await getAonikClient().getDeliveryWindow();
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en-GB" className={`${playfair.variable} ${cormorant.variable} ${figtree.variable}`}>
       <body>
-        <AnnouncementBar earliestDeliveryLabel={formatDeliveryDate(earliestDeliveryDate)} />
-        <Header />
-        <main>{children}</main>
-        <Footer />
+        <CartProvider>{children}</CartProvider>
       </body>
     </html>
   );

@@ -1,0 +1,174 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--surface-page);
+  /* The checkout templates never restyle the browser baseline: 16px type on
+     `normal` line-height, with every component declaring its own sizes. The
+     storefront's 15px/1.6 body default would add 4–6px to nearly every line
+     in the builder and shrink inherited struts. */
+  font-size: 16px;
+  line-height: normal;
+}
+
+.main {
+  flex: 1 1 auto;
+}
+
+/* Deep-green band under a brass rule, as the checkout templates close every step. */
+.footer {
+  border-top: 3px solid var(--brass);
+  background: var(--surface-dark);
+}
+
+.inner {
+  max-width: var(--frame-max);
+  margin-inline: auto;
+  padding: 40px var(--space-7);
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.logoLink {
+  display: inline-flex;
+  color: var(--blush);
+  text-decoration: none;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 40px;
+}
+
+.link {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-medium);
+  font-size: var(--body-md);
+  color: rgb(233 205 184 / 0.72);
+  text-decoration: none;
+  transition: color 0.16s ease;
+}
+
+.link:hover {
+  color: var(--brass);
+}
+
+.divider {
+  height: 1px;
+  background: var(--green-mid);
+  margin: 26px 0;
+}
+
+.bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.help {
+  font-family: var(--font-sans);
+  font-size: var(--btn-size);
+  color: rgb(233 205 184 / 0.7);
+}
+
+.helpLink {
+  font-weight: var(--weight-semibold);
+  color: var(--text-on-dark);
+  text-decoration: none;
+  transition: color 0.16s ease;
+}
+
+.helpLink:hover {
+  color: var(--brass);
+}
+
+.legal {
+  display: inline-flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.copyright {
+  font-family: var(--font-sans);
+  font-size: var(--btn-size);
+  color: rgb(233 205 184 / 0.5);
+}
+
+.legalDivider {
+  width: 1px;
+  height: 18px;
+  background: var(--green-mid);
+}
+
+.signoff {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 20px;
+  color: var(--terracotta);
+}
+
+@media (max-width: 860px) {
+  /* Clear the steps' fixed bottom action bar, as the template pads its page
+     wrapper — the footer lifts with it. */
+  .shell {
+    padding-bottom: 96px;
+  }
+}
+
+@media (max-width: 860px) {
+  .inner {
+    padding: 22px var(--space-5);
+  }
+
+  /* Compact footer: nav only, centred, with pipe separators. */
+  .top {
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    text-align: center;
+  }
+
+  .logoLink,
+  .help {
+    display: none;
+  }
+
+  .nav {
+    justify-content: center;
+    gap: 6px 0;
+  }
+
+  .link {
+    position: relative;
+    padding: 2px 14px;
+    font-size: var(--body-sm);
+  }
+
+  .link:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+    width: 1px;
+    height: 12px;
+    background: var(--green-mid);
+  }
+
+  .bottom {
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-3);
+    text-align: center;
+  }
+}

@@ -1,0 +1,1584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Abby's Table — Step 2 "Add dishes" — Functional Specification</title>
+<style>
+  :root{
+    --forest:#1E3A2F; --cream:#FAF6EF; --cream-2:#FFFDF8; --cream-3:#F3EDE2;
+    --sand:#E6DCCB; --sand-2:#D9CDB8; --brass:#C28E3C; --terracotta:#B4552F;
+    --brown:#4A3F35; --taupe:#7C7167; --white:#fff;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--cream);color:var(--brown);
+    font:16px/1.6 "Figtree",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 28px 100px;}
+  header.doc{background:var(--forest);color:var(--cream);padding:52px 28px 44px;margin-bottom:44px;}
+  header.doc .inner{max-width:1080px;margin:0 auto;}
+  header.doc .eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--brass);font-weight:600;margin:0 0 12px;}
+  header.doc h1{font-family:"Playfair Display",Georgia,serif;font-weight:500;font-size:40px;line-height:1.15;margin:0 0 14px;color:#fff;}
+  header.doc p{margin:0;max-width:62ch;color:#E8E0D2;}
+  header.doc .meta{margin-top:26px;display:flex;flex-wrap:wrap;gap:10px;}
+  header.doc .meta span{border:1px solid rgba(194,142,60,.55);border-radius:999px;padding:6px 14px;font-size:13px;color:var(--brass);}
+  h2{font-family:"Playfair Display",Georgia,serif;font-weight:500;font-size:27px;color:var(--forest);
+    margin:56px 0 8px;padding-bottom:10px;border-bottom:2px solid var(--sand);}
+  h3{font-family:"Playfair Display",Georgia,serif;font-weight:500;font-size:20px;color:var(--forest);margin:34px 0 10px;}
+  h4{font-size:15px;font-weight:700;color:var(--forest);margin:22px 0 6px;letter-spacing:.01em;}
+  p{margin:0 0 12px;}
+  ul,ol{margin:0 0 14px;padding-left:22px;}
+  li{margin-bottom:5px;}
+  code{background:var(--cream-3);border:1px solid var(--sand);border-radius:4px;padding:1px 6px;font-size:13.5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--forest);}
+  table{width:100%;border-collapse:collapse;margin:14px 0 20px;font-size:14.5px;background:var(--cream-2);}
+  th,td{border:1px solid var(--sand);padding:9px 12px;text-align:left;vertical-align:top;}
+  th{background:var(--cream-3);color:var(--forest);font-weight:700;font-size:13px;letter-spacing:.04em;text-transform:uppercase;}
+  td code{background:#fff;}
+  .fr{background:var(--cream-2);border:1px solid var(--sand);border-left:4px solid var(--brass);
+      border-radius:6px;padding:16px 18px;margin:0 0 14px;}
+  .fr .id{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--brass);
+      text-transform:uppercase;margin-bottom:6px;}
+  .fr .title{font-weight:700;color:var(--forest);font-size:16px;margin-bottom:8px;}
+  .fr ul{margin-bottom:0;}
+  .note{background:#F2F6F2;border:1px solid #CFDCD2;border-left:4px solid var(--forest);
+      border-radius:6px;padding:14px 18px;margin:0 0 18px;}
+  .note strong{color:var(--forest);}
+  .warn{background:#FBF1EA;border:1px solid #E9CDB9;border-left:4px solid var(--terracotta);
+      border-radius:6px;padding:14px 18px;margin:0 0 18px;}
+  .toc{background:var(--cream-2);border:1px solid var(--sand);border-radius:10px;padding:22px 26px;}
+  .toc ol{columns:2;column-gap:38px;margin:0;padding-left:20px;}
+  .toc a{color:var(--forest);text-decoration:none;border-bottom:1px solid var(--sand-2);}
+  .toc a:hover{color:var(--terracotta);}
+  .pill{display:inline-block;background:var(--forest);color:var(--cream);font-size:11px;font-weight:700;
+      letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border-radius:999px;margin-left:8px;vertical-align:middle;}
+  .pill.be{background:var(--brass);}
+  .pill.fe{background:var(--terracotta);}
+  pre{background:var(--forest);color:#E8E0D2;padding:18px 20px;border-radius:8px;overflow-x:auto;
+      font-size:13px;line-height:1.55;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .k{color:var(--brass);}
+  hr{border:none;border-top:1px solid var(--sand);margin:40px 0;}
+  .small{font-size:13.5px;color:var(--taupe);}
+  /* v1.1 revision marks */
+  .fr.changed{border-left-color:var(--terracotta);background:#FFF9F0;}
+  .fr .tag{float:right;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+      background:var(--terracotta);color:#fff;padding:3px 10px;border-radius:999px;}
+  .fr .tag.new{background:var(--forest);}
+  .fr .tag.ok{background:#5E7A63;}
+  mark{background:#FCE9BE;padding:1px 4px;border-radius:3px;color:var(--brown);}
+  .cov{display:inline-block;font-size:12.5px;color:var(--forest);background:#EEF4EE;
+      border:1px solid #CFDCD2;border-radius:4px;padding:3px 10px;margin:0 0 10px;}
+  tr.chgrow td{background:#FFF9F0;}
+  tr.chgrow td:first-child{border-left:3px solid var(--terracotta);}
+  .changelog th{background:var(--forest);color:var(--cream);}
+  .changelog td:first-child{font-weight:700;color:var(--forest);}
+  .st{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+      padding:3px 9px;border-radius:999px;white-space:nowrap;}
+  .st.new{background:var(--forest);color:#fff;}
+  .st.chg{background:var(--terracotta);color:#fff;}
+  .st.had{background:#5E7A63;color:#fff;}
+  .st.ext{background:var(--brass);color:#fff;}
+</style>
+</head>
+<body>
+
+<header class="doc">
+  <div class="inner">
+    <p class="eyebrow">Abby's Table · Build your own box · Functional specification</p>
+    <h1>Step 2 — Add dishes</h1>
+    <p>This document describes everything the "Add dishes" page must do. It is written for engineering
+       agents building the front end and the back end. It describes behaviour, not visual design.
+       Every requirement has an ID so it can be tracked and tested.</p>
+    <div class="meta">
+      <span>Version 1.1 &mdash; changes marked</span>
+      <span>Step 2 of 5</span>
+      <span>Source: Step_2.html prototype</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<h2 id="changelog" style="margin-top:0;">Revision 1.1 — what changed</h2>
+
+<p>Every point you raised, mapped to where it lands. <strong>Only the highlighted blocks below need
+re-reading.</strong> Changed and new requirements are flagged in the margin and shaded; everything else
+is untouched from v1.0.</p>
+
+<p class="small">
+  <span class="st had">Already covered</span> was in v1.0 — confirm only, nothing rewritten &nbsp;
+  <span class="st ext">Extended</span> partly there, now strengthened &nbsp;
+  <span class="st chg">Changed</span> v1.0 said something different &nbsp;
+  <span class="st new">New</span> not in v1.0 at all
+</p>
+
+<table class="changelog">
+<tr><th>Your point</th><th>Status</th><th>Where to look</th></tr>
+
+<tr><td>1. Any personalisation price and label</td>
+    <td><span class="st ext">Extended</span></td>
+    <td>v1.0 already put the catalogue in the back end (§6.4). Now stated as a requirement:
+        <a href="#fr11">FR-11.2</a>, <a href="#fr11">FR-11.5</a>, §3.2 preamble, §6.4</td></tr>
+
+<tr><td>2. Heat may carry a price</td>
+    <td><span class="st chg">Changed</span></td>
+    <td>v1.0 said "heat never affects price" — wrong. Corrected in §3.2, the surcharge formula,
+        <a href="#fr11">FR-11.2</a>, §6.4</td></tr>
+
+<tr><td>3. No separately charged extras — must grow the box</td>
+    <td><span class="st chg">Changed</span></td>
+    <td>Extras removed everywhere: §1, §2, §3.1, §3.3, <a href="#fr7">FR-7.1</a>,
+        <a href="#fr7">FR-7.2</a>, <a href="#fr7">FR-7.5</a>, <a href="#fr13">FR-13</a>, §6.5, §7, §8, AC-11.
+        <em>See the note under §3.3 — v1.0's own add rules already blocked this, so the extras
+        pricing was unreachable code.</em></td></tr>
+
+<tr><td>4. Configurable search keywords</td>
+    <td><span class="st new">New</span></td>
+    <td><a href="#fr2">FR-2.1</a>, §6.1</td></tr>
+
+<tr><td>5. Configurable filters</td>
+    <td><span class="st ext">Extended</span></td>
+    <td>v1.0 made the <em>options</em> configurable; now the <em>groups</em> are too.
+        <a href="#fr3">FR-3.1</a>, <a href="#fr3">FR-3.5</a></td></tr>
+
+<tr><td>6. Configurable back-to-top trigger</td>
+    <td><span class="st chg">Changed</span></td>
+    <td><a href="#fr4">FR-4.4</a>, §6.5</td></tr>
+
+<tr><td>7. Card shows available options; options vary per dish</td>
+    <td><span class="st new">New</span></td>
+    <td><a href="#fr5">FR-5.3</a>, <a href="#fr11">FR-11.5</a>, §6.1</td></tr>
+
+<tr><td>8. What "Personalise this dish" does on a card</td>
+    <td><span class="st new">New</span></td>
+    <td><a href="#fr5">FR-5.5</a></td></tr>
+
+<tr><td>9. No extras tag</td>
+    <td><span class="st chg">Changed</span></td>
+    <td>Follows from point 3 — <a href="#fr7">FR-7.2</a></td></tr>
+
+<tr><td>10. More than 30 dishes; configurable maximum</td>
+    <td><span class="st chg">Changed</span></td>
+    <td>§3.1, <a href="#fr8">FR-8.2</a>, <a href="#fr9">FR-9.2</a>, §6.5, §7 rules, §8</td></tr>
+
+<tr><td>11. Nutrition and ingredients come from the back end, not calculated</td>
+    <td><span class="st chg">Changed</span></td>
+    <td>v1.0 said "multiply by 2" — wrong. Corrected in <a href="#fr10">FR-10.2</a>, §6.1, AC-19</td></tr>
+
+<tr><td>12. Edit opens the popup, asks what to do, lists versions, applies to the selected version</td>
+    <td><span class="st had">Already covered</span></td>
+    <td>The version picker and the apply-to-selected-version rule were already
+        <a href="#fr10">FR-10.3</a>, <a href="#fr10">FR-10.4</a>, <a href="#fr10">FR-10.5</a>.
+        One gap filled: the Edit link as an entry point — <a href="#fr5">FR-5.6</a></td></tr>
+
+<tr><td>13. Two versions → card says "2 versions in your box" with Edit</td>
+    <td><span class="st new">New</span></td>
+    <td><a href="#fr5">FR-5.3</a> — <mark>one open question flagged there, needs your decision</mark></td></tr>
+
+<tr><td>14. Added dish shows Personalised + Edit + chosen options; Abby's choice shown when default</td>
+    <td><span class="st ext">Extended</span></td>
+    <td>v1.0 had the Personalised state; the Abby's-choice state was missing.
+        <a href="#fr5">FR-5.3</a></td></tr>
+</table>
+
+<h2 id="toc">Contents</h2>
+<div class="toc">
+  <ol>
+    <li><a href="#changelog">Revision 1.1 — what changed</a></li>
+    <li><a href="#brief">High-level brief</a></li>
+    <li><a href="#glossary">Glossary</a></li>
+    <li><a href="#rules">Core business rules</a></li>
+    <li><a href="#regions">Page regions</a></li>
+    <li><a href="#fr1">FR-1 Header &amp; progress</a></li>
+    <li><a href="#fr2">FR-2 Search</a></li>
+    <li><a href="#fr3">FR-3 Filters</a></li>
+    <li><a href="#fr4">FR-4 Results list</a></li>
+    <li><a href="#fr5">FR-5 Dish card</a></li>
+    <li><a href="#fr6">FR-6 Adding &amp; quantity</a></li>
+    <li><a href="#fr7">FR-7 Your box panel</a></li>
+    <li><a href="#fr8">FR-8 Change box size</a></li>
+    <li><a href="#fr9">FR-9 Make box larger</a></li>
+    <li><a href="#fr10">FR-10 Dish modal</a></li>
+    <li><a href="#fr11">FR-11 Personalisation</a></li>
+    <li><a href="#fr12">FR-12 Signature dishes</a></li>
+    <li><a href="#fr13">FR-13 Price calculation</a></li>
+    <li><a href="#fr14">FR-14 Continue</a></li>
+    <li><a href="#fr15">FR-15 Mobile behaviour</a></li>
+    <li><a href="#fr16">FR-16 Help panel</a></li>
+    <li><a href="#fr17">FR-17 Messages &amp; feedback</a></li>
+    <li><a href="#fr18">FR-18 Accessibility</a></li>
+    <li><a href="#data">Data model</a></li>
+    <li><a href="#api">Back-end API</a></li>
+    <li><a href="#states">States &amp; edge cases</a></li>
+    <li><a href="#accept">Acceptance criteria</a></li>
+    <li><a href="#scope">Out of scope</a></li>
+  </ol>
+</div>
+
+<!-- ============================================= -->
+<h2 id="brief">1. High-level brief</h2>
+
+<p><strong>What this page is for.</strong> The customer has already chosen a box size in Step 1.
+On this page they fill that box with dishes from the menu. They can search and filter the menu,
+look at a dish in detail, personalise it, add it, change how many they want, and remove it.
+A live "Your box" panel shows what they have chosen and what it will cost.</p>
+
+<p><strong>The one job of the page.</strong> Get the customer to fill every space in their box,
+then send them to Step 3.</p>
+
+<p><strong>Where it sits.</strong> Choose box (1) → <strong>Add dishes (2)</strong> → Extras (3) → Review (4) → Checkout (5).</p>
+
+<p><strong>The three things that make it non-trivial:</strong></p>
+<ul>
+  <li>A box has a fixed number of spaces. <mark>The customer can never hold more dishes than the box
+      holds. There is no way to buy a dish "on the side" — to add more, the box itself must get
+      bigger.</mark> This is a deliberate decision point, not a silent auto-upgrade.</li>
+  <li>The same dish can appear in the box more than once with <em>different</em> personalisation.
+      Each unique combination is its own line, and the card has to represent that clearly.</li>
+  <li><mark>Price is built from three parts: the box price, personalisation surcharges,
+      and signature upgrades.</mark> Box size is the only thing that changes how many dishes are paid for.</li>
+</ul>
+
+<div class="note">
+  <strong>Brand rule that must not be broken.</strong> Individual dishes never show a standalone price.
+  Only the box, add-ons, personalisation surcharges and signature upgrades carry prices.
+  A dish card may show "+£4" as a <em>signature upgrade</em>, but never "£12" as a dish price.
+</div>
+
+<!-- ============================================= -->
+<h2 id="glossary">2. Glossary</h2>
+
+<table>
+<tr><th>Term</th><th>Meaning</th></tr>
+<tr><td><strong>Box size</strong></td><td>How many dishes the box holds. Starts at whatever was chosen in Step 1.</td></tr>
+<tr><td><strong>Space</strong></td><td>One slot in the box. A 6-dish box has 6 spaces.</td></tr>
+<tr><td><strong>Line</strong></td><td>One row in the customer's box: a dish plus one exact personalisation, plus a quantity.</td></tr>
+<tr><td><strong>Unit</strong></td><td>One single meal. A line with quantity 3 contains 3 units.</td></tr>
+<tr class="chgrow"><td><strong>Version</strong></td><td><mark>One personalisation of a dish. If the same
+    dish is in the box two different ways, it has two versions.</mark></td></tr>
+<tr class="chgrow"><td colspan="2"><mark><strong>Removed in v1.1:</strong> "base unit" and "extra unit".
+    Every unit now sits inside the box size, so the distinction no longer exists.</mark></td></tr>
+<tr><td><strong>Personalisation</strong></td><td>The customer's choice of portion, protein, side and heat for a dish.</td></tr>
+<tr><td><strong>Abby's choice</strong></td><td>The default personalisation applied when the customer does not choose.</td></tr>
+<tr><td><strong>Signature dish</strong></td><td>A special dish that costs an extra fixed amount on top of the box price.</td></tr>
+</table>
+
+<!-- ============================================= -->
+<h2 id="rules">3. Core business rules</h2>
+
+<h3>3.1 Box sizes and prices</h3>
+<table>
+<tr><th>Rule</th><th>Value</th></tr>
+<tr><td>Smallest box</td><td>6 dishes</td></tr>
+<tr class="chgrow"><td>Largest box</td><td><mark>Configurable. 30 is the launch value, not a design
+    limit. The front end must read it from <code>/api/config/pricing</code>.</mark></td></tr>
+<tr><td>Preset box: 6 dishes</td><td>£95</td></tr>
+<tr><td>Preset box: 12 dishes</td><td>£170</td></tr>
+<tr><td>Preset box: 18 dishes</td><td>£240</td></tr>
+<tr><td>Any other size</td><td><code>95 + (size − 6) × 15</code></td></tr>
+<tr class="chgrow"><td><mark>Each additional dish space added when growing the box</mark></td>
+    <td><mark>£15</mark></td></tr>
+<tr><td>Reference "per dish" figure used in comparison copy</td><td>£18</td></tr>
+<tr><td>Delivery</td><td>Shown as £10 struck through, charged Free</td></tr>
+</table>
+<p class="small">Note: a preset size always uses its preset price, even though the formula would give a different number.
+For example 12 dishes is £170, not £185. The back end must own this table; the front end must not hard-code it.</p>
+
+<h3>3.2 Personalisation options and surcharges</h3>
+<div class="note">
+  <strong>Every value in this table is configuration, not code.</strong> Group names, option labels,
+  option order, prices, which option is Abby's choice, and which groups exist at all are set in the back
+  end and editable without a release. The table is the launch data, not a fixed contract.
+  <mark>This includes heat: heat options can carry a price like any other group.</mark>
+</div>
+<table>
+<tr><th>Group</th><th>Option</th><th>Surcharge</th><th>Abby's choice</th></tr>
+<tr><td rowspan="2">Portion</td><td>Light table (225g)</td><td>£0</td><td>Yes</td></tr>
+<tr><td>Full table (450g)</td><td>+£10</td><td></td></tr>
+<tr><td rowspan="4">Protein</td><td>King prawns</td><td>£0</td><td></td></tr>
+<tr><td>Chicken</td><td>£0</td><td>Yes</td></tr>
+<tr><td>Salmon</td><td>+£3</td><td></td></tr>
+<tr><td>Mixed meats</td><td>+£4</td><td></td></tr>
+<tr><td rowspan="4">Side</td><td>No side</td><td>£0</td><td></td></tr>
+<tr><td>Wild rice</td><td>+£2</td><td>Yes</td></tr>
+<tr><td>Quinoa</td><td>+£2</td><td></td></tr>
+<tr><td>Plantain</td><td>+£2</td><td></td></tr>
+<tr class="chgrow"><td rowspan="4">Heat <mark>(priced like any other group)</mark></td>
+    <td>None</td><td>£0 <span class="small">at launch</span></td><td></td></tr>
+<tr class="chgrow"><td>Low</td><td>£0 <span class="small">at launch</span></td><td></td></tr>
+<tr class="chgrow"><td>Medium</td><td>£0 <span class="small">at launch</span></td><td>Yes</td></tr>
+<tr class="chgrow"><td>High</td><td>£0 <span class="small">at launch</span></td><td></td></tr>
+</table>
+
+<div class="warn">
+  <strong>Important:</strong> the surcharge for a personalisation is the <em>difference</em> from Abby's choice,
+  not the raw price of the option. Because Abby's side (Wild rice) already costs £2, choosing
+  "No side" produces a <strong>negative</strong> £2 adjustment. Negative adjustments are legitimate
+  and must be supported end to end.
+</div>
+
+<p>Formula, per unit:</p>
+<pre>surcharge = sum over every option group of
+              (chosen option price − that group's Abby's-choice price)</pre>
+<p><mark>The formula must loop over whatever groups the back end returns, including heat and any group
+added later. Do not hard-code four groups.</mark> Where a group allows more than one option at once
+(flagged on the dish record), every selected option's price is added before the Abby's-choice value is
+subtracted once.</p>
+
+<h3 id="parts">3.3 The 3 parts of the total</h3>
+<table>
+<tr><th>Part</th><th>How it is worked out</th></tr>
+<tr><td>Box price</td><td>Price for the current box size (see 3.1)</td></tr>
+<tr class="chgrow"><td>Personalisation</td><td><mark>Surcharge × line quantity, summed across all
+    lines. No base/extra split — every unit is a box unit.</mark></td></tr>
+<tr><td>Signature upgrades</td><td>The dish's upgrade amount × total quantity, for every signature dish</td></tr>
+</table>
+<pre>total = boxPrice + personalisation + signatureUpgrades</pre>
+
+<div class="note">
+  <strong>Why extras disappeared — and a finding from the prototype.</strong>
+  The prototype carried a full extras pricing model: a base/extra split, £15 per extra unit, and a
+  separate extra-personalisation row. <strong>It was unreachable.</strong> Every path that could push the
+  box past its size — add from a card, increase from a card, increase from the box panel, add from the
+  modal — already diverted into the grow-the-box flow, and shrinking the box below what was selected
+  was already blocked. No customer could ever have produced an extra unit. Removing extras loses no
+  behaviour; it deletes a second, contradictory pricing model that was sitting behind a guard.
+</div>
+
+<!-- ============================================= -->
+<h2 id="regions">4. Page regions</h2>
+<table>
+<tr><th>#</th><th>Region</th><th>Purpose</th></tr>
+<tr><td>A</td><td>Sticky header</td><td>Logo, 5-step progress, "Questions?" link</td></tr>
+<tr><td>B</td><td>Back link</td><td>Returns to Step 1 (choose box)</td></tr>
+<tr><td>C</td><td>Search bar</td><td>Free-text search across the menu</td></tr>
+<tr><td>D</td><td>Filter panel</td><td>Category, Dietary, Spice level, Calories</td></tr>
+<tr><td>E</td><td>Result bar</td><td>Result count, active filter chips, Clear all</td></tr>
+<tr><td>F</td><td>Dish grid</td><td>Paged grid of dish cards</td></tr>
+<tr><td>G</td><td>Load more</td><td>Loads the next page of dishes</td></tr>
+<tr><td>H</td><td>Your box panel</td><td>Progress, selected lines, price breakdown, Continue</td></tr>
+<tr><td>I</td><td>Dish modal</td><td>Full dish detail plus add / update / personalise</td></tr>
+<tr><td>J</td><td>Change box size modal</td><td>Move to a different box size</td></tr>
+<tr><td>K</td><td>Make box larger modal</td><td>Grow the box so another dish will fit</td></tr>
+<tr><td>L</td><td>Help panel</td><td>FAQ search, email form, live chat entry point</td></tr>
+<tr><td>M</td><td>Toast</td><td>Short confirmation messages</td></tr>
+</table>
+
+<hr>
+
+<!-- ============================================= -->
+<h2>5. Functional requirements</h2>
+
+<h3 id="fr1">FR-1 Header and progress <span class="pill fe">Front end</span></h3>
+
+<div class="fr">
+  <span class="id">FR-1.1</span>
+  <div class="title">Show a 5-step progress indicator</div>
+  <ul>
+    <li>Steps are: 1 Choose box, 2 Add dishes, 3 Extras, 4 Review, 5 Checkout.</li>
+    <li>Step 1 shows as complete (tick, no number).</li>
+    <li>Step 2 shows as the current step (number visible, emphasised).</li>
+    <li>Steps 3 to 5 show as not started.</li>
+    <li>Steps are display only. They are not clickable on this page.</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-1.2</span>
+  <div class="title">Show a compact progress indicator on small screens</div>
+  <ul>
+    <li>Replace the 5-step row with the text "Step 2 of 5" plus the step name "Add dishes".</li>
+    <li>Show a progress bar filled to 40% (step 2 of 5).</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-1.3</span>
+  <div class="title">Header stays in view</div>
+  <ul>
+    <li>The header sticks to the top of the screen while the customer scrolls.</li>
+    <li>The logo links to the homepage.</li>
+    <li>"Questions?" opens the help panel (FR-16).</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-1.4</span>
+  <div class="title">Back link</div>
+  <ul>
+    <li>A "Back to choose box" link sits above the main content and returns to Step 1.</li>
+    <li>Going back must not clear the customer's dish selections.</li>
+  </ul>
+</div>
+
+<h3 id="fr2">FR-2 Search <span class="pill fe">Front end</span></h3>
+
+<div class="fr changed">
+  <span class="tag">Changed</span>
+  <span class="id">FR-2.1</span>
+  <div class="title">Search the menu by text</div>
+  <ul>
+    <li>Match the typed text against the dish name, the short description, the dietary labels,
+        <mark>and a per-dish list of search keywords set in the back end.</mark></li>
+    <li><mark>Keywords are invisible to the customer. They exist so the team can catch spellings,
+        regional names and cravings the dish text does not contain — "goat", "shaki", "rice dish",
+        "comfort", "party" — without changing the copy on the card.</mark></li>
+    <li><mark>Keywords are editable per dish without a release.</mark></li>
+    <li>Matching is case-insensitive and matches anywhere in the text, not just the start.</li>
+    <li>Results update as the customer types. No submit button is required.</li>
+    <li>Placeholder text: "Search dishes, proteins or goals" on desktop, "Search dishes" on mobile.</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-2.2</span>
+  <div class="title">Clear the search</div>
+  <ul>
+    <li>A clear control appears once text has been entered.</li>
+    <li>Clearing resets the search text and resets the page back to the first 8 results.</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-2.3</span>
+  <div class="title">Searching resets paging</div>
+  <ul>
+    <li>Any change to the search text resets the visible count back to 8.</li>
+  </ul>
+</div>
+
+<h3 id="fr3">FR-3 Filters <span class="pill fe">Front end</span> <span class="pill be">Back end</span></h3>
+
+<div class="fr">
+  <span class="id">FR-3.1</span>
+  <div class="title">Offer four filter groups</div>
+  <table>
+    <tr><th>Group</th><th>Options</th></tr>
+    <tr><td>Category</td><td>Mains, Soups &amp; Stews, Sides, Proteins, Swallows, Snacks</td></tr>
+    <tr><td>Dietary</td><td>Vegetarian, Vegan, Protein rich, Gluten-free</td></tr>
+    <tr><td>Spice level</td><td>Mild, Medium, Hot</td></tr>
+    <tr><td>Calories</td><td>Under 500 kcal, 500+ kcal</td></tr>
+  </table>
+  <p class="small">The table above is the launch configuration.</p>
+  <div class="cov">Extended in v1.1 — v1.0 made the options configurable; the groups now are too.</div>
+  <ul>
+    <li><mark>The filter groups themselves are configuration, not code. The back end returns an ordered
+        list of groups, each with its own name, icon, selection behaviour and option list.</mark></li>
+    <li><mark>The front end renders whatever it is given. Adding a fifth group, renaming a group,
+        reordering options or retiring a group must need no front-end change.</mark></li>
+    <li><mark>Each group declares how it matches: by a field on the dish (category, dietary), by an exact
+        value (spice), or by a numeric range (calories).</mark></li>
+  </ul>
+</div>
+
+<div class="fr changed">
+  <span class="tag new">New</span>
+  <span class="id">FR-3.5</span>
+  <div class="title">Range filters are defined in the back end</div>
+  <ul>
+    <li>The calorie bands ("Under 500 kcal", "500+ kcal") are a range filter, not two fixed labels.</li>
+    <li>The back end supplies the label, the field it reads, and the lower and upper bounds.</li>
+    <li>The same mechanism must work for any future numeric band — a protein or salt filter, say —
+        without new front-end code.</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-3.2</span>
+  <div class="title">How filters combine</div>
+  <ul>
+    <li>Within one group, options are combined with OR. Picking Vegan and Vegetarian shows dishes that are either.</li>
+    <li>Between groups, filters are combined with AND. Picking Mains and Vegan shows vegan mains only.</li>
+    <li>Search text is combined with the filters using AND.</li>
+    <li>A group with nothing selected does not restrict anything.</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-3.3</span>
+  <div class="title">Open, close and apply</div>
+  <ul>
+    <li>The filter panel opens and closes from a single control.</li>
+    <li>Filters apply immediately as they are picked. There is no separate Apply step on desktop.</li>
+    <li>On small screens the panel is a full sheet with a close control and an apply button labelled
+        "Show N dishes", where N is the live result count.</li>
+    <li>Clicking outside the panel closes it.</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-3.4</span>
+  <div class="title">Show and remove active filters</div>
+  <ul>
+    <li>Every selected filter appears as a removable chip in the result bar.</li>
+    <li>Removing a chip removes only that one filter.</li>
+    <li>"Clear all" clears the search text and every filter group, and resets paging to 8.</li>
+    <li>The chip row and "Clear all" only appear when at least one filter is active.</li>
+  </ul>
+</div>
+
+<h3 id="fr4">FR-4 Results list <span class="pill fe">Front end</span></h3>
+
+<div class="fr">
+  <span class="id">FR-4.1</span>
+  <div class="title">Show a result count</div>
+  <ul>
+    <li>Text reads "Showing X of Y dishes", where X is how many are on screen and Y is how many match.</li>
+    <li>Use the singular "dish" when the number is 1.</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-4.2</span>
+  <div class="title">Page the results</div>
+  <ul>
+    <li>Show 8 dishes at first.</li>
+    <li>A "Load more dishes" button appears while more matching dishes exist.</li>
+    <li>Each press reveals 8 more.</li>
+    <li>The result count repeats under the button.</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-4.3</span>
+  <div class="title">Handle no results</div>
+  <ul>
+    <li>When nothing matches, hide the grid and show: "No dishes match your search or filters."</li>
+    <li>Offer a single action: "Clear search &amp; filters", which does exactly that.</li>
+  </ul>
+</div>
+
+<div class="fr changed">
+  <span class="tag">Changed</span>
+  <span class="id">FR-4.4</span>
+  <div class="title">Back to top</div>
+  <ul>
+    <li>Show a back-to-top control once the customer has scrolled past a set point in the grid.</li>
+    <li><mark>The trigger point is configuration, not code. The back end supplies it as a card index
+        (launch value: 10) so it can be tuned once real card heights and photography are in place.</mark></li>
+    <li><mark>The value must also accept a pixel offset instead of a card index, so the trigger can be
+        tuned independently of how many cards fit a row on a given screen.</mark></li>
+    <li>Hide it again when they scroll back up.</li>
+  </ul>
+</div>
+
+<h3 id="fr5">FR-5 Dish card <span class="pill fe">Front end</span></h3>
+
+<div class="fr">
+  <span class="id">FR-5.1</span>
+  <div class="title">What every card shows</div>
+  <ul>
+    <li>Dish photo, dish name, short description.</li>
+    <li>Spice level as three pips plus a word (None, Mild, Medium, Hot).</li>
+    <li>Up to two nutrition tags.</li>
+    <li>Any dietary badges the dish carries.</li>
+    <li>No dish price. Ever. (See brand rule in section 1.)</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-5.2</span>
+  <div class="title">Show when a dish is already in the box</div>
+  <ul>
+    <li>A card for a dish already in the box shows an "In your box" marker on the photo.</li>
+    <li>Its action area shows a quantity stepper instead of an Add button.</li>
+  </ul>
+</div>
+
+<div class="fr changed">
+  <span class="tag">Changed</span>
+  <span class="id">FR-5.3</span>
+  <div class="title">Show personalisation state — four cases</div>
+  <p><mark>The card's personalisation block has four distinct states. v1.0 described two of them.</mark></p>
+  <table>
+    <tr><th>State</th><th>When</th><th>What the card shows</th></tr>
+    <tr><td><strong>A. Not in the box</strong></td>
+        <td>Dish has never been added</td>
+        <td>"Personalise this dish" link, plus a sub-line naming <mark>the option groups actually
+            available for <em>this</em> dish</mark></td></tr>
+    <tr class="chgrow"><td><strong>B. In the box, Abby's choice</strong></td>
+        <td>One version, everything left at the default</td>
+        <td><mark>"Abby's choice" marker and an "Edit" link. Do <em>not</em> list the individual options
+            — naming them implies the customer chose them.</mark></td></tr>
+    <tr><td><strong>C. In the box, personalised</strong></td>
+        <td>One version, at least one option changed</td>
+        <td>"Personalised" marker, a one-line summary of what was chosen, and an "Edit" link</td></tr>
+    <tr class="chgrow"><td><strong>D. In the box, multiple versions</strong></td>
+        <td>Two or more versions of the same dish</td>
+        <td><mark>"N versions in your box" and an "Edit" link. No option summary — there is no single
+            set of options to name.</mark></td></tr>
+  </table>
+  <h4>Sub-line for state A</h4>
+  <ul>
+    <li>The sub-line names only the groups this dish offers.</li>
+    <li>A dish offering all four reads "Portion, protein, side &amp; heat — your way."</li>
+    <li>A dish offering only portion and heat reads "Portion &amp; heat — your way."</li>
+    <li>A dish offering nothing hides the personalise link entirely (FR-11.5).</li>
+  </ul>
+  <h4>Quantity shown on the card</h4>
+  <ul>
+    <li>In states B and C the stepper shows that version's quantity and acts on it directly.</li>
+    <li><mark>In state D the number shown is the total units of that dish across all versions.</mark></li>
+  </ul>
+  <div class="warn">
+    <strong>Open question — needs your decision.</strong> In state D, what should the card's
+    <em>plus</em> and <em>minus</em> controls act on? There is no single version to target.
+    Three options: <strong>(a)</strong> hide the stepper in state D and leave quantity changes to the box
+    panel and the modal, where the version is unambiguous; <strong>(b)</strong> keep the stepper, and have
+    it open the version picker rather than change anything directly; <strong>(c)</strong> keep the
+    stepper, and have plus add another unit of the most recently added version.
+    <mark>(a) is my recommendation</mark> — a control that silently picks a version on the customer's
+    behalf is the kind of thing that produces a wrong delivery. But it is a product call, not a technical one.
+  </div>
+</div>
+
+<div class="fr">
+  <span class="id">FR-5.4</span>
+  <div class="title">Long dish names</div>
+  <ul>
+    <li>Clamp names to two lines on desktop and show the full name on hover.</li>
+    <li>Show the full name, unclamped, on mobile.</li>
+  </ul>
+</div>
+
+<div class="fr changed">
+  <span class="tag">Changed</span>
+  <span class="id">FR-5.5</span>
+  <div class="title">Card actions — what each control does</div>
+  <table>
+    <tr><th>Control</th><th>What happens</th></tr>
+    <tr><td>"View"</td><td>Opens the dish modal at the top, in the mode set by FR-10.3</td></tr>
+    <tr><td>Photo or dish name</td><td>Same as "View"</td></tr>
+    <tr><td>"Add"</td><td>Adds one unit with Abby's choice, without opening anything (FR-6.1)</td></tr>
+    <tr class="chgrow"><td><mark>"Personalise this dish"</mark></td>
+        <td><mark>Opens the dish modal with the personalisation panel already expanded, scrolled to it,
+        and personalisation switched on rather than opt-in. The dish is <strong>not</strong> added at this
+        point — the customer still confirms with the modal's main button, which reads "Add to your box".
+        Closing the modal changes nothing in the box.</mark></td></tr>
+    <tr class="chgrow"><td><mark>"Edit"</mark></td><td><mark>See FR-5.6</mark></td></tr>
+  </table>
+</div>
+
+<div class="fr changed">
+  <span class="tag new">New</span>
+  <span class="id">FR-5.6</span>
+  <div class="title">The Edit link on a card</div>
+  <div class="cov">Fills the one gap in your point 12 — the picker behaviour itself was already FR-10.3 to FR-10.5.</div>
+  <ul>
+    <li>"Edit" opens the dish modal in update mode for that dish.</li>
+    <li><strong>One version in the box:</strong> the modal opens straight onto that version's
+        personalisation, already expanded.</li>
+    <li><strong>Two or more versions:</strong> the modal opens on the "What would you like to do?"
+        question, and choosing to update reveals the version list. Each entry names the version by its
+        personalisation summary and shows its quantity.</li>
+    <li>Changes apply only to the version the customer selects. Other versions are untouched.</li>
+    <li>If the selected version has a quantity above 1, the count picker applies (FR-10.4).</li>
+  </ul>
+</div>
+
+<h3 id="fr6">FR-6 Adding, changing quantity and removing <span class="pill fe">Front end</span></h3>
+
+<div class="fr">
+  <span class="tag ok">Already covered</span>
+  <span class="id">FR-6.1</span>
+  <div class="title">Add a dish from a card</div>
+  <div class="cov">Your point 3 — this rule was already correct in v1.0 and is unchanged.</div>
+  <ul>
+    <li>If the box has a free space, add one unit using Abby's choice personalisation and confirm with a toast.</li>
+    <li>If the box is full, do <strong>not</strong> add the dish. Open the "make box larger" flow instead (FR-9),
+        remembering the dish so it is added automatically once the box has grown.</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-6.2</span>
+  <div class="title">Merge identical selections into one line</div>
+  <ul>
+    <li>When adding a unit, look for an existing line with the same dish <em>and</em> exactly the same personalisation.</li>
+    <li>If one exists, increase its quantity by 1.</li>
+    <li>If none exists, create a new line with quantity 1.</li>
+    <li>Two personalisations match only when portion, protein set, side and heat are all the same.
+        Protein order does not matter.</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-6.3</span>
+  <div class="title">Increase quantity</div>
+  <ul>
+    <li>The plus control adds one more unit to that line.</li>
+    <li>If the box is already full, open the "make box larger" flow instead, remembering the intent.</li>
+    <li>From a dish card, the plus control targets the line that uses Abby's choice if one exists,
+        otherwise the most recently created line for that dish.</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-6.4</span>
+  <div class="title">Decrease quantity</div>
+  <ul>
+    <li>The minus control reduces the line quantity by 1.</li>
+    <li>When the quantity would reach 0, delete the line entirely.</li>
+    <li>From a dish card, the minus control targets the most recently created line for that dish.</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-6.5</span>
+  <div class="title">Remove a line</div>
+  <ul>
+    <li>"Remove" deletes the whole line regardless of quantity.</li>
+    <li>Confirm with a toast: "<em>Dish name</em> removed".</li>
+    <li>No confirmation dialog. The action is easy to reverse by adding again.</li>
+  </ul>
+</div>
+
+<h3 id="fr7">FR-7 Your box panel <span class="pill fe">Front end</span></h3>
+
+<div class="fr changed">
+  <span class="tag">Changed</span>
+  <span class="id">FR-7.1</span>
+  <div class="title">Show box size and progress</div>
+  <ul>
+    <li>Show the box name, for example "6-dish box".</li>
+    <li>Show "N of M dishes selected".</li>
+    <li><mark>Removed in v1.1: the extras breakdown line. Selected units can never exceed the box size,
+        so the two figures are always the same thing.</mark></li>
+    <li>Show a progress bar filled to selected units ÷ box size.</li>
+    <li>Show "N spaces left to fill" until the box is full.</li>
+    <li>When full, show "Your <em>6-dish box</em> is complete. Continue to Extras,
+        or change box size to add more." and a "Complete" marker.</li>
+  </ul>
+</div>
+
+<div class="fr changed">
+  <span class="tag">Changed</span>
+  <span class="id">FR-7.2</span>
+  <div class="title">List every selected line</div>
+  <p>Each row shows:</p>
+  <ul>
+    <li>Thumbnail and dish name, both opening the dish modal for that specific line.</li>
+    <li>The personalisation summary, or a note that it is as Abby designed it.</li>
+    <li>A "Signature" tag where relevant, and the upgrade amount.</li>
+    <li><mark>Removed in v1.1: the "Extra" tag. There are no extra units.</mark></li>
+    <li>Minus, quantity, plus controls.</li>
+    <li>A Remove control.</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-7.3</span>
+  <div class="title">Empty state</div>
+  <ul>
+    <li>When no dishes are selected, show "Your box is empty" and
+        "Add dishes from the menu — your choices appear here."</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-7.4</span>
+  <div class="title">Long lists</div>
+  <ul>
+    <li>The list scrolls inside a fixed height.</li>
+    <li>When the list is scrollable and the customer is at the top, show a "Scroll for more" control.</li>
+    <li>Pressing it scrolls the list down by about 80% of its visible height.</li>
+    <li>Hide the control once the customer has scrolled.</li>
+  </ul>
+</div>
+
+<div class="fr changed">
+  <span class="tag">Changed</span>
+  <span class="id">FR-7.5</span>
+  <div class="title">Estimated total, expandable</div>
+  <ul>
+    <li>Show "Estimated total" and the amount. Pressing either expands the breakdown.</li>
+    <li>An info control explains: "Price changes may apply based on your personalisation."</li>
+    <li>The expanded breakdown lists, in order and only when non-zero:
+      <mark>box price; signature upgrades; personalisation; delivery (£10 struck through, "Free");
+      then a Total line. The two extras rows are gone.</mark></li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-7.6</span>
+  <div class="title">Delivery promise</div>
+  <ul>
+    <li>Show the earliest UK-wide delivery date under the Continue button.</li>
+    <li>The date comes from the back end. It must not be hard-coded in the front end.</li>
+  </ul>
+</div>
+
+<h3 id="fr8">FR-8 Change box size <span class="pill fe">Front end</span> <span class="pill be">Back end</span></h3>
+
+<div class="fr">
+  <span class="id">FR-8.1</span>
+  <div class="title">Open the flow</div>
+  <ul>
+    <li>"Change box size" in the box panel opens a modal.</li>
+    <li>It opens pre-set to the current box size.</li>
+    <li>It shows the current box and how many dishes are currently selected.</li>
+  </ul>
+</div>
+
+<div class="fr changed">
+  <span class="tag">Changed</span>
+  <span class="id">FR-8.2</span>
+  <div class="title">Choose a new size</div>
+  <ul>
+    <li>Offer quick-pick buttons for 6, 12 and 18.</li>
+    <li><mark>Offer a stepper and a typed field for any size between the configured minimum and
+        maximum.</mark></li>
+    <li><mark>The typed field accepts digits only. On leaving the field, clamp the value into the
+        configured range. Never hard-code 6 or 30.</mark></li>
+    <li>Show the new size, the new box price, and the new estimated total live as the value changes.</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-8.3</span>
+  <div class="title">Block sizes that are too small</div>
+  <ul>
+    <li>If the chosen size is smaller than the number of dishes already selected, show an error:</li>
+    <li>Title: "You need to remove N dishes".</li>
+    <li>Body: "You have X dishes selected. To move to a Y-dish box, choose N dishes to remove first."</li>
+    <li>The main button changes to "Choose N dishes to remove" and closes the modal so they can edit their box.</li>
+    <li>Do not silently drop dishes to make them fit.</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-8.4</span>
+  <div class="title">Save</div>
+  <ul>
+    <li>When the size is valid and different, the button reads "Save changes".</li>
+    <li>When the size has not changed, the button reads "No changes to save" and is disabled.</li>
+    <li>Saving updates the box size and the box price, closes the modal, and confirms with a toast:
+        "Your box is now N dishes".</li>
+  </ul>
+</div>
+
+<h3 id="fr9">FR-9 Make box larger <span class="pill fe">Front end</span></h3>
+
+<div class="fr">
+  <span class="id">FR-9.1</span>
+  <div class="title">When this flow triggers</div>
+  <ul>
+    <li>Any attempt to add a dish, or increase a quantity, while the box is full.</li>
+    <li>The attempted action is remembered as a pending action.</li>
+  </ul>
+</div>
+
+<div class="fr changed">
+  <span class="tag">Changed</span>
+  <span class="id">FR-9.2</span>
+  <div class="title">What the flow offers</div>
+  <ul>
+    <li>A banner: "Your <em>N-dish box</em> is complete".</li>
+    <li>If a dish is pending: "<em>Dish name</em> will be added after you update your box size."</li>
+    <li><mark>A stepper to add between 1 and (configured maximum − current size) more spaces.</mark></li>
+    <li>Live display of the new size and the new price.</li>
+    <li>Quick-pick rows for any larger preset box (12, 18) showing size, spaces gained and price.</li>
+    <li>A primary button: "Expand to N dishes and add dish — £X".</li>
+    <li>A decline option: "No, keep my <em>N-dish box</em>".</li>
+    <li>A back link to the dish, when the flow was entered from the dish modal.</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-9.3</span>
+  <div class="title">On confirm</div>
+  <ul>
+    <li>Increase the box size, recalculate the box price, then carry out the pending action.</li>
+    <li>Confirm with a toast: "<em>Dish name</em> added. Your box is now N dishes."</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-9.4</span>
+  <div class="title">On decline</div>
+  <ul>
+    <li>Close the flow. Do not change the box. Do not carry out the pending action.</li>
+  </ul>
+</div>
+
+<h3 id="fr10">FR-10 Dish modal <span class="pill fe">Front end</span></h3>
+
+<div class="fr">
+  <span class="id">FR-10.1</span>
+  <div class="title">Dish detail content</div>
+  <ul>
+    <li>Large photo, dish name, long description.</li>
+    <li>Quick jump links to Nutrition, Ingredients &amp; allergens, and How to heat.</li>
+    <li>"At a glance": kcal, protein, carbs, fat.</li>
+    <li>Dietary pills, plus "Under 500 kcal" when the dish qualifies.</li>
+    <li>Spice level pips and label.</li>
+    <li>Collapsible "Full nutrition" panel: kcal, protein, carbs, fat, fibre, sugars, salt.</li>
+    <li>Collapsible "Ingredients &amp; allergens" panel, with allergens called out separately.</li>
+    <li>Collapsible "How to heat" panel with microwave and hob instructions.</li>
+    <li>An "In your box" marker when relevant.</li>
+  </ul>
+</div>
+
+<div class="fr changed">
+  <span class="tag">Changed</span>
+  <span class="id">FR-10.2</span>
+  <div class="title">Nutrition and ingredients come from the back end</div>
+  <div class="warn" style="margin-bottom:12px;">
+    <strong>v1.0 was wrong here.</strong> It said to multiply every figure by 2 for a Full table portion.
+    <mark>The front end must never calculate nutrition.</mark>
+  </div>
+  <ul>
+    <li><mark>Nutrition figures, ingredients and allergens are authored in the back end for every
+        combination that changes them.</mark></li>
+    <li><mark>When the customer changes an option, the front end displays the figures the back end has
+        supplied for that combination. It does not scale, multiply or derive anything.</mark></li>
+    <li><mark>This matters well beyond portion size: swapping chicken for salmon changes protein and fat,
+        and changes the allergen list. A multiplier could never produce that.</mark></li>
+    <li><mark>Where the back end holds no figures for a combination, show the dish's default figures with
+        a short note that they are for the standard preparation. Never present a guess as fact.</mark></li>
+    <li>The caption states which preparation the figures apply to, e.g. "Per serving — Light table 225g".</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-10.3</span>
+  <div class="title">Three modes</div>
+  <table>
+    <tr><th>Mode</th><th>When</th><th>What it does</th></tr>
+    <tr><td>Add</td><td>Dish is not in the box, or the customer chooses to add another</td><td>Creates or increases a line</td></tr>
+    <tr><td>Update</td><td>Dish is already in the box</td><td>Changes an existing line's personalisation</td></tr>
+    <tr><td>View</td><td>Customer chooses to just look</td><td>Changes nothing; button reads "Back to dishes"</td></tr>
+  </table>
+  <ul>
+    <li>When the dish is already in the box, the modal asks "What would you like to do?" and requires a choice
+        before the main button becomes active.</li>
+    <li>When the dish is not in the box, Add mode is assumed.</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="tag ok">Already covered</span>
+  <span class="id">FR-10.4</span>
+  <div class="title">Choosing which version to update</div>
+  <div class="cov">Your point 12 — already in v1.0, unchanged. Entry from the card's Edit link is now FR-5.6.</div>
+  <ul>
+    <li>If the dish appears in the box on more than one line, show a version picker:
+        "Which dish would you like to update?" listing each version and its quantity.</li>
+    <li>If the chosen line has a quantity above 1, show a count picker so the customer can update
+        some units and leave the rest unchanged.</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="tag ok">Already covered</span>
+  <span class="id">FR-10.5</span>
+  <div class="title">Saving an update</div>
+  <div class="cov">Your point 12, second half — changes apply only to the selected version. Already in v1.0.</div>
+  <ul>
+    <li>Take the chosen number of units off the target line. If that empties it, delete the line.</li>
+    <li>Look for an existing line with the same dish and the new personalisation.
+        If found, add the units to it. If not, create a new line.</li>
+    <li>Confirm with a toast naming how many dishes were updated.</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-10.6</span>
+  <div class="title">Main button messaging</div>
+  <p>The button and the text above it must always say what will happen and what it will cost.</p>
+  <table>
+    <tr><th>Situation</th><th>Message above</th><th>Button</th></tr>
+    <tr><td>No action chosen yet</td><td>Select an action to continue · No changes yet</td><td>Choose an action (disabled)</td></tr>
+    <tr><td>View mode</td><td>No changes will be made · Your box stays the same</td><td>Back to dishes</td></tr>
+    <tr><td>Update, nothing changed</td><td>No changes made</td><td>Save changes (disabled)</td></tr>
+    <tr><td>Update, costs more</td><td>Personalisation +£X · Updated estimated total £Y</td><td>Save changes</td></tr>
+    <tr><td>Update, costs less</td><td>Reset to Abby's choice · £X removed · Updated estimated total £Y</td><td>Save changes</td></tr>
+    <tr><td>Add, box has room</td><td>Included in your box · 1 of N remaining spaces will be used</td><td>Add to your box</td></tr>
+    <tr><td>Add, box is full</td><td>More box space is needed · Choose a larger box to continue</td><td>Make box larger</td></tr>
+    <tr><td>Add, personalised</td><td>Personalised your way · +£X personalisation</td><td>Add to your box · +£X extra</td></tr>
+    <tr><td>Add, signature dish</td><td>Abby's Signature · +£X signature upgrade · Added on top of your box price</td><td>Add to your box · +£X</td></tr>
+  </table>
+</div>
+
+<div class="fr">
+  <span class="id">FR-10.7</span>
+  <div class="title">Navigation inside the modal</div>
+  <ul>
+    <li>The modal keeps a history of its own steps so a Back control can step backwards through them.</li>
+    <li>Clicking the overlay closes the modal.</li>
+    <li>Closing discards any unsaved personalisation draft.</li>
+    <li>Page scrolling is locked while the modal is open.</li>
+  </ul>
+</div>
+
+<h3 id="fr11">FR-11 Personalisation <span class="pill fe">Front end</span> <span class="pill be">Back end</span></h3>
+
+<div class="fr">
+  <span class="id">FR-11.1</span>
+  <div class="title">Opt in, not on by default</div>
+  <ul>
+    <li>Dishes default to Abby's choice.</li>
+    <li>The customer opts in via "Personalise this dish" on the card or in the modal.</li>
+    <li>Opening a dish that is already personalised opens the personalisation panel already expanded
+        and scrolls to it.</li>
+  </ul>
+</div>
+
+<div class="fr changed">
+  <span class="tag">Changed</span>
+  <span class="id">FR-11.2</span>
+  <div class="title">Option groups are configuration</div>
+  <ul>
+    <li><mark>The back end returns an ordered list of option groups. Portion, protein, side and heat are
+        the launch set, not a fixed structure.</mark></li>
+    <li><mark>Each group carries its own label, help text, options, prices, Abby's choice, and whether it
+        allows one selection or several.</mark></li>
+    <li><mark>Every option can carry a price, including heat options. The front end must not assume any
+        group is free.</mark></li>
+    <li><mark>Labels and prices are editable without a release. "Light table" could become
+        "Everyday portion", and 225g could become 250g, with no front-end change.</mark></li>
+    <li>Abby's choice in each group is marked so the customer can see the recommendation.</li>
+    <li>Each option shows its price difference from Abby's choice, including negative differences.</li>
+  </ul>
+</div>
+
+<div class="fr changed">
+  <span class="tag new">New</span>
+  <span class="id">FR-11.5</span>
+  <div class="title">Personalisation options vary per dish</div>
+  <ul>
+    <li>Each dish declares which option groups apply to it, and which options within those groups are
+        available.</li>
+    <li>A dish may offer all four groups, some of them, or none.</li>
+    <li>A dish may offer a group with a reduced option list — a fish dish that offers salmon and prawns
+        but not chicken, for example.</li>
+    <li>A dish may set its own Abby's choice, different from the catalogue default.</li>
+    <li>Where a dish offers no personalisation at all, hide the "Personalise this dish" link on the card
+        and the personalisation panel in the modal. Do not show an empty panel or a disabled link.</li>
+    <li>The card's sub-line names only the groups that dish offers (FR-5.3).</li>
+    <li>The back end must reject a personalisation containing an option the dish does not offer, even
+        when that option exists in the global catalogue.</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-11.3</span>
+  <div class="title">Multi-protein dishes</div>
+  <ul>
+    <li>Some dishes allow more than one protein. This is a property of the dish, set in the back end.</li>
+    <li>On those dishes, protein selection is multi-select and at least one must stay selected.</li>
+    <li>Every selected protein's surcharge is added.</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-11.4</span>
+  <div class="title">Summarise the personalisation</div>
+  <ul>
+    <li>Build a short summary listing only what differs from Abby's choice, e.g. "Full table · Salmon · Medium heat".</li>
+    <li>If nothing differs, treat the dish as not personalised even if the customer opted in.</li>
+  </ul>
+</div>
+
+<h3 id="fr12">FR-12 Signature dishes <span class="pill fe">Front end</span> <span class="pill be">Back end</span></h3>
+
+<div class="fr">
+  <span class="id">FR-12.1</span>
+  <div class="title">Marking</div>
+  <ul>
+    <li>A signature dish is marked on the card, in the modal and in the box list.</li>
+    <li>The upgrade amount is shown next to the marker, e.g. "+£4".</li>
+    <li>An info control explains: "One of Abby's specials. Counts as one of your box dishes —
+        the upgrade is added on top."</li>
+  </ul>
+</div>
+
+<div class="fr changed">
+  <span class="tag">Changed</span>
+  <span class="id">FR-12.2</span>
+  <div class="title">How it counts and charges</div>
+  <ul>
+    <li>A signature dish uses one box space, exactly like any other dish.</li>
+    <li>Its upgrade is charged per unit, on top of the box price.</li>
+    <li><mark>Changed in v1.1: the upgrade is charged on every unit of that dish. The old base/extra
+        wording is gone — there is only one kind of unit now.</mark></li>
+    <li>The upgrade is independent of personalisation. Both can apply to the same unit.</li>
+  </ul>
+</div>
+
+<h3 id="fr13">FR-13 Price calculation <span class="pill be">Back end owns the truth</span></h3>
+
+<div class="fr changed">
+  <span class="tag">Changed</span>
+  <span class="id">FR-13.1</span>
+  <div class="title">The box size is a hard ceiling</div>
+  <div class="warn" style="margin-bottom:12px;">
+    <strong>v1.0's base/extra split is deleted.</strong> <mark>There is no boundary to split across.
+    Total units can never exceed the box size, so every unit is priced identically.</mark>
+  </div>
+  <ul>
+    <li>Total units across all lines must always be equal to or less than the box size.</li>
+    <li>The back end rejects any write that would breach it, whatever the route.</li>
+    <li>The only way to hold more dishes is to grow the box first (FR-9), which is a separate, explicit,
+        priced decision.</li>
+  </ul>
+</div>
+
+<div class="fr changed">
+  <span class="tag">Changed</span>
+  <span class="id">FR-13.2</span>
+  <div class="title">Apply the three parts</div>
+  <ul>
+    <li>Personalisation surcharge applies per unit, across every line.</li>
+    <li>Signature upgrade applies per unit.</li>
+    <li>Add both to the box price, as shown in section 3.3.</li>
+    <li><mark>The £15 per-dish figure now appears in exactly one place: the cost of adding a space when
+        growing the box. It is never a line-item charge on a dish.</mark></li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-13.3</span>
+  <div class="title">Front end estimates, back end decides</div>
+  <ul>
+    <li>The front end may calculate the total for instant feedback. It is labelled "Estimated total".</li>
+    <li>The back end must recalculate independently at checkout and is the authority.</li>
+    <li>If the two disagree, show the back-end figure and tell the customer the price has been updated.</li>
+    <li>Never let a client-supplied price reach the payment step.</li>
+  </ul>
+</div>
+
+<h3 id="fr14">FR-14 Continue <span class="pill fe">Front end</span></h3>
+
+<div class="fr">
+  <span class="id">FR-14.1</span>
+  <div class="title">Continue is gated on a full box</div>
+  <ul>
+    <li>The button is disabled until base units equal the box size.</li>
+    <li>While disabled, it reads "Add N more dishes" (singular "dish" when N is 1).</li>
+    <li>When enabled, it reads "Continue to extras" and shows a forward arrow.</li>
+    <li>A "Secure checkout" reassurance line sits under the label.</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-14.2</span>
+  <div class="title">On continue</div>
+  <ul>
+    <li>Persist the current box to the server, then navigate to Step 3.</li>
+    <li>If persisting fails, stay on the page and show a recoverable error. Do not lose the selection.</li>
+  </ul>
+</div>
+
+<h3 id="fr15">FR-15 Mobile behaviour <span class="pill fe">Front end</span></h3>
+
+<div class="fr">
+  <span class="id">FR-15.1</span>
+  <div class="title">Layout changes</div>
+  <ul>
+    <li>The two-column layout becomes a single column at 860px and below.</li>
+    <li>The box panel becomes a bottom bar that can be expanded into a sheet.</li>
+    <li>The bar shows the short label "Continue" or "Add N more".</li>
+    <li>The filter panel becomes a full-screen sheet with its own header and apply button.</li>
+    <li>The dish modal becomes full screen with a back control.</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-15.2</span>
+  <div class="title">Touch instead of hover</div>
+  <ul>
+    <li>Hover tooltips are hidden on touch devices.</li>
+    <li>The same information is available through a tappable info control that opens an inline panel.</li>
+  </ul>
+</div>
+
+<h3 id="fr16">FR-16 Help panel <span class="pill fe">Front end</span> <span class="pill be">Back end</span></h3>
+
+<div class="fr">
+  <span class="id">FR-16.1</span>
+  <div class="title">FAQ</div>
+  <ul>
+    <li>Opens from "Questions?" in the header.</li>
+    <li>Shows the 4 most popular questions first, with "View all questions" to reveal the rest.</li>
+    <li>A search field filters questions and answers by text and shows "Showing N results for '...'".</li>
+    <li>Each question expands and collapses independently.</li>
+    <li>Show a helpful message when a search returns nothing.</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-16.2</span>
+  <div class="title">Email a question</div>
+  <ul>
+    <li>Fields: name, email, question. All three are required.</li>
+    <li>The send button stays disabled until the name and question are not empty and the email looks valid.</li>
+    <li>After sending, show a confirmation and offer to ask another question.</li>
+    <li>The back end must send the message and record it. Do not rely on a client-only success state.</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-16.3</span>
+  <div class="title">Live chat</div>
+  <ul>
+    <li>Before starting: "Typically replies in a few minutes".</li>
+    <li>After starting: "A team member will be with you shortly."</li>
+  </ul>
+</div>
+
+<h3 id="fr17">FR-17 Messages and feedback <span class="pill fe">Front end</span></h3>
+
+<div class="fr">
+  <span class="id">FR-17.1</span>
+  <div class="title">Toasts</div>
+  <ul>
+    <li>Show a short message after: adding, removing, updating, and changing box size.</li>
+    <li>Each message clears itself after about 2.6 seconds.</li>
+    <li>A new message replaces the current one and restarts the timer.</li>
+    <li>Messages describe what happened using the same words as the button that caused it.</li>
+  </ul>
+</div>
+
+<div class="fr">
+  <span class="id">FR-17.2</span>
+  <div class="title">Box updated banner</div>
+  <ul>
+    <li>When a box-size change happens from inside the dish modal, show a "Box updated" banner in the modal
+        so the customer sees the effect without closing it.</li>
+  </ul>
+</div>
+
+<h3 id="fr18">FR-18 Accessibility <span class="pill fe">Front end</span></h3>
+
+<div class="fr">
+  <span class="id">FR-18.1</span>
+  <div class="title">Baseline requirements</div>
+  <ul>
+    <li>Every icon-only control has a text label for screen readers
+        (Add one, Remove one, Close filters, View dish, Scroll for more, About pricing).</li>
+    <li>Quantity steppers are grouped and labelled "Quantity".</li>
+    <li>Expandable controls report their open or closed state.</li>
+    <li>Keyboard focus is always visible.</li>
+    <li>Modals trap focus, close on Escape, and return focus to whatever opened them.</li>
+    <li>Toasts are announced politely to screen readers.</li>
+    <li>Disabled buttons explain why through their label, not only through colour.</li>
+    <li>Motion is reduced when the operating system asks for it.</li>
+  </ul>
+</div>
+
+<hr>
+
+<!-- ============================================= -->
+<h2 id="data">6. Data model</h2>
+
+<h3>6.1 Dish (back end owns this) <span class="st chg">Changed</span></h3>
+<p class="small"><mark>Added: <code>keywords</code>, <code>optionGroups</code>, and
+<code>nutritionVariants</code>. Removed: the assumption that nutrition is a single per-225g block that
+the front end scales.</mark></p>
+<pre>{
+  <span class="k">id</span>:          "okra",
+  <span class="k">name</span>:        "Seafood Okra",
+  <span class="k">category</span>:    "Soups &amp; Stews",
+  <span class="k">shortDesc</span>:   "Prawns and crab in a rich okra stew.",
+  <span class="k">longDesc</span>:    "Succulent prawns and crab in a rich, savoury okra stew...",
+  <span class="k">image</span>:       "https://cdn.../okra.jpg",
+  <span class="k">keywords</span>:    ["seafood","prawn","crab","shellfish","draw soup"],  // <span class="k">searchable, never displayed</span>
+  <span class="k">diet</span>:        ["protein"],            // veg | vegan | protein | gluten
+  <span class="k">spice</span>:       2,                      // 0 none, 1 mild, 2 medium, 3 hot
+  <span class="k">popular</span>:     true,
+  <span class="k">signature</span>:   false,
+  <span class="k">upgrade</span>:     0,                      // £ added per unit when signature
+  <span class="k">multiSelect</span>: [],                     // groups allowing multiple picks, e.g. ["protein"]
+
+  // <span class="k">which personalisation this dish offers — omit a group to hide it entirely</span>
+  <span class="k">optionGroups</span>: [
+    { <span class="k">group</span>:"portion", <span class="k">options</span>:["light","full"],            <span class="k">abbyChoice</span>:"light" },
+    { <span class="k">group</span>:"protein", <span class="k">options</span>:["prawns","salmon"],         <span class="k">abbyChoice</span>:"prawns" },
+    { <span class="k">group</span>:"side",    <span class="k">options</span>:["none","wildrice","quinoa"], <span class="k">abbyChoice</span>:"wildrice" },
+    { <span class="k">group</span>:"heat",    <span class="k">options</span>:["low","medium","high"],      <span class="k">abbyChoice</span>:"medium" }
+  ],                       // an empty array means this dish cannot be personalised
+
+  // <span class="k">authored per combination — the front end never calculates these</span>
+  <span class="k">nutritionDefault</span>: { protein:32, carbs:24, fat:21, kcal:500,
+                       fibre:8, sugars:7, salt:1.2, servingLabel:"Light table 225g" },
+  <span class="k">nutritionVariants</span>: [
+    { <span class="k">match</span>: { portion:"full" },
+      <span class="k">values</span>: { protein:63, carbs:47, fat:41, kcal:985,
+                fibre:15, sugars:13, salt:2.3, servingLabel:"Full table 450g" },
+      <span class="k">ingredients</span>: "King prawns, crab, okra, tomatoes...",
+      <span class="k">allergens</span>:   "Shellfish (prawns, crab), mustard, gluten." },
+    { <span class="k">match</span>: { protein:"salmon" },
+      <span class="k">values</span>: { protein:29, carbs:24, fat:26, kcal:520, ... },
+      <span class="k">allergens</span>: "Fish, mustard, gluten." }
+  ],
+  <span class="k">ingredients</span>: "King prawns, crab, okra, tomatoes...",
+  <span class="k">allergens</span>:   "Shellfish (prawns, crab), mustard, gluten.",
+  <span class="k">heating</span>:     [ { method:"Microwave", text:"Pierce film and heat..." },
+                 { method:"Hob / stovetop", text:"Empty into a pan..." } ],
+  <span class="k">available</span>:   true
+}</pre>
+
+<h3>6.2 Box line (the customer's selection)</h3>
+<pre>{
+  <span class="k">lineId</span>: 1,                  // unique within the box, never reused
+  <span class="k">dishId</span>: "okra",
+  <span class="k">qty</span>:    2,
+  <span class="k">personalisation</span>: {
+    <span class="k">portion</span>: "full",         // light | full
+    <span class="k">protein</span>: "prawns",       // a key, or an array for multi-select dishes
+    <span class="k">side</span>:    "wildrice",     // none | wildrice | quinoa | plantain
+    <span class="k">heat</span>:    "medium"        // none | low | medium | high
+  }
+}</pre>
+
+<h3>6.3 Box (the whole Step 2 state)</h3>
+<pre>{
+  <span class="k">boxId</span>:    "bx_01H...",
+  <span class="k">size</span>:     6,
+  <span class="k">price</span>:    9500,             // pence
+  <span class="k">lines</span>:    [ ...BoxLine ],
+  <span class="k">currency</span>: "GBP",
+  <span class="k">updatedAt</span>: "2026-07-21T09:00:00Z"
+}</pre>
+
+<h3>6.4 Options catalogue (back end owns this) <span class="st chg">Changed</span></h3>
+<p class="small"><mark>Restructured from four named lists into a generic ordered list of groups, so a
+group can be renamed, repriced, reordered, added or retired without a front-end change. Heat is now a
+priced group like any other.</mark></p>
+<pre>{
+  <span class="k">groups</span>: [
+    { <span class="k">key</span>:"portion", <span class="k">label</span>:"Portion", <span class="k">select</span>:"one", <span class="k">order</span>:1,
+      <span class="k">helpText</span>:"How much food arrives in each container.",
+      <span class="k">options</span>: [
+        { key:"light", label:"Light table", note:"225g", price:0,    abbyChoice:true },
+        { key:"full",  label:"Full table",  note:"450g", price:1000 } ] },
+
+    { <span class="k">key</span>:"protein", <span class="k">label</span>:"Protein", <span class="k">select</span>:"one", <span class="k">order</span>:2,
+      <span class="k">options</span>: [
+        { key:"prawns",  label:"King prawns", price:0 },
+        { key:"chicken", label:"Chicken",     price:0,   abbyChoice:true },
+        { key:"salmon",  label:"Salmon",      price:300 },
+        { key:"mixed",   label:"Mixed meats", price:400 } ] },
+
+    { <span class="k">key</span>:"side", <span class="k">label</span>:"Side", <span class="k">select</span>:"one", <span class="k">order</span>:3,
+      <span class="k">options</span>: [
+        { key:"none",     label:"No side",   price:0 },
+        { key:"wildrice", label:"Wild rice", price:200, abbyChoice:true },
+        { key:"quinoa",   label:"Quinoa",    price:200 },
+        { key:"plantain", label:"Plantain",  price:200 } ] },
+
+    { <span class="k">key</span>:"heat", <span class="k">label</span>:"Heat", <span class="k">select</span>:"one", <span class="k">order</span>:4,
+      <span class="k">options</span>: [                          // <span class="k">priced like any other group</span>
+        { key:"none",   label:"None",   price:0 },
+        { key:"low",    label:"Low",    price:0 },
+        { key:"medium", label:"Medium", price:0, abbyChoice:true },
+        { key:"high",   label:"High",   price:0 } ] }
+  ]
+}</pre>
+<p class="small">A dish narrows this catalogue through its own <code>optionGroups</code> (§6.1).
+The catalogue says what could exist; the dish says what applies.</p>
+
+<h3>6.5 Configuration (back end owns this) <span class="st chg">Changed</span></h3>
+<p class="small"><mark>Removed <code>perExtraDish</code> as a line-item charge and renamed it to what it
+now is: the cost of one extra space when growing the box. <code>maxSize</code> is a tunable value, not a
+ceiling baked into the design. Added the back-to-top trigger and the results page size.</mark></p>
+<pre>{
+  <span class="k">minSize</span>:            6,
+  <span class="k">maxSize</span>:            30,      // <span class="k">tunable — the front end must never hard-code this</span>
+  <span class="k">presets</span>:            { "6":9500, "12":17000, "18":24000 },   // pence
+  <span class="k">pricePerAddedSpace</span>: 1500,    // <span class="k">cost of one more space when growing the box</span>
+  <span class="k">formulaBase</span>:        9500,    // price of the minimum box
+  <span class="k">referencePerDish</span>:   1800,    // used only in comparison copy
+  <span class="k">deliveryList</span>:       1000,
+  <span class="k">deliveryCharged</span>:    0,
+  <span class="k">earliestDelivery</span>:   "2026-08-06",
+  <span class="k">resultsPageSize</span>:    8,
+  <span class="k">backToTopTrigger</span>:   { type:"cardIndex", value:10 }   // <span class="k">or { type:"pixels", value:1400 }</span>
+}</pre>
+
+<div class="note">
+  <strong>Money is stored in pence as whole numbers.</strong> Never use floating point for currency.
+  Format to pounds only at the point of display.
+</div>
+
+<!-- ============================================= -->
+<h2 id="api">7. Back-end API</h2>
+
+<table>
+<tr><th>Method</th><th>Path</th><th>Purpose</th></tr>
+<tr><td>GET</td><td><code>/api/menu/dishes</code></td><td>Menu, with optional search and filter parameters and paging</td></tr>
+<tr><td>GET</td><td><code>/api/menu/dishes/{id}</code></td><td>Full detail for one dish</td></tr>
+<tr><td>GET</td><td><code>/api/menu/filters</code></td><td>The four filter groups and their options</td></tr>
+<tr class="chgrow"><td>GET</td><td><code>/api/config/options</code></td>
+    <td><mark>Ordered list of option groups with labels, options and prices (§6.4)</mark></td></tr>
+<tr class="chgrow"><td>GET</td><td><code>/api/menu/dishes/{id}/nutrition</code></td>
+    <td><mark>Nutrition, ingredients and allergens for a given personalisation combination (FR-10.2)</mark></td></tr>
+<tr><td>GET</td><td><code>/api/config/pricing</code></td><td>Box sizes, prices, extra-dish rate, delivery, earliest date</td></tr>
+<tr><td>GET</td><td><code>/api/box/{boxId}</code></td><td>Load the customer's current box</td></tr>
+<tr><td>PATCH</td><td><code>/api/box/{boxId}/size</code></td><td>Change box size</td></tr>
+<tr><td>POST</td><td><code>/api/box/{boxId}/lines</code></td><td>Add a unit of a dish with a personalisation</td></tr>
+<tr><td>PATCH</td><td><code>/api/box/{boxId}/lines/{lineId}</code></td><td>Change quantity or personalisation</td></tr>
+<tr><td>DELETE</td><td><code>/api/box/{boxId}/lines/{lineId}</code></td><td>Remove a line</td></tr>
+<tr><td>POST</td><td><code>/api/box/{boxId}/quote</code></td><td>Return the authoritative price breakdown</td></tr>
+<tr><td>POST</td><td><code>/api/box/{boxId}/continue</code></td><td>Validate the box is full and advance to Step 3</td></tr>
+<tr><td>GET</td><td><code>/api/help/faq</code></td><td>FAQ list with optional search</td></tr>
+<tr><td>POST</td><td><code>/api/help/enquiry</code></td><td>Send a question by email</td></tr>
+</table>
+
+<h4>Every write returns the whole box plus the quote</h4>
+<p>This keeps the front end and back end from drifting apart. One round trip, one source of truth.</p>
+<pre>{
+  <span class="k">box</span>: { boxId, size, price, lines: [...] },
+  <span class="k">quote</span>: {
+    <span class="k">boxPrice</span>:          9500,
+    <span class="k">personalisation</span>:   1200,
+    <span class="k">signatureUpgrades</span>: 900,
+    <span class="k">deliveryList</span>:      1000,
+    <span class="k">deliveryCharged</span>:   0,
+    <span class="k">total</span>:             11600,
+    <span class="k">unitsSelected</span>:     6,
+    <span class="k">boxSize</span>:           6,
+    <span class="k">spacesLeft</span>:        0,
+    <span class="k">isFull</span>:            true
+  }
+}</pre>
+<p class="small"><mark>Changed in v1.1: <code>extraDishes</code>, <code>extraPersonalisation</code>,
+<code>baseUnits</code> and <code>extraUnits</code> are gone. <code>unitsSelected</code> can never exceed
+<code>boxSize</code>.</mark></p>
+
+<h4>Rules the back end must enforce <span class="st chg">Changed</span></h4>
+<ul>
+  <li><mark>Reject a box size below the configured minimum or above the configured maximum.</mark></li>
+  <li>Reject a box size smaller than the number of units already selected.</li>
+  <li><mark>Reject any write that would take total units above the box size. This is the rule that
+      replaces extras — there is no overflow path.</mark></li>
+  <li>Reject any option key that is not in the current catalogue.</li>
+  <li><mark>Reject any option key the <em>dish</em> does not offer, even when it exists in the
+      catalogue (FR-11.5).</mark></li>
+  <li><mark>Reject a personalisation missing a required group, or with no option selected in a
+      required group.</mark></li>
+  <li>Reject adding a dish that is unavailable.</li>
+  <li>Recalculate the price from scratch on every write. Never trust a price sent by the client.</li>
+  <li>Merge a new unit into a matching line rather than creating a duplicate.</li>
+  <li><mark>Refuse "continue" unless total units equal the box size.</mark></li>
+</ul>
+
+<!-- ============================================= -->
+<h2 id="states">8. States and edge cases</h2>
+
+<table>
+<tr><th>Situation</th><th>Expected behaviour</th></tr>
+<tr><td>Menu still loading</td><td>Show placeholder cards. Keep the box panel usable.</td></tr>
+<tr><td>Menu fails to load</td><td>Show a clear message and a retry action. Do not show an empty grid.</td></tr>
+<tr><td>Box is empty</td><td>Empty state in the panel. Continue disabled and labelled with how many are needed.</td></tr>
+<tr><td>Box is exactly full</td><td>"Complete" marker. Continue enabled. Adding more triggers the grow flow.</td></tr>
+<tr class="chgrow"><td><mark>Any attempt to exceed the box size</mark></td>
+    <td><mark>Blocked in the UI and rejected by the back end. The grow-the-box flow is the only route.</mark></td></tr>
+<tr class="chgrow"><td><mark>Same dish in two or more versions</mark></td>
+    <td><mark>Card shows "N versions in your box" with Edit. Box panel lists each version separately (FR-5.3).</mark></td></tr>
+<tr><td>Same dish, different personalisation</td><td>Two separate lines. Both shown. Version picker offered on update.</td></tr>
+<tr><td>Customer shrinks the box below what is selected</td><td>Blocked with a clear count of what to remove first. Nothing is dropped automatically.</td></tr>
+<tr class="chgrow"><td><mark>Box already at the configured maximum</mark></td>
+    <td><mark>Grow controls are capped at that value. Explain the maximum in words rather than failing
+    silently. The number in the message comes from config, not from the copy.</mark></td></tr>
+<tr><td>Dish goes out of stock mid-session</td><td>Back end rejects the add. Show the reason and mark the card unavailable.</td></tr>
+<tr class="chgrow"><td><mark>A dish offers no personalisation</mark></td>
+    <td><mark>Hide the personalise link and the panel entirely. Never show an empty or disabled control.</mark></td></tr>
+<tr class="chgrow"><td><mark>An option is retired from the catalogue while it sits in someone's box</mark></td>
+    <td><mark>The back end maps the line to the dish's current Abby's choice, reprices, and tells the
+    customer plainly what changed and why.</mark></td></tr>
+<tr class="chgrow"><td><mark>No nutrition authored for a chosen combination</mark></td>
+    <td><mark>Show the dish's default figures with a note that they are for the standard preparation.
+    Never scale or estimate.</mark></td></tr>
+<tr><td>Price changes between page load and continue</td><td>Show the new price and ask the customer to confirm before moving on.</td></tr>
+<tr><td>Two tabs open on the same box</td><td>Last write wins, but each write returns the full box so the other tab corrects itself on its next action.</td></tr>
+<tr><td>Customer returns later</td><td>Box is restored from the server by boxId. Search, filters and paging reset.</td></tr>
+<tr><td>Search and filters return nothing</td><td>No-results state with a single clear action.</td></tr>
+<tr><td>Very long dish name</td><td>Clamped with the full name available on hover or in full on mobile.</td></tr>
+<tr><td>Network drops during an action</td><td>Roll the change back on screen and tell the customer it did not save.</td></tr>
+</table>
+
+<!-- ============================================= -->
+<h2 id="accept">9. Acceptance criteria</h2>
+
+<table>
+<tr><th>Ref</th><th>Given</th><th>When</th><th>Then</th></tr>
+<tr><td>AC-1</td><td>A 6-dish box with 5 dishes</td><td>The customer adds a dish from a card</td><td>The box shows 6 of 6, Continue becomes enabled and reads "Continue to extras"</td></tr>
+<tr><td>AC-2</td><td>A full 6-dish box</td><td>The customer presses Add on any card</td><td>Nothing is added; the "make box larger" flow opens naming the dish as pending</td></tr>
+<tr><td>AC-3</td><td>The grow flow is open with a pending dish</td><td>The customer confirms 2 more spaces</td><td>Box size becomes 8, price becomes £125, the pending dish is added, a toast confirms both</td></tr>
+<tr><td>AC-4</td><td>The grow flow is open</td><td>The customer declines</td><td>Box size, price and lines are all unchanged</td></tr>
+<tr><td>AC-5</td><td>Jollof is in the box with Abby's choice</td><td>The customer adds Jollof again with Abby's choice</td><td>The existing line's quantity becomes 2; no second line appears</td></tr>
+<tr><td>AC-6</td><td>Jollof is in the box with Abby's choice</td><td>The customer adds Jollof with Full table</td><td>A second, separate Jollof line is created with quantity 1</td></tr>
+<tr><td>AC-7</td><td>A line with quantity 1</td><td>The customer presses minus</td><td>The line is removed from the box entirely</td></tr>
+<tr><td>AC-8</td><td>A 6-dish box at £95, no personalisation</td><td>One dish is set to Full table</td><td>Estimated total becomes £105 and the breakdown shows Personalisation +£10</td></tr>
+<tr><td>AC-9</td><td>A 6-dish box, all defaults</td><td>One dish is set to "No side"</td><td>Estimated total becomes £93; the breakdown shows a £2 reduction, not an increase</td></tr>
+<tr><td>AC-10</td><td>A full 6-dish box at £95</td><td>The customer grows the box and adds a 7th dish with Abby's choice</td><td>Only the growth path is available; direct addition is impossible</td></tr>
+<tr class="chgrow"><td>AC-11</td><td>A full 6-dish box</td>
+    <td>Any route is used to try to hold a 7th dish — card Add, card plus, box-panel plus, or the modal</td>
+    <td><mark>Every route diverts to the grow-the-box flow. No "extra dish" charge exists anywhere in the
+    breakdown, and total units never exceed 6.</mark></td></tr>
+<tr><td>AC-12</td><td>The oxtail signature dish (+£5)</td><td>It is added to the box</td><td>It uses one box space and £5 is added under "1 signature upgrade"</td></tr>
+<tr><td>AC-13</td><td>Vegan and Mains are both selected as filters</td><td>Results render</td><td>Only dishes that are both vegan and in Mains are shown</td></tr>
+<tr><td>AC-14</td><td>Vegan and Vegetarian are both selected</td><td>Results render</td><td>Dishes that are either vegan or vegetarian are shown</td></tr>
+<tr><td>AC-15</td><td>Filters that match nothing</td><td>Results render</td><td>The no-results message and a "Clear search &amp; filters" action are shown</td></tr>
+<tr><td>AC-16</td><td>18 dishes match the current filters</td><td>The page loads</td><td>8 are shown, the count reads "Showing 8 of 18 dishes", Load more is visible</td></tr>
+<tr><td>AC-17</td><td>A box with 8 dishes selected</td><td>The customer tries to change to a 6-dish box</td><td>An error explains 2 dishes must be removed first; the size is not changed</td></tr>
+<tr><td>AC-18</td><td>A dish line with quantity 3</td><td>The customer updates 1 unit to Full table</td><td>The original line drops to 2 and a new line of 1 is created with the new personalisation</td></tr>
+<tr class="chgrow"><td>AC-19</td><td>A dish with Light table selected</td>
+    <td>The customer switches to Full table</td>
+    <td><mark>The modal shows the figures the back end authored for that combination — not the Light
+    figures doubled — and the caption names that preparation</mark></td></tr>
+<tr class="chgrow"><td>AC-23</td><td>Heat is configured with a price, say High at +£2</td>
+    <td>The customer selects High</td>
+    <td><mark>The surcharge appears in the estimated total and in the modal's button label, exactly as a
+    portion or protein change would</mark></td></tr>
+<tr class="chgrow"><td>AC-24</td><td>A fish dish whose <code>optionGroups</code> exclude chicken</td>
+    <td>The personalisation panel opens</td>
+    <td><mark>Chicken is not offered. A request containing chicken for that dish is rejected by the back
+    end even though chicken exists in the catalogue</mark></td></tr>
+<tr class="chgrow"><td>AC-25</td><td>A dish with an empty <code>optionGroups</code> list</td>
+    <td>The card and modal render</td>
+    <td><mark>No "Personalise this dish" link and no personalisation panel appear — not a disabled
+    one, none at all</mark></td></tr>
+<tr class="chgrow"><td>AC-26</td><td>Jollof is in the box twice with different personalisation</td>
+    <td>The customer looks at the Jollof card</td>
+    <td><mark>The card reads "2 versions in your box" with an Edit link, and does not list any single set
+    of options</mark></td></tr>
+<tr class="chgrow"><td>AC-27</td><td>Jollof is in the box once, left at Abby's choice</td>
+    <td>The customer looks at the Jollof card</td>
+    <td><mark>The card reads "Abby's choice" with an Edit link, and does not list the individual
+    options</mark></td></tr>
+<tr class="chgrow"><td>AC-28</td><td>A dish with the keyword "party" that has no such word in its name or description</td>
+    <td>The customer searches "party"</td>
+    <td><mark>The dish is returned, and the keyword itself never appears on screen</mark></td></tr>
+<tr class="chgrow"><td>AC-29</td><td>The maximum box size is changed from 30 to 40 in configuration</td>
+    <td>The page is reloaded</td>
+    <td><mark>Both the change-size and grow-box controls allow up to 40, with no front-end release</mark></td></tr>
+<tr class="chgrow"><td>AC-30</td><td>A card with a dish not yet in the box</td>
+    <td>The customer taps "Personalise this dish"</td>
+    <td><mark>The modal opens with the panel expanded and personalisation switched on; the box is
+    unchanged until the main button is pressed</mark></td></tr>
+<tr><td>AC-20</td><td>An incomplete box</td><td>The customer calls the continue endpoint directly</td><td>The back end rejects it; the box is not advanced to Step 3</td></tr>
+<tr><td>AC-21</td><td>Any dish card or list row</td><td>The page renders</td><td>No individual dish price is displayed anywhere</td></tr>
+<tr><td>AC-22</td><td>A modified price sent from the client</td><td>The quote endpoint is called</td><td>The client value is ignored and the server-calculated total is returned</td></tr>
+</table>
+
+<!-- ============================================= -->
+<h2 id="scope">10. Out of scope</h2>
+<ul>
+  <li>Step 1 (choose box), Step 3 (extras), Step 4 (review) and Step 5 (checkout). Only the links into and out of Step 2 belong here.</li>
+  <li>Payment, addresses, delivery-slot selection and account creation.</li>
+  <li>Gifting. Gifting lives only on the Gifting page and never appears as a toggle or add-on in this flow.</li>
+  <li>The curated-box path (Personalise → Add-ons → Checkout). That is a separate, deliberately distinct journey.</li>
+  <li>Menu content management and photography pipeline.</li>
+  <li>Subscription or repeat-order logic.</li>
+</ul>
+
+<hr>
+<p class="small">Reverse-engineered from the Step 2 prototype. Where the prototype held values in the client
+(box prices, option surcharges, the earliest delivery date, the FAQ list), those values are listed here as
+back-end configuration. The prototype's numbers are the correct starting values, but the production
+front end must read them from the API rather than hold its own copy.</p>
+
+</div>
+</body>
+</html>
