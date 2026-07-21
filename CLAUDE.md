@@ -27,6 +27,9 @@ Conventions inside `web/` that are easy to get wrong:
   (`--surface-*`, `--text-*`, `--action-*`) over the raw ramp.
 - **No commerce data in markup.** Prices, dish counts and delivery dates come from
   `src/lib/aonik/` and are formatted with `src/lib/format.ts`. Money is stored in pence.
+- **Never infer ingredients or allergens.** `Dish.ingredients` and `Dish.allergens` are optional and
+  populated only where a source template published them. Dishes without them render an explicit
+  "not yet published" notice — do not fill the gap with plausible-looking data.
 - **Server Components by default.** Client components are `Header`, `MobileDrawer`, `Footer`, the
   homepage `Menu` rail, and the `/menu` browser (`MenuBrowser`, `MenuToolbar`, `MenuGrid`,
   `FilterChip`, `FilterPill`) — each for a specific piece of state. Data is fetched once in

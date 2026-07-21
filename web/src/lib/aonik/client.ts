@@ -11,16 +11,34 @@
  * Server Components or Route Handlers.
  */
 
-import { BOX_FIXTURES, DELIVERY_FIXTURE, DISH_FIXTURES } from './fixtures';
-import type { BoxOffer, DeliveryWindow, Dish, HomepageData } from './types';
+import {
+  BOX_FIXTURES,
+  DELIVERY_FIXTURE,
+  DISH_FIXTURES,
+  HEATING_FIXTURE,
+  PERSONALISATION_FIXTURE,
+} from './fixtures';
+import type {
+  BoxOffer,
+  DeliveryWindow,
+  Dish,
+  HeatingInstruction,
+  HomepageData,
+  PersonalisationOptions,
+} from './types';
 
 export interface AonikClient {
   /** The full catalogue, as shown on /menu. */
   getDishes(): Promise<Dish[]>;
   /** The curated subset the homepage rail shows. */
   getFeaturedDishes(): Promise<Dish[]>;
+  /** One dish by slug, or null when it does not exist. */
+  getDishBySlug(slug: string): Promise<Dish | null>;
   getBoxOffers(): Promise<BoxOffer[]>;
   getDeliveryWindow(): Promise<DeliveryWindow>;
+  /** Selectable portions, proteins, sides and heat for the dish personaliser. */
+  getPersonalisationOptions(): Promise<PersonalisationOptions>;
+  getHeatingInstructions(): Promise<HeatingInstruction[]>;
 }
 
 /** Serves the design-template fixtures. Used until Aonik is reachable. */
@@ -33,12 +51,24 @@ export class MockAonikClient implements AonikClient {
     return DISH_FIXTURES.filter((dish) => dish.isFeatured);
   }
 
+  async getDishBySlug(slug: string): Promise<Dish | null> {
+    return DISH_FIXTURES.find((dish) => dish.slug === slug) ?? null;
+  }
+
   async getBoxOffers(): Promise<BoxOffer[]> {
     return BOX_FIXTURES;
   }
 
   async getDeliveryWindow(): Promise<DeliveryWindow> {
     return DELIVERY_FIXTURE;
+  }
+
+  async getPersonalisationOptions(): Promise<PersonalisationOptions> {
+    return PERSONALISATION_FIXTURE;
+  }
+
+  async getHeatingInstructions(): Promise<HeatingInstruction[]> {
+    return HEATING_FIXTURE;
   }
 }
 
@@ -80,6 +110,22 @@ export class HttpAonikClient implements AonikClient {
     return this.get<Dish[]>('/dishes?featured=true');
   }
 
+  async getDishBySlug(slug: string): Promise<Dish | null> {
+    try {
+      return await this.get<Dish>(`/dishes/${encodeURIComponent(slug)}`);
+    } catch {
+      return null;
+    }
+  }
+
+  getPersonalisationOptions(): Promise<PersonalisationOptions> {
+    return this.get<PersonalisationOptions>('/personalisation-options');
+  }
+
+  getHeatingInstructions(): Promise<HeatingInstruction[]> {
+    return this.get<HeatingInstruction[]>('/heating-instructions');
+  }
+
   getBoxOffers(): Promise<BoxOffer[]> {
     return this.get<BoxOffer[]>('/boxes');
   }
@@ -117,6 +163,40 @@ export async function getHomepageData(): Promise<HomepageData> {
   ]);
 
   return { dishes, boxes, delivery };
+}
+
+/** How many "You might also like" cards a dish page shows. */
+const RELATED_COUNT = 4;
+
+/**
+ * Resolves a dish page. Returns null when the slug does not exist so the route
+ * can render a 404 rather than an empty shell.
+ */
+export async function getDishPageData(slug: string) {
+  const client = getAonikClient();
+
+  const [dish, allDishes, boxes, delivery, personalisation, heating] = await Promise.all([
+    client.getDishBySlug(slug),
+    client.getDishes(),
+    client.getBoxOffers(),
+    client.getDeliveryWindow(),
+    client.getPersonalisationOptions(),
+    client.getHeatingInstructions(),
+  ]);
+
+  if (!dish) return null;
+
+  // Prefer dishes sharing a wellness goal, then fill from the rest of the menu.
+  const others = allDishes.filter((candidate) => candidate.id !== dish.id);
+  const sameGoal = others.filter((candidate) =>
+    candidate.wellness.some((goal) => dish.wellness.includes(goal)),
+  );
+  const related = [...sameGoal, ...others.filter((d) => !sameGoal.includes(d))].slice(
+    0,
+    RELATED_COUNT,
+  );
+
+  return { dish, related, boxes, delivery, personalisation, heating };
 }
 
 /** Resolves everything the /menu page renders in one concurrent pass. */

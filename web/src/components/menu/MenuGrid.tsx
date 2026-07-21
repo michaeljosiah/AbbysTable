@@ -70,7 +70,7 @@ export function MenuGrid({
         <ul className={styles.grid}>
           {dishes.map((dish) => (
             <li key={dish.id} className={styles.cell}>
-              <DishCard dish={dish} variant="grid" />
+              <DishCard dish={dish} variant="grid" href={`/menu/${dish.slug}`} />
             </li>
           ))}
         </ul>

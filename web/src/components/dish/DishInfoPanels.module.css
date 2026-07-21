@@ -1,0 +1,173 @@
+.panels {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: 28px;
+}
+
+.panel {
+  border: var(--border-hairline) solid var(--sand-2);
+  border-radius: 16px;
+  background: var(--surface-bright);
+  overflow: hidden;
+}
+
+.headingWrap {
+  margin: 0;
+}
+
+.head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 20px 22px;
+  border: none;
+  background: transparent;
+  color: var(--text-heading);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.16s ease;
+}
+
+.head:hover {
+  background: var(--cream-2);
+}
+
+.title {
+  flex: 1 1 auto;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.chevron {
+  flex: 0 0 auto;
+  color: var(--taupe);
+  transition: transform 0.18s ease;
+}
+
+.chevron[data-open] {
+  transform: rotate(180deg);
+}
+
+.body {
+  padding: 0 22px 22px;
+}
+
+.caption {
+  margin: 0 0 var(--space-4);
+  font-size: var(--body-sm);
+  color: var(--text-muted);
+}
+
+/* ---- Nutrition --------------------------------------------------------------- */
+
+.nutritionGrid {
+  display: grid;
+  grid-template-columns: repeat(var(--cells, 7), minmax(0, 1fr));
+  margin: 0;
+  border: var(--border-hairline) solid var(--sand-2);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.nutritionCell {
+  padding: var(--space-3) var(--space-2);
+  text-align: center;
+  border-right: var(--border-hairline) solid var(--sand-2);
+  background: var(--surface-card);
+}
+
+.nutritionCell:last-child {
+  border-right: none;
+}
+
+.nutritionLabel {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 10px;
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.nutritionValue {
+  margin: var(--space-1) 0 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 18px;
+  color: var(--text-heading);
+}
+
+/* ---- Ingredients & allergens --------------------------------------------------- */
+
+.ingredients {
+  margin: 0 0 var(--space-4);
+  font-size: var(--body-sm);
+  line-height: var(--line-body);
+  color: var(--text-body);
+}
+
+.allergens {
+  margin: 0;
+  font-size: var(--body-sm);
+  line-height: var(--line-body);
+  color: var(--text-body);
+}
+
+/* Missing allergen data is a safety matter — flag it, don't hide it. */
+.allergensMissing {
+  margin: 0;
+  padding: var(--space-3) 14px;
+  border-left: 3px solid var(--terracotta);
+  border-radius: var(--radius-sm);
+  background: var(--cream-2);
+  font-size: var(--body-sm);
+  line-height: var(--line-body);
+  color: var(--text-body);
+}
+
+.allergensLink {
+  color: var(--text-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ---- Heating -------------------------------------------------------------------- */
+
+.heating {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.heatingMethod {
+  display: block;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--body-sm);
+  letter-spacing: 0.02em;
+  color: var(--text-heading);
+}
+
+.heatingBody {
+  margin: var(--space-1) 0 0;
+  font-size: var(--body-sm);
+  line-height: var(--line-body);
+  color: var(--text-muted);
+}
+
+@media (max-width: 640px) {
+  .nutritionGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .nutritionCell {
+    border-bottom: var(--border-hairline) solid var(--sand-2);
+  }
+}

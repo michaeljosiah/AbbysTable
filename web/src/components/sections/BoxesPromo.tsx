@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 import { Button, SectionHeading } from '@/components/ui';
 import type { BoxOffer } from '@/lib/aonik/types';
 import { formatPrice } from '@/lib/format';
@@ -72,10 +74,10 @@ export function BoxesPromo({ mainBox, tasterBox, earliestDeliveryLabel }: BoxesP
           </Button>
           <span className={styles.taster}>
             New here?{' '}
-            <a className={styles.tasterLink} href="/menu">
+            <Link className={styles.tasterLink} href="/menu">
               Try the Taster Box — {spellCount(tasterBox.dishCount)} dishes,{' '}
               {formatPrice(tasterBox.pricePence)}
-            </a>
+            </Link>
           </span>
         </div>
       </div>

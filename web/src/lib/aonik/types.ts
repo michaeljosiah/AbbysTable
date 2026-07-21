@@ -90,6 +90,40 @@ export interface DishNutrition {
   carbsGrams?: number;
   fatGrams?: number;
   calories?: number;
+  /** Only published for dishes with a full nutrition panel. */
+  sugarsGrams?: number;
+  saltGrams?: number;
+}
+
+/**
+ * Reheating guidance. Generic across the catalogue in the design template, so it
+ * is served once by the client rather than stored per dish.
+ */
+export interface HeatingInstruction {
+  method: string;
+  body: string;
+}
+
+/**
+ * One selectable value in the dish personaliser (a portion size, a protein swap,
+ * a side). `pricePence` is the surcharge on top of the dish.
+ */
+export interface DishOption {
+  key: string;
+  label: string;
+  pricePence: number;
+  /** Rendered as a secondary line, e.g. a portion weight. */
+  detail?: string;
+  /** Abby's recommended default for this group. */
+  isAbbysChoice?: boolean;
+}
+
+export interface PersonalisationOptions {
+  portions: DishOption[];
+  proteins: DishOption[];
+  sides: DishOption[];
+  /** Selectable heat, including "None". Steps match `HEAT_STEPS`. */
+  heatLevels: { label: string; step: number }[];
 }
 
 export interface Dish {
@@ -119,6 +153,17 @@ export interface Dish {
   mealType?: MealType;
   wellness: WellnessGoal[];
   dietary: DietaryTag[];
+
+  /**
+   * Ingredient list and allergen declaration, shown on the dish page.
+   *
+   * SAFETY: these are deliberately optional and are NEVER inferred. Only dishes
+   * whose data the source templates actually published carry them; every other
+   * dish renders an explicit "not yet published" state instead. Do not populate
+   * these from anything but the real catalogue.
+   */
+  ingredients?: string;
+  allergens?: string;
 }
 
 export interface BoxOffer {

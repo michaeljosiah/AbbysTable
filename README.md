@@ -18,6 +18,14 @@ CSS Modules, with the design tokens ported verbatim from the templates:
 - **`/menu`** — the full catalogue: search, six filter facets (protein, spice, wellness goal, meal
   type, dietary, calories), removable active-filter chips, and "load more" pagination. The facet
   logic is a pure module in [`web/src/lib/menu/filters.ts`](web/src/lib/menu/filters.ts).
+- **`/menu/[slug]`** — the dish page, statically generated for every dish: personaliser (portion,
+  protein, side, heat, with live surcharge), nutrition, ingredients and allergens, reheating
+  guidance, and related dishes. Signature dishes get their badges and upgrade price from the same
+  `isSignature` flag — the two dish-detail templates are one page, not two.
+
+> **Allergens are never inferred.** Only dishes whose data the templates actually published carry
+> ingredient and allergen text; every other dish shows an explicit "not yet published" notice
+> pointing to contact. Do not populate those fields from anything but the real catalogue.
 
 Commerce data (dishes, box pricing, delivery dates) will come from the **Aonik** admin API. Until
 that exists, everything resolves through a typed client seam
@@ -260,6 +268,7 @@ web/                         the storefront
   src/components/layout/     AnnouncementBar, Header, MobileDrawer, Footer
   src/components/sections/   the ten homepage sections + DishCard
   src/components/menu/       menu browser — toolbar, facet panel, grid, flavour band
+  src/components/dish/       dish page — personaliser, info panels, related dishes
   src/lib/aonik/             commerce seam — types, client interface, fixtures
   src/lib/menu/              pure faceting and search logic
   src/lib/content/           navigation and editorial copy

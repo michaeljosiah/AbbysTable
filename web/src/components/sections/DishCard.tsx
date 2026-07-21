@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import Link from 'next/link';
 
 import { HeatPips, NutritionTag } from '@/components/ui';
 import type { Dish } from '@/lib/aonik/types';
@@ -17,10 +18,7 @@ interface DishCardProps {
    * `rail` is the homepage carousel card; `grid` adds the menu's hairline border.
    */
   variant?: 'rail' | 'grid';
-  /**
-   * When set the whole card becomes a link to the dish page. Left unset until
-   * dish detail routes exist — a card linking to a 404 is worse than no link.
-   */
+  /** When set the whole card becomes a link to the dish page. */
   href?: string;
 }
 
@@ -34,17 +32,11 @@ function personalisationSummary(dish: Dish): string {
 
 export function DishCard({ dish, variant = 'rail', href }: DishCardProps) {
   const personalisation = personalisationSummary(dish);
+
   // An anchor may not contain a button, so the signature explainer is exposed as
   // text rather than a control — keeping the card linkable without invalid nesting.
-  const Root = href ? 'a' : 'article';
-
-  return (
-    <Root
-      className={styles.card}
-      data-signature={dish.isSignature || undefined}
-      data-variant={variant}
-      {...(href ? { href } : {})}
-    >
+  const content = (
+    <>
       <div className={styles.media}>
         <Image
           src={dish.imageUrl}
@@ -128,6 +120,20 @@ export function DishCard({ dish, variant = 'rail', href }: DishCardProps) {
           </div>
         ) : null}
       </div>
-    </Root>
+    </>
+  );
+
+  const shared = {
+    className: styles.card,
+    'data-signature': dish.isSignature || undefined,
+    'data-variant': variant,
+  };
+
+  return href ? (
+    <Link href={href} {...shared}>
+      {content}
+    </Link>
+  ) : (
+    <article {...shared}>{content}</article>
   );
 }

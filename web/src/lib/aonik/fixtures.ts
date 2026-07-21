@@ -21,7 +21,13 @@
  * NOTE: the ten dishes share three photographs; that is how the templates ship.
  */
 
-import type { BoxOffer, DeliveryWindow, Dish } from './types';
+import type {
+  BoxOffer,
+  DeliveryWindow,
+  Dish,
+  HeatingInstruction,
+  PersonalisationOptions,
+} from './types';
 
 export const DISH_FIXTURES: Dish[] = [
   {
@@ -61,6 +67,10 @@ export const DISH_FIXTURES: Dish[] = [
     mealType: 'Stew',
     wellness: ['Protein-led'],
     dietary: ['Gluten-free'],
+    ingredients:
+      'Lamb shank, tomatoes, red peppers, onions, ata dindin spice blend, garlic, ginger, scotch bonnet, jollof rice, greens, herbs, olive oil, sea salt.',
+    allergens:
+      'Celery, sulphites. Made in a kitchen that also handles gluten, nuts, shellfish and dairy.',
   },
   {
     id: 'dish-fish-peppersoup-bone-broth',
@@ -97,6 +107,9 @@ export const DISH_FIXTURES: Dish[] = [
     mealType: 'Stew',
     wellness: ['Protein-led', 'DASH'],
     dietary: ['Gluten-free', 'Dairy-free'],
+    ingredients:
+      'King prawns, crab, okra, tomatoes, red peppers, onions, native spices, garlic, herbs, chicken stock, olive oil, sea salt.',
+    allergens: 'Shellfish (prawns, crab), mustard, nuts (peanuts, almonds, pistachio), gluten.',
   },
   {
     id: 'dish-suya-salmon-kale-quinoa',
@@ -224,3 +237,53 @@ export const BOX_FIXTURES: BoxOffer[] = [
 export const DELIVERY_FIXTURE: DeliveryWindow = {
   earliestDeliveryDate: '2026-08-06',
 };
+
+/**
+ * Dish personaliser options, from the dish-detail template. Catalogue-wide there
+ * rather than per dish; Aonik will likely scope them per dish, which is why they
+ * are fetched separately instead of embedded in `Dish`.
+ */
+export const PERSONALISATION_FIXTURE: PersonalisationOptions = {
+  portions: [
+    { key: 'light', label: 'Light table', detail: '225g', pricePence: 0, isAbbysChoice: true },
+    { key: 'full', label: 'Full table', detail: '450g', pricePence: 1000 },
+  ],
+  proteins: [
+    { key: 'prawns', label: 'King prawns', pricePence: 0 },
+    { key: 'chicken', label: 'Chicken', pricePence: 0, isAbbysChoice: true },
+    { key: 'salmon', label: 'Salmon', pricePence: 300 },
+    {
+      key: 'mixed',
+      label: 'Mixed meats (chicken, beef, goat meat, tripe, cow foot)',
+      pricePence: 400,
+    },
+  ],
+  sides: [
+    { key: 'none', label: 'No side', pricePence: 0 },
+    { key: 'wildrice', label: 'Wild rice', pricePence: 200, isAbbysChoice: true },
+    { key: 'quinoa', label: 'Quinoa', pricePence: 200 },
+    { key: 'plantain', label: 'Plantain', pricePence: 200 },
+  ],
+  heatLevels: [
+    { label: 'None', step: 0 },
+    { label: 'Low', step: 1 },
+    { label: 'Medium', step: 2 },
+    { label: 'High', step: 3 },
+  ],
+};
+
+/** Generic reheating guidance — identical across dishes in the template. */
+export const HEATING_FIXTURE: HeatingInstruction[] = [
+  {
+    method: 'Microwave',
+    body: 'Pierce film and heat on high for 4–5 mins. Stir halfway through and serve hot.',
+  },
+  {
+    method: 'Hob / stovetop',
+    body: 'Empty into a pan and heat on medium for 6–7 mins. Stir halfway through and serve hot.',
+  },
+  {
+    method: 'Oven',
+    body: 'Empty into an ovenproof dish and heat at 180°C for 15–18 mins. Stir halfway through and serve hot.',
+  },
+];
