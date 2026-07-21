@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { personalisationSummary } from '@/components/checkout/DishPicker';
-import { Button } from '@/components/ui';
 import type { BoxPricing, Dish, PersonalisationOptions } from '@/lib/aonik/types';
 import { boxPricePence, cartTotals, useCart, type CartLine } from '@/lib/cart/CartProvider';
 import { formatPrice } from '@/lib/format';
@@ -874,7 +873,7 @@ export function BoxSummary({
 
             <div className={styles.current}>
               <span className={styles.currentIcon} aria-hidden="true">
-                <BoxIcon />
+                <BoxIcon size={30} />
               </span>
               <span className={styles.currentText}>
                 <span className={styles.currentTitle}>Current box</span>
@@ -989,14 +988,14 @@ export function BoxSummary({
               </div>
             )}
 
-            <Button
-              variant="dark"
+            <button
+              type="button"
               className={styles.changeCta}
               onClick={applyChange}
               disabled={overBy === 0 && !sizeChanged}
             >
               {changeCta}
-            </Button>
+            </button>
 
             <button type="button" className={styles.keepLink} onClick={closeChange}>
               Keep my current box

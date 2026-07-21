@@ -1,9 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import { DishInfoPanels } from '@/components/dish/DishInfoPanels';
 import { Button, HeatPips, NutritionTag } from '@/components/ui';
@@ -176,7 +174,6 @@ function CardPip({ size, lit }: { size: number; lit: boolean }) {
 const CARD_HEAT_LABELS: Record<number, string> = { 1: 'Mild', 2: 'Medium', 3: 'Hot' };
 
 export function DishPicker({ dishes, personalisation, heating }: DishPickerProps) {
-  const router = useRouter();
   const { boxSize, lines, hydrated, addLine, removeLine, setQuantity } = useCart();
 
   const [query, setQuery] = useState('');
@@ -188,6 +185,8 @@ export function DishPicker({ dishes, personalisation, heating }: DishPickerProps
   const [editor, setEditor] = useState<Editor | null>(null);
   const [enabled, setEnabled] = useState(false);
   const [draft, setDraft] = useState<CartPersonalisation | null>(null);
+  /** The right-hand personalise panel is collapsible, as the template's is. */
+  const [persOpen, setPersOpen] = useState(true);
 
   /** Which card's signature ⓘ tooltip is open (tap support; hover is CSS). */
   const [sigTipFor, setSigTipFor] = useState<string | null>(null);
@@ -415,6 +414,7 @@ export function DishPicker({ dishes, personalisation, heating }: DishPickerProps
       setEditor({ dish, lineId: line?.lineId ?? null, quantity: line?.quantity ?? 1 });
       setEnabled(Boolean(line?.personalisation));
       setDraft(line?.personalisation ?? abbysChoice(dish, personalisation));
+      setPersOpen(true);
     },
     [personalisation],
   );
@@ -727,7 +727,7 @@ export function DishPicker({ dishes, personalisation, heating }: DishPickerProps
                 >
                   <div
                     className={styles.media}
-                    onClick={() => router.push(`/menu/${dish.slug}`)}
+                    onClick={() => openEditor(dish, single ?? undefined)}
                     aria-hidden="true"
                   >
                     <Image
@@ -822,7 +822,7 @@ export function DishPicker({ dishes, personalisation, heating }: DishPickerProps
                           if (el) nameRefs.current.set(dish.id, el);
                           else nameRefs.current.delete(dish.id);
                         }}
-                        onClick={() => router.push(`/menu/${dish.slug}`)}
+                        onClick={() => openEditor(dish, single ?? undefined)}
                       >
                         {dish.title}
                       </h3>
@@ -928,9 +928,13 @@ export function DishPicker({ dishes, personalisation, heating }: DishPickerProps
                     </div>
 
                     <div className={styles.actions}>
-                      <Link href={`/menu/${dish.slug}`} className={styles.view}>
+                      <button
+                        type="button"
+                        className={styles.view}
+                        onClick={() => openEditor(dish, single ?? undefined)}
+                      >
                         View
-                      </Link>
+                      </button>
 
                       {quantity > 0 ? (
                         <span className={styles.cardStep} role="group" aria-label="Quantity">
@@ -1050,21 +1054,26 @@ export function DishPicker({ dishes, personalisation, heating }: DishPickerProps
             onClick={(event) => event.stopPropagation()}
           >
             <div className={styles.dialogHead}>
+              <button
+                type="button"
+                className={styles.dialogBack}
+                onClick={closeEditor}
+                aria-label="Back"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M15 18l-6-6 6-6" />
+                </svg>
+              </button>
               <Image
                 src={editor.dish.imageUrl}
                 alt=""
-                width={44}
-                height={44}
+                width={46}
+                height={46}
                 className={styles.dialogThumb}
               />
-              <div className={styles.dialogTitles}>
-                <span className={styles.dialogEyebrow}>
-                  {editor.lineId ? 'Personalise this dish' : 'Would you like to personalise this dish?'}
-                </span>
-                <span id="personalise-title" className={styles.dialogName}>
-                  {editor.dish.title}
-                </span>
-              </div>
+              <span id="personalise-title" className={styles.dialogName}>
+                {editor.dish.title}
+              </span>
               <button
                 ref={dialogCloseRef}
                 type="button"
@@ -1076,7 +1085,249 @@ export function DishPicker({ dishes, personalisation, heating }: DishPickerProps
               </button>
             </div>
 
-            <div className={styles.dialogBody}>
+            <div className={styles.dialogBody} id="dm-body">
+              <div className={styles.dmCols}>
+                {/* ---- Left: the dish itself -------------------------------- */}
+                <div className={styles.dmLeft}>
+                  <div className={styles.dmHero}>
+                    <Image
+                      src={editor.dish.imageUrl}
+                      alt={editor.dish.title}
+                      width={860}
+                      height={688}
+                      className={styles.dmHeroImage}
+                      sizes="(max-width: 860px) 100vw, 45vw"
+                    />
+                    {editor.dish.tags.length ? (
+                      <div className={styles.dmBadges}>
+                        {editor.dish.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className={styles.mediaBadge}
+                            data-tone={tag === 'Under 500 kcal' ? 'light' : 'dark'}
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                    {(linesByDish.get(editor.dish.id) ?? []).length > 0 ? (
+                      <span className={styles.dmInBox}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--blush)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M5 12.5l4.5 4.5L19 7" />
+                        </svg>
+                        In your box
+                      </span>
+                    ) : null}
+                    {editor.dish.isSignature ? (
+                      <div className={styles.sigBanner}>
+                        <Image src="/assets/floral-mark.png" alt="" width={14} height={14} />
+                        <span>Abby&apos;s Signature</span>
+                        <Image src="/assets/floral-mark.png" alt="" width={14} height={14} />
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <p className={styles.dmLong}>{editor.dish.description}</p>
+                  {editor.dish.isSignature ? (
+                    <p className={styles.dmSigNote}>
+                      <strong className={styles.dmSigNavy}>Abby&apos;s Signature</strong> — counts
+                      as one of your box dishes
+                      {editor.dish.upgradePence ? (
+                        <>
+                          , with the{' '}
+                          <strong className={styles.dmSigForest}>
+                            +{formatPrice(editor.dish.upgradePence)} upgrade
+                          </strong>{' '}
+                          added on top
+                        </>
+                      ) : null}
+                      .
+                    </p>
+                  ) : null}
+
+                  <button
+                    type="button"
+                    className={styles.dmShortcut}
+                    onClick={() =>
+                      document
+                        .getElementById('dm-personalise')
+                        ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                    }
+                  >
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+                      <line x1="4" y1="8" x2="20" y2="8" />
+                      <circle cx="10" cy="8" r="2.4" fill="var(--surface-bright)" />
+                      <line x1="4" y1="16" x2="20" y2="16" />
+                      <circle cx="15" cy="16" r="2.4" fill="var(--surface-bright)" />
+                    </svg>
+                    <span className={styles.dmShortcutText}>
+                      <span className={styles.dmShortcutTitle}>Personalise this dish</span>
+                      <span className={styles.dmShortcutSub}>
+                        Portion, protein, side &amp; heat — your way.
+                      </span>
+                    </span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--taupe)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M9 6l6 6-6 6" />
+                    </svg>
+                  </button>
+
+                  <div className={styles.dmJumps}>
+                    {[
+                      { label: 'Nutrition', target: 'dish-nutrition' },
+                      { label: 'Ingredients & allergens', target: 'dish-ingredients' },
+                      { label: 'How to heat', target: 'dish-heating' },
+                    ].map((jump, index) => (
+                      <span key={jump.target} className={styles.dmJumpWrap}>
+                        {index > 0 ? (
+                          <span className={styles.dmJumpSep} aria-hidden="true">
+                            ·
+                          </span>
+                        ) : null}
+                        <button
+                          type="button"
+                          className={styles.dmJump}
+                          onClick={() =>
+                            document
+                              .getElementById(jump.target)
+                              ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                          }
+                        >
+                          {jump.label}
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M12 5v14" />
+                            <path d="M6 13l6 6 6-6" />
+                          </svg>
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className={styles.dmDetails}>
+                    <p className={styles.dmDetailsTitle}>At a glance</p>
+                    <div className={styles.dmHlGrid}>
+                      {(
+                        [
+                          editor.dish.nutrition.calories !== undefined
+                            ? { label: 'kcal', value: String(editor.dish.nutrition.calories) }
+                            : null,
+                          { label: 'Protein', value: `${editor.dish.nutrition.proteinGrams}g` },
+                          editor.dish.nutrition.carbsGrams !== undefined
+                            ? { label: 'Carbs', value: `${editor.dish.nutrition.carbsGrams}g` }
+                            : null,
+                          editor.dish.nutrition.fatGrams !== undefined
+                            ? { label: 'Fat', value: `${editor.dish.nutrition.fatGrams}g` }
+                            : null,
+                        ].filter(Boolean) as { label: string; value: string }[]
+                      ).map((cell) => (
+                        <div key={cell.label} className={styles.dmHlCell}>
+                          <span className={styles.dmHlLabel}>{cell.label}</span>
+                          <span className={styles.dmHlValue}>{cell.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className={styles.dmMetaRow}>
+                      <div className={styles.dmCatPills}>
+                        {editor.dish.dietary.map((tag) => (
+                          <span key={tag} className={styles.dmCatPill}>
+                            {tag}
+                          </span>
+                        ))}
+                        {editor.dish.nutrition.calories !== undefined &&
+                        CALORIE_BANDS[LOW_CALORIE_BAND](editor.dish.nutrition.calories) ? (
+                          <span className={styles.dmCatPill}>{LOW_CALORIE_BAND}</span>
+                        ) : null}
+                      </div>
+                      <div className={styles.dmHeatRow}>
+                        <span className={styles.dmHeatLabel}>Heat</span>
+                        <HeatPips heat={editor.dish.heat} />
+                        <span className={styles.dmSpiceLabel}>
+                          {CARD_HEAT_LABELS[HEAT_STEPS[editor.dish.heat]] ?? ''}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Nutrition, ingredients & allergens and reheating come from the
+                      shared panels, which state plainly when allergens are
+                      unpublished instead of guessing them. */}
+                  <DishInfoPanels
+                    dish={editor.dish}
+                    heating={heating}
+                    compact
+                    onBackToTop={() =>
+                      document
+                        .getElementById('dm-body')
+                        ?.scrollTo({ top: 0, behavior: 'smooth' })
+                    }
+                  />
+                </div>
+
+                {/* ---- Right: actions + personalise ------------------------- */}
+                <div className={styles.dmRight}>
+                  <div className={styles.persPanel} id="dm-personalise">
+                    <button
+                      type="button"
+                      className={styles.persPanelHead}
+                      onClick={() => setPersOpen((open) => !open)}
+                      aria-expanded={persOpen}
+                    >
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+                        <line x1="4" y1="8" x2="20" y2="8" />
+                        <circle cx="10" cy="8" r="2.4" fill="var(--surface-card)" />
+                        <line x1="4" y1="16" x2="20" y2="16" />
+                        <circle cx="15" cy="16" r="2.4" fill="var(--surface-card)" />
+                      </svg>
+                      <span className={styles.persPanelTitles}>
+                        <span className={styles.persPanelTitle}>
+                          {editor.lineId
+                            ? 'Personalise this dish'
+                            : 'Would you like to personalise this dish?'}
+                        </span>
+                        {!persOpen ? (
+                          <span className={styles.persPanelSummary}>
+                            {personalisationSummary(enabled ? draft : undefined, personalisation)}
+                          </span>
+                        ) : null}
+                      </span>
+                      {isCustom ? (
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          className={styles.persReset}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setDraft(abbys);
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.stopPropagation();
+                              setDraft(abbys);
+                            }
+                          }}
+                        >
+                          Reset to Abby&apos;s choice
+                        </span>
+                      ) : null}
+                      <svg
+                        className={styles.persPanelChevron}
+                        data-open={persOpen || undefined}
+                        width="22"
+                        height="22"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="var(--taupe)"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M6 9l6 6 6-6" />
+                      </svg>
+                    </button>
+
+                    {persOpen ? (
+                    <div className={styles.persPanelBody}>
               <p className={styles.dialogIntro}>
                 Choose your portion size, swap proteins, change sides or adjust heat.{' '}
                 <span className={styles.dialogIntroSoft}>
@@ -1092,14 +1343,23 @@ export function DishPicker({ dishes, personalisation, heating }: DishPickerProps
                   aria-pressed={enabled}
                   onClick={() => setEnabled(true)}
                 >
-                  <span className={styles.forkLabel}>
-                    Yes, I&apos;d like to personalise this dish
+                  <span className={styles.forkDot} aria-hidden="true">
+                    {enabled ? (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--white)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 6L9 17l-5-5" />
+                      </svg>
+                    ) : null}
                   </span>
-                  {isCustom ? (
-                    <span className={styles.forkSummary}>
-                      {personalisationSummary(draft, personalisation)}
+                  <span className={styles.forkText}>
+                    <span className={styles.forkLabel}>
+                      Yes, I&apos;d like to personalise this dish
                     </span>
-                  ) : null}
+                    {isCustom ? (
+                      <span className={styles.forkSummary}>
+                        {personalisationSummary(draft, personalisation)}
+                      </span>
+                    ) : null}
+                  </span>
                 </button>
                 <button
                   type="button"
@@ -1111,134 +1371,208 @@ export function DishPicker({ dishes, personalisation, heating }: DishPickerProps
                     setDraft(abbys);
                   }}
                 >
+                  <span className={styles.forkDot} aria-hidden="true">
+                    {!enabled ? (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--white)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 6L9 17l-5-5" />
+                      </svg>
+                    ) : null}
+                  </span>
                   <span className={styles.forkLabel}>No, keep as Abby designed it</span>
                 </button>
               </div>
 
               {enabled ? (
                 <>
-                  <p className={styles.optionsHead}>Personalisation options</p>
-
-                  <OptionGroup
-                    legend="Choose your portion size"
-                    group={personalisation.portions}
-                    selected={draft.portion}
-                    onSelect={(portion) => setDraft({ ...draft, portion })}
-                  />
-                  <OptionGroup
-                    legend="Choose your protein"
-                    caption="Choose 1 or more"
-                    group={personalisation.proteins}
-                    selected={draft.protein}
-                    onSelect={(protein) => setDraft({ ...draft, protein })}
-                  />
-                  <OptionGroup
-                    legend="Choose your side"
-                    group={personalisation.sides}
-                    selected={draft.side}
-                    onSelect={(side) => setDraft({ ...draft, side })}
-                  />
-
-                  <fieldset className={styles.group}>
-                    <legend className={styles.groupTitle}>Choose your heat level</legend>
-                    <div className={styles.groupChips}>
-                      {personalisation.heatLevels.map((level) => (
-                        <button
-                          key={level.label}
-                          type="button"
-                          className={styles.optionChip}
-                          data-selected={level.step === draft.heatStep || undefined}
-                          aria-pressed={level.step === draft.heatStep}
-                          onClick={() => setDraft({ ...draft, heatStep: level.step })}
-                        >
-                          <span className={styles.optionLabel}>{level.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                    <p className={styles.abbysNote}>
-                      {personalisation.heatLevels.find((level) => level.step === abbys.heatStep)
-                        ?.label ?? ''}{' '}
-                      is Abby&apos;s choice.
-                    </p>
-                  </fieldset>
-
-                  <div className={styles.readout}>
-                    <div className={styles.readoutBlock}>
-                      <span className={styles.readoutTitle}>Price change</span>
-                      <span className={styles.readoutValue}>
-                        {changePence > 0 ? `+${formatPrice(changePence)}` : '+£0'}
-                      </span>
-                    </div>
-                    <div className={styles.readoutBlock}>
-                      <span className={styles.readoutTitle}>Nutritional highlights</span>
-                      <Nutrition dish={editor.dish} choice={draft} options={personalisation} />
-                    </div>
+                  <div className={styles.persDivider} aria-hidden="true">
+                    <span className={styles.persDividerLine} />
+                    <span className={styles.persDividerMark}>⬥</span>
+                    <span className={styles.persDividerLine} />
                   </div>
 
-                  <p className={styles.readoutNote}>
-                    Price and nutrition update as you personalise.
-                  </p>
+                  <div className={styles.optionsCard}>
+                    <div className={styles.optionsHead}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+                        <line x1="4" y1="8" x2="20" y2="8" />
+                        <circle cx="10" cy="8" r="2.4" fill="var(--surface-raised)" />
+                        <line x1="4" y1="16" x2="20" y2="16" />
+                        <circle cx="15" cy="16" r="2.4" fill="var(--surface-raised)" />
+                      </svg>
+                      <span className={styles.optionsHeadLabel}>Personalisation options</span>
+                    </div>
 
-                  <button
-                    type="button"
-                    className={styles.reset}
-                    onClick={() => setDraft(abbys)}
-                    disabled={sameChoice(draft, abbys)}
-                  >
-                    Reset to defaults
-                  </button>
+                    <OptionGroup
+                      legend="Choose your portion size"
+                      icon={
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M3 11h18" />
+                          <path d="M4.5 11a7.5 7.5 0 0 0 15 0" />
+                          <path d="M12 3.5v2" />
+                          <path d="M9 5.5h6" />
+                        </svg>
+                      }
+                      group={personalisation.portions}
+                      selected={draft.portion}
+                      onSelect={(portion) => setDraft({ ...draft, portion })}
+                    />
+                    <OptionGroup
+                      legend="Choose your protein"
+                      caption="Choose 1 or more"
+                      icon={
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M12 3C8 3 6 6 6 9c0 4 3 7 6 12 3-5 6-8 6-12 0-3-2-6-6-6z" />
+                        </svg>
+                      }
+                      group={personalisation.proteins}
+                      selected={draft.protein}
+                      onSelect={(protein) => setDraft({ ...draft, protein })}
+                    />
+                    <OptionGroup
+                      legend="Choose your side"
+                      icon={
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M4 11h16M6 11c0-3 2.5-5 6-5s6 2 6 5M8 15h8M9 19h6" />
+                        </svg>
+                      }
+                      group={personalisation.sides}
+                      selected={draft.side}
+                      onSelect={(side) => setDraft({ ...draft, side })}
+                    />
+
+                    <fieldset className={`${styles.group} ${styles.groupRuled}`}>
+                      <legend className={styles.groupTitle}>
+                        <svg width="18" height="18" viewBox={CHILLI_VIEW_BOX} aria-hidden="true" style={{ display: 'block' }}>
+                          <path fill="var(--green-forest)" d={CHILLI_STEM_PATH} />
+                          <path fill="var(--terracotta)" d={CHILLI_BODY_PATH} />
+                        </svg>
+                        Choose your heat level
+                      </legend>
+                      <div className={styles.groupChips}>
+                        {personalisation.heatLevels.map((level) => (
+                          <button
+                            key={level.label}
+                            type="button"
+                            className={styles.optionChip}
+                            data-selected={level.step === draft.heatStep || undefined}
+                            aria-pressed={level.step === draft.heatStep}
+                            onClick={() => setDraft({ ...draft, heatStep: level.step })}
+                          >
+                            <span className={styles.optionLabel}>{level.label}</span>
+                            {level.step === draft.heatStep ? (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--white)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M20 6L9 17l-5-5" />
+                              </svg>
+                            ) : null}
+                          </button>
+                        ))}
+                      </div>
+                      <p className={styles.abbysNote}>
+                        {personalisation.heatLevels.find((level) => level.step === abbys.heatStep)
+                          ?.label ?? ''}{' '}
+                        is Abby&apos;s choice.
+                      </p>
+                    </fieldset>
+
+                    <div className={styles.readout}>
+                      <div>
+                        <span className={styles.readoutTitle}>Price change</span>
+                        <span className={styles.readoutPriceRow}>
+                          <span className={styles.readoutValue}>
+                            {changePence > 0 ? `+${formatPrice(changePence)}` : '£0'}
+                          </span>
+                          <span className={styles.readoutValueSub}>
+                            {changePence === 0
+                              ? 'Abby’s choice — no extra cost'
+                              : changePence > 0
+                                ? 'Added to base price'
+                                : 'Below base price'}
+                          </span>
+                        </span>
+                      </div>
+                      <div className={styles.readoutRule} aria-hidden="true" />
+                      <div>
+                        <span className={styles.readoutTitle}>Nutritional highlights</span>
+                        <Nutrition dish={editor.dish} choice={draft} options={personalisation} />
+                      </div>
+                    </div>
+
+                    <p className={styles.readoutNote}>
+                      Price and nutrition update as you personalise.
+                    </p>
+
+                    <div className={styles.resetRule} aria-hidden="true" />
+                    <button
+                      type="button"
+                      className={styles.reset}
+                      onClick={() => setDraft(abbys)}
+                      disabled={sameChoice(draft, abbys)}
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M4 8h9" />
+                        <path d="M17 8h3" />
+                        <circle cx="15" cy="8" r="2.2" fill="var(--surface-raised)" />
+                        <path d="M4 16h3" />
+                        <path d="M11 16h9" />
+                        <circle cx="9" cy="16" r="2.2" fill="var(--surface-raised)" />
+                      </svg>
+                      Reset to defaults
+                    </button>
+                  </div>
                 </>
               ) : null}
-
-              {/* The template's detail column: the dish's own facts, shown either
-                  way, above the three shared info panels. */}
-              <div className={styles.glance}>
-                <p className={styles.glanceTitle}>At a glance</p>
-                <div className={styles.glanceTags}>
-                  {editor.dish.dietary.map((tag) => (
-                    <span key={tag} className={styles.glanceTag}>
-                      {tag}
-                    </span>
-                  ))}
-                  {editor.dish.nutrition.calories !== undefined &&
-                  CALORIE_BANDS[LOW_CALORIE_BAND](editor.dish.nutrition.calories) ? (
-                    <span className={styles.glanceTag}>{LOW_CALORIE_BAND}</span>
-                  ) : null}
-                </div>
-                <div className={styles.glanceHeat}>
-                  <span className={styles.glanceHeatLabel}>Heat</span>
-                  <HeatPips heat={editor.dish.heat} />
+                    </div>
+                    ) : null}
+                  </div>
                 </div>
               </div>
-
-              {/* Nutrition, ingredients & allergens and reheating come from the
-                  shared panels, which state plainly when allergens are unpublished
-                  instead of guessing them. */}
-              <DishInfoPanels dish={editor.dish} heating={heating} />
             </div>
 
             <div className={styles.dialogFoot}>
-              <div className={styles.footNote}>
-                <span className={styles.footTitle}>
-                  {editor.dish.isSignature
-                    ? "Abby's Signature"
-                    : isCustom
-                      ? 'Personalised your way'
-                      : 'As Abby designed it'}
-                </span>
-                <span className={styles.footSub}>
-                  {editor.dish.isSignature && editor.dish.upgradePence
-                    ? `+${formatPrice(editor.dish.upgradePence)} signature upgrade${
-                        changePence > 0 ? ` · +${formatPrice(changePence)} personalisation` : ''
-                      }`
-                    : changePence > 0
-                      ? `+${formatPrice(changePence)} personalisation`
-                      : 'No extra cost'}
+              <div className={styles.dmCtaRow}>
+                <div className={styles.footNote}>
+                  <span className={styles.footTitle}>
+                    {editor.dish.isSignature
+                      ? 'Abby’s Signature'
+                      : isCustom
+                        ? 'Personalised your way'
+                        : 'As Abby designed it'}
+                  </span>
+                  <span className={styles.footSub}>
+                    {editor.dish.isSignature && editor.dish.upgradePence
+                      ? `+${formatPrice(editor.dish.upgradePence)} signature upgrade${
+                          isCustom && changePence !== 0
+                            ? ` · +${formatPrice(changePence)} personalisation`
+                            : ''
+                        }`
+                      : isCustom && changePence !== 0
+                        ? `+${formatPrice(changePence)} personalisation`
+                        : 'No extra cost'}
+                  </span>
+                  {editor.dish.isSignature ? (
+                    <span className={styles.footSub2}>Added on top of your box price</span>
+                  ) : isCustom && changePence > 0 ? (
+                    <span className={styles.footSub2}>Added to base price</span>
+                  ) : null}
+                </div>
+                <span className={styles.footDivider} aria-hidden="true" />
+                <span className={styles.dmCtaWrap}>
+                  <button type="button" className={styles.dmCta} onClick={commit}>
+                    {editor.lineId
+                      ? 'Save changes'
+                      : `Add to your box${
+                          editor.dish.isSignature && editor.dish.upgradePence
+                            ? ` · +${formatPrice(editor.dish.upgradePence)}`
+                            : isCustom && changePence > 0
+                              ? ` · +${formatPrice(changePence)} extra`
+                              : ''
+                        }`}
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <line x1="4" y1="12" x2="19" y2="12" />
+                      <path d="M13 6l6 6-6 6" />
+                    </svg>
+                  </button>
                 </span>
               </div>
-              <Button variant="dark" onClick={commit}>
-                {editor.lineId ? 'Save changes' : 'Add to your box'}
-              </Button>
             </div>
           </div>
         </div>
@@ -1278,6 +1612,7 @@ export function DishPicker({ dishes, personalisation, heating }: DishPickerProps
 function OptionGroup({
   legend,
   caption,
+  icon,
   group,
   selected,
   onSelect,
@@ -1285,6 +1620,8 @@ function OptionGroup({
   legend: string;
   /** Secondary note beside the legend, e.g. the protein group's "Choose 1 or more". */
   caption?: string;
+  /** The template's 18px glyph beside the group title. */
+  icon?: ReactNode;
   group: DishOption[];
   selected: string;
   onSelect: (key: string) => void;
@@ -1292,8 +1629,9 @@ function OptionGroup({
   const abbys = group.find((option) => option.isAbbysChoice);
 
   return (
-    <fieldset className={styles.group}>
+    <fieldset className={`${styles.group} ${styles.groupRuled}`}>
       <legend className={styles.groupTitle}>
+        {icon}
         {legend}
         {caption ? <span className={styles.groupCaption}>{caption}</span> : null}
       </legend>
@@ -1311,6 +1649,11 @@ function OptionGroup({
             {option.detail ? <span className={styles.optionDetail}>{option.detail}</span> : null}
             {option.pricePence > 0 ? (
               <span className={styles.optionPrice}>+{formatPrice(option.pricePence)}</span>
+            ) : null}
+            {option.key === selected ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--white)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
             ) : null}
           </button>
         ))}
@@ -1343,22 +1686,19 @@ function Nutrition({
     dish.nutrition.carbsGrams === undefined
       ? null
       : { label: 'Carbs', value: `${scaled(dish.nutrition.carbsGrams, factor)}g` },
-    { label: 'Fibre', value: `${scaled(dish.nutrition.fibreGrams, factor)}g` },
+    dish.nutrition.fatGrams === undefined
+      ? null
+      : { label: 'Fat', value: `${scaled(dish.nutrition.fatGrams, factor)}g` },
   ].filter((cell): cell is { label: string; value: string } => cell !== null);
 
   return (
-    <>
-      <span className={styles.nutritionCaption}>
-        Per serving — {chosen?.label ?? ''} {chosen?.detail ?? ''}
-      </span>
-      <div className={styles.nutrition}>
-        {cells.map((cell) => (
-          <span key={cell.label} className={styles.nutritionCell}>
-            <span className={styles.nutritionLabel}>{cell.label}</span>
-            <span className={styles.nutritionValue}>{cell.value}</span>
-          </span>
-        ))}
-      </div>
-    </>
+    <div className={styles.nutrition}>
+      {cells.map((cell) => (
+        <span key={cell.label} className={styles.nutritionCell}>
+          <span className={styles.nutritionLabel}>{cell.label}</span>
+          <span className={styles.nutritionValue}>{cell.value}</span>
+        </span>
+      ))}
+    </div>
   );
 }

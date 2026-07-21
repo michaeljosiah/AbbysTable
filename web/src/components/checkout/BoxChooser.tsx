@@ -161,8 +161,13 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
   const stepCustom = (delta: number) => (event: MouseEvent<HTMLButtonElement>) => {
     // The stepper sits inside a card that is itself a button.
     event.stopPropagation();
-    setSelection({ source: 'custom' });
-    setCustomQty((current) => Math.min(maxDishes, Math.max(minDishes, current + delta)));
+    const next = Math.min(maxDishes, Math.max(minDishes, customQty + delta));
+    setCustomQty(next);
+    // The template's stepper re-selects the matching preset card when the
+    // count lands on one, so 6/12/18 always light their own tier.
+    setSelection(
+      presetFor(pricing, next) ? { source: 'preset', size: next } : { source: 'custom' },
+    );
   };
 
   const onCardKeyDown = (event: KeyboardEvent<HTMLDivElement>, select: () => void) => {

@@ -14,6 +14,13 @@ import styles from './DishInfoPanels.module.css';
 interface DishInfoPanelsProps {
   dish: Dish;
   heating: HeatingInstruction[];
+  /**
+   * The step-2 dish modal renders the same three panels at the template's
+   * compact scale (19px titles, ringed chevrons, 4-column nutrition rows).
+   */
+  compact?: boolean;
+  /** Where "Back to top" should scroll — the modal passes its own scroller. */
+  onBackToTop?: () => void;
 }
 
 type PanelId = 'nutrition' | 'ingredients' | 'heating';
@@ -71,14 +78,18 @@ function Panel({
   title,
   open,
   onToggle,
+  onBackToTop,
   children,
 }: {
   id: PanelId;
   title: string;
   open: boolean;
   onToggle: () => void;
+  onBackToTop?: () => void;
   children: ReactNode;
 }) {
+  const backToTop = onBackToTop ?? (() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
   return (
     <section className={styles.panel} id={`dish-${id}`}>
       <h2 className={styles.headingWrap}>
@@ -99,12 +110,12 @@ function Panel({
             tabIndex={0}
             onClick={(event) => {
               event.stopPropagation();
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              backToTop();
             }}
             onKeyDown={(event) => {
               if (event.key === 'Enter' || event.key === ' ') {
                 event.stopPropagation();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                backToTop();
               }
             }}
           >
@@ -136,7 +147,7 @@ function Panel({
   );
 }
 
-export function DishInfoPanels({ dish, heating }: DishInfoPanelsProps) {
+export function DishInfoPanels({ dish, heating, compact, onBackToTop }: DishInfoPanelsProps) {
   const [open, setOpen] = useState<Record<PanelId, boolean>>({
     nutrition: true,
     ingredients: true,
@@ -157,12 +168,13 @@ export function DishInfoPanels({ dish, heating }: DishInfoPanelsProps) {
   ].filter(Boolean) as { label: string; value: string }[];
 
   return (
-    <div className={styles.panels}>
+    <div className={styles.panels} data-compact={compact || undefined}>
       <Panel
         id={PANEL_IDS[0]}
         title="Full nutrition"
         open={open.nutrition}
         onToggle={() => toggle('nutrition')}
+        onBackToTop={onBackToTop}
       >
         <p className={styles.caption}>Per serving, as Abby designed it.</p>
         <dl className={styles.nutritionGrid} style={{ '--cells': cells.length } as CSSProperties}>
@@ -180,6 +192,7 @@ export function DishInfoPanels({ dish, heating }: DishInfoPanelsProps) {
         title="Ingredients & allergens"
         open={open.ingredients}
         onToggle={() => toggle('ingredients')}
+        onBackToTop={onBackToTop}
       >
         {dish.ingredients ? (
           <p className={styles.ingredients}>{dish.ingredients}</p>
@@ -217,6 +230,7 @@ export function DishInfoPanels({ dish, heating }: DishInfoPanelsProps) {
         title="How to heat"
         open={open.heating}
         onToggle={() => toggle('heating')}
+        onBackToTop={onBackToTop}
       >
         <ul className={styles.heating}>
           {heating.map((instruction) => (

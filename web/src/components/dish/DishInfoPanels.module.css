@@ -161,6 +161,10 @@
   list-style: none;
 }
 
+.heatingItem {
+  display: block;
+}
+
 .heatingMethod {
   display: block;
   font-family: var(--font-sans);
@@ -185,4 +189,93 @@
   .nutritionCell {
     border-bottom: var(--border-hairline) solid var(--sand-2);
   }
+}
+
+/* ---- Compact (step-2 dish modal) ------------------------------------------------
+   The modal renders the same accordions at the template's smaller scale:
+   19px titles on 15/18 padding, 22px icons, a ringed 30px chevron, and the
+   nutrition cells split 4-up with hairlines between rows. */
+
+.panels[data-compact] {
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.panels[data-compact] .panel {
+  border-radius: 14px;
+}
+
+.panels[data-compact] .head {
+  gap: 12px;
+  padding: 15px 18px;
+}
+
+.panels[data-compact] .icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.panels[data-compact] .title {
+  font-size: 19px;
+  color: var(--green-forest);
+}
+
+.panels[data-compact] .chevron {
+  width: 30px;
+  height: 30px;
+  padding: 5.5px;
+  box-sizing: border-box;
+  border: var(--border-hairline) solid var(--sand-2);
+  border-radius: 50%;
+  color: var(--green-forest);
+}
+
+.panels[data-compact] .body {
+  padding: 0 18px 18px;
+}
+
+.panels[data-compact] .caption {
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  margin: 0;
+}
+
+.panels[data-compact] .nutritionGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: var(--border-hairline) solid var(--sand-2);
+  margin-top: 14px;
+}
+
+.panels[data-compact] .nutritionCell {
+  padding: 15px 4px;
+}
+
+.panels[data-compact] .nutritionCell:nth-child(n + 5) {
+  border-top: var(--border-hairline) solid var(--sand-2);
+}
+
+.panels[data-compact] .nutritionLabel {
+  font-size: 12.5px;
+}
+
+.panels[data-compact] .nutritionValue {
+  margin-top: 8px;
+  font-size: 25px;
+  line-height: 1;
+}
+
+.panels[data-compact] .allergens {
+  padding: 13px 16px;
+  border-radius: 12px;
+}
+
+.panels[data-compact] .allergens svg {
+  width: 20px;
+  height: 20px;
+}
+
+.panels[data-compact] .heatingItem {
+  border: var(--border-hairline) solid var(--sand-2);
+  border-radius: 12px;
+  padding: 14px 16px;
 }
