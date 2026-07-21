@@ -1,0 +1,182 @@
+.section {
+  background: var(--surface-page);
+  padding-block: 82px 64px;
+}
+
+@media (max-width: 768px) {
+  .section {
+    padding-block: 52px 54px;
+  }
+}
+
+/* ---- Intro ----------------------------------------------------------------- */
+
+.intro {
+  text-align: center;
+}
+
+/* Scoped under .intro so it outranks SectionHeading's own `margin: 0`
+   regardless of the order the two stylesheets land in. */
+.intro .heading {
+  margin-top: 10px;
+}
+
+.lede {
+  max-width: 520px;
+  margin: 14px auto 0;
+  font-size: var(--body-md);
+  line-height: var(--line-body);
+  color: var(--text-body);
+}
+
+@media (max-width: 620px) {
+  .lede {
+    margin-top: var(--space-2);
+    font-size: 14px;
+    line-height: 1.45;
+  }
+}
+
+/* ---- Step grid -------------------------------------------------------------
+   Four across, two at 960px, one at 620px — where it also narrows and centres. */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 30px;
+  margin: 54px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (max-width: 960px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 40px 26px;
+  }
+}
+
+@media (max-width: 620px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 46px;
+    max-width: 420px;
+    margin: 30px auto 0;
+  }
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.media {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: var(--border-hairline) solid var(--sand-2);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.image {
+  object-fit: cover;
+}
+
+/* Step number, knocked out of the section ground and straddling the card edge. */
+.badge {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: var(--rule-thick) solid var(--surface-page);
+  border-radius: 50%;
+  background: var(--surface-dark);
+  box-shadow: var(--shadow-card);
+  font-weight: var(--weight-semibold);
+  font-size: 14px;
+  color: var(--text-on-dark);
+}
+
+.cardTitle {
+  margin-top: 22px;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: var(--display-3);
+  line-height: 1.25;
+  text-align: center;
+  color: var(--text-heading);
+}
+
+/* Two-up, titles wrap to two lines unevenly — reserve the second line. */
+@media (max-width: 960px) {
+  .cardTitle {
+    min-height: 2.5em;
+  }
+}
+
+@media (max-width: 620px) {
+  .cardTitle {
+    min-height: 0;
+    font-size: 21px;
+  }
+}
+
+/* Longer titles swap for their compact wording on one-column layouts. */
+.titleCompact {
+  display: none;
+}
+
+@media (max-width: 620px) {
+  .titleFull {
+    display: none;
+  }
+
+  .titleCompact {
+    display: inline;
+  }
+}
+
+.cardBody {
+  margin-top: var(--space-2);
+  font-size: 13.5px;
+  line-height: var(--line-snug);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+/* ---- Delivery note and CTA -------------------------------------------------- */
+
+.delivery {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: 50px;
+  font-weight: var(--weight-semibold);
+  font-size: 13.5px;
+  letter-spacing: 0.01em;
+  color: var(--text-heading);
+}
+
+.calendar {
+  flex: 0 0 auto;
+  opacity: 0.85;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.cta {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}

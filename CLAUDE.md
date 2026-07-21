@@ -10,14 +10,48 @@ records the **verified on-disk state** (checked 2026-07-21) plus product context
 
 ## What this repo is
 
-An **Arke spec-driven, multi-agent workspace** — not an application codebase. There is no
-`package.json`, no solution file, no application source, and **no build, run, or test command**.
-Execution is driven externally by the Arke coordinator + OpenCode harness, not by commands run here.
+Two things share one repo:
 
-The unit of work is the **specification** (`docs/specifications/`), not the code or the ticket.
+1. **`web/`** — the Abby's Table storefront. Next.js 15 App Router, React 19, TypeScript, CSS
+   Modules. This is where build/run/test commands live (`cd web && npm run dev|build|lint|typecheck`).
+2. **Everything else** — an **Arke spec-driven, multi-agent workspace**. The root has no
+   `package.json` and nothing at root is built or run; the coordinator + OpenCode harness drive it
+   externally. The unit of work is the **specification** (`docs/specifications/`), not the ticket.
 
-The product being specified is **Abby's Table** (below). Nothing of it is built yet — the only
-product artefact is a design template.
+Do not add application code at the repo root — it belongs in `web/`.
+
+Conventions inside `web/` that are easy to get wrong:
+
+- **Design tokens are the styling contract.** `src/styles/tokens.css` is ported verbatim from the
+  design template. Never hardcode a hex colour or font stack; prefer the semantic aliases
+  (`--surface-*`, `--text-*`, `--action-*`) over the raw ramp.
+- **No commerce data in markup.** Prices, dish counts and delivery dates come from
+  `src/lib/aonik/` and are formatted with `src/lib/format.ts`. Money is stored in pence.
+- **Server Components by default.** Client components are `Header`, `MobileDrawer`, `Footer`, the
+  homepage `Menu` rail, and the `/menu` browser (`MenuBrowser`, `MenuToolbar`, `MenuGrid`,
+  `FilterChip`, `FilterPill`) — each for a specific piece of state. Data is fetched once in
+  `app/layout.tsx` / the route's `page.tsx` and passed down; sections never fetch for themselves.
+- **Menu faceting lives in `src/lib/menu/filters.ts`**, deliberately free of React. Change matching
+  rules there, not in components.
+- **Internal links go through `next/link`.** `Button` and `NavLink` route on `href` automatically
+  (`isExternalHref` in `src/lib/links.ts`); nav anchors are root-relative (`/#founder`) so they work
+  from `/menu` as well as `/`.
+
+### Never run `next build` while `next dev` is running
+
+Both write to the same `web/.next`. A production build run against a live dev server corrupts it —
+the symptom is `Error: Cannot find module './883.js'` in the server log, pages returning 500, and,
+most confusingly, pages that still render but never hydrate (no React fiber, clicks do nothing).
+It looks exactly like a React bug and is not one. Recover with:
+
+```bash
+# stop the dev server first
+rm -rf web/.next && cd web && npm run dev
+```
+
+When measuring animated elements in a browser harness, disable transitions first
+(`* { transition: none !important }`) — otherwise a read taken mid-transition reports a stale
+position and looks like a broken component.
 
 ## Actual repo layout
 
@@ -32,6 +66,8 @@ AGENTS.md                    grounding baseline (regenerated — don't hand-edit
 .opencode/agents/*.md        6 agent prompts (frontmatter + role prose)
 docs/specifications/         README, specification.template.md, generated index.md
 docs/template/Homepage.html  29MB design template — see handling rules below
+web/                         the storefront (Next.js); see its section in README.md
+.claude/launch.json          dev-server config for the preview tooling
 ```
 
 **Agents:** `spec-author` (primary, Requirements), `architect` (primary, Design), `researcher`

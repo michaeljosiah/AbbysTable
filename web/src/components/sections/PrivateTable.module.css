@@ -1,0 +1,50 @@
+/* Private Table — navy band, centred, one short column of copy. */
+
+.section {
+  background: var(--surface-navy);
+  padding-block: 72px;
+  text-align: center;
+}
+
+/* Scoped under .content so it outranks the heading primitive's own `margin: 0`
+   regardless of the order the stylesheets land in. */
+.content .heading {
+  margin-top: var(--space-3);
+}
+
+.body {
+  max-width: 560px;
+  margin: 18px auto 30px;
+  font-size: var(--body-md);
+  line-height: 1.7;
+  color: var(--text-on-dark-soft);
+}
+
+/* Runs on from the sentence on wide screens; drops to its own line on mobile,
+   where it would otherwise wrap badly. */
+.worldwide {
+  display: inline;
+}
+
+.lozenge {
+  color: var(--brass);
+}
+
+.lozenge:first-child {
+  margin-right: var(--space-2);
+}
+
+.lozenge:last-child {
+  margin-left: var(--space-2);
+}
+
+@media (max-width: 768px) {
+  .section {
+    padding-block: 46px 50px;
+  }
+
+  .worldwide {
+    display: block;
+    margin-top: var(--space-2);
+  }
+}

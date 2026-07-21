@@ -1,0 +1,5 @@
+.mark {
+  display: block;
+  margin-inline: auto;
+  object-fit: contain;
+}

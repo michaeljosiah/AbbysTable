@@ -1,0 +1,99 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgb(21 41 31 / 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+}
+
+.overlay[data-open] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 286px;
+  max-width: 86vw;
+  z-index: 95;
+  display: flex;
+  flex-direction: column;
+  padding: 26px;
+  background: var(--surface-dark);
+  transform: translateX(-100%);
+  transition: transform 0.24s ease;
+}
+
+.panel[data-open] {
+  transform: translateX(0);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 34px;
+}
+
+.logo {
+  color: var(--blush);
+}
+
+.close {
+  border: none;
+  background: transparent;
+  color: var(--blush);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+}
+
+.link {
+  font-family: var(--font-sans);
+  font-size: 17px;
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.01em;
+  color: var(--cream-2);
+  text-decoration: none;
+  padding: 15px 0;
+  border-bottom: var(--border-hairline) solid var(--border-dark);
+  transition: color 0.16s ease, padding-left 0.16s ease;
+}
+
+.link:hover {
+  color: var(--brass);
+  padding-left: 6px;
+}
+
+.foot {
+  margin-top: auto;
+  padding-top: var(--space-5);
+}
+
+.social {
+  gap: var(--space-5);
+}
+
+.social svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* The drawer is a small-viewport affordance only. */
+@media (min-width: 1041px) {
+  .overlay,
+  .panel {
+    display: none;
+  }
+}

@@ -1,0 +1,42 @@
+.bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 9px var(--space-5);
+  background: var(--surface-dark);
+  border-top: var(--rule-brass-top) solid var(--brass);
+}
+
+.message {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-medium);
+  font-size: var(--body-xs);
+  letter-spacing: var(--track-announce);
+  color: var(--text-on-dark);
+  text-align: center;
+}
+
+.dot {
+  color: var(--brass);
+  padding: 0 3px;
+}
+
+.delivery {
+  font-weight: var(--weight-semibold);
+  font-size: calc(var(--body-xs) + 1px);
+}
+
+/* Pinned to the frame edge, not the flow, so the message stays optically centred. */
+.social {
+  position: absolute;
+  right: max(var(--space-7), calc((100% - var(--frame-max)) / 2 + var(--space-7)));
+}
+
+@media (max-width: 1040px) {
+  .social {
+    display: none;
+  }
+}

@@ -1,0 +1,26 @@
+.lockup {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  text-decoration: none;
+  color: inherit;
+}
+
+.mark {
+  display: block;
+  width: var(--logo-width, 186px);
+  height: var(--logo-height, 32px);
+  background: currentColor;
+  -webkit-mask: url('/assets/logo-wordmark.svg') no-repeat center / contain;
+  mask: url('/assets/logo-wordmark.svg') no-repeat center / contain;
+  flex: 0 0 auto;
+}
+
+.registered {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-medium);
+  font-size: 16px;
+  line-height: 1;
+  letter-spacing: 0.1em;
+  margin-top: 2px;
+}

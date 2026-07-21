@@ -11,16 +11,36 @@ chilled UK-wide. Founded by **Esther Abby Josiah**.
 
 ## Status
 
-**No application code exists yet.** This repository is an [Arke](AGENTS.md) spec-driven, multi-agent
-workspace: work is authored as markdown specifications in [docs/specifications/](docs/specifications/),
-reviewed, and only then implemented.
+Two routes are built and running in [`web/`](web/) — Next.js 15 App Router, React 19, TypeScript,
+CSS Modules, with the design tokens ported verbatim from the templates:
 
-The single product artefact is a bundled homepage design template at
-`docs/template/Homepage.html` — a Figma-derived, fully realised homepage with a complete design
-system. **This README is reverse-engineered from that template** and documents the product it
-describes, so the specs and the eventual implementation have a shared reference.
+- **`/`** — the homepage, all ten sections.
+- **`/menu`** — the full catalogue: search, six filter facets (protein, spice, wellness goal, meal
+  type, dietary, calories), removable active-filter chips, and "load more" pagination. The facet
+  logic is a pure module in [`web/src/lib/menu/filters.ts`](web/src/lib/menu/filters.ts).
 
-See [CLAUDE.md](CLAUDE.md) for repository conventions and known scaffold drift.
+Commerce data (dishes, box pricing, delivery dates) will come from the **Aonik** admin API. Until
+that exists, everything resolves through a typed client seam
+([`web/src/lib/aonik/`](web/src/lib/aonik/)) backed by fixtures — no component knows the difference,
+and no price or date is hardcoded in markup.
+
+This repository is also an [Arke](AGENTS.md) spec-driven workspace: work is authored as markdown
+specifications in [docs/specifications/](docs/specifications/), reviewed, then implemented.
+`docs/template/Homepage.html` remains the design source of truth; the product documentation below is
+reverse-engineered from it. See [CLAUDE.md](CLAUDE.md) for conventions and known scaffold drift.
+
+### Running the site
+
+```bash
+cd web
+npm install
+npm run dev        # http://localhost:3000
+```
+
+`npm run build` · `npm start` · `npm run lint` · `npm run typecheck`
+
+To point at a real Aonik instance, set `AONIK_API_URL` (and `AONIK_API_KEY`). Both are server-only —
+the storefront calls Aonik from Server Components, so the credential never reaches the browser.
 
 ---
 
@@ -231,6 +251,20 @@ CLAUDE.md                    conventions, verified state, scaffold drift
                              implementer, reviewer-a, reviewer-b)
 docs/specifications/         source of truth for work — template, README, generated index
 docs/template/Homepage.html  bundled homepage design template (29MB)
+
+web/                         the storefront
+  src/app/                   layout (chrome + fonts + metadata), / and /menu routes
+  src/components/ui/         design-system primitives — Button, Eyebrow, SectionHeading,
+                             NavLink, FilterPill, NutritionTag, HeatPips, FloralMark
+  src/components/brand/      Logo (masked SVG), SocialIcons
+  src/components/layout/     AnnouncementBar, Header, MobileDrawer, Footer
+  src/components/sections/   the ten homepage sections + DishCard
+  src/components/menu/       menu browser — toolbar, facet panel, grid, flavour band
+  src/lib/aonik/             commerce seam — types, client interface, fixtures
+  src/lib/menu/              pure faceting and search logic
+  src/lib/content/           navigation and editorial copy
+  src/styles/tokens.css      design tokens, ported from the template
+  public/assets/             images, video and logo extracted from the bundle
 ```
 
 ## Contributing

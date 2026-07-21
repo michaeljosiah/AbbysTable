@@ -1,0 +1,168 @@
+/* ===========================================================================
+   Hero
+   ---------------------------------------------------------------------------
+   Ported from the template's `.at-hero` / `.at-hero-grad` / `.at-hero-content`.
+   The background is split in two: the photograph is a real <img> so next/image
+   can serve it, and the gradient the template layered on top of it in the same
+   `background` shorthand becomes the section's ::after.
+   =========================================================================== */
+
+.hero {
+  position: relative;
+  height: 590px;
+  overflow: hidden;
+}
+
+/* ---- Background art --------------------------------------------------------
+   Template desktop: `url(hero.png) center / cover no-repeat`. */
+
+.media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.mediaMobile {
+  display: none;
+}
+
+/* ---- Green scrim -----------------------------------------------------------
+   `rgba(30,58,47,…)` in the template is --green-forest at reduced alpha, so it
+   is mixed from the token rather than restated as a literal. The 0-alpha stop
+   is plain `transparent`: gradients interpolate in premultiplied alpha space,
+   so it renders identically to rgba(30,58,47,0) with no grey fade. */
+
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--green-forest) 55%, transparent) 0%,
+    color-mix(in srgb, var(--green-forest) 15%, transparent) 45%,
+    transparent 70%
+  );
+}
+
+/* ---- Content ---------------------------------------------------------------
+   Sits above the scrim, which is painted last as the section's ::after. */
+
+.content {
+  position: absolute;
+  top: 116px;
+  left: var(--space-7);
+  z-index: 1;
+  max-width: 520px;
+}
+
+.title {
+  margin: 20px 0 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: var(--display-1);
+  line-height: 1.08;
+  letter-spacing: var(--track-display);
+  color: var(--text-inverse);
+  text-wrap: pretty;
+}
+
+/* The headline turns after "Nigerian food," only on narrow screens. */
+.lineBreak {
+  display: none;
+}
+
+.lede {
+  margin: 20px 0 30px;
+  max-width: 380px;
+  font-family: var(--font-sans);
+  font-size: var(--body-md);
+  line-height: var(--line-body);
+  color: var(--text-on-dark);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 22px;
+}
+
+.textLink {
+  font-family: var(--font-sans);
+  font-size: var(--body-sm);
+  letter-spacing: 0.04em;
+  color: var(--text-on-dark);
+  text-decoration: none;
+  border-bottom: var(--border-hairline) solid var(--rule-brass);
+  padding-bottom: 3px;
+  transition: color 0.16s ease;
+}
+
+.textLink:hover {
+  color: var(--brass);
+}
+
+/* ---- Below 768px -----------------------------------------------------------
+   The photograph swaps to the portrait crop and the content unpins from the top
+   to sit on the floor of the hero, over a vertical scrim. */
+
+@media (max-width: 768px) {
+  .hero {
+    height: min(132vw, 600px);
+  }
+
+  .media {
+    display: none;
+  }
+
+  /* Template mobile: `url(hero-mobile.png) 50% 31% / 130% no-repeat`.
+     `width: 130%` with `height: auto` is background-size: 130%; the paired
+     offset/translate percentages reproduce background-position's anchoring
+     exactly — left/top place the container's 50%/31% point, the negative
+     translate pulls back by the same fraction of the image. `max-width: none`
+     defeats the global `img { max-width: 100% }`, which would otherwise clamp
+     the crop back to 100% and undo the zoom. */
+  .mediaMobile {
+    display: block;
+    position: absolute;
+    top: 31%;
+    left: 50%;
+    width: 130%;
+    height: auto;
+    max-width: none;
+    transform: translate(-50%, -31%);
+  }
+
+  .hero::after {
+    background: linear-gradient(
+      180deg,
+      transparent 40%,
+      color-mix(in srgb, var(--green-forest) 30%, transparent) 66%,
+      color-mix(in srgb, var(--green-forest) 84%, transparent) 100%
+    );
+  }
+
+  .content {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    max-width: 620px;
+    padding: 0 22px 34px;
+  }
+
+  .eyebrow {
+    display: none;
+  }
+
+  .title {
+    font-size: 38px;
+  }
+
+  .lineBreak {
+    display: inline;
+  }
+}

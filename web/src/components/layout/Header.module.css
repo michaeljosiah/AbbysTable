@@ -1,0 +1,120 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--surface-raised);
+  border-bottom: var(--border-hairline) solid var(--border-light);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  max-width: var(--frame-max);
+  margin-inline: auto;
+  padding: 18px var(--space-7);
+}
+
+.logoLink {
+  color: var(--green-forest);
+  text-decoration: none;
+}
+
+.desktopNav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+/* The header runs its nav one step larger than the default NavLink size. */
+.navLink {
+  font-size: var(--btn-size);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  margin-left: 26px;
+}
+
+/* ---- Small-viewport affordances ------------------------------------------- */
+
+.burger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 40px;
+  height: 40px;
+  padding: 9px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.burger span {
+  height: 2px;
+  border-radius: 2px;
+  background: var(--green-forest);
+}
+
+.basket {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 18px;
+  border-radius: var(--radius-pill);
+  background: var(--action-primary);
+  color: var(--white);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--body-sm);
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-decoration: none;
+  transition: background 0.16s ease, transform 0.16s ease;
+}
+
+.basket:hover {
+  background: var(--action-primary-hover);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 1040px) {
+  .desktopNav,
+  .actions {
+    display: none;
+  }
+
+  .burger,
+  .basket {
+    display: flex;
+  }
+
+  .row {
+    padding: 12px 20px;
+  }
+
+  .logoLink {
+    --logo-width: 150px;
+    --logo-height: 26px;
+  }
+}
+
+@media (max-width: 400px) {
+  .row {
+    padding: 12px var(--space-4);
+  }
+
+  .logoLink {
+    --logo-width: 140px;
+  }
+}
+
+@media (max-width: 344px) {
+  .logoLink {
+    --logo-width: 126px;
+  }
+}

@@ -1,0 +1,35 @@
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-medium);
+  font-size: var(--body-xs);
+  letter-spacing: var(--track-wide);
+  color: var(--brown);
+  white-space: nowrap;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.dot[data-dot='protein'] {
+  background: var(--terracotta);
+}
+
+.dot[data-dot='carbs'] {
+  background: var(--brass);
+}
+
+.dot[data-dot='fat'] {
+  background: var(--taupe);
+}
+
+.dot[data-dot='calories'],
+.dot[data-dot='fibre'] {
+  background: var(--green-forest);
+}

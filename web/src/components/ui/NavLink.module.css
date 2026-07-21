@@ -1,0 +1,40 @@
+.link {
+  position: relative;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-medium);
+  font-size: var(--body-sm);
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  white-space: nowrap;
+  border-bottom: 1px solid transparent;
+  padding-bottom: 2px;
+  transition: color 0.16s ease, border-color 0.16s ease;
+}
+
+.link[data-active] {
+  border-bottom-color: var(--brass);
+}
+
+.link[data-tone='dark'] {
+  color: var(--green-forest);
+}
+
+.link[data-tone='dark']:hover {
+  color: var(--terracotta);
+}
+
+.link[data-tone='light'] {
+  color: var(--text-on-dark-soft);
+}
+
+.link[data-tone='light']:hover {
+  color: var(--blush);
+}
+
+.link[data-tone='muted'] {
+  color: var(--taupe);
+}
+
+.link[data-tone='muted']:hover {
+  color: var(--brown);
+}

@@ -1,0 +1,61 @@
+/* Promo band — dark ground, centred column, everything optically stacked. */
+
+.section {
+  background: var(--surface-dark);
+  padding-block: var(--space-8);
+  text-align: center;
+}
+
+/* The price picks up brass inside an otherwise cream heading. */
+.price {
+  color: var(--brass);
+}
+
+.blurb {
+  margin: 14px 0 var(--space-3);
+  font-size: var(--body-md);
+  color: var(--text-on-dark-soft);
+}
+
+.delivery {
+  margin: 0 0 28px;
+  font-size: var(--body-md);
+  color: var(--text-on-dark-soft);
+}
+
+/* Brighter and heavier than the line around it — the date is the fact that matters. */
+.deliveryDate {
+  font-weight: 700;
+  color: var(--sand);
+}
+
+.ctaRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-5);
+}
+
+.taster {
+  font-size: var(--body-sm);
+  color: var(--cream-2);
+}
+
+.tasterLink {
+  padding-bottom: 3px;
+  color: inherit;
+  text-decoration: none;
+  border-bottom: var(--border-hairline) solid var(--brass);
+  transition: color 0.16s ease;
+}
+
+.tasterLink:hover {
+  color: var(--brass);
+}
+
+@media (max-width: 768px) {
+  .section {
+    padding-block: 46px 50px;
+  }
+}

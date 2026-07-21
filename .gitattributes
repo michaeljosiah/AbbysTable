@@ -1,0 +1,16 @@
+# Normalise line endings so a Windows checkout does not produce whole-file diffs.
+* text=auto eol=lf
+
+# Bundled design templates are single-line, multi-megabyte exports. Treat them as
+# opaque: no EOL rewriting, no diffing.
+docs/template/*.html binary
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.mp4 binary
+*.woff2 binary
+
+# Lockfile churn is noise in review
+web/package-lock.json -diff linguist-generated

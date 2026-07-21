@@ -1,0 +1,31 @@
+.band {
+  background: var(--surface-blush);
+  text-align: center;
+  padding: 56px var(--space-5) 60px;
+}
+
+.eyebrow {
+  margin: 20px 0 18px;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 12px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--text-eyebrow);
+}
+
+.statement {
+  margin: 0 auto;
+  max-width: 640px;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 34px;
+  line-height: 1.28;
+  color: var(--text-heading);
+}
+
+@media (max-width: 640px) {
+  .statement {
+    font-size: 26px;
+  }
+}

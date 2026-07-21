@@ -1,0 +1,33 @@
+.wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.pips {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.pip .stem,
+.pip .body {
+  fill: var(--green-mist);
+}
+
+.pip[data-lit] .stem {
+  fill: var(--green-forest);
+}
+
+.pip[data-lit] .body {
+  fill: var(--terracotta);
+}
+
+.label {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--body-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--taupe);
+}

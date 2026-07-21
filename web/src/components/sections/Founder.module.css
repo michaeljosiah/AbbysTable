@@ -1,0 +1,79 @@
+.section {
+  background: var(--surface-blush);
+}
+
+.split {
+  display: grid;
+  grid-template-columns: 560px 1fr;
+  gap: 80px;
+  align-items: center;
+  padding-block: 72px;
+}
+
+@media (max-width: 1040px) {
+  .split {
+    grid-template-columns: 1fr;
+    gap: 26px;
+    padding-block: 46px 52px;
+  }
+}
+
+/* ---- Portrait ---------------------------------------------------------------
+   A tall panel beside the copy; a centred square above it once stacked. */
+
+.media {
+  position: relative;
+  height: 576px;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+}
+
+@media (max-width: 1040px) {
+  .media {
+    height: auto;
+    width: 100%;
+    max-width: 460px;
+    aspect-ratio: 1 / 1;
+    justify-self: center;
+    margin-inline: auto;
+  }
+}
+
+.portrait {
+  object-fit: cover;
+}
+
+/* ---- Story ------------------------------------------------------------------ */
+
+.copy {
+  max-width: 420px;
+  margin-inline: auto;
+  text-align: center;
+}
+
+/* Both scoped under .copy so they outrank the primitives' own margin rules
+   regardless of the order the stylesheets land in. */
+.copy .mark {
+  margin-bottom: 20px;
+}
+
+.copy .heading {
+  margin-top: var(--space-3);
+}
+
+.story {
+  margin-top: 22px;
+  font-size: var(--body-md);
+  line-height: 1.7;
+  color: var(--text-body);
+}
+
+.story p + p {
+  margin-top: var(--space-4);
+}
+
+.cta {
+  display: flex;
+  justify-content: center;
+  margin-top: 26px;
+}

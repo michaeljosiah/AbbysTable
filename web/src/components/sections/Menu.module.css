@@ -1,0 +1,112 @@
+.section {
+  background: var(--surface-bright);
+  padding: 40px 0 88px;
+}
+
+/* ---- Floral divider --------------------------------------------------------- */
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  max-width: 900px;
+  margin: 0 auto 44px;
+}
+
+.rule {
+  flex: 1;
+  height: 1px;
+  background: var(--border-light);
+}
+
+.dividerMark {
+  flex: 0 0 auto;
+  height: 58px;
+  width: auto;
+}
+
+/* ---- Intro ------------------------------------------------------------------ */
+
+.intro {
+  text-align: center;
+}
+
+.intro .heading {
+  margin-top: 10px;
+}
+
+.introCopy {
+  margin: 14px auto 0;
+  max-width: 520px;
+  font-size: var(--body-md);
+  line-height: var(--line-body);
+  color: var(--text-body);
+}
+
+/* ---- Filters ---------------------------------------------------------------- */
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+  margin: 40px 0 44px;
+}
+
+/* ---- Carousel --------------------------------------------------------------- */
+
+.scroller {
+  display: flex;
+  gap: var(--space-6);
+  overflow-x: auto;
+  padding-top: var(--space-3);
+  margin-top: calc(var(--space-3) * -1);
+  padding-bottom: 14px;
+  scroll-snap-type: x proximity;
+}
+
+.slide {
+  flex: 0 0 auto;
+  display: flex;
+  scroll-snap-align: start;
+}
+
+/* ---- Scroll progress -------------------------------------------------------- */
+
+.progressTrack {
+  position: relative;
+  width: min(240px, 62%);
+  height: 3px;
+  margin: 30px auto 0;
+  border-radius: 3px;
+  background: var(--sand-2);
+}
+
+.progressThumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 40%;
+  border-radius: 3px;
+  background: var(--green-forest);
+  transition: transform 0.1s linear;
+}
+
+@media (max-width: 768px) {
+  .section {
+    padding: 32px 0 54px;
+  }
+
+  .scroller {
+    gap: 14px;
+  }
+}
+
+@media (max-width: 560px) {
+  .filters {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+  }
+}

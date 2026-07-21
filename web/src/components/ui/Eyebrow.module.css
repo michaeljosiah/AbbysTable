@@ -1,0 +1,24 @@
+.eyebrow {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-medium);
+  font-size: var(--eyebrow-sm);
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+}
+
+.eyebrow[data-tone='brass'] {
+  color: var(--brass);
+}
+
+.eyebrow[data-tone='green'] {
+  color: var(--green-forest);
+}
+
+.eyebrow[data-tone='blush'] {
+  color: var(--blush);
+}
+
+.eyebrow[data-tone='muted'] {
+  color: var(--taupe);
+}

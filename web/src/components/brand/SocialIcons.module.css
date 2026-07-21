@@ -1,0 +1,22 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--blush);
+  text-decoration: none;
+  transition: transform 0.16s ease, color 0.16s ease;
+}
+
+.link:hover {
+  transform: translateY(-2px);
+  color: var(--brass);
+}

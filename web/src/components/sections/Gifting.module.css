@@ -1,0 +1,69 @@
+/* Gifting split — copy left, film right. Mirrors the founder band, which puts
+   its media first. Collapses to a single column at 1040px, where the copy sits
+   above the film in DOM order. */
+
+.section {
+  background: var(--surface-page);
+}
+
+.split {
+  display: grid;
+  grid-template-columns: 1fr 520px;
+  gap: 80px;
+  align-items: center;
+  padding-block: 84px;
+}
+
+.copy {
+  max-width: 420px;
+  margin-inline: auto;
+  text-align: center;
+}
+
+/* Both scoped under .copy so they outrank the primitives' own margin rules
+   regardless of the order the stylesheets land in. */
+.copy .mark {
+  margin-bottom: 20px;
+}
+
+.copy .heading {
+  margin-top: var(--space-3);
+}
+
+.body {
+  max-width: 380px;
+  margin: 18px auto 28px;
+  font-size: var(--body-md);
+  line-height: 1.7;
+  color: var(--text-body);
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+}
+
+.media {
+  height: 460px;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+}
+
+.video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (max-width: 1040px) {
+  .split {
+    grid-template-columns: 1fr;
+    gap: 26px;
+    padding-block: 46px 52px;
+  }
+
+  .media {
+    height: 320px;
+  }
+}
