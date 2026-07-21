@@ -1,0 +1,23 @@
+# Arke runtime logs — machine-generated, local to each workspace.
+# Append-only agent session/trace output; contains local filesystem paths.
+.arke/trace.ndjson
+.arke/sessions.ndjson
+
+# Vendored grounding material — re-vendorable, never committed.
+.repos/
+
+# Dependencies
+node_modules/
+
+# Environment / credentials
+.env
+.env.*
+!.env.example
+
+# Editor & OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini

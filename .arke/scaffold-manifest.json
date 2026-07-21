@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "artefacts": {
+    ".arke/config.json": {
+      "scaffoldChecksum": "5711604f01fb5e8f44da67ab082340786cb9db004faf4f5b1d851fee83cc82a0",
+      "createdAt": "2026-07-21T11:37:34.109Z"
+    },
+    "agents/spec-author/config.yaml": {
+      "scaffoldChecksum": "186c3ce63ee7ccc69102bc5527af53559b893d4c584c144f84cbef43f4832180",
+      "createdAt": "2026-07-21T11:37:34.118Z"
+    },
+    ".opencode/agents/spec-author.md": {
+      "scaffoldChecksum": "e63f3e37701092b628722e42d3257e7e74e9f0129f4e7b5d8705ad3bd79ebc98",
+      "createdAt": "2026-07-21T11:37:34.119Z"
+    },
+    "agents/architect/config.yaml": {
+      "scaffoldChecksum": "4a67fae50e1e9f8d6200f4116d271253a9b256e133508d815fd7c5dc3fd339b8",
+      "createdAt": "2026-07-21T11:37:34.120Z"
+    },
+    ".opencode/agents/architect.md": {
+      "scaffoldChecksum": "832eb0c0e894a9fc232705ff54ef49b73cf80e4821f1357b8ac09a78a88e4de2",
+      "createdAt": "2026-07-21T11:37:34.121Z"
+    },
+    "agents/reviewer-a/config.yaml": {
+      "scaffoldChecksum": "39945c43e87c5cb869f1f56277a6f454dd39b1e36b5f6f6ae1d432b5071c0d81",
+      "createdAt": "2026-07-21T11:37:34.121Z"
+    },
+    ".opencode/agents/reviewer-a.md": {
+      "scaffoldChecksum": "b6e12ed217000e4e9f089b3dd8da01cb6766b158d660db0e28afe6ec764effae",
+      "createdAt": "2026-07-21T11:37:34.122Z"
+    },
+    "agents/reviewer-b/config.yaml": {
+      "scaffoldChecksum": "45d0b8a17604cf547048213feccc82aae7fdf07e6d024ab6f950f44c3e8d6d7b",
+      "createdAt": "2026-07-21T11:37:34.123Z"
+    },
+    ".opencode/agents/reviewer-b.md": {
+      "scaffoldChecksum": "193a699e6766c196f01c9ff2a56748a0725a9a21572377c8168974dae31185ef",
+      "createdAt": "2026-07-21T11:37:34.124Z"
+    },
+    "agents/implementer/config.yaml": {
+      "scaffoldChecksum": "b8367cb6314d66232006ce7e9c4c20e58c50d3ebfdc5911feb1214190d864cea",
+      "createdAt": "2026-07-21T11:37:34.124Z"
+    },
+    ".opencode/agents/implementer.md": {
+      "scaffoldChecksum": "b4c9e1dac29e8f41e14e81412bb1a7a207b10378e3ab8568b009d38bd2cf1534",
+      "createdAt": "2026-07-21T11:37:34.125Z"
+    },
+    "agents/researcher/config.yaml": {
+      "scaffoldChecksum": "4ebc4b16f1de2ffee07e54a598cfbe73819b74832ff5f47c48972b0f344160b7",
+      "createdAt": "2026-07-21T11:37:34.126Z"
+    },
+    ".opencode/agents/researcher.md": {
+      "scaffoldChecksum": "f756a2f0cda61159437201689f5f4b0ce85c11e848f7c099a33360b56b0bfd1b",
+      "createdAt": "2026-07-21T11:37:34.127Z"
+    },
+    "docs/specifications/specification.template.md": {
+      "scaffoldChecksum": "8c989c436f6fbe97d306146bc33cd7ceed9124c15231a74e32d70d003328c28b",
+      "createdAt": "2026-07-21T11:37:34.134Z"
+    },
+    "docs/specifications/README.md": {
+      "scaffoldChecksum": "f40bef056fd1c8fe71a5cc53ed45a572984f060e7ad2bc949d033d6461d677e9",
+      "createdAt": "2026-07-21T11:37:34.135Z"
+    },
+    "AGENTS.md": {
+      "scaffoldChecksum": "10b1125f916fe4c342e5845ff2a835cd60d9600ef22aff9c6b8ba09125c10197",
+      "createdAt": "2026-07-21T11:37:34.140Z"
+    },
+    ".arke/plugins/policy.ts": {
+      "scaffoldChecksum": "ad301a8822a49008febf7e7a5340e3730a5d93eaa403e809309ab3d5c2853041",
+      "createdAt": "2026-07-21T11:37:34.145Z"
+    },
+    ".arke/plugins/projection.ts": {
+      "scaffoldChecksum": "8571e703a02626896bac9b3d52286a62ad4df3fd064bfa280c2f183273806126",
+      "createdAt": "2026-07-21T11:37:34.146Z"
+    },
+    ".repos/README.md": {
+      "scaffoldChecksum": "25152a1a7b6d15e6adb4a15af0ab46795697306f74ddbf833fbbd58796802228",
+      "createdAt": "2026-07-21T11:37:34.196Z"
+    }
+  },
+  "stale": [],
+  "lastCompletedStep": "repos"
+}

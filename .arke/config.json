@@ -1,0 +1,15 @@
+{
+  "$comment": "Arke project config (SPEC-016 revised), created by `arke` scaffolding. `providers` are host-side provider/auth profiles: the harness endpoint + a credentialsRef resolved on the host (never sent to the client). Agents declare their own model+provider in agents/<name>/config.yaml and reference a profile by executor.config.auth.profile. Replace the gateway placeholder models in the agent images with real vendor ids. Process-wide coordinator settings (port, maxProjects, OTLP) come from the global/launch source, not this file.",
+  "providers": {
+    "opencode-local": {
+      "harness": "opencode",
+      "host": "localhost",
+      "port": 4096,
+      "cwd": ".",
+      "credentialsRef": "opencode/gateway"
+    }
+  },
+  "settings": {
+    "permissionTimeoutMs": 120000
+  }
+}
