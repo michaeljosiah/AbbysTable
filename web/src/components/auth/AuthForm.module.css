@@ -1,0 +1,339 @@
+/* Shared styling for the login and registration forms. Inputs sit on the
+   bright surface with the brand's brass focus ring (the same treatment the
+   design templates give their search fields); validation speaks terracotta. */
+
+.form {
+  width: min(400px, 100%);
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: var(--display-2);
+  line-height: var(--line-display);
+  letter-spacing: var(--track-display);
+  color: var(--text-heading);
+}
+
+.sub {
+  margin: var(--space-3) 0 0;
+  font-family: var(--font-sans);
+  font-size: var(--body-md);
+  line-height: var(--line-snug);
+  color: var(--text-muted);
+}
+
+/* ---- Social sign-in ---------------------------------------------------------- */
+
+/* The ghost-CTA language: bright ground, sand hairline, forest text. */
+.google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: var(--space-5);
+  padding: 13px 24px;
+  border: 1.5px solid var(--sand-2);
+  border-radius: var(--radius-pill);
+  background: var(--surface-bright);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--body-md);
+  color: var(--text-heading);
+  cursor: pointer;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.google:hover {
+  border-color: var(--action-dark);
+  box-shadow: var(--shadow-card);
+}
+
+.google svg {
+  flex: 0 0 auto;
+}
+
+/* ---- Fields ----------------------------------------------------------------- */
+
+.field {
+  margin-top: var(--space-5);
+}
+
+.labelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.label {
+  display: block;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--body-sm);
+  letter-spacing: 0.04em;
+  color: var(--text-heading);
+}
+
+.inputWrap {
+  position: relative;
+  margin-top: var(--space-2);
+}
+
+.input {
+  width: 100%;
+  padding: 13px 16px;
+  border: 1.5px solid var(--sand-2);
+  border-radius: 14px;
+  background: var(--surface-bright);
+  font-family: var(--font-sans);
+  font-size: var(--body-md);
+  color: var(--text-body);
+  outline: none;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+}
+
+.input:focus {
+  border-color: var(--focus-ring);
+  box-shadow: 0 0 0 3px rgb(194 142 60 / 0.16);
+}
+
+.input[aria-invalid='true'] {
+  border-color: var(--text-accent);
+}
+
+.input[aria-invalid='true']:focus {
+  box-shadow: 0 0 0 3px rgb(184 67 28 / 0.14);
+}
+
+/* Room for the show/hide toggle. */
+.inputWithToggle {
+  padding-right: 52px;
+}
+
+.toggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.16s ease, background 0.16s ease;
+}
+
+.toggle:hover {
+  color: var(--text-heading);
+  background: var(--surface-raised);
+}
+
+.hint {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.error {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-medium);
+  font-size: 12.5px;
+  color: var(--text-accent);
+}
+
+/* ---- Row helpers ------------------------------------------------------------ */
+
+.betweenRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: var(--body-sm);
+  color: var(--text-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.checkBox {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--sand-2);
+  border-radius: 6px;
+  background: var(--surface-bright);
+  transition: background 0.16s ease, border-color 0.16s ease;
+}
+
+.check[aria-pressed='true'] .checkBox {
+  border-color: var(--action-dark);
+  background: var(--action-dark);
+}
+
+.quietLink {
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--body-sm);
+  color: var(--text-heading);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--rule-brass);
+  cursor: pointer;
+  transition: color 0.16s ease;
+}
+
+.quietLink:hover {
+  color: var(--text-eyebrow);
+}
+
+/* ---- Submit + notice --------------------------------------------------------- */
+
+.submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  margin-top: var(--space-5);
+  padding: 15px 26px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--action-dark);
+  color: var(--text-on-dark);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--body-md);
+  cursor: pointer;
+  transition: filter 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.submit:hover:not(:disabled) {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-raised);
+}
+
+.submit:active:not(:disabled) {
+  filter: brightness(0.94);
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.submit:disabled {
+  background: var(--sand-2);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* Accounts aren't live yet — the stub submit says so plainly. */
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: var(--space-5);
+  padding: 15px 16px;
+  border: var(--border-hairline) solid var(--rule-brass);
+  border-radius: 16px;
+  background: var(--surface-bright);
+}
+
+.noticeIcon {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgb(194 142 60 / 0.14);
+  color: var(--text-eyebrow);
+}
+
+.noticeTitle {
+  display: block;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--btn-size);
+  color: var(--text-heading);
+}
+
+.noticeSub {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--font-sans);
+  font-size: var(--body-sm);
+  line-height: var(--line-snug);
+  color: var(--text-muted);
+}
+
+/* ---- Cross links -------------------------------------------------------------- */
+
+.switchRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: var(--space-5);
+}
+
+.switchRule {
+  flex: 1;
+  height: 1px;
+  background: var(--sand-2);
+}
+
+.switchLabel {
+  flex: 0 0 auto;
+  font-family: var(--font-sans);
+  font-size: var(--body-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.switchLink {
+  display: block;
+  margin-top: var(--space-4);
+  text-align: center;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--body-sm);
+  color: var(--text-heading);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--rule-brass);
+  transition: color 0.16s ease;
+}
+
+.switchLink:hover {
+  color: var(--text-eyebrow);
+}

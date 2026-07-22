@@ -38,7 +38,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Contact', href: '/#contact' },
 ];
 
-export const LOGIN_ITEM: NavItem = { label: 'Login', href: '/#contact' };
+export const LOGIN_ITEM: NavItem = { label: 'Login', href: '/login' };
 
 export interface FooterColumn {
   heading: string;
