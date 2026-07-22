@@ -20,7 +20,7 @@ export const metadata: Metadata = {
  * extras catalogue resolves here; selection lives in the cart's extras lines.
  */
 export default async function BoxExtrasPage() {
-  const client = getAonikClient();
+  const client = await getAonikClient();
 
   const [extras, pricing, personalisation, delivery] = await Promise.all([
     client.getExtras(),

@@ -19,13 +19,13 @@ interface DishPageProps {
 
 /** Pre-render every dish in the catalogue. */
 export async function generateStaticParams() {
-  const dishes = await getAonikClient().getDishes();
+  const dishes = await (await getAonikClient()).getDishes();
   return dishes.map((dish) => ({ slug: dish.slug }));
 }
 
 export async function generateMetadata({ params }: DishPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const dish = await getAonikClient().getDishBySlug(slug);
+  const dish = await (await getAonikClient()).getDishBySlug(slug);
 
   if (!dish) return { title: "Dish not found — Abby's Table" };
 

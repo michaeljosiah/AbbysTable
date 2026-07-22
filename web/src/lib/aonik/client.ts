@@ -2,15 +2,16 @@
  * Aonik client — the single seam between the storefront and commerce data.
  *
  * Components never import fixtures or call `fetch` directly; they receive data
- * resolved through this interface in a Server Component. When Aonik is ready,
- * set AONIK_API_URL and the HTTP implementation takes over with no component
- * changes.
+ * resolved through this interface in a Server Component. Which implementation
+ * they get is decided by the data mode (see `dataMode.ts`): demo serves the
+ * design-template fixtures, live talks to Aonik.
  *
- * SERVER-ONLY: the credential is read from a non-`NEXT_PUBLIC_` variable, so it
+ * SERVER-ONLY: configuration is read from non-`NEXT_PUBLIC_` variables, so it
  * cannot be bundled into client JavaScript. Keep calls to `getAonikClient()` in
  * Server Components or Route Handlers.
  */
 
+import { readAonikConfig, resolveDataMode } from './dataMode';
 import { EXTRA_FIXTURES } from './extras';
 import {
   BOX_FIXTURES,
@@ -90,24 +91,37 @@ export class MockAonikClient implements AonikClient {
 
 export interface HttpAonikClientOptions {
   baseUrl: string;
-  apiKey?: string;
+  /** Aonik partitions every storefront read by tenant; required on all requests. */
+  tenantId: string;
   /** Seconds to cache each response; 0 disables caching. */
   revalidateSeconds?: number;
 }
 
 /**
- * Talks to the real Aonik admin API.
+ * Talks to the real Aonik commerce API.
  *
- * Endpoint paths are a first guess and should be reconciled with Aonik's actual
- * routes once published — that reconciliation is confined to this class.
+ * TRANSPORT IS HALF-BUILT. The request plumbing below is correct — base URL
+ * join, `X-Tenant-Id` on every call, anonymous catalog reads, cache policy. The
+ * PATHS are still the pre-Aonik guesses (`/dishes`, `/box-pricing`, …) and do
+ * not exist on the real API, which serves everything under `/commerce/…`.
+ * Replacing them, plus the DTO mapping and the pence adapter, is
+ * SPEC-2026-07-22-aonik-transport. Until that lands, live mode reaches Aonik and
+ * gets 404s — which is the point of having the seam wired and the mode
+ * switchable before the mapping exists.
  */
 export class HttpAonikClient implements AonikClient {
   constructor(private readonly options: HttpAonikClientOptions) {}
 
   private async get<T>(path: string): Promise<T> {
-    const { baseUrl, apiKey, revalidateSeconds = 300 } = this.options;
-    const response = await fetch(new URL(path, baseUrl), {
-      headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : undefined,
+    const { baseUrl, tenantId, revalidateSeconds = 300 } = this.options;
+    const response = await fetch(`${baseUrl}${path}`, {
+      headers: {
+        // Catalog reads are anonymous — Aonik's storefront surface takes no
+        // service credential. Customer-authenticated calls will carry a session
+        // bearer instead (see SPEC-2026-07-22-customer-identity).
+        'X-Tenant-Id': tenantId,
+        Accept: 'application/json',
+      },
       next: { revalidate: revalidateSeconds },
     });
 
@@ -160,25 +174,33 @@ export class HttpAonikClient implements AonikClient {
 }
 
 /**
- * Resolves the client for the current environment: HTTP when AONIK_API_URL is
- * configured, fixtures otherwise. This is the only place that decides.
+ * Resolves the client for this request: fixtures in demo mode, HTTP in live.
+ * This is the only place that decides.
+ *
+ * Async because the development-only mode override lives in a cookie. In
+ * production it resolves from configuration alone.
  */
-export function getAonikClient(): AonikClient {
-  const baseUrl = process.env.AONIK_API_URL;
+export async function getAonikClient(): Promise<AonikClient> {
+  const { mode } = await resolveDataMode();
 
-  if (!baseUrl) {
+  if (mode === 'demo') {
     return new MockAonikClient();
   }
 
-  return new HttpAonikClient({
-    baseUrl,
-    apiKey: process.env.AONIK_API_KEY,
-  });
+  const config = readAonikConfig();
+  if (!config) {
+    // resolveDataMode only returns 'live' when the config is complete, so this
+    // is unreachable in practice — it exists so a future caller that skips the
+    // resolver fails loudly rather than silently serving demo data as if real.
+    throw new Error('Live data mode requires AONIK_API_URL and AONIK_TENANT_ID.');
+  }
+
+  return new HttpAonikClient(config);
 }
 
 /** Resolves everything the homepage renders in one concurrent pass. */
 export async function getHomepageData(): Promise<HomepageData> {
-  const client = getAonikClient();
+  const client = await getAonikClient();
 
   const [dishes, boxes, delivery] = await Promise.all([
     client.getFeaturedDishes(),
@@ -197,7 +219,7 @@ const RELATED_COUNT = 4;
  * can render a 404 rather than an empty shell.
  */
 export async function getDishPageData(slug: string) {
-  const client = getAonikClient();
+  const client = await getAonikClient();
 
   const [dish, allDishes, boxes, delivery, personalisation, heating] = await Promise.all([
     client.getDishBySlug(slug),
@@ -228,7 +250,7 @@ export async function getMenuPageData(): Promise<{
   dishes: Dish[];
   delivery: DeliveryWindow;
 }> {
-  const client = getAonikClient();
+  const client = await getAonikClient();
 
   const [dishes, delivery] = await Promise.all([
     client.getDishes(),

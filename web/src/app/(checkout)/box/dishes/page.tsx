@@ -22,7 +22,7 @@ export const metadata: Metadata = {
  * `CartProvider`) is client state, owned by `DishPicker` and `BoxSummary`.
  */
 export default async function BoxDishesPage() {
-  const client = getAonikClient();
+  const client = await getAonikClient();
 
   // `heating` feeds the shared DishInfoPanels inside the personaliser, so the
   // dialog states allergen and reheating facts from the catalogue rather than

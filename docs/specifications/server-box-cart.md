@@ -11,6 +11,13 @@ updated: 2026-07-22
 
 # Server cart — the box session moves to Aonik
 
+> **Verified 2026-07-22** against Aonik specs 066/068/071 and the shipped `Aonik.Commerce`
+> implementation. Where the two disagreed, the code won — note that 068's rule R13 ("LineKind
+> must be BoxDish") is superseded: 071 shipped, and the running server implements add-on
+> lines. Corrections: multi-select groups require a JSON array (a bare string is rejected),
+> customer-initiated line merges emit no `changes[]` entry, `reason` has seven values, and
+> the quote's component order differs from the first draft.
+
 ## Why
 
 The box a customer builds lives in `CartProvider.tsx` — client state persisted to
@@ -86,15 +93,30 @@ return the full `{ box, quote, changes[] }` payload that becomes the new provide
 | `setBoxSize(size)` | `PATCH /commerce/carts/{cartId}/size` `{ size }` |
 
 Client-side merging is retired: Aonik merges identical `(kind, slot, variant, canonical
-selection)` lines itself and reports a `line-merged` change when a personalisation edit
-collapses two lines. Line identity is Aonik's `lineId` (a GUID), replacing the locally
-fabricated `${dishId}-${n}` ids.
+selection)` lines itself (rule R6). Line identity is Aonik's `lineId` (a GUID), replacing
+the locally fabricated `${dishId}-${n}` ids.
+
+**Merges are usually silent — do not wait for a change notice to explain one.** Aonik emits
+a `line-merged` change ONLY from its drift-repair pass, when a remapped selection collides.
+A merge caused by the customer's own action — adding a dish that matches an existing line,
+or re-personalising a line onto another — returns the merged box with **no `changes[]`
+entry**. The UI SHALL therefore derive "your two lines became one" by diffing `box.lines`
+across responses, not by listening for `line-merged`.
 
 `CartPersonalisation { portion, protein, side, heatStep }` SHALL be re-encoded as the
-Spec 066 selection object keyed by the product's effective option group keys (e.g.
-`{ portion: "regular", protein: "chicken", side: "plantain", heat: "medium" }`) — group
-keys and choice keys come from `effectiveOptionGroups`, never hard-coded. Omitting the
-selection entirely means "the defaults" (`isDefaultPersonalisation: true` on the line).
+Spec 066 selection object keyed by the product's effective option group keys, sent as the
+request field **`personalisation`** (a JSON object, not a list of pairs). Group keys and
+choice keys come from `effectiveOptionGroups`, never hard-coded. Omitting the selection
+entirely means "the defaults" (`isDefaultPersonalisation: true` on the returned line).
+
+**A group's value is a bare string only when its `selectionMode` is `"One"`. A `"Multi"`
+group requires a JSON array, and Aonik rejects a bare string with rule `V5` rather than
+wrapping it** — so the encoder SHALL emit `string | string[]` driven by the product's
+effective mode, e.g. `{ portion: "regular", protein: ["chicken", "prawn"], side:
+"plantain", heat: "medium" }`. Since a product may widen a group from `One` to `Multi`
+(`SelectionModeOverride`), `CartPersonalisation`'s flat single-value shape SHALL widen to
+match, and the protein group in particular cannot be assumed single-valued — the Step 2 UI
+already offers "Choose 1 or more".
 
 #### Scenario: Growing the box charges the marginal plan price
 - **WHEN** the customer changes size 6 → 8
@@ -116,12 +138,19 @@ selection entirely means "the defaults" (`isDefaultPersonalisation: true` on the
 `capability: box-builder` · `delta: ADDED (feat/server-box-cart)`
 
 The system SHALL render all pricing from the returned quote: an **ordered component list**
-`components[{ key, amount }]` (known keys today: `boxPrice`, `personalisation` — signed,
-`unitSurcharges`, `deliveryCharged`, `addOns`) plus `deliveryList` (struck-through display
-value, not a component), `total` (Aonik guarantees Σ components), `currency`,
-`unitsSelected`, `boxSize`, `spacesLeft`, `isFull`. The summary UI iterates the component
-list generically — labels come from a key→copy map with a fallback of the raw key — so a
-future component is a rendering non-event. `cartTotals`, `boxPricePence`, `extraUnitPence`
+`components[{ key, amount }]` plus `deliveryList` (struck-through display value, not a
+component), `total` (Aonik guarantees Σ components — its source comments the invariant
+"A24 — the total IS the component sum"), `currency`, `unitsSelected`, `boxSize`,
+`spacesLeft`, `isFull`.
+
+Keys Aonik emits today, **in emission order**: `boxPrice`, `personalisation` (signed, may be
+negative), `unitSurcharges`, `addOns` (appended only when non-zero), `deliveryCharged`, and
+on a closed cart also `discount` (negated) and `tax`. Note `addOns` precedes
+`deliveryCharged`, and `discount`/`tax` appear on no other list in these specs.
+
+The summary UI SHALL iterate the array in the order given, never index by position and never
+assume a closed key set — labels come from a key→copy map with a fallback of the raw key, so
+a new component is a rendering non-event. `cartTotals`, `boxPricePence`, `extraUnitPence`
 and `extrasTotals` are deleted; nothing client-side re-derives money.
 
 #### Scenario: Total is never recomputed
@@ -134,11 +163,27 @@ and `extrasTotals` are deleted; nothing client-side re-derives money.
 
 The system SHALL render `changes[]` (`{ lineId?, group?, from?, to?, reason, priceDelta?,
 mergedIntoLineId? }`) whenever a response carries them: the catalogue moved under the cart
-and Aonik repaired it (remapped choices, dropped groups, merged lines, `unavailable` flags,
-add-on `price-changed`). Notices are dismissible per render but re-appear if the next
+and Aonik repaired it. Notices are dismissible per render but re-appear if the next
 response still reports them. A line with `isUnavailable: true` renders in a blocked state
 with the reason; **continue and checkout stay disabled while any line is unavailable** —
 resolution is the customer's action (remove or swap), never silent removal.
+
+`reason` carries **seven** values, not three — the three named by the box-cart spec plus the
+four Spec 066 selection-drift reasons passed straight through:
+
+| `reason` | Origin |
+|---|---|
+| `unavailable` | Line's variant can no longer be supplied |
+| `line-merged` | Drift repair collapsed two lines (see FR-2: customer-initiated merges are silent) |
+| `price-changed` | Add-on retail price moved since it was added |
+| `option-retired` | A chosen option no longer exists |
+| `group-removed` | An option group left the product |
+| `group-added` | A new option group appeared, defaulted |
+| `selection-mode-changed` | A group widened or tightened (`One` ↔ `Multi`) |
+
+The notice component SHALL render an unknown `reason` as a generic "your box was updated"
+message rather than dropping it — a change the customer cannot see is worse than an
+unstyled one.
 
 #### Scenario: Unavailable blocks progress
 - **WHEN** a load returns a line flagged `unavailable`
@@ -170,6 +215,16 @@ Add-ons consume no box space and never change `unitsSelected`/`spacesLeft`/`isFu
 money arrives in the quote's `addOns` component. The `Extra`/`ExtraLine` frontend types and
 `extras.ts` fixtures are retired in favour of the row shape (allergens becomes a single
 string, matching dishes — resolving the fixtures' `string[]` inconsistency).
+
+**Extras have no server-side filtering.** `GET /commerce/catalog/extras` takes no query
+parameters at all — it is a single curated collection in rank order, unlike the main
+catalogue's facet-driven browse. Step 3's existing category chips are backed today by the
+`EXTRA_CATEGORIES` fixture union, which retires with `Extra`. The chips SHALL therefore
+either (a) group client-side over the rows' `tags[]` / `attributesJson`, which the tenant
+must then author consistently — the same undocumented convention risk as dish attributes —
+or (b) be removed, leaving search over the curated list. This spec does not decide between
+them; whichever is chosen, the decision SHALL be recorded here before Step 3 is rewritten,
+because silently dropping the chips is a visible regression to a shipped feature.
 
 #### Scenario: Add-on never eats a space
 - **WHEN** a full box (`isFull: true`) adds an extra
@@ -242,16 +297,23 @@ in pence-mapped form; `dishCount` = `quote.unitsSelected`; `boxSize` = `quote.bo
       (+ cookie management, error passthrough)
 - [ ] `map.ts`: box payload mappers (BoxDto/BoxLineDto/BoxQuoteDto/BoxChangeDto → pence)
 - [ ] `CartProvider` rewrite over the handlers; delete client pricing helpers
-- [ ] Personalisation encoder: UI state ↔ 066 selection object via effective groups
-- [ ] Drift-notice component + unavailable line states + blocked continue
+- [ ] Personalisation encoder: UI state ↔ 066 selection object via effective groups,
+      emitting `string | string[]` per the group's `One`/`Multi` mode
+- [ ] Widen `CartPersonalisation` to multi-value groups (protein first)
+- [ ] Drift-notice component (all seven reasons + unknown fallback) + unavailable line
+      states + blocked continue
+- [ ] Decide and record the Step 3 category-chip outcome (tag grouping vs removal)
 - [ ] Step 3 on `/commerce/catalog/extras` + add-on line UI (shared line routes)
 - [ ] localStorage one-shot migration
 - [ ] Remove `extras.ts`, `EXTRA_FIXTURES`, `BOX_FIXTURES` pricing fields as superseded
 
 ### Testing
-- Unit: personalisation encoder round-trips; quote component rendering (unknown key falls
-  back to raw label); pence mapping of signed components; migration replay dropping
-  unresolvable lines.
+- Unit: personalisation encoder round-trips, including a `Multi` group emitting an array and
+  a `One` group emitting a bare string; quote component rendering (unknown key falls back to
+  raw label, `discount`/`tax` render on closed carts); pence mapping of signed components;
+  migration replay dropping unresolvable lines.
+- Unit: the drift-notice component renders each of the seven `reason` values and falls back
+  gracefully on an eighth.
 - Integration: route handlers against mocked Aonik (cookie set-once, token never in
   response bodies, 404 → cookie cleared); provider flows for add/split/grow/remove; Step 3
   add-on add updating only `addOns`; drift-notice rendering from a recorded 409 payload.

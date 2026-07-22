@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 /** Step 4 of the box builder: review dishes, extras and the order summary. */
 export default async function BoxReviewPage() {
-  const client = getAonikClient();
+  const client = await getAonikClient();
 
   // `heating` feeds the shared info panels inside the edit-personalisation
   // modal, exactly as on Step 2.

@@ -11,6 +11,11 @@ updated: 2026-07-22
 
 # Aonik transport & tenancy seam — the real HttpAonikClient
 
+> **Verified 2026-07-22** against Aonik specs 066–072 and the shipped implementation in
+> `Aonik.Commerce` / `Aonik.Api`. Where the two disagreed, the code won. Corrections from
+> that pass are marked in place; the biggest was the `commerce.box_drift` error envelope,
+> which does not carry a `code` field at all.
+
 ## Why
 
 `web/src/lib/aonik/client.ts` was written before the Aonik commerce API existed. Its
@@ -55,8 +60,10 @@ treat the tenant id as server-only configuration (a non-`NEXT_PUBLIC_` variable)
 `AONIK_API_URL`.
 
 Aonik partitions all storefront data by tenant and varies its shared-cache responses on this
-header (`Vary: X-Tenant-Id`). A request without it resolves no tenant and returns errors or
-empty data.
+header (`Vary: X-Tenant-Id`). Commerce's `TenantContextMiddleware` falls back to host/
+subdomain resolution when the header is absent, so a missing header is not always a hard
+400 — but relying on that fallback would couple us to how the API is hosted. We always send
+the header explicitly.
 
 #### Scenario: Catalog read carries the tenant
 - **WHEN** `getDishes()` runs with `AONIK_API_URL` and `AONIK_TENANT_ID` configured
@@ -78,6 +85,13 @@ e.g. `95.0` meaning £95.00) into integer pence at the transport seam using
 `Math.round(amount * 100)`, and SHALL convert pence back to decimal major units
 (`pence / 100`) on any amount it sends. Components continue to see pence only.
 
+Aonik serves decimals **today**, but this is explicitly provisional: Spec 066 §19 O1 records
+"whether public Commerce DTOs serve minor units globally" as an open decision, with the
+current position being "DTOs serve decimals and the frontend's client class converts". This
+adapter is exactly the seam that absorbs that decision if it flips — which is why it exists
+as one function pair rather than scattered arithmetic. If Aonik switches to minor units,
+`toPence`/`toMajor` become identities and nothing above them changes.
+
 #### Scenario: Box plan prices arrive in pence
 - **WHEN** Aonik serves a box preset priced `95.0` in `GBP`
 - **THEN** the mapped `BoxOffer.pricePence` is `9500`
@@ -91,21 +105,36 @@ e.g. `95.0` meaning £95.00) into integer pence at the transport seam using
 `capability: aonik-transport` · `delta: ADDED (feat/aonik-transport)`
 
 The system SHALL map non-2xx Aonik responses into a typed `AonikError` carrying `status`,
-`code` (when the body names one), `detail`, and — for `409` box-drift responses — the
-refreshed box payload that rides the error body. Known codes the storefront must branch on:
+`code` (when the body names one), `rule` (when present), `detail`, and — for `409`
+box-drift responses — the refreshed box payload that rides the error body. Known codes the
+storefront must branch on:
 
 | Code | Meaning | Storefront reaction |
 |---|---|---|
-| `commerce.option_validation` | A personalisation selection violates the product's option rules (Aonik Spec 066 V-rules) | Inline validation message on the personaliser |
-| `commerce.storefront_validation` | A cart/box rule was violated (capacity, availability, size bounds, add-on rules) | Inline message; refresh the box state |
+| `commerce.option_validation` | A personalisation selection violates the product's option rules (Aonik Spec 066 V-rules). HTTP 400. The body carries a `rule` field (`V1`–`V12`) naming the exact violation | Inline validation message on the personaliser, keyed on `rule` |
+| `commerce.storefront_validation` | A cart/box rule was violated (capacity, availability, size bounds, adoption of a checked-out cart). HTTP 400 | Inline message; refresh the box state |
 | `commerce.box_drift` (HTTP 409) | The catalogue changed under the cart at continue/checkout; the response carries the repaired box + `changes[]` | Re-render the box from the payload and show the change notices (see `server-box-cart`) |
 | plain `404` | Unknown OR unauthorized — deliberately indistinguishable (fail-closed access) | Generic not-found handling; never "wrong token" copy |
 | `401` / `403` | Missing/expired customer session on an authenticated route | Send to sign-in (see `customer-identity`) |
 
+**The drift response uses a different envelope from every other error, and the parser MUST
+handle both.** Aonik's `ExceptionHandlerConfiguration` writes validation errors as
+`{ error: <message>, code: <code> }` but writes drift as
+`{ error: "commerce.box_drift", message: <text>, box, quote, changes }` — for drift, `error`
+holds the *code* and there is **no `code` field at all**. A parser that only reads `code`
+will silently fail to recognise the one error the entire checkout flow depends on
+detecting. `AonikError.code` SHALL therefore resolve from `body.code ?? body.error`.
+
 #### Scenario: Drift 409 exposes the refreshed box
-- **WHEN** checkout returns HTTP 409 with code `commerce.box_drift` and a refreshed box body
-- **THEN** the thrown `AonikError` has `status === 409`, `code === 'commerce.box_drift'`
+- **WHEN** checkout returns HTTP 409 whose body is
+  `{ error: 'commerce.box_drift', message, box, quote, changes }` with no `code` field
+- **THEN** the thrown `AonikError` has `status === 409` and `code === 'commerce.box_drift'`
 - **AND** `error.box` contains the parsed refreshed box + quote + changes
+
+#### Scenario: Validation errors keep their rule id
+- **WHEN** a selection violates a Spec 066 rule and Aonik returns
+  `{ error: <message>, code: 'commerce.option_validation', rule: 'V5' }`
+- **THEN** the thrown `AonikError` exposes `rule === 'V5'` for the personaliser to branch on
 
 #### Scenario: 404 is opaque
 - **WHEN** any cart route returns 404
@@ -120,9 +149,11 @@ and expose it as the single source of: `currency` (canonical tenant currency),
 `recommendedChoiceLabel` (the "Abby's choice" label text), `resultsPageSize`,
 `backToTopTrigger` (verbatim JSON), `delivery.listAmount` / `delivery.chargedAmount`
 (display amounts: struck-through list vs charged-now; 0 renders as free), `defaultBoxSlug`
-(which bundle product the box builder uses), `extrasCollectionSlug`, and `box` (the default
-bundle's embedded size plan: `minSize`, `maxSize`, `currency`, `perSpacePrice?`,
-`presets[{size, price, badge?, blurb?, saving?}]`, or null when unset).
+(which bundle product the box builder uses), `extrasCollectionSlug` (introduced by Spec 071,
+served on this 070 document), and `box` (the default bundle's embedded size plan: `minSize`,
+`maxSize`, `currency`, `perSpacePrice?`, `presets[{size, price, badge?, blurb?, saving?}]`,
+or null when unset — note the preset field here is `saving`, whereas the full box-plan read
+names it `savingAmount`).
 
 Hard-coded storefront copies of any of these values SHALL be removed as pages adopt the
 document (per the sibling specs).

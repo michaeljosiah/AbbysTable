@@ -11,6 +11,12 @@ updated: 2026-07-22
 
 # Accounts — register, sign in, adopt the box, my orders
 
+> **Verified 2026-07-22** against Aonik spec 072, ADR-007 and the shipped `Aonik.Commerce`
+> implementation. Where the two disagreed, the code won. Corrections: there is no `Z4` error
+> code (that is a documentation rule label — the wire code is
+> `commerce.storefront_validation`), and the IdP is operator-level, not tenant-level, which
+> changes who can enable Google sign-in and how.
+
 ## Why
 
 The login and registration pages are deliberate stubs: they validate locally and then say
@@ -54,10 +60,22 @@ inline without inventing detail; a `password grant disabled` configuration respo
 the "accounts unavailable" state (the current notice, now truthful) rather than a form
 error.
 
-The Google button STAYS disabled with its existing notice. Social sign-in is federation at
-the tenant's identity provider (Aonik ADR-007 — Keycloak owns upstream IdPs); it becomes a
-redirect flow in a future spec once the tenant configures it, and no password-grant
-plumbing built here forecloses that.
+The Google button KEEPS its current behaviour — a live button that opens the "accounts
+unavailable" notice rather than a `disabled` control — and gains no backend here.
+
+Its eventual path is **not** an Aonik endpoint and **not** a future Aonik spec. Spec 072
+places it permanently outside Aonik's surface: "The storefront's Google button rides the
+IdP's own federation (Keycloak brokering per ADR-007) via an authorization-code flow the
+FRONTEND drives; the resulting JWT validates unchanged. No Aonik surface; noted so nobody
+builds one." So the work, when it happens, is ours: an OIDC authorization-code flow against
+the deployment's Keycloak, exchanging for the same session this spec establishes.
+
+One correction to how this was previously framed: the IdP is **operator-level, not
+tenant-level**. ADR-007 guarantee 1 is explicit — "Operator-choice, not tenant-choice.
+`Auth.Provider` stays platform-level. A tenant inside a deployment cannot pick a different
+IdP than its host's. Per-tenant federated IdP is intentionally deferred." AbbysTable
+therefore cannot enable Google by configuring its own tenant; it depends on the deployment's
+Keycloak having Google brokering configured.
 
 The reset-password page is deferred (the platform endpoint exists; the page does not) —
 tracked as a follow-up task, not a scenario.
@@ -103,8 +121,11 @@ is to route the outcomes):
   cart calls authorize via the session bearer alone.
 - **404** → the cart was unknown, expired, or already someone else's; clear the cart cookie
   silently (fail-closed is indistinguishable by design — no copy speculates).
-- **Z4 validation error** (cart already checked out) → skip silently; the box already
-  became an order and lives in order history.
+- **`commerce.storefront_validation` (HTTP 400)** → the cart is no longer Open, i.e. it
+  already became an order; skip silently and let order history carry it. The endpoint raises
+  `StorefrontValidationException`, which maps to that code. (Spec 072's rule labels `Z1`–`Z6`
+  are *documentation* identifiers, not wire codes — nothing on the response names a `Z4`, so
+  no branch may match on one.)
 
 Adoption is idempotent for the owning party, so a double-fired sign-in flow is harmless.
 After adoption, a signed-in customer's cart calls succeed with no token — and a cart
@@ -127,8 +148,9 @@ principal), so adoption is only ever needed for carts that predate the session.
 
 The system SHALL add `/account/orders` reading
 `GET /commerce/storefront/orders?page={n}&pageSize={m}` (authenticated; paged envelope
-`{ items, totalCount, page, pageSize }`, newest first, default page size 20, cap 100) with
-rows `{ orderId, placedAtUtc, status, currency, total, boxSize? }`, and
+`{ items, totalCount, page, pageSize }`, newest first, default page size 20, clamped to
+1–100 server-side) with rows `{ orderId, placedAtUtc, status, currency, total, boxSize? }`,
+and
 `/account/orders/[orderId]` reading `GET /commerce/storefront/orders/{orderId}`:
 `{ orderId, placedAtUtc, status, currency, subtotal, discountTotal, taxTotal, total,
 boxSize?, items[{ itemType, quantity?, unitPrice?, amountIn, sku? }],
@@ -182,10 +204,26 @@ Header: session-aware (Sign in ↔ account menu)
 
 ### Operator data / deployment prerequisites
 
-- The tenant's IdP must have the password grant enabled for `/auth/token` to serve
-  storefront logins (deployment configuration, not code).
+- The deployment's Keycloak must have the password grant (direct access grant) enabled for
+  `/auth/token` to serve storefront logins. ADR-007 notes it is "off by default in
+  Keycloak", so this is an explicit deployment step, not code. Until it is enabled, the
+  pages render the accounts-unavailable state — which is what they already show today.
+- Google federation, if wanted, is brokered in that same Keycloak — an operator action, not
+  a tenant setting (ADR-007 guarantee 1).
 - `AONIK_TENANT_ID` (from `aonik-transport`) scopes registration and login to the
   AbbysTable tenant.
+
+### Source provenance
+
+Spec 072 documents the orders endpoints only in prose ("party-scoped summaries… detail incl.
+items and the box's selection rows") and names no field contract. The DTO shapes above were
+taken from the shipped implementation —
+`src/Aonik.Commerce/Services/Checkout/StorefrontOrderService.cs`
+(`StorefrontOrderSummaryDto`, `StorefrontOrderDetailDto`, `StorefrontOrderItemDto`,
+`StorefrontOrderSelectionDto`) — and the paging defaults from
+`StorefrontOrderEndpoints.cs` (`?? 20`) and `ListMyOrdersAsync` (`Math.Clamp(pageSize, 1,
+100)`). They are therefore accurate against code but **not contract-guaranteed by a spec**;
+if Aonik reshapes them without a spec change, this is where it will break first.
 
 ---
 

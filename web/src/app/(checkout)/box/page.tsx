@@ -25,7 +25,7 @@ export const metadata: Metadata = {
  * left column, where the template puts it, level with the summary card.
  */
 export default async function ChooseBoxPage() {
-  const client = getAonikClient();
+  const client = await getAonikClient();
 
   const [pricing, delivery] = await Promise.all([
     client.getBoxPricing(),

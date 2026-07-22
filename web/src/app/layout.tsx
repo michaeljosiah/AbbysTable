@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Cormorant_Garamond, Figtree, Playfair_Display } from 'next/font/google';
 
+import { DevDataMode } from '@/components/dev/DevDataMode';
 import { CartProvider } from '@/lib/cart/CartProvider';
 
 import '@/styles/tokens.css';
@@ -54,6 +55,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en-GB" className={`${playfair.variable} ${cormorant.variable} ${figtree.variable}`}>
       <body>
         <CartProvider>{children}</CartProvider>
+        {/* Renders nothing in production. */}
+        <DevDataMode />
       </body>
     </html>
   );

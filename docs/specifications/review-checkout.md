@@ -11,6 +11,11 @@ updated: 2026-07-22
 
 # Review, delivery promise & checkout
 
+> **Verified 2026-07-22** against Aonik specs 068/069 and the shipped `Aonik.Commerce`
+> implementation. Where the two disagreed, the code won. Correction: the checkout request
+> body is `{ provider, paymentMethodType, … }`, not `{ paymentProvider, paymentMethod }` —
+> both field names in the first draft were wrong. The A18 stop is confirmed verbatim in 068.
+
 ## Why
 
 `/box/review` today renders client-computed totals and ends the journey — there is no
@@ -50,7 +55,14 @@ never invents one. Responses cache with `revalidate: 300`; the 404 is not cached
 
 The date formats in the promise's own timezone semantics (it is a calendar date, not an
 instant): render `earliestDeliveryDate` verbatim as a local date — never `new Date(...)`
-through the viewer's timezone, which can shift it a day.
+through the viewer's timezone, which can shift it a day. Spec 069 states the value "is a
+date, not a timestamp" and that the weekday label is always derived from it rather than
+separately configured; the string-parsing rule is this storefront's implementation of that,
+not an Aonik requirement.
+
+The `revalidate: 300` figure and the "do not cache the 404" rule are likewise **our**
+decisions: Spec 069 says only that the response "is cacheable for minutes — the value only
+moves at cutoff or midnight" and names no TTL.
 
 #### Scenario: No calendar, no date
 - **WHEN** Aonik returns 404 for the delivery config
@@ -81,12 +93,19 @@ action until resolved.
 ### Requirement: Checkout and the drift stop
 `capability: checkout` · `delta: ADDED (feat/review-checkout)`
 
-The system SHALL place the order with `POST /commerce/carts/{cartId}/checkout`
-`{ paymentProvider, paymentMethod }` on the review page's confirm action. Outcomes:
+The system SHALL place the order with `POST /commerce/carts/{cartId}/checkout` on the review
+page's confirm action. The request body is
+`{ provider, paymentMethodType, returnUrl?, cancelUrl?, customerAccountId?, discountCode? }`
+— note the two required fields are `provider` and `paymentMethodType`, NOT
+`paymentProvider`/`paymentMethod`. Outcomes:
 
-1. **Success** → response carries the order identifiers (`orderId`, payment references).
-   Store `orderId` in the confirmation's server context, clear the cart cookie, navigate to
-   `/box/confirmation`.
+1. **Success** → the response is `CheckoutResult`:
+   `{ orderId, invoiceId?, paymentIntentId, paymentStatus, subtotal, discountTotal,
+   taxTotal, total, currency, clientSecret?, checkoutUrl? }`. Store `orderId` in the
+   confirmation's server context, clear the cart cookie, navigate to `/box/confirmation`.
+   `clientSecret` (embedded PSP) and `checkoutUrl` (redirect PSP) are the payment handoff —
+   this iteration ignores them, and the fact that they already exist on the wire is what
+   makes the deferred PSP journey a pure addition rather than a reshaping.
 2. **409 `commerce.box_drift`** → the error body carries the refreshed box. Re-render
    review from it with change notices — nothing was reserved or created; the customer
    confirms again on the refreshed truth. This is Aonik's A18 stop: ANY customer-visible
@@ -96,10 +115,18 @@ The system SHALL place the order with `POST /commerce/carts/{cartId}/checkout`
    message inline; the blocked-line UI shows the specifics.
 
 Payment in this iteration is intentionally thin: the storefront sends the configured
-provider/method labels and treats a created order as success (Aonik materialises the
-`PaymentIntent` and invoice; capture is an operator flow). A PSP redirect/capture journey is
-a future spec — nothing here forecloses it, because the checkout response already carries
-the payment references it would need.
+`provider`/`paymentMethodType` labels and treats a created order as success (Aonik
+materialises the `PaymentIntent` and invoice; capture is an operator flow). A PSP
+redirect/capture journey is a future spec — nothing here forecloses it, because the checkout
+response already carries the `paymentIntentId`, `clientSecret` and `checkoutUrl` it would
+need.
+
+The A18 stop is verified in Aonik Spec 068's invariants: "An option is retired, then a stale
+client posts checkout directly (no intervening GET) → checkout aborts 409 with the refreshed
+box + `changes[]`; nothing is reserved, no order or payment exists; resubmission against the
+refreshed state succeeds." Note the trigger is **any** drift change, including an add-on
+`price-changed` — not only structural drift. Aonik persists the repair before throwing, so
+the resubmit is against saved state.
 
 #### Scenario: Drift stops exactly the changed checkout
 - **WHEN** a dish's availability collapses between review render and confirm
