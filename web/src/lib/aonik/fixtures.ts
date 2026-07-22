@@ -28,6 +28,7 @@ import type {
   Dish,
   HeatingInstruction,
   PersonalisationOptions,
+  StorefrontConfig,
 } from './types';
 
 export const DISH_FIXTURES: Dish[] = [
@@ -303,6 +304,40 @@ export const PERSONALISATION_FIXTURE: PersonalisationOptions = {
     { label: 'Medium', step: 2 },
     { label: 'High', step: 3 },
   ],
+};
+
+/**
+ * Stands in for `GET /commerce/config/storefront`.
+ *
+ * Values mirror what the design templates already hard-code, so demo mode and
+ * a correctly-authored tenant render identically: "Abby's choice" as the
+ * recommended label, delivery shown as £10 struck through to free, and the
+ * three preset box sizes.
+ *
+ * Note the box plan carries no list price — matching Aonik, where only presets
+ * may author a `saving` and custom sizes have no anchor at all.
+ */
+export const STOREFRONT_CONFIG_FIXTURE: StorefrontConfig = {
+  currency: 'GBP',
+  recommendedChoiceLabel: "Abby's choice",
+  resultsPageSize: 8,
+  backToTopTrigger: { type: 'cardIndex', value: 10 },
+  delivery: { listPence: 1000, chargedPence: 0 },
+  defaultBoxSlug: 'abbys-box',
+  extrasCollectionSlug: 'extras',
+  box: {
+    minSize: 6,
+    maxSize: 30,
+    currency: 'GBP',
+    perSpacePence: 1700,
+    presets: BOX_FIXTURES.map((offer) => ({
+      size: offer.dishCount,
+      pricePence: offer.pricePence,
+      badge: offer.badge,
+      blurb: offer.blurb,
+      savingPence: offer.savingPence,
+    })),
+  },
 };
 
 /** Generic reheating guidance — identical across dishes in the template. */

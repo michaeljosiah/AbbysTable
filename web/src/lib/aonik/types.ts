@@ -216,6 +216,52 @@ export interface DeliveryWindow {
   earliestDeliveryDate: string;
 }
 
+/* ---- Storefront config ----------------------------------------------------
+   Aonik's `GET /commerce/config/storefront`: the tenant-authored settings the
+   storefront must not hard-code. Money arrives in pence like everything else.
+   The endpoint never 404s — an unconfigured tenant gets a defaults document. */
+
+/** One authored size point in the box plan. */
+export interface StorefrontBoxPreset {
+  size: number;
+  pricePence: number;
+  badge?: string;
+  blurb?: string;
+  /**
+   * Authored display saving — never computed. Only presets can carry one:
+   * there is no list price for a custom size anywhere in the plan.
+   */
+  savingPence?: number;
+}
+
+/** The default box bundle's embedded size plan, or absent when unset. */
+export interface StorefrontBoxPlan {
+  minSize: number;
+  maxSize: number;
+  /** The plan's OWN currency, which may differ from the document's. */
+  currency: string;
+  /** Marginal price per space; absent means "presets only". */
+  perSpacePence?: number;
+  presets: StorefrontBoxPreset[];
+}
+
+export interface StorefrontConfig {
+  /** Canonical tenant currency. */
+  currency: string;
+  /** Label for the recommended choice — today "Abby's choice". */
+  recommendedChoiceLabel: string;
+  resultsPageSize: number;
+  /** Storefront-defined JSON, served and stored verbatim. */
+  backToTopTrigger: unknown;
+  /** Display amounts: struck-through list vs charged now. 0 renders as free. */
+  delivery: { listPence: number; chargedPence: number };
+  /** Which bundle product the box builder uses. */
+  defaultBoxSlug?: string;
+  /** The collection whose members are the Step 3 extras rail. */
+  extrasCollectionSlug?: string;
+  box?: StorefrontBoxPlan;
+}
+
 /* ---- Extras (Step 3) ------------------------------------------------------ */
 
 export const EXTRA_CATEGORIES = ['Small chops', 'Sides', 'Snacks', 'Drinks', 'Sauces'] as const;

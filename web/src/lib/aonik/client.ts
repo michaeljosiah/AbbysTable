@@ -20,7 +20,10 @@ import {
   DISH_FIXTURES,
   HEATING_FIXTURE,
   PERSONALISATION_FIXTURE,
+  STOREFRONT_CONFIG_FIXTURE,
 } from './fixtures';
+import { aonikFetch } from './http';
+import { mapStorefrontConfig, type StorefrontConfigDto } from './map';
 import type {
   BoxOffer,
   BoxPricing,
@@ -30,6 +33,7 @@ import type {
   HeatingInstruction,
   HomepageData,
   PersonalisationOptions,
+  StorefrontConfig,
 } from './types';
 
 export interface AonikClient {
@@ -48,6 +52,11 @@ export interface AonikClient {
   getHeatingInstructions(): Promise<HeatingInstruction[]>;
   /** À-la-carte extras sold alongside the box (Step 3). */
   getExtras(): Promise<Extra[]>;
+  /**
+   * Tenant-authored storefront settings: currency, labels, page size, delivery
+   * display amounts, the default box slug and its size plan. Never 404s.
+   */
+  getStorefrontConfig(): Promise<StorefrontConfig>;
 }
 
 /** Serves the design-template fixtures. Used until Aonik is reachable. */
@@ -87,6 +96,10 @@ export class MockAonikClient implements AonikClient {
   async getExtras(): Promise<Extra[]> {
     return EXTRA_FIXTURES;
   }
+
+  async getStorefrontConfig(): Promise<StorefrontConfig> {
+    return STOREFRONT_CONFIG_FIXTURE;
+  }
 }
 
 export interface HttpAonikClientOptions {
@@ -100,76 +113,82 @@ export interface HttpAonikClientOptions {
 /**
  * Talks to the real Aonik commerce API.
  *
- * TRANSPORT IS HALF-BUILT. The request plumbing below is correct — base URL
- * join, `X-Tenant-Id` on every call, anonymous catalog reads, cache policy. The
- * PATHS are still the pre-Aonik guesses (`/dishes`, `/box-pricing`, …) and do
- * not exist on the real API, which serves everything under `/commerce/…`.
- * Replacing them, plus the DTO mapping and the pence adapter, is
- * SPEC-2026-07-22-aonik-transport. Until that lands, live mode reaches Aonik and
- * gets 404s — which is the point of having the seam wired and the mode
- * switchable before the mapping exists.
+ * Transport is complete: `aonikFetch` owns URL joining, the tenant header,
+ * cache policy and the `AonikError` taxonomy, and `map.ts` owns the pence
+ * adapter and DTO mapping.
+ *
+ * CATALOGUE MAPPING IS NOT. The reads below that still throw are waiting on
+ * SPEC-2026-07-22-catalog-browse, which maps Aonik's product/facet/content DTOs
+ * onto `Dish` and friends — a substantial surface with its own safety rules
+ * (withheld allergens, standard-preparation captions) that must not be
+ * half-done. They throw rather than returning fixtures because silently serving
+ * demo data from a client labelled "live" is the one failure mode that would
+ * make every downstream test a lie.
  */
 export class HttpAonikClient implements AonikClient {
   constructor(private readonly options: HttpAonikClientOptions) {}
 
-  private async get<T>(path: string): Promise<T> {
-    const { baseUrl, tenantId, revalidateSeconds = 300 } = this.options;
-    const response = await fetch(`${baseUrl}${path}`, {
-      headers: {
-        // Catalog reads are anonymous — Aonik's storefront surface takes no
-        // service credential. Customer-authenticated calls will carry a session
-        // bearer instead (see SPEC-2026-07-22-customer-identity).
-        'X-Tenant-Id': tenantId,
-        Accept: 'application/json',
-      },
-      next: { revalidate: revalidateSeconds },
+  private get<T>(path: string, query?: Record<string, string | number | undefined>): Promise<T> {
+    return aonikFetch<T>(path, {
+      baseUrl: this.options.baseUrl,
+      tenantId: this.options.tenantId,
+      policy: 'catalog',
+      query,
     });
+  }
 
-    if (!response.ok) {
-      throw new Error(`Aonik ${path} failed: ${response.status} ${response.statusText}`);
-    }
+  /** Not yet mapped — see the class note. */
+  private notYetMapped(surface: string): never {
+    throw new Error(
+      `Live mode cannot serve ${surface} yet: the catalogue mapping is ` +
+        'SPEC-2026-07-22-catalog-browse. Switch the dev data-mode badge to demo, or ' +
+        'implement the mapper.',
+    );
+  }
 
-    return (await response.json()) as T;
+  async getStorefrontConfig(): Promise<StorefrontConfig> {
+    return mapStorefrontConfig(
+      await this.get<StorefrontConfigDto>('/commerce/config/storefront'),
+    );
   }
 
   getDishes(): Promise<Dish[]> {
-    return this.get<Dish[]>('/dishes');
+    return this.notYetMapped('the dish catalogue');
   }
 
   getFeaturedDishes(): Promise<Dish[]> {
-    return this.get<Dish[]>('/dishes?featured=true');
+    return this.notYetMapped('the featured rail');
   }
 
-  async getDishBySlug(slug: string): Promise<Dish | null> {
-    try {
-      return await this.get<Dish>(`/dishes/${encodeURIComponent(slug)}`);
-    } catch {
-      return null;
-    }
+  getDishBySlug(): Promise<Dish | null> {
+    return this.notYetMapped('a dish page');
   }
 
   getPersonalisationOptions(): Promise<PersonalisationOptions> {
-    return this.get<PersonalisationOptions>('/personalisation-options');
+    // Retired by catalog-browse: option groups are per-product, not global.
+    return this.notYetMapped('personalisation options');
   }
 
   getHeatingInstructions(): Promise<HeatingInstruction[]> {
-    return this.get<HeatingInstruction[]>('/heating-instructions');
+    // Retired by catalog-browse: heating rides each dish's resolved content.
+    return this.notYetMapped('heating instructions');
   }
 
   getBoxOffers(): Promise<BoxOffer[]> {
-    return this.get<BoxOffer[]>('/boxes');
+    return this.notYetMapped('box offers');
   }
 
   getBoxPricing(): Promise<BoxPricing> {
-    return this.get<BoxPricing>('/box-pricing');
+    return this.notYetMapped('box pricing');
   }
 
   getDeliveryWindow(): Promise<DeliveryWindow> {
-    return this.get<DeliveryWindow>('/delivery-window');
+    // Lands with review-checkout, including the 404 "no promise" state.
+    return this.notYetMapped('the delivery promise');
   }
 
   getExtras(): Promise<Extra[]> {
-    return this.get<Extra[]>('/extras');
+    return this.notYetMapped('extras');
   }
 }
 
