@@ -195,6 +195,11 @@ export interface DishContentState {
   figuresAreStale: boolean;
   /** Reheating guidance was withheld; show the framed generic fallback. */
   heatingWithheld: boolean;
+  /**
+   * Authored reheating steps from this same resolution. Empty when withheld or
+   * unauthored — carried here so the dish page needs no second round trip.
+   */
+  heating: HeatingInstruction[];
   /** Pass back verbatim as `v` when re-resolving for a selection. */
   contentVersion: number;
 }
@@ -218,8 +223,6 @@ export interface CustomBoxPricing {
   maxDishes: number;
   /** What the customer pays per dish. */
   perDishPence: number;
-  /** Struck-through list price per dish, for showing the saving. */
-  listPerDishPence: number;
 }
 
 /** Delivery charge line: struck-through list price and what is charged now. */

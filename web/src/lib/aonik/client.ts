@@ -22,6 +22,7 @@ import type {
 } from './dto';
 import { AonikError } from './errors';
 import { EXTRA_FIXTURES } from './extras';
+import { FACET_FIXTURES, fixtureMatchesFacet, fixtureOptionGroups } from './fixtureFacets';
 import {
   BOX_FIXTURES,
   BOX_PRICING_FIXTURE,
@@ -36,10 +37,12 @@ import {
   mapBoxPlan,
   mapFacetGroups,
   mapProductToDish,
+  mapOptionGroups,
   mapStorefrontConfig,
   mapSummaryToDish,
   type MappedBoxPlan,
   type MappedFacetGroup,
+  type MappedOptionGroup,
   type StorefrontConfigDto,
 } from './map';
 import type {
@@ -75,6 +78,28 @@ export interface AonikClient {
    * display amounts, the default box slug and its size plan. Never 404s.
    */
   getStorefrontConfig(): Promise<StorefrontConfig>;
+  /**
+   * The tenant's filter rail. Demo serves the fixture facets; live reads them
+   * from Aonik so a group can be added or retired with no deploy.
+   */
+  getFacetGroups(): Promise<MappedFacetGroup[]>;
+  /**
+   * Browse with server-side facet filtering. Demo filters the fixtures locally
+   * so both modes behave identically from the caller's point of view.
+   */
+  listProducts(options?: ProductBrowseOptions): Promise<ProductPage>;
+  /**
+   * A dish's own personalisation groups. Empty means "not personalisable" —
+   * hide the panel entirely rather than rendering an empty one.
+   */
+  getDishOptionGroups(slug: string): Promise<MappedOptionGroup[]>;
+}
+
+export interface ProductPage {
+  dishes: Dish[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
 }
 
 /** Serves the design-template fixtures. Used until Aonik is reachable. */
@@ -117,6 +142,53 @@ export class MockAonikClient implements AonikClient {
 
   async getStorefrontConfig(): Promise<StorefrontConfig> {
     return STOREFRONT_CONFIG_FIXTURE;
+  }
+
+  async getFacetGroups(): Promise<MappedFacetGroup[]> {
+    return FACET_FIXTURES;
+  }
+
+  /**
+   * Mirrors Aonik's browse semantics locally: OR within a facet group, AND
+   * across groups. Keeping the contract identical in both modes is what lets
+   * the menu drop its client-side filtering entirely.
+   */
+  async listProducts(options: ProductBrowseOptions = {}): Promise<ProductPage> {
+    const facets = options.facets ?? {};
+    let dishes = DISH_FIXTURES;
+
+    if (options.collection === FEATURED_COLLECTION_SLUG) {
+      dishes = dishes.filter((dish) => dish.isFeatured);
+    }
+
+    const needle = options.search?.trim().toLowerCase();
+    if (needle) {
+      dishes = dishes.filter((dish) =>
+        `${dish.title} ${dish.description} ${dish.tags.join(' ')}`.toLowerCase().includes(needle),
+      );
+    }
+
+    for (const [key, values] of Object.entries(facets)) {
+      if (values.length === 0) continue;
+      dishes = dishes.filter((dish) => values.some((value) => fixtureMatchesFacet(dish, key, value)));
+    }
+
+    const pageSize = options.pageSize ?? STOREFRONT_CONFIG_FIXTURE.resultsPageSize;
+    const page = options.page ?? 1;
+    const start = (page - 1) * pageSize;
+
+    return {
+      dishes: dishes.slice(start, start + pageSize),
+      totalCount: dishes.length,
+      page,
+      pageSize,
+    };
+  }
+
+  async getDishOptionGroups(slug: string): Promise<MappedOptionGroup[]> {
+    const dish = DISH_FIXTURES.find((candidate) => candidate.slug === slug);
+    if (!dish) return [];
+    return fixtureOptionGroups(dish);
   }
 }
 
@@ -187,12 +259,7 @@ export class HttpAonikClient implements AonikClient {
   }
 
   /** The browse read, with optional facet/collection/sort/paging parameters. */
-  async listProducts(options: ProductBrowseOptions = {}): Promise<{
-    dishes: Dish[];
-    totalCount: number;
-    page: number;
-    pageSize: number;
-  }> {
+  async listProducts(options: ProductBrowseOptions = {}): Promise<ProductPage> {
     const query: Record<string, string | number | undefined> = {
       page: options.page,
       pageSize: options.pageSize,
@@ -254,6 +321,18 @@ export class HttpAonikClient implements AonikClient {
     return mapFacetGroups(await this.get<FacetGroupDto[]>('/commerce/catalog/facets'));
   }
 
+  async getDishOptionGroups(slug: string): Promise<MappedOptionGroup[]> {
+    try {
+      const product = await this.get<ProductDto>(
+        `/commerce/catalog/products/${encodeURIComponent(slug)}`,
+      );
+      return mapOptionGroups(product.effectiveOptionGroups);
+    } catch (error) {
+      if (error instanceof AonikError && error.isNotFound) return [];
+      throw error;
+    }
+  }
+
   /** The default box bundle's full size plan, keyed on product slug. */
   async getBoxPlan(slug: string): Promise<MappedBoxPlan> {
     return mapBoxPlan(
@@ -282,12 +361,50 @@ export class HttpAonikClient implements AonikClient {
     );
   }
 
-  getBoxOffers(): Promise<BoxOffer[]> {
-    return this.notYetMapped('box offers', 'SPEC-2026-07-22-catalog-browse FR-6');
+  /**
+   * Step 1's pricing, from the default bundle's size plan.
+   *
+   * The plan is named by the storefront config's `defaultBoxSlug`, so which
+   * bundle the box builder uses is tenant configuration rather than a constant
+   * here. Note what the plan cannot provide: a list price for a custom size —
+   * `savingAmount` is authored per preset only, so the strikethrough at
+   * arbitrary sizes is gone rather than computed (FR-6).
+   */
+  private async resolveBoxPricing(): Promise<BoxPricing> {
+    const config = await this.getStorefrontConfig();
+    if (!config.defaultBoxSlug) {
+      throw new Error(
+        'No defaultBoxSlug in the storefront config — the tenant has not named a box bundle, ' +
+          'so Step 1 has nothing to price.',
+      );
+    }
+
+    const plan = await this.getBoxPlan(config.defaultBoxSlug);
+
+    return {
+      presets: plan.offers,
+      custom: {
+        minDishes: plan.minSize,
+        maxDishes: plan.maxSize,
+        perDishPence: plan.perSpacePence,
+      },
+      // Superseded by the plan: growing a box charges the marginal plan price
+      // server-side, not a flat per-extra-dish figure (see server-box-cart).
+      extraDishPence: plan.perSpacePence,
+      delivery: {
+        listPence: config.delivery.listPence,
+        pricePence: config.delivery.chargedPence,
+      },
+    };
+  }
+
+  async getBoxOffers(): Promise<BoxOffer[]> {
+    const { presets } = await this.resolveBoxPricing();
+    return presets;
   }
 
   getBoxPricing(): Promise<BoxPricing> {
-    return this.notYetMapped('box pricing', 'SPEC-2026-07-22-catalog-browse FR-6');
+    return this.resolveBoxPricing();
   }
 
   getDeliveryWindow(): Promise<DeliveryWindow> {
@@ -324,7 +441,12 @@ export async function getAonikClient(): Promise<AonikClient> {
   return new HttpAonikClient(config);
 }
 
-/** Resolves everything the homepage renders in one concurrent pass. */
+/**
+ * Resolves everything the homepage renders in one concurrent pass.
+ *
+ * The rail is the `featured` COLLECTION in curated rank order — membership is
+ * the tenant's editorial decision, not a flag this storefront derives.
+ */
 export async function getHomepageData(): Promise<HomepageData> {
   const client = await getAonikClient();
 
@@ -341,22 +463,64 @@ export async function getHomepageData(): Promise<HomepageData> {
 const RELATED_COUNT = 4;
 
 /**
+ * Per-product option groups → the shape the audited personaliser renders.
+ *
+ * The source of truth is now per-product (`effectiveOptionGroups`), which is
+ * what SPEC-2026-07-22-catalog-browse asks for; this adapter keeps the
+ * template-verified components unchanged while that source changes underneath.
+ *
+ * KNOWN LIMITATION: `PersonalisationOptions` has no way to express a group's
+ * `One`/`Multi` mode, so a widened protein group still renders single-select
+ * here. Encoding a multi-select selection is SPEC-2026-07-22-server-box-cart's
+ * job (it owns `CartPersonalisation` and the cart write); this adapter is
+ * deliberately not the place to half-solve it.
+ */
+function adaptOptionGroups(groups: MappedOptionGroup[]): PersonalisationOptions {
+  const find = (...keys: string[]) =>
+    groups.find((group) => keys.includes(group.key))?.choices ?? [];
+
+  const heatGroup = groups.find((group) => group.key === 'heat');
+
+  return {
+    portions: find('portion', 'portions'),
+    proteins: find('protein', 'proteins'),
+    sides: find('side', 'sides'),
+    heatLevels:
+      heatGroup?.choices.map((choice) => ({
+        label: choice.label,
+        step: Number.parseInt(choice.key, 10) || 0,
+      })) ?? [],
+  };
+}
+
+/**
  * Resolves a dish page. Returns null when the slug does not exist so the route
  * can render a 404 rather than an empty shell.
  */
 export async function getDishPageData(slug: string) {
   const client = await getAonikClient();
 
-  const [dish, allDishes, boxes, delivery, personalisation, heating] = await Promise.all([
+  const [dish, allDishes, boxes, delivery, optionGroups, genericHeating] = await Promise.all([
     client.getDishBySlug(slug),
     client.getDishes(),
     client.getBoxOffers(),
     client.getDeliveryWindow(),
-    client.getPersonalisationOptions(),
+    // Per-product, not catalogue-wide: an empty list means "not personalisable".
+    client.getDishOptionGroups(slug),
     client.getHeatingInstructions(),
   ]);
 
   if (!dish) return null;
+
+  const personalisation = adaptOptionGroups(optionGroups);
+
+  /*
+   * Authored heating wins. The generic steps are a framed fallback for dishes
+   * with none — `DishInfoPanels` labels them as general guidance so they are
+   * never mistaken for instructions the kitchen wrote for this dish.
+   */
+  const authored = dish.contentState?.heating ?? [];
+  const heating = authored.length > 0 ? authored : genericHeating;
 
   // Prefer dishes sharing a wellness goal, then fill from the rest of the menu.
   const others = allDishes.filter((candidate) => candidate.id !== dish.id);
@@ -371,17 +535,39 @@ export async function getDishPageData(slug: string) {
   return { dish, related, boxes, delivery, personalisation, heating };
 }
 
-/** Resolves everything the /menu page renders in one concurrent pass. */
-export async function getMenuPageData(): Promise<{
+/**
+ * Resolves everything the /menu page renders in one concurrent pass.
+ *
+ * Filtering happens server-side: the browse endpoint pages its results, so the
+ * only correct place to apply facets is the query itself.
+ */
+export async function getMenuPageData(options: {
+  filters: Record<string, string[]>;
+  query: string;
+  limit: number;
+}): Promise<{
   dishes: Dish[];
+  totalCount: number;
+  facetGroups: MappedFacetGroup[];
   delivery: DeliveryWindow;
 }> {
   const client = await getAonikClient();
 
-  const [dishes, delivery] = await Promise.all([
-    client.getDishes(),
+  const [page, facetGroups, delivery] = await Promise.all([
+    client.listProducts({
+      facets: options.filters,
+      search: options.query || undefined,
+      page: 1,
+      pageSize: options.limit,
+    }),
+    client.getFacetGroups(),
     client.getDeliveryWindow(),
   ]);
 
-  return { dishes, delivery };
+  return {
+    dishes: page.dishes,
+    totalCount: page.totalCount,
+    facetGroups,
+    delivery,
+  };
 }

@@ -62,14 +62,22 @@ function offerFor(pricing: BoxPricing, size: number) {
     const savingPence = preset.savingPence ?? 0;
     return {
       pricePence: preset.pricePence,
-      listPence: preset.pricePence + savingPence,
+      // Only a preset with an AUTHORED saving has a list price. Without one,
+      // `pricePence + 0` would strike through the very number being charged.
+      listPence: savingPence > 0 ? preset.pricePence + savingPence : undefined,
       savingPence,
     };
   }
 
+  /*
+   * A custom size has no list price to strike through. Aonik's box plan carries
+   * an authored `savingAmount` on PRESETS only — there is no `listPrice`,
+   * `wasPrice` or plan-level saving anywhere — and a saving this storefront
+   * computed itself would be a number nobody authored. So a non-preset size
+   * shows its price alone. See SPEC-2026-07-22-catalog-browse FR-6.
+   */
   const pricePence = size * pricing.custom.perDishPence;
-  const listPence = size * pricing.custom.listPerDishPence;
-  return { pricePence, listPence, savingPence: listPence - pricePence };
+  return { pricePence, listPence: undefined, savingPence: 0 };
 }
 
 const HEAT_LEVELS = Object.keys(HEAT_STEPS) as HeatLevel[];
@@ -246,7 +254,9 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
     <>
       <div className={styles.estRow}>
         <span>{boxLabel}</span>
-        <span className={styles.estStrong}>{formatPrice(offer.listPence)}</span>
+        <span className={styles.estStrong}>
+          {formatPrice(offer.listPence ?? offer.pricePence)}
+        </span>
       </div>
 
       {offer.savingPence > 0 ? (
@@ -482,7 +492,11 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
                   </span>
 
                   <span className={styles.priceRow} data-variant="open">
-                    <span className={styles.listPrice}>{formatPrice(customOffer.listPence)}</span>
+                    {customOffer.listPence !== undefined ? (
+                      <span className={styles.listPrice}>
+                        {formatPrice(customOffer.listPence)}
+                      </span>
+                    ) : null}
                     <span className={styles.price}>{formatPrice(customOffer.pricePence)}</span>
                   </span>
 
@@ -499,9 +513,6 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
               ) : (
                 <>
                   <span className={styles.priceRow}>
-                    <span className={styles.listPrice}>
-                      {formatPrice(minDishes * pricing.custom.listPerDishPence)}
-                    </span>
                     <span className={styles.price}>
                       From {formatPrice(boxPricePence(minDishes, true, pricing))}
                     </span>
@@ -653,7 +664,11 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
                   </span>
                   <span className={styles.rowPriceCol}>
                     <span className={styles.rowPriceLine}>
-                      <span className={styles.rowWas}>{formatPrice(customOffer.listPence)}</span>
+                      {customOffer.listPence !== undefined ? (
+                        <span className={styles.rowWas}>
+                          {formatPrice(customOffer.listPence)}
+                        </span>
+                      ) : null}
                       <span className={styles.rowPrice}>
                         {formatPrice(customOffer.pricePence)}
                       </span>

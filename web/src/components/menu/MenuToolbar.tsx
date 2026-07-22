@@ -3,12 +3,8 @@
 import { useEffect } from 'react';
 
 import { Button } from '@/components/ui';
-import {
-  FACET_GROUPS,
-  SPICE_STEPS,
-  type FacetKey,
-  type MenuFilters,
-} from '@/lib/menu/filters';
+import type { MappedFacetGroup } from '@/lib/aonik/map';
+import { type MenuFilters } from '@/lib/menu/filters';
 
 import { FilterChip } from './FilterChip';
 import styles from './MenuToolbar.module.css';
@@ -16,8 +12,16 @@ import styles from './MenuToolbar.module.css';
 /**
  * Search box plus the facet panel. The panel expands inline on desktop and
  * becomes a bottom sheet below 760px, matching the design template.
+ *
+ * The groups themselves are DATA, resolved from Aonik's facets read and passed
+ * in — a tenant can add, rename or retire a filter with no deploy. Only the
+ * glyphs stay in code, keyed by facet so a group we have never seen still
+ * renders (with no icon) rather than crashing.
  */
-const FACET_ICONS: Record<FacetKey, string[]> = {
+/** Chilli pips beside the spice chips, keyed by the facet's option token. */
+const SPICE_PIPS: Record<string, number> = { none: 0, mild: 1, medium: 2, hot: 3 };
+
+const FACET_ICONS: Record<string, string[]> = {
   protein: ['M6 9v6M4 10.5v3M18 9v6M20 10.5v3M6 12h12'],
   spice: ['M8.5 14.5A2.5 2.5 0 0011 12c0-1.4-.5-2-1-3-1-2-.2-3.8 2-5.5.5 2.3 2 4.6 3.7 6C17 11 18 12.7 18 14.5a6 6 0 11-9.5 0z'],
   wellness: ['M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0016.5 3c-1.7 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4 3 5.5l7 7z'],
@@ -33,13 +37,15 @@ interface MenuToolbarProps {
   query: string;
   onQueryChange: (query: string) => void;
   filters: MenuFilters;
-  onToggleFilter: (key: FacetKey, value: string) => void;
-  onClearFacet: (key: FacetKey) => void;
+  onToggleFilter: (key: string, value: string) => void;
+  onClearFacet: (key: string) => void;
   onClearAll: () => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   resultLabel: string;
   totalCount: number;
+  /** Tenant-authored filter groups, in Aonik's order. */
+  facetGroups: MappedFacetGroup[];
 }
 
 export function MenuToolbar({
@@ -53,6 +59,7 @@ export function MenuToolbar({
   onOpenChange,
   resultLabel,
   totalCount,
+  facetGroups,
 }: MenuToolbarProps) {
   // Escape closes the panel wherever it is; the sheet variant also traps scroll.
   useEffect(() => {
@@ -162,28 +169,31 @@ export function MenuToolbar({
 
               <div className={styles.sheetBody}>
                 <div className={styles.columns}>
-                  {FACET_GROUPS.map((group) => {
-                    const selected = filters[group.key];
+                  {facetGroups.map((group) => {
+                    const selected = filters[group.key] ?? [];
+                    const paths = FACET_ICONS[group.key];
                     return (
                       <fieldset key={group.key} className={styles.column}>
                         <legend className={styles.columnHead}>
-                          <span className={styles.icon} aria-hidden="true">
-                            <svg
-                              width="18"
-                              height="18"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="var(--green-forest)"
-                              strokeWidth="1.6"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              {FACET_ICONS[group.key].map((d) => (
-                                <path key={d} d={d} />
-                              ))}
-                            </svg>
-                          </span>
-                          <span className={styles.columnTitle}>{group.title}</span>
+                          {paths ? (
+                            <span className={styles.icon} aria-hidden="true">
+                              <svg
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="var(--green-forest)"
+                                strokeWidth="1.6"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                {paths.map((d) => (
+                                  <path key={d} d={d} />
+                                ))}
+                              </svg>
+                            </span>
+                          ) : null}
+                          <span className={styles.columnTitle}>{group.label}</span>
                         </legend>
 
                         <div className={styles.chips}>
@@ -194,11 +204,11 @@ export function MenuToolbar({
                           />
                           {group.options.map((option) => (
                             <FilterChip
-                              key={option}
-                              label={option}
-                              selected={selected.includes(option)}
-                              onClick={() => onToggleFilter(group.key, option)}
-                              pips={group.key === 'spice' ? SPICE_STEPS[option] : 0}
+                              key={option.value}
+                              label={option.label}
+                              selected={selected.includes(option.value)}
+                              onClick={() => onToggleFilter(group.key, option.value)}
+                              pips={group.key === 'spice' ? SPICE_PIPS[option.value] ?? 0 : 0}
                             />
                           ))}
                         </div>

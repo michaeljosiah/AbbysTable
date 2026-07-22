@@ -91,11 +91,20 @@ export async function resolveDataMode(): Promise<DataModeResolution> {
     // `cookies()` opts this render out of static generation, which is correct:
     // a page whose data source can change per-browser is not static. Production
     // never takes this branch, so production caching is unaffected.
-    const override = parseMode((await cookies()).get(DATA_MODE_COOKIE)?.value);
-    if (override && override !== mode) {
+    //
+    // It also THROWS outside a request scope — `generateStaticParams` and
+    // `generateMetadata` at build time have no browser and no cookies. There is
+    // no override to read there by definition, so fall back to configuration
+    // rather than taking the build down.
+    let override: DataMode | null = null;
+    try {
+      override = parseMode((await cookies()).get(DATA_MODE_COOKIE)?.value);
+    } catch {
+      override = null;
+    }
+
+    if (override) {
       mode = override;
-      source = 'dev-override';
-    } else if (override) {
       source = 'dev-override';
     }
   }

@@ -279,3 +279,20 @@
   border-radius: 12px;
   padding: 14px 16px;
 }
+
+/* Content-state notes (Aonik Spec 067): why these figures or steps are not
+   presented as current, dish-specific fact. */
+
+.figuresNote,
+.heatingNote {
+  margin: var(--space-3) 0 0;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  line-height: var(--line-snug);
+  color: var(--text-muted);
+}
+
+.panels[data-compact] .figuresNote,
+.panels[data-compact] .heatingNote {
+  font-size: 12px;
+}

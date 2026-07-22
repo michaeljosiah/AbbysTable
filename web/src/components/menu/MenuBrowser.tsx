@@ -1,18 +1,11 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useMemo, useState, useTransition } from 'react';
 
+import type { MappedFacetGroup } from '@/lib/aonik/map';
 import type { Dish } from '@/lib/aonik/types';
-import {
-  EMPTY_FILTERS,
-  activeFilters,
-  clearFacet,
-  filterDishes,
-  resultLabel,
-  toggleFilter,
-  type FacetKey,
-  type MenuFilters,
-} from '@/lib/menu/filters';
+import { resultLabel, type MenuFilters } from '@/lib/menu/filters';
 
 import { MenuGrid } from './MenuGrid';
 import { MenuToolbar } from './MenuToolbar';
@@ -22,47 +15,115 @@ const PAGE_SIZE = 6;
 
 interface MenuBrowserProps {
   dishes: Dish[];
+  /** Matches across the whole catalogue, not just this page. */
+  totalCount: number;
+  /** How many are currently requested — "Load more" grows this. */
+  limit: number;
+  facetGroups: MappedFacetGroup[];
+  filters: MenuFilters;
+  query: string;
 }
 
 /**
- * Owns all menu interaction state. The catalogue itself is resolved on the
- * server and passed in, so the full grid is present in the initial HTML and
- * filtering never round-trips.
+ * Menu interaction state, held in the URL.
+ *
+ * Filtering is Aonik's job, not ours: the browse endpoint pages its results, so
+ * filtering a single page client-side would quietly give wrong answers as soon
+ * as the catalogue outgrows one page. Every change therefore rewrites the query
+ * string and lets the server re-resolve.
+ *
+ * The trade is a round-trip per chip, which `useTransition` covers with a
+ * pending state rather than a flash of empty grid. What we gain, beyond
+ * correctness: a filtered menu is now a shareable URL.
  */
-export function MenuBrowser({ dishes }: MenuBrowserProps) {
-  const [query, setQuery] = useState('');
-  const [filters, setFilters] = useState<MenuFilters>(EMPTY_FILTERS);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+export function MenuBrowser({
+  dishes,
+  totalCount,
+  limit,
+  facetGroups,
+  filters,
+  query,
+}: MenuBrowserProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
   const [panelOpen, setPanelOpen] = useState(false);
 
-  const filtered = useMemo(() => filterDishes(dishes, filters, query), [dishes, filters, query]);
-  const active = useMemo(() => activeFilters(filters), [filters]);
+  /** Rewrites the URL from a mutated copy of the current params. */
+  const push = useCallback(
+    (mutate: (params: URLSearchParams) => void) => {
+      const params = new URLSearchParams(searchParams.toString());
+      mutate(params);
+      // Any change to the result set starts paging again from the top.
+      params.delete('limit');
+      const qs = params.toString();
+      startTransition(() => {
+        router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      });
+    },
+    [pathname, router, searchParams],
+  );
 
-  const visible = filtered.slice(0, visibleCount);
+  const handleQueryChange = useCallback(
+    (next: string) =>
+      push((params) => {
+        if (next.trim()) params.set('q', next);
+        else params.delete('q');
+      }),
+    [push],
+  );
 
-  // Any change to the result set starts paging again from the top.
-  const handleQueryChange = useCallback((next: string) => {
-    setQuery(next);
-    setVisibleCount(PAGE_SIZE);
-  }, []);
+  const handleToggleFilter = useCallback(
+    (key: string, value: string) =>
+      push((params) => {
+        const current = (params.get(`facet.${key}`) ?? '').split(',').filter(Boolean);
+        const next = current.includes(value)
+          ? current.filter((entry) => entry !== value)
+          : [...current, value];
+        if (next.length) params.set(`facet.${key}`, next.join(','));
+        else params.delete(`facet.${key}`);
+      }),
+    [push],
+  );
 
-  const handleToggleFilter = useCallback((key: FacetKey, value: string) => {
-    setFilters((current) => toggleFilter(current, key, value));
-    setVisibleCount(PAGE_SIZE);
-  }, []);
+  const handleClearFacet = useCallback(
+    (key: string) => push((params) => params.delete(`facet.${key}`)),
+    [push],
+  );
 
-  const handleClearFacet = useCallback((key: FacetKey) => {
-    setFilters((current) => clearFacet(current, key));
-    setVisibleCount(PAGE_SIZE);
-  }, []);
+  const handleClearAll = useCallback(
+    () =>
+      push((params) => {
+        for (const key of [...params.keys()]) {
+          if (key.startsWith('facet.') || key === 'q') params.delete(key);
+        }
+      }),
+    [push],
+  );
 
-  const handleClearAll = useCallback(() => {
-    setFilters(EMPTY_FILTERS);
-    setQuery('');
-    setVisibleCount(PAGE_SIZE);
-  }, []);
+  const handleLoadMore = useCallback(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('limit', String(limit + PAGE_SIZE));
+    startTransition(() => {
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    });
+  }, [limit, pathname, router, searchParams]);
 
-  const label = resultLabel(visible.length, filtered.length);
+  /** Selected chips, resolved to their display labels for the removable pills. */
+  const active = useMemo(
+    () =>
+      facetGroups.flatMap((group) =>
+        (filters[group.key] ?? []).map((value) => ({
+          key: group.key,
+          value,
+          label: group.options.find((option) => option.value === value)?.label ?? value,
+        })),
+      ),
+    [facetGroups, filters],
+  );
+
+  const label = resultLabel(dishes.length, totalCount);
 
   return (
     <>
@@ -76,18 +137,21 @@ export function MenuBrowser({ dishes }: MenuBrowserProps) {
         open={panelOpen}
         onOpenChange={setPanelOpen}
         resultLabel={label}
-        totalCount={filtered.length}
+        totalCount={totalCount}
+        facetGroups={facetGroups}
       />
 
-      <MenuGrid
-        dishes={visible}
-        resultLabel={label}
-        active={active}
-        onRemoveFilter={handleToggleFilter}
-        onClearAll={handleClearAll}
-        showLoadMore={visible.length < filtered.length}
-        onLoadMore={() => setVisibleCount((count) => count + PAGE_SIZE)}
-      />
+      <div data-pending={isPending || undefined}>
+        <MenuGrid
+          dishes={dishes}
+          resultLabel={label}
+          active={active}
+          onRemoveFilter={handleToggleFilter}
+          onClearAll={handleClearAll}
+          showLoadMore={dishes.length < totalCount}
+          onLoadMore={handleLoadMore}
+        />
+      </div>
     </>
   );
 }

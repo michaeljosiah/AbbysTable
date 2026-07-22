@@ -153,6 +153,7 @@ export function mapResolvedContent(dto: ResolvedContentDto): {
       figuresAreStandardPreparation: dto.isStandardPreparation,
       figuresAreStale: dto.isStale,
       heatingWithheld: dto.heatingWithheld,
+      heating: dto.heatingWithheld ? [] : dto.heating.map((step) => ({ ...step })),
       contentVersion: dto.contentVersion,
     },
   };

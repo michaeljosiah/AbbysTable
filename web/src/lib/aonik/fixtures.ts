@@ -261,7 +261,6 @@ export const BOX_PRICING_FIXTURE: BoxPricing = {
     minDishes: 6,
     maxDishes: 30,
     perDishPence: 1700,
-    listPerDishPence: 1800,
   },
   extraDishPence: 1500,
   // Both checkout templates show delivery as £10 struck through → Free.

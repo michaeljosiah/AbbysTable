@@ -156,6 +156,40 @@ export function DishInfoPanels({ dish, heating, compact, onBackToTop }: DishInfo
 
   const toggle = (id: PanelId) => setOpen((current) => ({ ...current, [id]: !current[id] }));
 
+  /*
+   * SAFETY (Aonik Spec 067). Declarations are gated on the resolution FLAG, not
+   * on whether a string arrived. Aonik sets `declarationsWithheld` whenever
+   * either half is unauthored while still returning the half that IS — so a
+   * presence check would print the ingredients and silently drop the allergen
+   * line. `mapResolvedContent` already strips both, and this is the second
+   * guard: a `Dish` assembled by any other route is still handled correctly.
+   *
+   * Fixture dishes carry no `contentState`, so they fall back to presence,
+   * which is exactly right for data that was never a resolution.
+   */
+  const state = dish.contentState;
+  const withheld = state?.declarationsWithheld ?? false;
+  const ingredients = withheld ? undefined : dish.ingredients;
+  const allergens = withheld ? undefined : dish.allergens;
+
+  /*
+   * Figures fall back to the default block; declarations never do. Either flag
+   * alone is sufficient to caption — `isStale` matters most, because it is the
+   * case where `isStandardPreparation` is false yet the figures are no longer
+   * current, and it would otherwise pass as fact.
+   */
+  const figuresCaption = state?.figuresAreStandardPreparation
+    ? 'These figures are for the standard preparation.'
+    : state?.figuresAreStale
+      ? 'These figures are under review and may not reflect the current recipe.'
+      : undefined;
+
+  const servingCaption = state?.servingLabel ?? 'Per serving, as Abby designed it.';
+
+  /* Heating withheld (or never authored) means the caller passed the generic
+     catalogue-wide steps, which must be framed as such. */
+  const isGenericHeating = state?.heatingWithheld ?? false;
+
   const { nutrition } = dish;
   const cells: { label: string; value: string }[] = [
     nutrition.calories !== undefined && { label: 'kcal', value: String(nutrition.calories) },
@@ -176,7 +210,7 @@ export function DishInfoPanels({ dish, heating, compact, onBackToTop }: DishInfo
         onToggle={() => toggle('nutrition')}
         onBackToTop={onBackToTop}
       >
-        <p className={styles.caption}>Per serving, as Abby designed it.</p>
+        <p className={styles.caption}>{servingCaption}</p>
         <dl className={styles.nutritionGrid} style={{ '--cells': cells.length } as CSSProperties}>
           {cells.map((cell) => (
             <div key={cell.label} className={styles.nutritionCell}>
@@ -185,6 +219,7 @@ export function DishInfoPanels({ dish, heating, compact, onBackToTop }: DishInfo
             </div>
           ))}
         </dl>
+        {figuresCaption ? <p className={styles.figuresNote}>{figuresCaption}</p> : null}
       </Panel>
 
       <Panel
@@ -194,19 +229,19 @@ export function DishInfoPanels({ dish, heating, compact, onBackToTop }: DishInfo
         onToggle={() => toggle('ingredients')}
         onBackToTop={onBackToTop}
       >
-        {dish.ingredients ? (
-          <p className={styles.ingredients}>{dish.ingredients}</p>
+        {ingredients ? (
+          <p className={styles.ingredients}>{ingredients}</p>
         ) : (
           <p className={styles.ingredients}>
             The ingredient list for this dish has not been published yet.
           </p>
         )}
 
-        {dish.allergens ? (
+        {allergens ? (
           <div className={styles.allergens}>
             <AllergenIcon />
             <span>
-              <strong>Allergens:</strong> {dish.allergens}
+              <strong>Allergens:</strong> {allergens}
             </span>
           </div>
         ) : (
@@ -240,6 +275,14 @@ export function DishInfoPanels({ dish, heating, compact, onBackToTop }: DishInfo
             </li>
           ))}
         </ul>
+        {/* Generic guidance is allowed here — unlike allergens, reheating has a
+            safe default — but it is framed so it is never mistaken for
+            dish-specific instructions the kitchen actually authored. */}
+        {isGenericHeating ? (
+          <p className={styles.heatingNote}>
+            General guidance — specific instructions for this dish have not been published yet.
+          </p>
+        ) : null}
       </Panel>
     </div>
   );

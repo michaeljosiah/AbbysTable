@@ -4,7 +4,7 @@ import Link from 'next/link';
 
 import { DishCard } from '@/components/sections/DishCard';
 import type { Dish } from '@/lib/aonik/types';
-import type { ActiveFilter, FacetKey } from '@/lib/menu/filters';
+import type { ActiveFilter } from '@/lib/menu/filters';
 
 import styles from './MenuGrid.module.css';
 
@@ -13,7 +13,7 @@ interface MenuGridProps {
   dishes: Dish[];
   resultLabel: string;
   active: ActiveFilter[];
-  onRemoveFilter: (key: FacetKey, value: string) => void;
+  onRemoveFilter: (key: string, value: string) => void;
   onClearAll: () => void;
   showLoadMore: boolean;
   onLoadMore: () => void;
