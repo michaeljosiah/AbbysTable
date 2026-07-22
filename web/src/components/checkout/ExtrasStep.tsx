@@ -15,6 +15,8 @@ import {
 } from '@/lib/cart/CartProvider';
 import { formatPrice, formatPriceExact } from '@/lib/format';
 
+import { ContinueLink } from './ContinueLink';
+import { DriftNotices } from './DriftNotices';
 import styles from './ExtrasStep.module.css';
 
 /**
@@ -395,7 +397,7 @@ export function ExtrasStep({
 
   const cta = (
     <div className={styles.ctaWrap}>
-      <Link href="/box/review" className={styles.cta} onClick={() => setSheetOpen(false)}>
+      <ContinueLink href="/box/review" className={styles.cta} onClick={() => setSheetOpen(false)}>
         <span className={styles.ctaMain}>
           Continue to review
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -410,7 +412,7 @@ export function ExtrasStep({
           </svg>
           Secure checkout
         </span>
-      </Link>
+      </ContinueLink>
       <p className={styles.deliveryNote}>
         Earliest UK-wide delivery: <strong>{earliestDeliveryLabel}</strong>
       </p>
@@ -422,6 +424,8 @@ export function ExtrasStep({
       <div className={styles.shell}>
         <div className={styles.mainColumn}>
           {heading}
+
+          <DriftNotices />
 
           <div className={styles.filterSticky}>
             {/* Desktop: bare search + always-visible category chips. */}
@@ -823,13 +827,13 @@ export function ExtrasStep({
           </span>
         </button>
         <span className={styles.barDivider} aria-hidden="true" />
-        <Link href="/box/review" className={styles.barCta}>
+        <ContinueLink href="/box/review" className={styles.barCta}>
           Continue
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <line x1="4" y1="12" x2="19" y2="12" />
             <path d="M13 6l6 6-6 6" />
           </svg>
-        </Link>
+        </ContinueLink>
       </div>
 
       {sheetOpen ? (

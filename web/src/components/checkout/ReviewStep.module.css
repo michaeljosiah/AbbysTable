@@ -886,3 +886,16 @@
     margin-top: 20px;
   }
 }
+
+/* A forward CTA blocked by an unavailable line, or by a mutation in flight.
+   The customer resolves it by removing or swapping the dish — we never remove
+   it for them, so the control stays visible and plainly inert. */
+.cta[data-blocked],
+.barCta[data-blocked] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: none;
+  transform: none;
+  box-shadow: none;
+  pointer-events: none;
+}

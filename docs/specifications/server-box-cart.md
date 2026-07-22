@@ -219,12 +219,21 @@ string, matching dishes — resolving the fixtures' `string[]` inconsistency).
 **Extras have no server-side filtering.** `GET /commerce/catalog/extras` takes no query
 parameters at all — it is a single curated collection in rank order, unlike the main
 catalogue's facet-driven browse. Step 3's existing category chips are backed today by the
-`EXTRA_CATEGORIES` fixture union, which retires with `Extra`. The chips SHALL therefore
-either (a) group client-side over the rows' `tags[]` / `attributesJson`, which the tenant
-must then author consistently — the same undocumented convention risk as dish attributes —
-or (b) be removed, leaving search over the curated list. This spec does not decide between
-them; whichever is chosen, the decision SHALL be recorded here before Step 3 is rewritten,
-because silently dropping the chips is a visible regression to a shipped feature.
+`EXTRA_CATEGORIES` fixture union, which retires with `Extra`.
+
+**DECIDED (2026-07-22): option (a) — group client-side over `attributesJson.category`.**
+
+The chips stay. Aonik serves the whole extras rail in one read with no paging, so grouping
+it in the browser is correct rather than a compromise — the objection that killed
+client-side filtering on the *menu* (a paged endpoint, where filtering one page gives wrong
+answers) does not apply to a complete list. Removing a shipped feature to match an API
+shape that does not require it would be the wrong trade.
+
+The category therefore SHALL be read from each row's `attributesJson.category`, joining the
+same tenant-convention contract as the dish attributes, and the chip set SHALL be derived
+from the values actually present rather than from a compile-time union — so a new category
+appears by being authored, and a category nobody uses stops being offered. A row with no
+category is reachable under "All" and by search, never hidden.
 
 #### Scenario: Add-on never eats a space
 - **WHEN** a full box (`isFull: true`) adds an extra

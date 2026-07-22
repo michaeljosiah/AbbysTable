@@ -34,6 +34,8 @@ import {
 } from '@/lib/cart/CartProvider';
 import { formatPrice, formatPriceExact } from '@/lib/format';
 
+import { ContinueLink } from './ContinueLink';
+import { DriftNotices } from './DriftNotices';
 import dmStyles from './DishPicker.module.css';
 import styles from './ReviewStep.module.css';
 
@@ -349,6 +351,8 @@ export function ReviewStep({
       <div className={styles.mainColumn}>
         {heading}
 
+        <DriftNotices />
+
         {/* ---- Your box ------------------------------------------------------ */}
         <section className={styles.groupCard}>
           <button
@@ -618,7 +622,7 @@ export function ReviewStep({
               <span>Total</span>
               <span className={styles.totalValue}>{totalLabel}</span>
             </div>
-            <Link href="/box/checkout" className={styles.cta}>
+            <ContinueLink href="/box/checkout" className={styles.cta}>
               <span className={styles.ctaMain}>
                 Continue to checkout
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -633,7 +637,7 @@ export function ReviewStep({
                 </svg>
                 Secure checkout
               </span>
-            </Link>
+            </ContinueLink>
             <p className={styles.deliveryNote}>
               Earliest UK-wide delivery: <strong>{earliestDeliveryLabel}</strong>
             </p>

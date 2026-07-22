@@ -9,6 +9,8 @@ import type { BoxPricing, Dish, PersonalisationOptions } from '@/lib/aonik/types
 import { boxPricePence, cartTotals, useCart, type CartLine } from '@/lib/cart/CartProvider';
 import { formatPrice } from '@/lib/format';
 
+import { ContinueLink } from './ContinueLink';
+
 import styles from './BoxSummary.module.css';
 
 /**
@@ -671,9 +673,9 @@ export function BoxSummary({
 
       <div className={styles.ctaWrap}>
         {isFull ? (
-          <Link href="/box/extras" className={styles.cta}>
+          <ContinueLink href="/box/extras" className={styles.cta}>
             {ctaInner}
-          </Link>
+          </ContinueLink>
         ) : (
           <button type="button" className={styles.cta} disabled>
             {ctaInner}
@@ -771,7 +773,7 @@ export function BoxSummary({
         <span className={styles.barDivider} aria-hidden="true" />
 
         {isFull ? (
-          <Link href="/box/extras" className={styles.barCta}>
+          <ContinueLink href="/box/extras" className={styles.barCta}>
             Continue
             <svg
               width="18"
@@ -787,7 +789,7 @@ export function BoxSummary({
               <line x1="4" y1="12" x2="19" y2="12" />
               <path d="M13 6l6 6-6 6" />
             </svg>
-          </Link>
+          </ContinueLink>
         ) : (
           <button type="button" className={styles.barCta} disabled>
             Add {spacesLeft} more
