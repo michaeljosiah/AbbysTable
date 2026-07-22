@@ -8,7 +8,17 @@ export const metadata: Metadata = {
   description: 'Sign in to manage your boxes, personalisations and deliveries.',
 };
 
-export default function LoginPage() {
+interface PageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+export default async function LoginPage({ searchParams }: PageProps) {
+  // Where to land afterwards, when something bounced the customer here. The
+  // action re-validates it — an absolute URL would be an open redirect.
+  const params = await searchParams;
+  const raw = params.next;
+  const next = Array.isArray(raw) ? raw[0] : raw;
+
   return (
     <AuthShell
       eyebrow="Welcome back"
@@ -16,7 +26,7 @@ export default function LoginPage() {
       accent="Heat, eat, live well."
       points={['No MSG, no bouillon', 'No refined sugars', 'No seed oils']}
     >
-      <LoginForm />
+      <LoginForm next={next} />
     </AuthShell>
   );
 }

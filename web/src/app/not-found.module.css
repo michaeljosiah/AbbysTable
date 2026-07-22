@@ -1,0 +1,93 @@
+/* Standalone page — no site chrome, so it centres in the viewport rather than
+   sitting under a header that may not be there. */
+
+.page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--space-8) var(--gutter);
+  background: var(--surface-page);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 520px;
+  padding: var(--space-8) var(--space-7);
+  border: var(--border-hairline) solid var(--border-light);
+  border-radius: var(--radius-card);
+  background: var(--surface-bright);
+  box-shadow: var(--shadow-card);
+  text-align: center;
+}
+
+.eyebrow {
+  color: var(--text-eyebrow);
+  font-family: var(--font-sans);
+  font-size: var(--eyebrow-size);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+}
+
+.heading {
+  margin: var(--space-2) 0 0;
+  color: var(--text-heading);
+  font-family: var(--font-display);
+  font-size: var(--display-3);
+  font-weight: var(--weight-regular);
+  line-height: var(--line-display);
+}
+
+.lead {
+  max-width: 42ch;
+  margin: var(--space-3) 0 0;
+  color: var(--text-body);
+  font-family: var(--font-sans);
+  font-size: var(--body-md);
+  line-height: var(--line-body);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-7);
+}
+
+.primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 13px 26px;
+  border-radius: var(--radius-pill);
+  background: var(--action-dark);
+  color: var(--text-on-dark);
+  font-family: var(--font-sans);
+  font-size: var(--body-md);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+  transition: filter 0.16s ease, transform 0.16s ease;
+}
+
+.primary:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+
+.secondary {
+  color: var(--text-body);
+  font-family: var(--font-sans);
+  font-size: var(--body-sm);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.secondary:hover {
+  color: var(--text-heading);
+}

@@ -1,77 +1,97 @@
-/* Step 5. A single centred card — no summary rail, because there is nothing
-   left to change. The palette is the checkout's, so arriving here does not feel
-   like landing on a different site. */
+/* One placed order. The same visual family as the checkout confirmation —
+   reference, line rows, totals block — so a customer reading an order back
+   months later recognises the page they saw when they placed it.
+
+   Note: --border-hairline is a WIDTH token (1px), not a colour. Border colours
+   here come from --border-light. */
 
 .page {
-  width: 100%;
+  background: var(--surface-page);
+  padding: var(--space-7) var(--gutter) var(--space-9);
+}
+
+.inner {
   max-width: 680px;
-  margin: 0 auto;
-  padding: var(--space-8) var(--gutter) var(--space-10);
+  margin-inline: auto;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: var(--space-5);
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: var(--body-sm);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+  transition: color 0.16s ease;
+}
+
+.back:hover {
+  color: var(--text-heading);
 }
 
 .card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: var(--space-8) var(--space-7) var(--space-7);
-  border: 1px solid var(--border-light);
+  padding: var(--space-7) var(--space-6);
+  border: var(--border-hairline) solid var(--border-light);
   border-radius: var(--radius-card);
   background: var(--surface-bright);
   box-shadow: var(--shadow-card);
-  text-align: center;
 }
 
-.tick {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 62px;
-  height: 62px;
-  margin-bottom: var(--space-4);
-  border-radius: 50%;
-  background: var(--green-forest);
-  color: var(--text-on-dark);
-}
+/* ---- Header --------------------------------------------------------------- */
 
-.eyebrow {
-  color: var(--text-eyebrow);
-  font-family: var(--font-sans);
-  font-size: var(--eyebrow-size);
-  font-weight: var(--weight-semibold);
-  letter-spacing: var(--track-eyebrow);
-  text-transform: uppercase;
+.header {
+  padding-bottom: var(--space-5);
+  border-bottom: var(--border-hairline) solid var(--border-light);
 }
 
 .heading {
-  margin: var(--space-2) 0 0;
+  margin: 0;
   color: var(--text-heading);
   font-family: var(--font-display);
-  font-size: var(--display-3);
+  font-size: var(--display-2);
   font-weight: var(--weight-regular);
   line-height: var(--line-display);
+  letter-spacing: var(--track-display);
 }
 
-.lead {
-  max-width: 46ch;
-  margin: var(--space-3) 0 0;
-  color: var(--text-body);
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.placed {
+  color: var(--text-muted);
   font-family: var(--font-sans);
-  font-size: var(--body-md);
-  line-height: var(--line-body);
+  font-size: var(--body-sm);
 }
 
-.lead strong {
+/* Aonik's own status vocabulary, rendered verbatim — never remapped to
+   friendlier words this storefront would be guessing at. */
+.status {
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-card);
   color: var(--text-heading);
+  font-family: var(--font-sans);
+  font-size: var(--body-xs);
   font-weight: var(--weight-semibold);
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 /* ---- Order reference ------------------------------------------------------ */
 
 .reference {
-  width: 100%;
-  margin-top: var(--space-6);
+  margin-top: var(--space-5);
   padding: var(--space-4);
-  border: 1px dashed var(--border-dark);
+  border: var(--border-hairline) dashed var(--border-dark);
   border-radius: var(--radius-lg);
   background: var(--surface-card);
 }
@@ -86,35 +106,25 @@
   text-transform: uppercase;
 }
 
+/* A reference gets copied and read aloud, so it is monospaced and allowed to
+   break anywhere rather than overflowing its card on a narrow screen. */
 .referenceValue {
   display: block;
   margin-top: 6px;
-  /* A reference gets copied and read aloud, so it is monospaced and allowed to
-     break anywhere rather than overflowing its card on a narrow screen. */
+  color: var(--text-heading);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: var(--body-md);
-  color: var(--text-heading);
   word-break: break-all;
 }
 
-.referenceNote {
-  margin: var(--space-2) 0 0;
-  color: var(--text-muted);
-  font-family: var(--font-sans);
-  font-size: var(--body-xs);
-  line-height: var(--line-body);
-}
-
-/* ---- Placed lines --------------------------------------------------------- */
+/* ---- Line blocks ---------------------------------------------------------- */
 
 .block {
-  width: 100%;
   margin-top: var(--space-6);
-  text-align: left;
 }
 
 .blockHeading {
-  margin: 0 0 var(--space-3);
+  margin: 0;
   color: var(--text-heading);
   font-family: var(--font-sans);
   font-size: var(--body-sm);
@@ -123,8 +133,16 @@
   text-transform: uppercase;
 }
 
+.blockNote {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: var(--body-xs);
+  line-height: var(--line-body);
+}
+
 .lines {
-  margin: 0;
+  margin: var(--space-3) 0 0;
   padding: 0;
   list-style: none;
 }
@@ -134,7 +152,6 @@
   align-items: baseline;
   gap: var(--space-3);
   padding: 10px 0;
-  /* --border-hairline is a WIDTH token (1px), never a colour. */
   border-bottom: var(--border-hairline) solid var(--border-light);
 }
 
@@ -149,6 +166,7 @@
   font-family: var(--font-sans);
   font-size: var(--body-sm);
   font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
 }
 
 .lineBody {
@@ -156,12 +174,14 @@
   flex: 1 1 auto;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .lineName {
   color: var(--text-heading);
   font-family: var(--font-sans);
   font-size: var(--body-md);
+  overflow-wrap: anywhere;
 }
 
 .lineDetail {
@@ -169,6 +189,7 @@
   font-family: var(--font-sans);
   font-size: var(--body-xs);
   line-height: var(--line-body);
+  overflow-wrap: anywhere;
 }
 
 .linePrice {
@@ -179,23 +200,12 @@
   font-variant-numeric: tabular-nums;
 }
 
-.note {
-  width: 100%;
-  margin: var(--space-5) 0 0;
-  color: var(--text-muted);
-  font-family: var(--font-sans);
-  font-size: var(--body-sm);
-  line-height: var(--line-body);
-}
-
 /* ---- Totals --------------------------------------------------------------- */
 
 .totals {
-  width: 100%;
   margin-top: var(--space-6);
   padding-top: var(--space-4);
-  border-top: 1px solid var(--border-light);
-  text-align: left;
+  border-top: var(--border-hairline) solid var(--border-light);
 }
 
 .totalRow {
@@ -221,7 +231,7 @@
   gap: var(--space-4);
   margin-top: var(--space-2);
   padding-top: var(--space-3);
-  border-top: 1px solid var(--border-light);
+  border-top: var(--border-hairline) solid var(--border-light);
   color: var(--text-heading);
   font-family: var(--font-sans);
   font-size: var(--body-lg);
@@ -230,8 +240,8 @@
 }
 
 .grandValue {
-  font-size: var(--display-3);
   font-family: var(--font-display);
+  font-size: var(--display-3);
   font-weight: var(--weight-regular);
 }
 
@@ -241,7 +251,6 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
   gap: var(--space-4);
   margin-top: var(--space-7);
 }
@@ -278,12 +287,67 @@
   color: var(--text-heading);
 }
 
+/* ---- Signed-out state ----------------------------------------------------- */
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-8) var(--space-5);
+  border: var(--border-hairline) solid var(--border-light);
+  border-radius: var(--radius-card);
+  background: var(--surface-bright);
+  box-shadow: var(--shadow-card);
+  text-align: center;
+}
+
+.noticeHeading {
+  margin: 0;
+  color: var(--text-heading);
+  font-family: var(--font-display);
+  font-size: var(--display-3);
+  font-weight: var(--weight-regular);
+  line-height: var(--line-display);
+}
+
+.noticeBody {
+  max-width: 44ch;
+  margin: var(--space-3) 0 0;
+  color: var(--text-body);
+  font-family: var(--font-sans);
+  font-size: var(--body-md);
+  line-height: var(--line-body);
+}
+
+.noticeActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+@media (max-width: 860px) {
+  .page {
+    padding: var(--space-6) var(--space-5) var(--space-8);
+  }
+}
+
 @media (max-width: 560px) {
   .page {
-    padding: var(--space-6) var(--gutter) var(--space-8);
+    padding: var(--space-5) 20px var(--space-7);
   }
 
   .card {
-    padding: var(--space-6) var(--space-4) var(--space-5);
+    padding: var(--space-5) var(--space-4);
+  }
+
+  .heading {
+    font-size: 30px;
+  }
+
+  .actions {
+    justify-content: center;
   }
 }

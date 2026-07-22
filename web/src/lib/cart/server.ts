@@ -9,7 +9,7 @@
  */
 
 import type { BoxCartDto, CheckoutResultDto } from '@/lib/aonik/dto';
-import { AonikError } from '@/lib/aonik/errors';
+import { AONIK_CODES, AonikError } from '@/lib/aonik/errors';
 import { aonikFetch, type AonikFetchOptions } from '@/lib/aonik/http';
 import {
   mapBoxCart,
@@ -20,6 +20,8 @@ import {
   type PersonalisationSelection,
 } from '@/lib/aonik/map';
 import { readAonikConfig } from '@/lib/aonik/dataMode';
+
+import { isExpired, readSession } from '@/lib/auth/session';
 
 import { clearCartCookie, readCartCookie, writeCartCookie } from './cartCookie';
 import { writePlacedOrder, type PlacedOrder, type PlacedOrderLine } from './orderCookie';
@@ -108,7 +110,7 @@ async function withCart<T>(
   if (!cookie) return null;
 
   try {
-    return await run(cookie.cartId, { cartToken: cookie.cartToken });
+    return await run(cookie.cartId, await cartAuth(cookie.cartToken));
   } catch (error) {
     if (error instanceof AonikError && error.isNotFound) {
       await clearCartCookie();
@@ -116,6 +118,36 @@ async function withCart<T>(
     }
     throw error;
   }
+}
+
+/**
+ * How this cart proves it is ours: possession, identity, or both.
+ *
+ * Aonik takes two independent halves (`CartRequestAccess`) — the `X-Cart-Token`
+ * header and the authenticated principal's party. Sending whichever we have is
+ * what makes the transition seamless:
+ *
+ *  - guest         → token only, as before;
+ *  - just adopted  → the token is dead and gone from the cookie, so the bearer
+ *                    alone authorizes;
+ *  - born signed-in → never had a token; Aonik stamped the buyer at creation.
+ *
+ * The bearer is attached WITHOUT `aonikAuthedFetch`, deliberately: that helper
+ * throws when there is no session, and the overwhelmingly common case here is a
+ * perfectly valid guest cart with no session at all. A session that cannot be
+ * refreshed simply means "no bearer to add", never "this cart call fails".
+ */
+async function cartAuth(cartToken: string | undefined): Promise<CartFetchOptions> {
+  const auth: CartFetchOptions = { cartToken };
+
+  try {
+    const session = await readSession();
+    if (session && !isExpired(session)) auth.accessToken = session.accessToken;
+  } catch {
+    // No session, unreadable cookie — guest semantics, exactly as before.
+  }
+
+  return auth;
 }
 
 /** The current cart, or null when there is none (or it is no longer ours). */
@@ -316,6 +348,66 @@ function snapshotOrder(
     dishes: (placed?.lines ?? []).filter((line) => line.kind !== 'AddOn').map(toLine),
     addOns: (placed?.lines ?? []).filter((line) => line.kind === 'AddOn').map(toLine),
   };
+}
+
+/**
+ * Binds the guest box to the customer who just signed in.
+ *
+ * Called immediately after any successful sign-in or registration, and only
+ * when a guest token still exists — a cart created while signed in is
+ * party-bound from birth, so there is nothing to adopt.
+ *
+ * Every outcome is non-fatal to sign-in. Someone who has just typed their
+ * password correctly must end up signed in; whether their half-built box came
+ * with them is a lesser question, and no branch here may throw past it.
+ *
+ *  - **success** → the guest token is dead. It is dropped from the cookie (the
+ *    `cartId` stays), after which the session bearer alone authorizes the cart.
+ *    Keeping a dead token would mean sending a credential that can only fail.
+ *  - **404** → unknown, expired, or already someone else's. Aonik makes these
+ *    indistinguishable on purpose, so the cookie is cleared and no copy
+ *    speculates about which it was.
+ *  - **400 `commerce.storefront_validation`** → either the cart is no longer
+ *    Open (it already became an order — order history carries it now) or the
+ *    account has no customer profile to adopt into. Different facts, same
+ *    response here: leave the cart alone and carry on.
+ */
+export async function adoptBoxCart(): Promise<'adopted' | 'nothing-to-adopt' | 'skipped'> {
+  const cookie = await readCartCookie();
+  // No cart, or one that already authorizes by session — nothing to do.
+  if (!cookie?.cartToken) return 'nothing-to-adopt';
+
+  const session = await readSession();
+  if (!session || isExpired(session)) return 'nothing-to-adopt';
+
+  try {
+    await cartFetch<unknown>(`/commerce/carts/${cookie.cartId}/adopt`, {
+      method: 'POST',
+      cartToken: cookie.cartToken,
+      accessToken: session.accessToken,
+    });
+
+    await writeCartCookie({ cartId: cookie.cartId });
+    return 'adopted';
+  } catch (error) {
+    if (error instanceof AonikError && error.isNotFound) {
+      await clearCartCookie();
+      return 'skipped';
+    }
+
+    if (
+      error instanceof AonikError &&
+      error.status === 400 &&
+      error.code === AONIK_CODES.storefrontValidation
+    ) {
+      return 'skipped';
+    }
+
+    // Anything else is a real fault, but it is still not worth failing a
+    // sign-in over. Log it for us; say nothing to the customer.
+    console.error('[cart] adoption failed unexpectedly', error);
+    return 'skipped';
+  }
 }
 
 /** Exposed for the money adapter's benefit in request bodies we may add later. */

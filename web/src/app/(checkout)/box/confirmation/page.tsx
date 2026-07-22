@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { readSessionView } from '@/lib/auth/session';
 import { formatDeliveryDate, formatPrice, formatPriceExact } from '@/lib/format';
 import { readPlacedOrder } from '@/lib/cart/orderCookie';
 
@@ -28,7 +29,7 @@ export const dynamic = 'force-dynamic';
  * checkout, because it has no way to.
  */
 export default async function BoxConfirmationPage() {
-  const order = await readPlacedOrder();
+  const [order, session] = await Promise.all([readPlacedOrder(), readSessionView()]);
 
   // No snapshot: a direct visit, an expired cookie, or a different browser.
   // Say what is true rather than implying an order did or did not happen.
@@ -160,6 +161,19 @@ export default async function BoxConfirmationPage() {
             <span className={styles.grandValue}>{formatPrice(order.totalPence)}</span>
           </div>
         </div>
+
+        {/* Signed in: the order has a permanent home. Anonymous: the reference
+            above is the record — guest lookup is deliberately not offered, so
+            we do not imply one exists. */}
+        {session.isSignedIn ? (
+          <p className={styles.note}>
+            This order is saved to your account.{' '}
+            <Link href={`/account/orders/${order.orderId}`} className={styles.secondary}>
+              View it in your orders
+            </Link>
+            .
+          </p>
+        ) : null}
 
         <div className={styles.actions}>
           <Link href="/menu" className={styles.primary}>

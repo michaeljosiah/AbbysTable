@@ -8,7 +8,17 @@ export const metadata: Metadata = {
   description: 'Join the table: save your boxes, personalisations and delivery details.',
 };
 
-export default function RegisterPage() {
+interface PageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+export default async function RegisterPage({ searchParams }: PageProps) {
+  // Where to land afterwards, when something bounced the customer here. The
+  // action re-validates it — an absolute URL would be an open redirect.
+  const params = await searchParams;
+  const raw = params.next;
+  const next = Array.isArray(raw) ? raw[0] : raw;
+
   return (
     <AuthShell
       eyebrow="Join the table"
@@ -16,7 +26,7 @@ export default function RegisterPage() {
       accent="Cooked from scratch, in small batches."
       points={['No MSG, no bouillon', 'No refined sugars', 'No seed oils']}
     >
-      <RegisterForm />
+      <RegisterForm next={next} />
     </AuthShell>
   );
 }

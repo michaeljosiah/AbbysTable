@@ -1,13 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useActionState, useState } from 'react';
+
+import { registerAction, type AuthActionState } from '@/lib/auth/actions';
 
 import { GoogleMark } from './GoogleMark';
 import styles from './AuthForm.module.css';
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PASSWORD_MIN = 8;
 
 function EyeIcon({ off }: { off?: boolean }) {
   return (
@@ -30,48 +30,35 @@ function EyeIcon({ off }: { off?: boolean }) {
 }
 
 /**
- * Registration form. Accounts aren't live yet — a valid submission lands on
- * the same honest notice as sign-in, with the handler shaped for the real
- * call to slot in.
+ * Registration form. Submits to a server action — see `LoginForm` for why the
+ * inputs are uncontrolled and why the password never leaves the server.
+ *
+ * The surname field exists because Aonik's registration contract requires
+ * `firstName` AND `lastName` as separate non-null values. Splitting one "full
+ * name" box on whitespace was the alternative, and it quietly mangles every
+ * name that does not fit "given family" — so the form asks instead of guessing.
  */
-export function RegisterForm() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+export function RegisterForm({ next }: { next?: string }) {
   const [showPassword, setShowPassword] = useState(false);
   const [optIn, setOptIn] = useState(false);
-  const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string }>({});
-  const [status, setStatus] = useState<'idle' | 'pending' | 'notice'>('idle');
-  const pendingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(
-    () => () => {
-      if (pendingTimer.current) clearTimeout(pendingTimer.current);
-    },
-    [],
+  /** See `LoginForm`: Google is an operator-level federation, not our backend. */
+  const [googleNotice, setGoogleNotice] = useState(false);
+  const [state, formAction, isPending] = useActionState<AuthActionState, FormData>(
+    registerAction,
+    { status: 'idle' },
   );
 
-  const handleSubmit = (event: FormEvent) => {
-    event.preventDefault();
-    const next: typeof errors = {};
-    if (!name.trim()) next.name = 'Tell us your first name.';
-    if (!EMAIL_PATTERN.test(email.trim())) next.email = 'Enter a valid email address.';
-    if (password.length < PASSWORD_MIN) next.password = `Use at least ${PASSWORD_MIN} characters.`;
-    setErrors(next);
-    if (Object.keys(next).length > 0) return;
-
-    setStatus('pending');
-    pendingTimer.current = setTimeout(() => setStatus('notice'), 900);
-  };
+  const errors = state.fieldErrors ?? {};
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit} noValidate>
+    <form className={styles.form} action={formAction} noValidate>
+      <input type="hidden" name="next" value={next ?? ''} />
       <h1 className={styles.heading}>Create your account</h1>
       <p className={styles.sub}>
         Save your boxes, personalisations and delivery details for next time.
       </p>
 
-      <button type="button" className={styles.google} onClick={() => setStatus('notice')}>
+      <button type="button" className={styles.google} onClick={() => setGoogleNotice(true)}>
         <GoogleMark />
         Continue with Google
       </button>
@@ -93,15 +80,37 @@ export function RegisterForm() {
             type="text"
             autoComplete="given-name"
             placeholder="Your first name"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            aria-invalid={errors.name ? 'true' : undefined}
-            aria-describedby={errors.name ? 'register-name-error' : undefined}
+            name="firstName"
+            aria-invalid={errors.firstName ? 'true' : undefined}
+            aria-describedby={errors.firstName ? 'register-name-error' : undefined}
           />
         </div>
-        {errors.name ? (
+        {errors.firstName ? (
           <p className={styles.error} id="register-name-error">
-            {errors.name}
+            {errors.firstName}
+          </p>
+        ) : null}
+      </div>
+
+      <div className={styles.field}>
+        <label className={styles.label} htmlFor="register-surname">
+          Last name
+        </label>
+        <div className={styles.inputWrap}>
+          <input
+            id="register-surname"
+            className={styles.input}
+            type="text"
+            autoComplete="family-name"
+            placeholder="Your last name"
+            name="lastName"
+            aria-invalid={errors.lastName ? 'true' : undefined}
+            aria-describedby={errors.lastName ? 'register-surname-error' : undefined}
+          />
+        </div>
+        {errors.lastName ? (
+          <p className={styles.error} id="register-surname-error">
+            {errors.lastName}
           </p>
         ) : null}
       </div>
@@ -118,8 +127,7 @@ export function RegisterForm() {
             autoComplete="email"
             spellCheck={false}
             placeholder="you@example.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            name="email"
             aria-invalid={errors.email ? 'true' : undefined}
             aria-describedby={errors.email ? 'register-email-error' : undefined}
           />
@@ -142,8 +150,7 @@ export function RegisterForm() {
             type={showPassword ? 'text' : 'password'}
             autoComplete="new-password"
             placeholder="At least 8 characters"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            name="password"
             aria-invalid={errors.password ? 'true' : undefined}
             aria-describedby={errors.password ? 'register-password-error' : 'register-password-hint'}
           />
@@ -186,7 +193,34 @@ export function RegisterForm() {
         </button>
       </div>
 
-      {status === 'notice' ? (
+      {state.status === 'error' && state.message ? (
+        <p className={styles.error} role="alert">
+          {state.message}
+        </p>
+      ) : null}
+
+      {state.status === 'registered' ? (
+        <div className={styles.notice} role="status">
+          <span className={styles.noticeIcon} aria-hidden="true">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M9 12.5l2 2 4-4.5" />
+            </svg>
+          </span>
+          <span>
+            <span className={styles.noticeTitle}>Your account was created</span>
+            <span className={styles.noticeSub}>
+              We couldn&rsquo;t sign you in automatically.{' '}
+              <Link href="/login" className={styles.quietLink}>
+                Sign in
+              </Link>{' '}
+              with the details you just chose.
+            </span>
+          </span>
+        </div>
+      ) : null}
+
+      {state.status === 'unavailable' || googleNotice ? (
         <div className={styles.notice} role="status">
           <span className={styles.noticeIcon} aria-hidden="true">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -196,18 +230,23 @@ export function RegisterForm() {
             </svg>
           </span>
           <span>
-            <span className={styles.noticeTitle}>Online accounts are nearly ready</span>
+            <span className={styles.noticeTitle}>
+              {googleNotice
+                ? 'Google sign-in isn’t available yet'
+                : 'Accounts aren’t available yet'}
+            </span>
             <span className={styles.noticeSub}>
-              Nothing was sent — registration opens with our next release. Your box carries on
-              without an account.
+              {googleNotice
+                ? 'Create your account with an email address for now — nothing was sent.'
+                : 'Registration isn’t switched on for this site yet, so nothing was sent. Your box carries on without an account.'}
             </span>
           </span>
         </div>
       ) : null}
 
-      <button type="submit" className={styles.submit} disabled={status === 'pending'}>
-        {status === 'pending' ? 'Setting your place…' : 'Create your account'}
-        {status !== 'pending' ? (
+      <button type="submit" className={styles.submit} disabled={isPending}>
+        {isPending ? 'Setting your place…' : 'Create your account'}
+        {!isPending ? (
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <line x1="4" y1="12" x2="19" y2="12" />
             <path d="M13 6l6 6-6 6" />

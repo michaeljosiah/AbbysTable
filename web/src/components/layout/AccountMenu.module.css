@@ -1,0 +1,92 @@
+/* Header identity slot. Sized to sit level with the nav links it replaces, so
+   signing in does not shift the header's baseline. */
+
+.wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 4px;
+  border: none;
+  background: none;
+  color: var(--text-body);
+  font-family: var(--font-sans);
+  font-size: var(--body-sm);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  transition: color 0.16s ease;
+}
+
+.trigger:hover {
+  color: var(--text-heading);
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--green-mist);
+  color: var(--green-forest);
+}
+
+.chevron {
+  transition: transform 0.16s ease;
+}
+
+.chevron[data-open] {
+  transform: rotate(180deg);
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 60;
+  min-width: 208px;
+  padding: var(--space-2);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  background: var(--surface-bright);
+  box-shadow: var(--shadow-lift);
+}
+
+.email {
+  margin: 0 0 var(--space-2);
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-hairline);
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: var(--body-xs);
+  /* An address can be long; truncate rather than widening the whole menu. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item {
+  display: block;
+  width: 100%;
+  padding: 9px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-body);
+  font-family: var(--font-sans);
+  font-size: var(--body-sm);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+
+.item:hover {
+  background: var(--surface-card);
+  color: var(--text-heading);
+}

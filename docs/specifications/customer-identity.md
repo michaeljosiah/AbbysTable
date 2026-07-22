@@ -16,6 +16,31 @@ updated: 2026-07-22
 > code (that is a documentation rule label — the wire code is
 > `commerce.storefront_validation`), and the IdP is operator-level, not tenant-level, which
 > changes who can enable Google sign-in and how.
+>
+> **Re-verified 2026-07-22 against `Aonik.Platform` before implementation.** Four further
+> corrections, the first of which blocks login entirely:
+>
+> 1. **`POST /auth/token` requires a `clientId`.** `TokenRequestDto.ClientId` is
+>    non-nullable (`Contracts/Api/Identity/AuthContracts.cs`) and this spec never mentioned
+>    it. The storefront needs an `AONIK_AUTH_CLIENT_ID` — the OAuth client the deployment's
+>    Keycloak issues storefront tokens for. Without it there is no login.
+> 2. **Registration's tenant belongs in the BODY, not the header.**
+>    `IndividualRegistrationEndpoint.ResolveTenantIdAsync` takes `req.TenantId` first and
+>    only then consults `Auth:TenantRouting`, which may be `Subdomain` (header ignored) or
+>    unset (returns 400 "TenantId is required for registration"). Sending
+>    `X-Tenant-Id` alone is correct in exactly one deployment configuration; sending
+>    `tenantId` in the body is correct in all of them. We send both.
+> 3. **The auth endpoints do not use the standard error envelope.** Both write
+>    `{ error: <message> }` directly with no `code` field: registration conflict is **409**,
+>    token failure is **400**. Branching must therefore key on status and endpoint, never on
+>    a code. Note a 409 here is *not* box drift — `AonikError.isDrift` additionally requires
+>    the drift code, so it does not false-positive, but nothing else may assume 409 ⇒ drift.
+> 4. **Adopt's 400 has two causes, not one.** `AdoptCartEndpoint` throws
+>    `StorefrontValidationException` when the principal has no party
+>    ("This account has no customer profile to adopt the cart into.") in addition to the
+>    cart-no-longer-Open case this spec described. Both are non-fatal to sign-in and the
+>    frontend treats them the same way — proceed signed-in, do not block — but they are
+>    different facts and only one of them means "it already became an order".
 
 ## Why
 
@@ -48,10 +73,19 @@ Depends on: `SPEC-2026-07-22-aonik-transport`, `SPEC-2026-07-22-server-box-cart`
 `capability: identity` · `delta: MODIFIED (feat/customer-identity)`
 
 The system SHALL submit the registration form to Aonik's
-`POST /v1/registrations/individual` (anonymous, tenant-scoped via `X-Tenant-Id`), which
-provisions the IdP user and the platform records (User, Party, PersonalUser role) in one
-call, and the login form to `POST /auth/token` (the password grant the platform exposes;
-availability is IdP-configuration-gated per deployment). Both flows run in **server
+`POST /v1/registrations/individual` (anonymous; tenant sent in the request body as
+`tenantId` **and** as the `X-Tenant-Id` header — see correction 2), which provisions the IdP
+user and the platform records (User, Party, PersonalUser role) in one call, and the login
+form to `POST /auth/token` (the password grant the platform exposes; availability is
+IdP-configuration-gated per deployment).
+
+Request bodies, from the shipped records:
+`IndividualRegistrationRequest { tenantId?, registrationCountry?, title?, firstName,
+lastName, email, phone?, password }` → `{ userId, partyId, onboarding }` — **no tokens**,
+which is why registration is followed by an immediate token exchange.
+`TokenRequestDto { grantType, clientId, username?, password?, scope?, redirectUri?,
+codeVerifier?, authorizationCode?, refreshToken? }` →
+`{ accessToken, refreshToken?, expiresIn, tokenType, idToken? }`. Both flows run in **server
 actions/route handlers only** — credentials transit the Next server, never a
 browser-to-Aonik call, and are never logged or stored beyond the exchange.
 
@@ -228,14 +262,46 @@ if Aonik reshapes them without a spec change, this is where it will break first.
 ---
 
 ## Tasks
-- [ ] Session cookie module + route-handler auth attachment (+ 401 → clear → signed-out)
-- [ ] Register/login server actions on the real endpoints; remove the stub notices; keep
-      the Google button's disabled state
-- [ ] Adopt-on-sign-in in the auth flow with the three outcome branches
-- [ ] Cart handlers: bearer-first authorization (token only when the cookie still holds one)
-- [ ] `/account/orders` + `/account/orders/[orderId]` pages + header account menu
-- [ ] Confirmation page link-through (from `review-checkout`) once signed in
+- [x] Session cookie module + route-handler auth attachment (+ 401 → clear → signed-out)
+- [x] Register/login server actions on the real endpoints; remove the stub notices; keep
+      the Google button's behaviour
+- [x] Adopt-on-sign-in in the auth flow with the three outcome branches
+- [x] Cart handlers: bearer-first authorization (token only when the cookie still holds one)
+- [x] `/account/orders` + `/account/orders/[orderId]` pages + header account menu
+- [x] Confirmation page link-through (from `review-checkout`) once signed in
 - [ ] Follow-up (deferred): reset-password page; social federation redirect flow
+
+### Implementation notes (2026-07-22)
+
+**Cart calls send whichever proofs exist, not "bearer-first".** Aonik's `CartRequestAccess`
+takes two independent halves — `X-Cart-Token` and the principal's party — so `cartAuth`
+attaches both when both are present. That is what makes the guest → adopted → signed-in
+transition seamless. It deliberately does NOT go through `aonikAuthedFetch`: that helper
+throws when there is no session, and the common case here is a perfectly valid guest cart.
+A missing session means "no bearer to add", never "this cart call fails".
+
+**Adoption never fails a sign-in.** Someone who just typed their password correctly ends up
+signed in; whether their half-built box came too is the lesser question. All three
+documented outcomes plus any unexpected error return rather than throw.
+
+**Registration that succeeds but cannot sign in is its own outcome.** The account EXISTS at
+that point, so re-submitting the form would 409 and telling the customer their details were
+wrong would be false. `RegisteredButNotSignedInError` → the form points at `/login`.
+
+**The post-auth redirect is a security control with its own module.** `safePostAuthPath`
+lives in `lib/auth/redirect.ts` rather than in the `'use server'` actions file, because that
+file may export only async functions and a validator should be directly testable. It rejects
+absolute URLs, protocol-relative `//host`, the backslash variant `/\host` that browsers
+normalise, and control characters that could split a `Location` header.
+
+**A last-name field was added to registration.** Aonik requires `firstName` AND `lastName` as
+separate non-null values. Splitting one "full name" box on whitespace was the alternative and
+it quietly mangles every name that does not fit "given family", so the form asks.
+
+**Also fixed here:** the app had no `not-found.tsx` at all, so `notFound()` — which the order
+detail page relies on for a foreign order id — rendered Next's bare fallback. Added a branded
+one that keeps Aonik's no-existence-oracle promise: it never speculates about whether
+something exists, only that we cannot show it.
 
 ### Testing
 - Unit: session cookie encode/decode + expiry math; adoption outcome router (200/404/Z4);

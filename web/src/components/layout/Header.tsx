@@ -6,16 +6,21 @@ import { useCallback, useState } from 'react';
 
 import { Logo } from '@/components/brand/Logo';
 import { Button, NavLink } from '@/components/ui';
-import { LOGIN_ITEM, NAV_ITEMS } from '@/lib/content/navigation';
+import type { SessionView } from '@/lib/auth/session';
+import { NAV_ITEMS } from '@/lib/content/navigation';
 
+import { AccountMenu } from './AccountMenu';
 import { MobileDrawer } from './MobileDrawer';
 import styles from './Header.module.css';
 
 /**
  * Sticky site header. Below 1040px the nav collapses into the burger-triggered
  * drawer and the Order CTA shrinks to a compact pill.
+ *
+ * The session arrives as a prop from the layout rather than being read here:
+ * this is a Client Component, and the session cookie is httpOnly by design.
  */
-export function Header() {
+export function Header({ session }: { session: SessionView }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const pathname = usePathname();
 
@@ -57,9 +62,7 @@ export function Header() {
           </nav>
 
           <div className={styles.actions}>
-            <NavLink href={LOGIN_ITEM.href} className={styles.navLink}>
-              {LOGIN_ITEM.label}
-            </NavLink>
+            <AccountMenu session={session} linkClassName={styles.navLink} />
             <Button variant="primary" size="sm" href="/menu">
               Order
             </Button>

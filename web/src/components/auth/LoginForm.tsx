@@ -1,12 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useActionState, useState } from 'react';
+
+import { loginAction, type AuthActionState } from '@/lib/auth/actions';
 
 import { GoogleMark } from './GoogleMark';
 import styles from './AuthForm.module.css';
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Eye / eye-off glyphs for the password toggle. */
 function EyeIcon({ off }: { off?: boolean }) {
@@ -30,44 +30,42 @@ function EyeIcon({ off }: { off?: boolean }) {
 }
 
 /**
- * Sign-in form. There is no account service yet, so a valid submission lands
- * on an honest notice rather than pretending to start a session — the handler
- * is shaped for the real call to slot in.
+ * Sign-in form.
+ *
+ * Submits to a SERVER ACTION, which is what keeps the password out of the
+ * browser's world: it is posted same-origin, exchanged for a token on our
+ * server, and never touches client JavaScript or an Aonik call from here.
+ *
+ * The inputs are uncontrolled — the action reads `FormData` — so a failed
+ * submission keeps what was typed without any state plumbing. Validation still
+ * runs client-side for instant feedback, but the server's answer is the one
+ * that decides, and it is the only one that can tell a wrong password from a
+ * deployment with accounts switched off.
  */
-export function LoginForm() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+export function LoginForm({ next }: { next?: string }) {
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
-  const [status, setStatus] = useState<'idle' | 'pending' | 'notice'>('idle');
-  const pendingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(
-    () => () => {
-      if (pendingTimer.current) clearTimeout(pendingTimer.current);
-    },
-    [],
+  /**
+   * Google sign-in has no backend here and, per ADR-007, never will have an
+   * Aonik one — it rides the deployment's Keycloak federation, which is an
+   * operator setting this tenant cannot turn on. The button stays live and
+   * explains itself rather than being `disabled`, which would say nothing.
+   */
+  const [googleNotice, setGoogleNotice] = useState(false);
+  const [state, formAction, isPending] = useActionState<AuthActionState, FormData>(
+    loginAction,
+    { status: 'idle' },
   );
 
-  const handleSubmit = (event: FormEvent) => {
-    event.preventDefault();
-    const next: typeof errors = {};
-    if (!EMAIL_PATTERN.test(email.trim())) next.email = 'Enter a valid email address.';
-    if (!password) next.password = 'Enter your password.';
-    setErrors(next);
-    if (Object.keys(next).length > 0) return;
-
-    setStatus('pending');
-    pendingTimer.current = setTimeout(() => setStatus('notice'), 900);
-  };
+  const errors = state.fieldErrors ?? {};
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit} noValidate>
+    <form className={styles.form} action={formAction} noValidate>
+      <input type="hidden" name="next" value={next ?? ''} />
       <h1 className={styles.heading}>Sign in</h1>
       <p className={styles.sub}>Your boxes, personalisations and deliveries, all in one place.</p>
 
-      <button type="button" className={styles.google} onClick={() => setStatus('notice')}>
+      <button type="button" className={styles.google} onClick={() => setGoogleNotice(true)}>
         <GoogleMark />
         Continue with Google
       </button>
@@ -90,8 +88,7 @@ export function LoginForm() {
             autoComplete="email"
             spellCheck={false}
             placeholder="you@example.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            name="email"
             aria-invalid={errors.email ? 'true' : undefined}
             aria-describedby={errors.email ? 'login-email-error' : undefined}
           />
@@ -119,8 +116,7 @@ export function LoginForm() {
             type={showPassword ? 'text' : 'password'}
             autoComplete="current-password"
             placeholder="Your password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            name="password"
             aria-invalid={errors.password ? 'true' : undefined}
             aria-describedby={errors.password ? 'login-password-error' : undefined}
           />
@@ -159,7 +155,13 @@ export function LoginForm() {
         </button>
       </div>
 
-      {status === 'notice' ? (
+      {state.status === 'error' && state.message ? (
+        <p className={styles.error} role="alert">
+          {state.message}
+        </p>
+      ) : null}
+
+      {state.status === 'unavailable' || googleNotice ? (
         <div className={styles.notice} role="status">
           <span className={styles.noticeIcon} aria-hidden="true">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -169,18 +171,21 @@ export function LoginForm() {
             </svg>
           </span>
           <span>
-            <span className={styles.noticeTitle}>Online accounts are nearly ready</span>
+            <span className={styles.noticeTitle}>
+              {googleNotice ? 'Google sign-in isn’t available yet' : 'Accounts aren’t available yet'}
+            </span>
             <span className={styles.noticeSub}>
-              Nothing was sent — sign-in opens with our next release. Your box carries on
-              without an account.
+              {googleNotice
+                ? 'Use your email and password for now — nothing was sent.'
+                : 'Sign-in isn’t switched on for this site yet, so nothing was sent. Your box carries on without an account.'}
             </span>
           </span>
         </div>
       ) : null}
 
-      <button type="submit" className={styles.submit} disabled={status === 'pending'}>
-        {status === 'pending' ? 'Signing you in…' : 'Sign in'}
-        {status !== 'pending' ? (
+      <button type="submit" className={styles.submit} disabled={isPending}>
+        {isPending ? 'Signing you in…' : 'Sign in'}
+        {!isPending ? (
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <line x1="4" y1="12" x2="19" y2="12" />
             <path d="M13 6l6 6-6 6" />
