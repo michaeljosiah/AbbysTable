@@ -35,7 +35,7 @@ confined to `client.ts` exactly as that file promised.
 
 - MODIFIED aonik-transport — `HttpAonikClient` targets the real Aonik routes with
   `X-Tenant-Id` on every request; catalog reads send no credential (breaking: no — mock mode
-  is untouched and remains the default without `AONIK_API_URL`)
+  is untouched and remains the default in development, and without `AONIK_API_URL`)
 - ADDED aonik-transport — money adapter between Aonik decimal major units and frontend pence
   (FR-1)
 - ADDED aonik-transport — typed `AonikError` taxonomy mapping Aonik's error envelope

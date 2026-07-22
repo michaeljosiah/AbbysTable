@@ -22,8 +22,15 @@ export const DATA_MODE_COOKIE = 'abbys-table:data-mode';
 
 export interface DataModeResolution {
   mode: DataMode;
-  /** Where this mode came from — surfaced by the dev toggle, never to customers. */
-  source: 'config' | 'dev-override' | 'fallback';
+  /**
+   * Where this mode came from — surfaced by the dev toggle, never to customers.
+   *
+   * `dev-default` is the "nobody said, so demo" case in development. It is kept
+   * distinct from `config` so the badge can explain itself to a developer whose
+   * `.env.local` points at a real Aonik and who is wondering why they are
+   * looking at fixtures.
+   */
+  source: 'config' | 'dev-default' | 'dev-override' | 'fallback';
   /** Set when live was asked for but cannot be served; explains the demo fallback. */
   unavailableReason?: string;
 }
@@ -69,14 +76,29 @@ export function readAonikConfig(): AonikConfig | null {
   return { baseUrl: baseUrl.replace(/\/$/, ''), tenantId };
 }
 
-/** The configured default, before any development override. */
-export function configuredDataMode(): DataMode {
-  const explicit = parseMode(process.env.AONIK_DATA_MODE?.trim().toLowerCase());
-  if (explicit) return explicit;
+/**
+ * The configured default, before any development override.
+ *
+ * **Development defaults to demo even when `AONIK_API_URL` is set.** A dev
+ * server should not reach a real tenant — creating real carts, placing real
+ * orders, moving real stock — merely because a connection string happens to sit
+ * in someone's `.env.local`. Live is opt-in there: set `AONIK_DATA_MODE=live`,
+ * or flip the dev badge, both of which are deliberate acts.
+ *
+ * Production keeps inferring from configuration, because the failure modes are
+ * reversed: a deployed storefront quietly serving fixture dishes and invented
+ * prices is far worse than one that cannot start.
+ *
+ * `explicit` reports whether a human named the mode, so the badge can explain a
+ * demo default to a developer who expected their configured Aonik.
+ */
+export function configuredDataMode(): { mode: DataMode; explicit: boolean } {
+  const named = parseMode(process.env.AONIK_DATA_MODE?.trim().toLowerCase());
+  if (named) return { mode: named, explicit: true };
 
-  // Unset means "live if we know how to reach Aonik, demo otherwise" — the
-  // behaviour this repo had before the mode existed.
-  return process.env.AONIK_API_URL?.trim() ? 'live' : 'demo';
+  if (isDevelopment()) return { mode: 'demo', explicit: false };
+
+  return { mode: process.env.AONIK_API_URL?.trim() ? 'live' : 'demo', explicit: false };
 }
 
 /**
@@ -84,8 +106,10 @@ export function configuredDataMode(): DataMode {
  * any fallback to demo when live is unreachable by configuration.
  */
 export async function resolveDataMode(): Promise<DataModeResolution> {
-  let mode = configuredDataMode();
-  let source: DataModeResolution['source'] = 'config';
+  const configured = configuredDataMode();
+  let mode = configured.mode;
+  let source: DataModeResolution['source'] =
+    configured.explicit || !isDevelopment() ? 'config' : 'dev-default';
 
   if (isDevelopment()) {
     // `cookies()` opts this render out of static generation, which is correct:
