@@ -13,7 +13,11 @@
  */
 
 import type {
+  BoxCartDto,
+  BoxChangeDto,
+  BoxLineDto,
   BoxPlanDto,
+  BoxQuoteDto,
   EffectiveOptionGroupDto,
   FacetGroupDto,
   NutritionDto,
@@ -537,4 +541,185 @@ export function mapProductToDish(dto: ProductDto): Dish {
 /** Heating for a dish page: authored steps when present, else the caller's fallback. */
 export function mapProductHeating(dto: ProductDto): HeatingInstruction[] {
   return dto.content ? mapResolvedContent(dto.content).heating : [];
+}
+
+/* -------------------------------------------------------------------------- */
+/* Box cart (Spec 068 + 071)                                                   */
+/* -------------------------------------------------------------------------- */
+
+/** One line in the box, pence-mapped. */
+export interface BoxLine {
+  lineId: string;
+  productId: string;
+  variantId: string;
+  name: string;
+  quantity: number;
+  /** The canonical selection, as Aonik stored it. */
+  personalisation?: PersonalisationSelection;
+  /** Aonik's own human summary — no need to re-derive it from option labels. */
+  personalisationSummary: string;
+  isDefaultPersonalisation: boolean;
+  /** Per unit, signed. */
+  personalisationAdjustmentPence: number;
+  unitSurchargePence: number;
+  /** Add-ons only. */
+  unitPricePence?: number;
+  kind: 'BoxDish' | 'AddOn';
+  /** Blocks continue and checkout until the customer resolves it. */
+  isUnavailable: boolean;
+}
+
+export interface BoxQuoteComponent {
+  key: string;
+  amountPence: number;
+}
+
+export interface BoxQuote {
+  /** Ordered and additive. Render by iterating; never sum these to show a total. */
+  components: BoxQuoteComponent[];
+  deliveryListPence: number;
+  /** Aonik guarantees this equals Σ components (A24) — display it verbatim. */
+  totalPence: number;
+  currency: string;
+  /** BoxDish units only; add-ons never move these. */
+  unitsSelected: number;
+  boxSize: number;
+  spacesLeft: number;
+  isFull: boolean;
+}
+
+export interface BoxChange {
+  lineId?: string;
+  group?: string;
+  from?: string;
+  to?: string;
+  reason: string;
+  priceDeltaPence?: number;
+  mergedIntoLineId?: string;
+}
+
+export interface BoxCart {
+  cartId: string;
+  bundleProductId: string;
+  size: number;
+  currency: string;
+  lines: BoxLine[];
+  quote: BoxQuote;
+  changes: BoxChange[];
+}
+
+export function mapBoxLine(dto: BoxLineDto): BoxLine {
+  return {
+    lineId: dto.lineId,
+    productId: dto.productId,
+    variantId: dto.variantId,
+    name: dto.name,
+    quantity: dto.quantity,
+    personalisation: dto.personalisation ?? undefined,
+    personalisationSummary: dto.personalisationSummary,
+    isDefaultPersonalisation: dto.isDefaultPersonalisation,
+    personalisationAdjustmentPence: toPence(dto.personalisationAdjustment),
+    unitSurchargePence: toPence(dto.unitSurcharge),
+    unitPricePence: toPenceOrUndefined(dto.unitPrice),
+    kind: dto.lineKind,
+    isUnavailable: dto.isUnavailable,
+  };
+}
+
+export function mapBoxQuote(dto: BoxQuoteDto): BoxQuote {
+  return {
+    // Order is Aonik's and meaningful; do not sort.
+    components: dto.components.map((component) => ({
+      key: component.key,
+      amountPence: toPence(component.amount),
+    })),
+    deliveryListPence: toPence(dto.deliveryList),
+    totalPence: toPence(dto.total),
+    currency: dto.currency,
+    unitsSelected: dto.unitsSelected,
+    boxSize: dto.boxSize,
+    spacesLeft: dto.spacesLeft,
+    isFull: dto.isFull,
+  };
+}
+
+export function mapBoxChange(dto: BoxChangeDto): BoxChange {
+  return {
+    lineId: dto.lineId ?? undefined,
+    group: dto.group ?? undefined,
+    from: dto.from ?? undefined,
+    to: dto.to ?? undefined,
+    reason: dto.reason,
+    priceDeltaPence: toPenceOrUndefined(dto.priceDelta),
+    mergedIntoLineId: dto.mergedIntoLineId ?? undefined,
+  };
+}
+
+/** Every mutation returns the whole box; the provider replaces state wholesale. */
+export function mapBoxCart(dto: BoxCartDto): BoxCart {
+  return {
+    cartId: dto.box.cartId,
+    bundleProductId: dto.box.bundleProductId,
+    size: dto.box.size,
+    currency: dto.box.currency,
+    lines: dto.box.lines.map(mapBoxLine),
+    quote: mapBoxQuote(dto.quote),
+    changes: dto.changes.map(mapBoxChange),
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Personalisation encoding (Spec 066 §7)                                      */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A selection keyed by option-group key.
+ *
+ * A `One` group's value is a bare string; a `Multi` group's is an ARRAY, and
+ * Aonik rejects a bare string on a multi group with rule `V5` rather than
+ * wrapping it. That asymmetry is why this is a union rather than `string[]`
+ * everywhere.
+ */
+export type PersonalisationSelection = Record<string, string | string[]>;
+
+/**
+ * Encodes a UI selection for the cart, driven by the product's own groups.
+ *
+ * Rules this enforces so Aonik never has to reject us:
+ *  - a `Multi` group always emits an array, even for one choice;
+ *  - a `One` group always emits a bare string;
+ *  - groups the product does not offer are dropped rather than sent;
+ *  - an all-defaults selection encodes to `undefined`, which Aonik reads as
+ *    "the defaults" and flags `isDefaultPersonalisation` on the line.
+ */
+export function encodeSelection(
+  groups: MappedOptionGroup[],
+  chosen: Record<string, string | string[] | undefined>,
+): PersonalisationSelection | undefined {
+  const selection: PersonalisationSelection = {};
+  let differsFromDefault = false;
+
+  for (const group of groups) {
+    const raw = chosen[group.key];
+    const values = (Array.isArray(raw) ? raw : raw === undefined ? [] : [raw]).filter(Boolean);
+    if (values.length === 0) continue;
+
+    const isDefault = values.length === 1 && values[0] === group.defaultChoiceKey;
+    if (!isDefault) differsFromDefault = true;
+
+    selection[group.key] = group.selectionMode === 'Multi' ? values : values[0];
+  }
+
+  return differsFromDefault ? selection : undefined;
+}
+
+/** Reads a stored selection back into UI state, tolerating either encoding. */
+export function decodeSelection(
+  selection: PersonalisationSelection | undefined,
+): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const [key, value] of Object.entries(selection ?? {})) {
+    out[key] = Array.isArray(value) ? value : [value];
+  }
+  return out;
 }

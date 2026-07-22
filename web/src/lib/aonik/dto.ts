@@ -210,3 +210,101 @@ export interface BoxPlanDto {
   currency: string;
   presets: BoxPlanPresetDto[];
 }
+
+/* ---- Box cart (Spec 068 + 071) ---------------------------------------------- */
+
+/** `BoxDish` fills a slot and counts toward capacity; `AddOn` does neither. */
+export type BoxLineKind = 'BoxDish' | 'AddOn';
+
+export interface BoxLineDto {
+  lineId: string;
+  productId: string;
+  variantId: string;
+  name: string;
+  quantity: number;
+  /** The canonical Spec 066 selection — an object, never a string. */
+  personalisation: Record<string, string | string[]> | null;
+  personalisationSummary: string;
+  isDefaultPersonalisation: boolean;
+  /** Per unit, signed. */
+  personalisationAdjustment: number;
+  unitSurcharge: number;
+  /** Empty GUID for add-ons — they fill no slot. */
+  slotId: string;
+  /** Flagged, never silently removed: adds reject, continue/checkout block. */
+  isUnavailable: boolean;
+  lineKind: BoxLineKind;
+  /** Add-ons only: the retail unit price, the deliberate no-price-rule exception. */
+  unitPrice: number | null;
+}
+
+export interface BoxDto {
+  cartId: string;
+  bundleProductId: string;
+  size: number;
+  currency: string;
+  lines: BoxLineDto[];
+}
+
+export interface QuoteComponentDto {
+  key: string;
+  amount: number;
+}
+
+export interface BoxQuoteDto {
+  /** Ordered and additive — iterate, never reconstruct from known keys. */
+  components: QuoteComponentDto[];
+  /** Struck-through display value; NOT a component. */
+  deliveryList: number;
+  /** Guaranteed to equal the sum of components (invariant A24). */
+  total: number;
+  currency: string;
+  /** BoxDish units only — an add-on never changes these three. */
+  unitsSelected: number;
+  boxSize: number;
+  spacesLeft: number;
+  isFull: boolean;
+}
+
+export interface BoxChangeDto {
+  lineId: string | null;
+  group: string | null;
+  from: string | null;
+  to: string | null;
+  reason: string;
+  priceDelta: number | null;
+  mergedIntoLineId: string | null;
+}
+
+export interface BoxCartDto {
+  box: BoxDto;
+  quote: BoxQuoteDto;
+  changes: BoxChangeDto[];
+  /** Disclosed EXACTLY ONCE, on creation. Never returned again. */
+  cartToken: string | null;
+}
+
+/* ---- Extras rail (Spec 071) -------------------------------------------------- */
+
+export interface ExtraRowDto {
+  productId: string;
+  productVariantId: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+  tags: string[];
+  attributesJson: string | null;
+  /** Real retail price — the deliberate exception to the no-price rule. */
+  unitPrice: number;
+  unitSurcharge: number | null;
+  currency: string;
+  content: ResolvedContentDto | null;
+  optionGroups: EffectiveOptionGroupDto[];
+}
+
+/** `skipped` counts unpriceable rows — an operator signal, never shown to customers. */
+export interface ExtrasListDto {
+  rows: ExtraRowDto[];
+  skipped: number;
+}
