@@ -60,7 +60,8 @@
 .email {
   margin: 0 0 var(--space-2);
   padding: 6px 10px;
-  border-bottom: 1px solid var(--border-hairline);
+  /* --border-hairline is a WIDTH token (1px), never a colour. */
+  border-bottom: var(--border-hairline) solid var(--border-light);
   color: var(--text-muted);
   font-family: var(--font-sans);
   font-size: var(--body-xs);
