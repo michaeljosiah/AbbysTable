@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Cormorant_Garamond, Figtree, Playfair_Display } from 'next/font/google';
 
 import { DevDataMode } from '@/components/dev/DevDataMode';
+import { resolveDataMode } from '@/lib/aonik/dataMode';
 import { CartProvider } from '@/lib/cart/CartProvider';
 
 import '@/styles/tokens.css';
@@ -50,11 +51,15 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Which cart engine runs is a server decision — the client is told, never
+  // asked, so a browser cannot elect itself onto the live cart.
+  const { mode } = await resolveDataMode();
+
   return (
     <html lang="en-GB" className={`${playfair.variable} ${cormorant.variable} ${figtree.variable}`}>
       <body>
-        <CartProvider>{children}</CartProvider>
+        <CartProvider mode={mode}>{children}</CartProvider>
         {/* Renders nothing in production. */}
         <DevDataMode />
       </body>
