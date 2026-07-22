@@ -13,13 +13,20 @@ import styles from './CheckoutHeader.module.css';
  * Checkout chrome: logo, progress stepper and a help entry point.
  *
  * Deliberately without the site nav — someone mid-order should not be one click
- * from wandering off. Steps 3-5 have no templates yet, so they render as
- * upcoming but do not link anywhere.
+ * from wandering off. The final step is not a link: it is reached by placing the
+ * order, never by clicking ahead to it.
  */
 export interface CheckoutStep {
   number: number;
   label: string;
+  /** Set only on steps a customer may navigate back to. */
   href?: string;
+  /**
+   * Path prefix that marks this step current, when it differs from `href`.
+   * The final step has one and no `href`: it is reachable only by placing the
+   * order, so it must light up on arrival without being a link from earlier.
+   */
+  match?: string;
 }
 
 export const CHECKOUT_STEPS: CheckoutStep[] = [
@@ -27,7 +34,7 @@ export const CHECKOUT_STEPS: CheckoutStep[] = [
   { number: 2, label: 'Add dishes', href: '/box/dishes' },
   { number: 3, label: 'Extras', href: '/box/extras' },
   { number: 4, label: 'Review', href: '/box/review' },
-  { number: 5, label: 'Checkout' },
+  { number: 5, label: 'Checkout', match: '/box/confirmation' },
 ];
 
 /**
@@ -38,10 +45,11 @@ export function CheckoutHeader() {
   const pathname = usePathname();
   const [helpOpen, setHelpOpen] = useState(false);
 
+  // Longest matching prefix wins, so `/box/dishes` beats `/box`.
   const current =
-    CHECKOUT_STEPS.filter((step) => step.href && pathname.startsWith(step.href)).sort(
-      (a, b) => b.href!.length - a.href!.length,
-    )[0] ?? CHECKOUT_STEPS[0];
+    CHECKOUT_STEPS.map((step) => ({ step, path: step.match ?? step.href }))
+      .filter((candidate) => candidate.path && pathname.startsWith(candidate.path))
+      .sort((a, b) => b.path!.length - a.path!.length)[0]?.step ?? CHECKOUT_STEPS[0];
 
   return (
     <header className={styles.header}>

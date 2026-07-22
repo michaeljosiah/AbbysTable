@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from 'react';
 
-import type { BoxCart, BoxChange, BoxQuote } from '@/lib/aonik/map';
+import type { BoxCart, BoxChange, BoxQuote, CheckoutResult } from '@/lib/aonik/map';
 import type { BoxPricing, Extra } from '@/lib/aonik/types';
 
 import { useServerCart, type CartRequestError } from './serverEngine';
@@ -108,6 +108,21 @@ interface CartContextValue extends CartState {
   error: CartRequestError | null;
   /** True when this cart is server-backed, for surfaces that must know. */
   isServerCart: boolean;
+  /**
+   * Re-validates the box against the live catalogue (the continue gate).
+   * Resolves to the surfaced changes, which may be empty. In demo mode there
+   * is nothing to validate against, so it resolves to none.
+   */
+  revalidate: () => Promise<BoxChange[]>;
+  /**
+   * Places the order and resolves with it.
+   *
+   * REJECTS on drift with a `CartRequestError` whose `drift` is the refreshed
+   * box — which the provider has already adopted, so the UI re-renders server
+   * truth on its own. Nothing was ordered; the customer confirms again. This is
+   * never retried automatically: the stop exists so a person sees the change.
+   */
+  placeOrder: () => Promise<CheckoutResult>;
 }
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -363,6 +378,27 @@ export function CartProvider({
     setState(EMPTY);
   }, [isServerCart]);
 
+  /**
+   * The continue gate. Review calls this on load so the page renders what the
+   * server says is true now, not what navigation carried across from Step 3.
+   */
+  const revalidate = useCallback(async (): Promise<BoxChange[]> => {
+    if (!isServerCart) return [];
+    const cart = await server.request('/continue', { method: 'POST' }).catch(() => null);
+    return cart?.changes ?? [];
+  }, [isServerCart, server]);
+
+  /** Terminal. See the contract above for why drift propagates rather than retries. */
+  const placeOrder = useCallback(async (): Promise<CheckoutResult> => {
+    if (!isServerCart) {
+      throw new Error(
+        'Checkout requires a server cart. This build is running on demo data, where the box ' +
+          'is held client-side and no order can be placed.',
+      );
+    }
+    return server.checkout();
+  }, [isServerCart, server]);
+
   /* In live mode the projected server cart IS the state; demo uses its own. */
   const effectiveState = useMemo<CartState>(
     () => (isServerCart ? (server.cart ? projectServerCart(server.cart, server.display) : EMPTY) : state),
@@ -393,6 +429,8 @@ export function CartProvider({
       pending: server.pending,
       error: server.error,
       isServerCart,
+      revalidate,
+      placeOrder,
     }),
     [
       effectiveState,
@@ -411,6 +449,8 @@ export function CartProvider({
       setExtraOption,
       removeExtra,
       clear,
+      revalidate,
+      placeOrder,
     ],
   );
 

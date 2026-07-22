@@ -34,8 +34,8 @@ import {
 } from '@/lib/cart/CartProvider';
 import { formatPrice, formatPriceExact } from '@/lib/format';
 
-import { ContinueLink } from './ContinueLink';
 import { DriftNotices } from './DriftNotices';
+import { PlaceOrderButton } from './PlaceOrderButton';
 import dmStyles from './DishPicker.module.css';
 import styles from './ReviewStep.module.css';
 
@@ -51,7 +51,12 @@ interface ReviewStepProps {
   personalisation: PersonalisationOptions;
   /** Reheating guidance for the modal's shared info panels. */
   heating: HeatingInstruction[];
-  earliestDeliveryLabel: string;
+  /**
+   * Pre-formatted delivery date, e.g. "6 August", or null when the tenant
+   * publishes no promise — in which case the line is not rendered at all. A
+   * wrong date is worse than no date, so nothing is invented here.
+   */
+  earliestDeliveryLabel: string | null;
   heading: ReactNode;
 }
 
@@ -75,7 +80,24 @@ export function ReviewStep({
     setExtraQuantity,
     setExtraOption,
     removeExtra,
+    revalidate,
+    isServerCart,
   } = useCart();
+
+  /**
+   * The continue gate (SPEC review-checkout FR-2).
+   *
+   * Aonik re-validates the box against the live catalogue and returns the
+   * repaired truth, which the provider adopts — so the page below renders what
+   * is actually orderable, and `DriftNotices` explains anything that moved. It
+   * runs ONCE per visit: it is a POST that can repair the cart, not a poll.
+   */
+  const gateRun = useRef(false);
+  useEffect(() => {
+    if (!isServerCart || !hydrated || gateRun.current) return;
+    gateRun.current = true;
+    void revalidate();
+  }, [isServerCart, hydrated, revalidate]);
 
   const [boxOpen, setBoxOpen] = useState(true);
   const [extrasOpen, setExtrasOpen] = useState(true);
@@ -622,9 +644,9 @@ export function ReviewStep({
               <span>Total</span>
               <span className={styles.totalValue}>{totalLabel}</span>
             </div>
-            <ContinueLink href="/box/checkout" className={styles.cta}>
+            <PlaceOrderButton className={styles.cta}>
               <span className={styles.ctaMain}>
-                Continue to checkout
+                Place order
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <line x1="4" y1="12" x2="19" y2="12" />
                   <path d="M13 6l6 6-6 6" />
@@ -637,10 +659,12 @@ export function ReviewStep({
                 </svg>
                 Secure checkout
               </span>
-            </ContinueLink>
-            <p className={styles.deliveryNote}>
-              Earliest UK-wide delivery: <strong>{earliestDeliveryLabel}</strong>
-            </p>
+            </PlaceOrderButton>
+            {earliestDeliveryLabel ? (
+              <p className={styles.deliveryNote}>
+                Earliest UK-wide delivery: <strong>{earliestDeliveryLabel}</strong>
+              </p>
+            ) : null}
           </div>
         </div>
       </aside>
@@ -672,13 +696,13 @@ export function ReviewStep({
           </span>
         </button>
         <span className={styles.barDivider} aria-hidden="true" />
-        <Link href="/box/checkout" className={styles.barCta}>
+        <PlaceOrderButton className={styles.barCta}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <line x1="4" y1="12" x2="19" y2="12" />
             <path d="M13 6l6 6-6 6" />
           </svg>
-          Continue
-        </Link>
+          Place order
+        </PlaceOrderButton>
       </div>
 
       {sheetOpen ? (
@@ -714,9 +738,9 @@ export function ReviewStep({
                 <span>Total</span>
                 <span className={styles.sheetTotalValue}>{totalLabel}</span>
               </div>
-              <Link href="/box/checkout" className={`${styles.cta} ${styles.sheetCta}`}>
+              <PlaceOrderButton className={`${styles.cta} ${styles.sheetCta}`}>
                 <span className={styles.ctaMain}>
-                  Continue to checkout
+                  Place order
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <line x1="4" y1="12" x2="19" y2="12" />
                     <path d="M13 6l6 6-6 6" />
@@ -729,10 +753,12 @@ export function ReviewStep({
                   </svg>
                   Secure checkout
                 </span>
-              </Link>
-              <p className={styles.sheetDeliveryNote}>
-                Earliest UK-wide delivery: <strong>{earliestDeliveryLabel}</strong>
-              </p>
+              </PlaceOrderButton>
+              {earliestDeliveryLabel ? (
+                <p className={styles.sheetDeliveryNote}>
+                  Earliest UK-wide delivery: <strong>{earliestDeliveryLabel}</strong>
+                </p>
+              ) : null}
             </div>
           </div>
         </>

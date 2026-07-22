@@ -13,7 +13,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { BoxCart, PersonalisationSelection } from '@/lib/aonik/map';
+import type { BoxCart, CheckoutResult, PersonalisationSelection } from '@/lib/aonik/map';
 
 /**
  * Display-only cache of productId → { slug, imageUrl }.
@@ -55,9 +55,10 @@ function writeDisplayIndex(index: Record<string, LineDisplay>): void {
 export class CartRequestError extends Error {
   readonly status: number;
   readonly code?: string;
-  readonly drift?: unknown;
+  /** The refreshed box on a 409 drift, already mapped by the route. */
+  readonly drift?: BoxCart;
 
-  constructor(status: number, message: string, code?: string, drift?: unknown) {
+  constructor(status: number, message: string, code?: string, drift?: BoxCart) {
     super(message);
     this.name = 'CartRequestError';
     this.status = status;
@@ -67,10 +68,15 @@ export class CartRequestError extends Error {
 }
 
 interface CartResponse {
-  cart: BoxCart | null;
+  /**
+   * Present on every cart response — and ALSO on a 409 drift, where it is the
+   * refreshed box the route mapped out of the error body. Absent (undefined)
+   * when the failure carried no box at all, which is not the same as null.
+   */
+  cart?: BoxCart | null;
+  order?: CheckoutResult;
   error?: string;
   code?: string;
-  drift?: unknown;
 }
 
 export interface ServerCartEngine {
@@ -83,6 +89,12 @@ export interface ServerCartEngine {
   display: Record<string, LineDisplay>;
   rememberDisplay: (productId: string, display: LineDisplay) => void;
   request: (path: string, init?: { method?: string; body?: unknown }) => Promise<BoxCart | null>;
+  /**
+   * Places the order. Resolves with the order on success; on drift it has
+   * already replaced the box with the refreshed one and then throws, so the
+   * caller re-renders and the customer confirms the change. Never retried.
+   */
+  checkout: (body?: { discountCode?: string }) => Promise<CheckoutResult>;
 }
 
 export function useServerCart(enabled: boolean): ServerCartEngine {
@@ -95,8 +107,17 @@ export function useServerCart(enabled: boolean): ServerCartEngine {
   /** Serialises mutations so a fast double-click cannot interleave two writes. */
   const queue = useRef<Promise<unknown>>(Promise.resolve());
 
-  const request = useCallback(
-    async (path: string, init?: { method?: string; body?: unknown }): Promise<BoxCart | null> => {
+  /**
+   * One `/api/cart` round trip, queued behind any in-flight mutation.
+   *
+   * Adopting `payload.cart` happens on failure as well as success, because a
+   * 409 drift is a failure that nonetheless carries the authoritative box —
+   * Aonik persisted the repair before refusing. Showing the customer the box
+   * they no longer have, next to a notice saying it changed, is the one
+   * outcome worse than either.
+   */
+  const send = useCallback(
+    async (path: string, init?: { method?: string; body?: unknown }): Promise<CartResponse> => {
       const run = async () => {
         setPending(true);
         try {
@@ -108,22 +129,25 @@ export function useServerCart(enabled: boolean): ServerCartEngine {
 
           const payload = (await response.json().catch(() => ({}))) as CartResponse;
 
+          // `cart: null` is a real state: the cookie was dropped because the
+          // cart is gone or was never ours. The UI resets to an empty box.
+          // `cart: undefined` means this response carried no box — leave the
+          // current one alone.
+          if (payload.cart !== undefined) setCart(payload.cart);
+
           if (!response.ok) {
             const failure = new CartRequestError(
               response.status,
               payload.error ?? 'The box could not be updated.',
               payload.code,
-              payload.drift,
+              payload.cart ?? undefined,
             );
             setError(failure);
             throw failure;
           }
 
           setError(null);
-          // `cart: null` is a real state: the cookie was dropped because the
-          // cart is gone or was never ours. The UI resets to an empty box.
-          setCart(payload.cart);
-          return payload.cart;
+          return payload;
         } finally {
           setPending(false);
         }
@@ -135,6 +159,23 @@ export function useServerCart(enabled: boolean): ServerCartEngine {
       return next;
     },
     [],
+  );
+
+  const request = useCallback(
+    async (path: string, init?: { method?: string; body?: unknown }): Promise<BoxCart | null> =>
+      (await send(path, init)).cart ?? null,
+    [send],
+  );
+
+  const checkout = useCallback(
+    async (body?: { discountCode?: string }): Promise<CheckoutResult> => {
+      const payload = await send('/checkout', { method: 'POST', body: body ?? {} });
+      if (!payload.order) {
+        throw new CartRequestError(500, 'The order was placed but could not be read back.');
+      }
+      return payload.order;
+    },
+    [send],
   );
 
   // Hydrate from the server once, after mount.
@@ -158,7 +199,7 @@ export function useServerCart(enabled: boolean): ServerCartEngine {
     });
   }, []);
 
-  return { cart, hydrated, pending, error, display, rememberDisplay, request };
+  return { cart, hydrated, pending, error, display, rememberDisplay, request, checkout };
 }
 
 export type { PersonalisationSelection };

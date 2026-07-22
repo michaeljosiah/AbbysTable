@@ -53,7 +53,7 @@ export default async function ChooseBoxPage() {
 
       <BoxChooser
         pricing={pricing}
-        earliestDeliveryLabel={formatDeliveryDate(delivery.earliestDeliveryDate)}
+        earliestDeliveryLabel={formatDeliveryDate(delivery?.earliestDeliveryDate)}
         heading={
           <div className={styles.stepHeading}>
             {/* Bespoke sizes from the checkout template (50px display, 13px

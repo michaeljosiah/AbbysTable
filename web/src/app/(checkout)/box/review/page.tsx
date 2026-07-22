@@ -52,7 +52,7 @@ export default async function BoxReviewPage() {
         pricing={pricing}
         personalisation={personalisation}
         heating={heating}
-        earliestDeliveryLabel={formatDeliveryDate(delivery.earliestDeliveryDate)}
+        earliestDeliveryLabel={formatDeliveryDate(delivery?.earliestDeliveryDate)}
         heading={
           <>
             <span className={styles.eyebrow}>Step 4 of 5</span>

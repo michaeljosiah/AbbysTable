@@ -40,8 +40,12 @@ function capitalise(word: string): string {
 interface BoxesPromoProps {
   mainBox: BoxOffer;
   tasterBox: BoxOffer;
-  /** Already formatted for display, e.g. "6 August". */
-  earliestDeliveryLabel: string;
+  /**
+   * Pre-formatted delivery date, e.g. "6 August", or null when the tenant
+   * publishes no promise — in which case the line is not rendered at all. A
+   * wrong date is worse than no date, so nothing is invented here.
+   */
+  earliestDeliveryLabel: string | null;
 }
 
 /**
@@ -63,9 +67,13 @@ export function BoxesPromo({ mainBox, tasterBox, earliestDeliveryLabel }: BoxesP
         {mainBox.blurb ? <p className={styles.blurb}>{mainBox.blurb}</p> : null}
 
         <p className={styles.delivery}>
-          Earliest UK-wide delivery:{' '}
-          <strong className={styles.deliveryDate}>{earliestDeliveryLabel}</strong> · Choose your
-          date at checkout
+          {earliestDeliveryLabel ? (
+            <>
+              Earliest UK-wide delivery:{' '}
+              <strong className={styles.deliveryDate}>{earliestDeliveryLabel}</strong> ·{' '}
+            </>
+          ) : null}
+          Choose your date at checkout
         </p>
 
         <div className={styles.ctaRow}>

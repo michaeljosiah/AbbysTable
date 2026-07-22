@@ -269,6 +269,7 @@ export const BOX_PRICING_FIXTURE: BoxPricing = {
 
 export const DELIVERY_FIXTURE: DeliveryWindow = {
   earliestDeliveryDate: '2026-08-06',
+  timezone: 'Europe/London',
 };
 
 /**

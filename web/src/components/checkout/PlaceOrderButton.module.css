@@ -1,0 +1,10 @@
+/* Inline failure under the confirm CTA. Terracotta is the token the rest of
+   the checkout uses for "this needs your attention", not an alarm colour. */
+.message {
+  margin: 10px 0 0;
+  color: var(--terracotta);
+  font-family: var(--font-sans);
+  font-size: var(--body-sm);
+  line-height: 1.45;
+  text-align: center;
+}

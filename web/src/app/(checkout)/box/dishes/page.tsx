@@ -80,7 +80,7 @@ export default async function BoxDishesPage() {
             dishes={dishes}
             pricing={pricing}
             personalisation={personalisation}
-            earliestDeliveryLabel={formatDeliveryDate(delivery.earliestDeliveryDate)}
+            earliestDeliveryLabel={formatDeliveryDate(delivery?.earliestDeliveryDate)}
           />
         </aside>
       </div>

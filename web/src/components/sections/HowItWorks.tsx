@@ -6,8 +6,12 @@ import { HOW_IT_WORKS_STEPS } from '@/lib/content/marketing';
 import styles from './HowItWorks.module.css';
 
 interface HowItWorksProps {
-  /** Pre-formatted delivery date, e.g. "6 August". */
-  earliestDeliveryLabel: string;
+  /**
+   * Pre-formatted delivery date, e.g. "6 August", or null when the tenant
+   * publishes no promise — in which case the line is not rendered at all. A
+   * wrong date is worse than no date, so nothing is invented here.
+   */
+  earliestDeliveryLabel: string | null;
 }
 
 /**
@@ -59,15 +63,17 @@ export function HowItWorks({ earliestDeliveryLabel }: HowItWorksProps) {
           ))}
         </ol>
 
-        <p className={styles.delivery}>
-          <svg className={styles.calendar} width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
-            <rect x="3" y="4.5" width="18" height="16" rx="2" />
-            <path d="M3 9h18" />
-            <path d="M8 2.5v4" />
-            <path d="M16 2.5v4" />
-          </svg>
-          <span>Earliest UK-wide delivery: {earliestDeliveryLabel}</span>
-        </p>
+        {earliestDeliveryLabel ? (
+          <p className={styles.delivery}>
+            <svg className={styles.calendar} width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="4.5" width="18" height="16" rx="2" />
+              <path d="M3 9h18" />
+              <path d="M8 2.5v4" />
+              <path d="M16 2.5v4" />
+            </svg>
+            <span>Earliest UK-wide delivery: {earliestDeliveryLabel}</span>
+          </p>
+        ) : null}
 
         <div className={styles.cta}>
           <Button variant="outline" href="/menu">

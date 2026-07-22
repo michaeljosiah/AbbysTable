@@ -48,7 +48,7 @@ export default async function DishPage({ params }: DishPageProps) {
   if (!data) notFound();
 
   const { dish, related, boxes, delivery, personalisation, heating } = data;
-  const earliestDeliveryLabel = formatDeliveryDate(delivery.earliestDeliveryDate);
+  const earliestDeliveryLabel = formatDeliveryDate(delivery?.earliestDeliveryDate);
 
   // "Boxes start at ..." is derived from the cheapest offer rather than hardcoded.
   const entryBox = [...boxes].sort((a, b) => a.pricePence - b.pricePence)[0];
@@ -184,8 +184,13 @@ export default async function DishPage({ params }: DishPageProps) {
               <path d="M16 2.5v4" />
             </svg>
             <span>
-              Prepared for your chosen delivery date. Earliest UK-wide delivery:{' '}
-              <strong>{earliestDeliveryLabel}</strong>.
+              Prepared for your chosen delivery date.
+              {earliestDeliveryLabel ? (
+                <>
+                  {' '}
+                  Earliest UK-wide delivery: <strong>{earliestDeliveryLabel}</strong>.
+                </>
+              ) : null}
             </span>
           </p>
 

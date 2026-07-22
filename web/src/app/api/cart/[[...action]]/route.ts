@@ -12,12 +12,14 @@
 
 import { NextResponse } from 'next/server';
 
+import type { BoxCartDto } from '@/lib/aonik/dto';
 import { AonikError } from '@/lib/aonik/errors';
-import type { PersonalisationSelection } from '@/lib/aonik/map';
+import { mapBoxCart, type PersonalisationSelection } from '@/lib/aonik/map';
 import {
   CartUnavailableError,
   addBoxExtra,
   addBoxLine,
+  checkoutBoxCart,
   continueBoxCart,
   createBoxCart,
   getBoxCart,
@@ -37,6 +39,7 @@ interface Body {
   personalisation?: PersonalisationSelection;
   applyToUnits?: number;
   lineId?: string;
+  discountCode?: string;
   firstLine?: {
     productVariantId: string;
     quantity: number;
@@ -62,8 +65,11 @@ function errorResponse(error: unknown) {
         error: error.message,
         code: error.code,
         rule: error.rule,
-        // Drift carries the repaired box so the UI can re-render from it.
-        drift: error.drift,
+        // Drift carries the repaired box. It is mapped HERE, not shipped raw:
+        // the client would otherwise have to know Aonik's decimal money and DTO
+        // field names, and every mapping rule would exist in two places. The UI
+        // adopts it exactly as it adopts any other cart response.
+        cart: mapDriftCart(error),
       },
       { status: error.status },
     );
@@ -71,6 +77,24 @@ function errorResponse(error: unknown) {
 
   console.error('[api/cart] unexpected failure', error);
   return NextResponse.json({ error: 'The box could not be updated.' }, { status: 500 });
+}
+
+/**
+ * The refreshed box out of a 409 drift body, or undefined.
+ *
+ * Undefined and null mean different things downstream — undefined is "this
+ * error carried no box", null is "the cart is gone" — so a malformed drift body
+ * must not collapse into null and blank someone's box on an unrelated failure.
+ */
+function mapDriftCart(error: AonikError) {
+  if (!error.drift) return undefined;
+  try {
+    const { box, quote, changes } = error.drift;
+    return mapBoxCart({ box, quote, changes, cartToken: null } as BoxCartDto);
+  } catch (mappingFailure) {
+    console.error('[api/cart] drift body did not map', mappingFailure);
+    return undefined;
+  }
 }
 
 /** A null cart means the cookie was dropped: the UI resets to the empty box. */
@@ -132,6 +156,18 @@ export async function POST(request: Request, context: { params: Promise<{ action
 
       case 'continue':
         return cartResponse(await continueBoxCart());
+
+      // Not idempotent and the only call that creates durable state, so it is
+      // never retried. A 409 drift falls to `errorResponse`, which forwards the
+      // refreshed box for the review page to re-render from.
+      case 'checkout': {
+        const result = await checkoutBoxCart({ discountCode: body.discountCode });
+        if (!result) {
+          // The cart is gone or was never ours; there is nothing to check out.
+          return NextResponse.json({ error: 'There is no box to check out.' }, { status: 404 });
+        }
+        return NextResponse.json({ order: result });
+      }
 
       default:
         return NextResponse.json({ error: 'Unknown cart action' }, { status: 404 });

@@ -8,13 +8,21 @@
  * SERVER-ONLY.
  */
 
-import type { BoxCartDto } from '@/lib/aonik/dto';
+import type { BoxCartDto, CheckoutResultDto } from '@/lib/aonik/dto';
 import { AonikError } from '@/lib/aonik/errors';
 import { aonikFetch, type AonikFetchOptions } from '@/lib/aonik/http';
-import { mapBoxCart, toMajor, type BoxCart, type PersonalisationSelection } from '@/lib/aonik/map';
+import {
+  mapBoxCart,
+  mapCheckoutResult,
+  toMajor,
+  type BoxCart,
+  type CheckoutResult,
+  type PersonalisationSelection,
+} from '@/lib/aonik/map';
 import { readAonikConfig } from '@/lib/aonik/dataMode';
 
 import { clearCartCookie, readCartCookie, writeCartCookie } from './cartCookie';
+import { writePlacedOrder, type PlacedOrder, type PlacedOrderLine } from './orderCookie';
 
 /**
  * Raised when a cart route is called without a configured Aonik.
@@ -200,6 +208,114 @@ export async function continueBoxCart(): Promise<BoxCart | null> {
     cartFetch<BoxCartDto>(`/commerce/carts/${cartId}/continue`, { ...auth, method: 'POST' }),
   );
   return dto ? mapBoxCart(dto) : null;
+}
+
+/**
+ * The tenant's payment labels.
+ *
+ * Aonik validates only that these are non-empty — the vocabulary belongs to the
+ * tenant's payment configuration, so they are configuration here too. The
+ * defaults match the gateway the platform ships with (`ProviderCode => "Stripe"`).
+ */
+function paymentLabels(): { provider: string; paymentMethodType: string } {
+  return {
+    provider: process.env.AONIK_PAYMENT_PROVIDER?.trim() || 'Stripe',
+    paymentMethodType: process.env.AONIK_PAYMENT_METHOD_TYPE?.trim() || 'card',
+  };
+}
+
+/**
+ * Places the order.
+ *
+ * Three things about this call shape the code around it:
+ *
+ *  1. It is NOT idempotent, and it is the one call in the journey that creates
+ *     durable state (order, invoice, payment intent, stock reservation). It is
+ *     therefore never retried automatically anywhere in this codebase.
+ *  2. Drift throws 409 `commerce.box_drift` carrying the refreshed box, and
+ *     Aonik persists the repair before throwing — so the resubmit is against
+ *     saved state. The error propagates unchanged; the caller re-renders from
+ *     `error.drift` and the customer confirms the change. That stop is the
+ *     point (Spec 068 A18) and swallowing it would place an order the customer
+ *     never agreed to.
+ *  3. On success the cart is checked out and Aonik rejects further edits on it,
+ *     so the cookie is cleared here — leaving it would strand the customer on a
+ *     dead cart with no way back to an empty box.
+ */
+export async function checkoutBoxCart(input?: {
+  returnUrl?: string;
+  cancelUrl?: string;
+  customerAccountId?: string;
+  discountCode?: string;
+}): Promise<CheckoutResult | null> {
+  // The box is read BEFORE placing, because the checkout response carries only
+  // totals — no lines. Once the cart is checked out this is the last chance to
+  // see what was in it, and the confirmation page has no other source: Aonik's
+  // order routes are authenticated and party-scoped, so an anonymous customer
+  // can never read the order back. A drift 409 throws before the snapshot is
+  // written, which is correct — nothing was placed.
+  const placed = await getBoxCart();
+
+  const dto = await withCart((cartId, auth) =>
+    cartFetch<CheckoutResultDto>(`/commerce/carts/${cartId}/checkout`, {
+      ...auth,
+      method: 'POST',
+      body: { ...paymentLabels(), ...input },
+    }),
+  );
+
+  if (!dto) return null;
+
+  const order = mapCheckoutResult(dto);
+  await writePlacedOrder(snapshotOrder(order, placed, await earliestDeliveryDate()));
+  await clearCartCookie();
+  return order;
+}
+
+/**
+ * The promise as it stood at placement, or undefined.
+ *
+ * Never re-resolved afterwards: the confirmation must keep saying what the
+ * customer was told when they paid, even after the calendar has moved on.
+ */
+async function earliestDeliveryDate(): Promise<string | undefined> {
+  try {
+    const { getAonikClient } = await import('@/lib/aonik/client');
+    const window = await (await getAonikClient()).getDeliveryWindow();
+    return window?.earliestDeliveryDate;
+  } catch {
+    // A confirmation without a date is fine; a failed order because the
+    // delivery config blipped is not.
+    return undefined;
+  }
+}
+
+/** Reduces the placed cart to the display-only fields the confirmation needs. */
+function snapshotOrder(
+  order: CheckoutResult,
+  placed: BoxCart | null,
+  deliveryDate: string | undefined,
+): PlacedOrder {
+  const toLine = (line: BoxCart['lines'][number]): PlacedOrderLine => ({
+    name: line.name,
+    quantity: line.quantity,
+    detail: line.isDefaultPersonalisation ? undefined : line.personalisationSummary || undefined,
+    pricePence: line.unitPricePence,
+  });
+
+  return {
+    orderId: order.orderId,
+    paymentStatus: order.paymentStatus,
+    subtotalPence: order.subtotalPence,
+    discountTotalPence: order.discountTotalPence,
+    taxTotalPence: order.taxTotalPence,
+    totalPence: order.totalPence,
+    currency: order.currency,
+    earliestDeliveryDate: deliveryDate,
+    boxSize: placed?.size,
+    dishes: (placed?.lines ?? []).filter((line) => line.kind !== 'AddOn').map(toLine),
+    addOns: (placed?.lines ?? []).filter((line) => line.kind === 'AddOn').map(toLine),
+  };
 }
 
 /** Exposed for the money adapter's benefit in request bodies we may add later. */

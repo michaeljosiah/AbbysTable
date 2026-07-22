@@ -45,7 +45,7 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
     query,
     limit,
   });
-  const earliestDeliveryLabel = formatDeliveryDate(delivery.earliestDeliveryDate);
+  const earliestDeliveryLabel = formatDeliveryDate(delivery?.earliestDeliveryDate);
 
   return (
     <>
@@ -58,9 +58,13 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
         </SectionHeading>
         <p className={styles.lead}>
           Cooked to order in small batches.
-          <br />
-          Earliest UK-wide delivery:{' '}
-          <span className={styles.delivery}>{earliestDeliveryLabel}</span>
+          {earliestDeliveryLabel ? (
+            <>
+              <br />
+              Earliest UK-wide delivery:{' '}
+              <span className={styles.delivery}>{earliestDeliveryLabel}</span>
+            </>
+          ) : null}
         </p>
       </section>
 

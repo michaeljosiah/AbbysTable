@@ -37,8 +37,12 @@ import styles from './BoxChooser.module.css';
  */
 interface BoxChooserProps {
   pricing: BoxPricing;
-  /** Pre-formatted, e.g. "6 August". */
-  earliestDeliveryLabel: string;
+  /**
+   * Pre-formatted delivery date, e.g. "6 August", or null when the tenant
+   * publishes no promise — in which case the line is not rendered at all. A
+   * wrong date is worse than no date, so nothing is invented here.
+   */
+  earliestDeliveryLabel: string | null;
   /** Step eyebrow, title and intro, rendered by the page. */
   heading: ReactNode;
 }
@@ -879,9 +883,11 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
                 </span>
               </ContinueCta>
 
-              <p className={styles.deliveryNote}>
-                Earliest UK-wide delivery: <strong>{earliestDeliveryLabel}</strong>
-              </p>
+              {earliestDeliveryLabel ? (
+                <p className={styles.deliveryNote}>
+                  Earliest UK-wide delivery: <strong>{earliestDeliveryLabel}</strong>
+                </p>
+              ) : null}
             </div>
           </div>
         </aside>
@@ -1086,9 +1092,11 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
                 </span>
               </ContinueCta>
 
-              <p className={styles.deliveryNote} data-context="sheet">
-                Earliest UK-wide delivery: <strong>{earliestDeliveryLabel}</strong>
-              </p>
+              {earliestDeliveryLabel ? (
+                <p className={styles.deliveryNote} data-context="sheet">
+                  Earliest UK-wide delivery: <strong>{earliestDeliveryLabel}</strong>
+                </p>
+              ) : null}
             </div>
           </div>
         </>

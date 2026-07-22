@@ -188,15 +188,53 @@ GET /commerce/config/delivery — everywhere the date shows; 404 ⇒ omit
 ---
 
 ## Tasks
-- [ ] `DeliveryWindow` type + mapper: `timezone`, no-promise state; string-safe date render
+- [x] `DeliveryWindow` type + mapper: `timezone`, no-promise state; string-safe date render
       helper; audit every delivery-date surface for the empty state
-- [ ] `/api/cart/continue` + `/api/cart/checkout` route handlers (drift body passthrough,
+- [x] `/api/cart/continue` + `/api/cart/checkout` route handlers (drift body passthrough,
       cookie clear on success)
-- [ ] Review page over the continue response (lines incl. add-ons, component list, delivery
+- [x] Review page over the continue response (lines incl. add-ons, component list, delivery
       line, notices, blocked state)
-- [ ] Confirm server action with the three outcome branches
-- [ ] `/box/confirmation` page (+ signed-in link-through when identity lands)
+- [x] Confirm server action with the three outcome branches
+- [x] `/box/confirmation` page (+ signed-in link-through when identity lands)
 - [ ] Remove the last fixture pricing surfaces review still touches
+
+### Implementation notes (2026-07-22)
+
+**The drift body is mapped server-side.** `/api/cart/*` returns the refreshed box in the
+same `cart` field an ordinary response uses, so the client adopts it through one path and
+never learns Aonik's decimal money or DTO field names. The engine therefore adopts
+`payload.cart` on failure as well as success — a 409 drift is a failure that nonetheless
+carries authoritative state, because Aonik persists the repair before refusing.
+
+**`cart: undefined` ≠ `cart: null`.** Undefined means "this response carried no box" (leave
+the current one alone); null means "the cart is gone" (reset to empty). Collapsing them
+would blank a customer's box on an unrelated failure.
+
+**The confirmation renders from a cookie snapshot, not a re-fetch.** Both storefront order
+routes are `Policies("AdminUserPolicy")` and party-scoped, so an anonymous customer cannot
+read their own order back — there is no re-fetch to make. `checkoutBoxCart` therefore reads
+the box *before* placing (checkout returns only totals) and writes a compact snapshot. The
+writer sheds line detail, then all lines, rather than exceeding the ~4KB cookie cap: a
+confirmation without the dish list is degraded, but one the browser silently drops is no
+confirmation at all. `clientSecret` is deliberately excluded — it authorizes a payment.
+
+**Delivery caching, measured not assumed.** Next's Data Cache does not store the 404, so
+the no-promise state re-asks each render and a newly-configured calendar appears at once.
+The 200 caches for 300s as specified. Note the Data Cache persists to `.next/cache` across
+restarts — clear it when testing this, or a stale hit reads as a code bug.
+
+**Live mode was broken on four routes and is now green on all ten.** `getHeatingInstructions`
+and `getPersonalisationOptions` threw `notYetMapped`, taking down the dish page, Step 2,
+Step 3 and review. Both concepts were *retired*, not unimplemented — there is no endpoint to
+map — so they now return empty, which every caller already reads as "not personalisable" /
+"use the framed generic note". `getExtras` is genuinely implemented against
+`GET /commerce/catalog/extras` (this is `server-box-cart` FR-6, delivered here because
+review could not render without it).
+
+**`Extra.ingredients` / `Extra.allergens` are now optional.** They were required, and the
+extras modal rendered `allergens.length > 0 ? … : 'None'` — which would have told a customer
+a food was allergen-free when Aonik had merely withheld the declaration. An empty list now
+means "declared, none"; absent means "not published", and the modal says so.
 
 ### Testing
 - Unit: no-promise rendering across surfaces; timezone-safe date formatting (UTC−10/UTC+14

@@ -16,7 +16,7 @@ import { formatDeliveryDate } from '@/lib/format';
 export default async function HomePage() {
   const { dishes, boxes, delivery } = await getHomepageData();
 
-  const earliestDeliveryLabel = formatDeliveryDate(delivery.earliestDeliveryDate);
+  const earliestDeliveryLabel = formatDeliveryDate(delivery?.earliestDeliveryDate);
   // Lead with the most popular tier; point newcomers at the smallest.
   const mainBox = boxes.find((box) => box.badge === 'Most popular') ?? boxes[0];
   const entryBox = [...boxes].sort((a, b) => a.pricePence - b.pricePence)[0];

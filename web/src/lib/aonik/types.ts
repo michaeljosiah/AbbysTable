@@ -247,9 +247,19 @@ export interface BoxPricing {
   delivery?: DeliveryPricing;
 }
 
+/**
+ * The earliest-delivery promise.
+ *
+ * A CALENDAR DATE plus the timezone whose calendar it belongs to — never an
+ * instant. Aonik answers 404 when the tenant has no resolvable fulfilment
+ * calendar, which means "no promise", not an error: `getDeliveryWindow()`
+ * returns null and every surface that would show a date shows nothing instead.
+ */
 export interface DeliveryWindow {
   /** ISO-8601 date (YYYY-MM-DD) of the earliest dispatch slot. */
   earliestDeliveryDate: string;
+  /** IANA id, e.g. "Europe/London" — the calendar the date is expressed in. */
+  timezone: string;
 }
 
 /* ---- Storefront config ----------------------------------------------------
@@ -334,8 +344,18 @@ export interface Extra {
   imageUrl: string;
   option?: ExtraOption;
   nutrition: DishNutrition;
-  ingredients: string;
-  allergens: string[];
+  /**
+   * SAFETY: optional and NEVER inferred, exactly as on `Dish`.
+   *
+   * The extras design template published these for every item, so the fixtures
+   * always carry them — but Aonik withholds declarations whenever resolved
+   * content is stale, and an extra with withheld declarations must render its
+   * "not yet published" state. An EMPTY allergen list means "declared, and
+   * there are none"; ABSENT means "we do not know". Rendering the second as the
+   * first would tell someone a food is safe for them when nobody has said so.
+   */
+  ingredients?: string;
+  allergens?: string[];
   serveStyle: ExtraServeStyle;
   /** Reheating / serving guidance from the catalogue. */
   heating: string;
@@ -345,5 +365,6 @@ export interface Extra {
 export interface HomepageData {
   dishes: Dish[];
   boxes: BoxOffer[];
-  delivery: DeliveryWindow;
+  /** Null when the tenant publishes no promise. */
+  delivery: DeliveryWindow | null;
 }

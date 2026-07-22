@@ -24,7 +24,12 @@ interface BoxSummaryProps {
   dishes: Dish[];
   pricing: BoxPricing;
   personalisation: PersonalisationOptions;
-  earliestDeliveryLabel: string;
+  /**
+   * Pre-formatted delivery date, e.g. "6 August", or null when the tenant
+   * publishes no promise — in which case the line is not rendered at all. A
+   * wrong date is worse than no date, so nothing is invented here.
+   */
+  earliestDeliveryLabel: string | null;
 }
 
 /** One line, split into the units inside the box and those beyond it. */
@@ -682,9 +687,11 @@ export function BoxSummary({
           </button>
         )}
 
-        <p className={styles.delivery}>
-          Earliest UK-wide delivery: <strong>{earliestDeliveryLabel}</strong>
-        </p>
+        {earliestDeliveryLabel ? (
+          <p className={styles.delivery}>
+            Earliest UK-wide delivery: <strong>{earliestDeliveryLabel}</strong>
+          </p>
+        ) : null}
       </div>
     </div>
   );

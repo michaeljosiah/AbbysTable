@@ -30,7 +30,12 @@ interface ExtrasStepProps {
   extras: Extra[];
   pricing: BoxPricing;
   personalisation: PersonalisationOptions;
-  earliestDeliveryLabel: string;
+  /**
+   * Pre-formatted delivery date, e.g. "6 August", or null when the tenant
+   * publishes no promise — in which case the line is not rendered at all. A
+   * wrong date is worse than no date, so nothing is invented here.
+   */
+  earliestDeliveryLabel: string | null;
   heading: ReactNode;
 }
 
@@ -413,9 +418,11 @@ export function ExtrasStep({
           Secure checkout
         </span>
       </ContinueLink>
-      <p className={styles.deliveryNote}>
-        Earliest UK-wide delivery: <strong>{earliestDeliveryLabel}</strong>
-      </p>
+      {earliestDeliveryLabel ? (
+        <p className={styles.deliveryNote}>
+          Earliest UK-wide delivery: <strong>{earliestDeliveryLabel}</strong>
+        </p>
+      ) : null}
     </div>
   );
 
@@ -1092,17 +1099,29 @@ export function ExtrasStep({
               </ExtraInfoSection>
 
               <ExtraInfoSection id="extra-ingredients" title="Ingredients & allergens" icon="leaf">
-                <p className={styles.ingredients}>{modalExtra.ingredients}</p>
+                {modalExtra.ingredients ? (
+                  <p className={styles.ingredients}>{modalExtra.ingredients}</p>
+                ) : null}
                 <div className={styles.allergenCard}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M10.3 4.3 2.7 18a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z" />
                     <path d="M12 9v4" />
                     <path d="M12 17h.01" />
                   </svg>
-                  <span>
-                    <strong>Allergens:</strong>{' '}
-                    {modalExtra.allergens.length > 0 ? modalExtra.allergens.join(', ') : 'None'}
-                  </span>
+                  {/* SAFETY: an absent declaration is NOT "None". Saying "None"
+                      when nobody has declared would tell someone with an
+                      allergy that this is safe for them. */}
+                  {modalExtra.allergens ? (
+                    <span>
+                      <strong>Allergens:</strong>{' '}
+                      {modalExtra.allergens.length > 0 ? modalExtra.allergens.join(', ') : 'None'}
+                    </span>
+                  ) : (
+                    <span>
+                      <strong>Allergens:</strong> not yet published for this item. Please contact
+                      us before ordering if you have an allergy.
+                    </span>
+                  )}
                 </div>
               </ExtraInfoSection>
 

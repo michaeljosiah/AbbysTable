@@ -14,6 +14,8 @@
 
 import type {
   BoxCartDto,
+  CheckoutResultDto,
+  ExtraRowDto,
   BoxChangeDto,
   BoxLineDto,
   BoxPlanDto,
@@ -25,7 +27,7 @@ import type {
   ProductSummaryDto,
   ResolvedContentDto,
 } from './dto';
-import { HEAT_STEPS } from './types';
+import { EXTRA_CATEGORIES, HEAT_STEPS } from './types';
 import type {
   BoxOffer,
   Dish,
@@ -37,6 +39,9 @@ import type {
   PersonalisationOption,
   StorefrontBoxPlan,
   StorefrontConfig,
+  Extra,
+  ExtraCategory,
+  ExtraServeStyle,
 } from './types';
 
 /* -------------------------------------------------------------------------- */
@@ -722,4 +727,141 @@ export function decodeSelection(
     out[key] = Array.isArray(value) ? value : [value];
   }
   return out;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Checkout (Spec 068)                                                         */
+/* -------------------------------------------------------------------------- */
+
+export interface CheckoutResult {
+  orderId: string;
+  invoiceId?: string;
+  paymentIntentId: string;
+  /** Aonik's own vocabulary, e.g. "RequiresPaymentMethod" — not branched on here. */
+  paymentStatus: string;
+  subtotalPence: number;
+  discountTotalPence: number;
+  taxTotalPence: number;
+  totalPence: number;
+  currency: string;
+  /**
+   * The payment handoff, carried through unused. See `CheckoutResultDto`.
+   * SECURITY: `clientSecret` authorizes a payment attempt — it must never be
+   * logged, stored, or put anywhere a later reader could retrieve it.
+   */
+  clientSecret?: string;
+  checkoutUrl?: string;
+}
+
+export function mapCheckoutResult(dto: CheckoutResultDto): CheckoutResult {
+  return {
+    orderId: dto.orderId,
+    invoiceId: dto.invoiceId ?? undefined,
+    paymentIntentId: dto.paymentIntentId,
+    paymentStatus: dto.paymentStatus,
+    subtotalPence: toPence(dto.subtotal),
+    discountTotalPence: toPence(dto.discountTotal),
+    taxTotalPence: toPence(dto.taxTotal),
+    totalPence: toPence(dto.total),
+    currency: dto.currency,
+    clientSecret: dto.clientSecret ?? undefined,
+    checkoutUrl: dto.checkoutUrl ?? undefined,
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Extras rail (Spec 071 §4)                                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Tenant-authored presentation fields on an extra, read out of `attributesJson`.
+ *
+ * Aonik enforces no schema here, so every field is treated as absent-until-
+ * proven and nothing is inferred from another. An unrecognised `category`
+ * lands the row in "Sides" rather than dropping it — a mis-filed extra is a
+ * merchandising annoyance; a disappearing one is a lost sale nobody can explain.
+ */
+interface ExtraAttributes {
+  category?: string;
+  longDescription?: string;
+  serveStyle?: string;
+  heating?: string;
+}
+
+function parseExtraAttributes(json: string | null): ExtraAttributes {
+  if (!json) return {};
+  try {
+    const parsed: unknown = JSON.parse(json);
+    return typeof parsed === 'object' && parsed !== null ? (parsed as ExtraAttributes) : {};
+  } catch {
+    return {};
+  }
+}
+
+function extraCategory(value: string | undefined): ExtraCategory {
+  return (EXTRA_CATEGORIES as readonly string[]).includes(value ?? '')
+    ? (value as ExtraCategory)
+    : 'Sides';
+}
+
+function extraServeStyle(value: string | undefined): ExtraServeStyle {
+  return value === 'hot' || value === 'chilled' || value === 'ambient' ? value : 'ambient';
+}
+
+/**
+ * Splits an allergen declaration into the chips the modal renders.
+ *
+ * Returns undefined for an ABSENT declaration and `[]` only for one that was
+ * made and listed nothing. The distinction is the whole point: see `Extra`.
+ */
+function splitAllergens(declaration: string | undefined): string[] | undefined {
+  if (declaration === undefined) return undefined;
+  const parts = declaration
+    .split(/[,;]/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  // "None" is a real declaration of no allergens, not a missing one.
+  if (parts.length === 1 && /^none$/i.test(parts[0])) return [];
+  return parts;
+}
+
+/**
+ * One extras-rail row.
+ *
+ * `id` is the VARIANT id, not the product id, because that is what the cart
+ * posts as `productVariantId` when the customer adds it. Getting this wrong
+ * fails at add time with a validation error rather than here.
+ */
+export function mapExtraRow(dto: ExtraRowDto): Extra {
+  const attributes = parseExtraAttributes(dto.attributesJson);
+  const content = dto.content ? mapResolvedContent(dto.content) : undefined;
+  const groups = mapOptionGroups(dto.optionGroups);
+  const group = groups[0];
+
+  return {
+    id: dto.productVariantId,
+    name: dto.name,
+    category: extraCategory(attributes.category),
+    pricePence: toPence(dto.unitPrice),
+    description: dto.description ?? '',
+    longDescription: attributes.longDescription ?? dto.description ?? '',
+    imageUrl: dto.imageUrl ?? '',
+    option: group
+      ? {
+          kind: group.label,
+          choices: group.choices.map((choice) => ({
+            key: choice.key,
+            label: choice.label,
+            addPence: choice.pricePence,
+          })),
+        }
+      : undefined,
+    nutrition: content?.nutrition ?? { proteinGrams: 0, fibreGrams: 0 },
+    // SAFETY: `mapResolvedContent` has already cleared both when Aonik withheld
+    // them, so absence here always means "not declared".
+    ingredients: content?.ingredients,
+    allergens: splitAllergens(content?.allergens),
+    serveStyle: extraServeStyle(attributes.serveStyle),
+    heating: content?.heating.map((step) => step.body).join(' ') || (attributes.heating ?? ''),
+  };
 }

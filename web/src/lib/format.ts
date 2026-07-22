@@ -34,15 +34,43 @@ export function formatPriceExact(pence: number): string {
   return GBP_EXACT.format(pence / 100);
 }
 
-const DELIVERY_DATE = new Intl.DateTimeFormat('en-GB', {
-  day: 'numeric',
-  month: 'long',
-  timeZone: 'UTC',
-});
+const MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
 
-/** Formats an ISO date as the site's delivery style: "2026-08-06" -> "6 August". */
-export function formatDeliveryDate(isoDate: string): string {
-  return DELIVERY_DATE.format(new Date(`${isoDate}T00:00:00Z`));
+/**
+ * Formats a delivery date: "2026-08-06" -> "6 August".
+ *
+ * The promise is a CALENDAR DATE, not an instant. It is therefore parsed from
+ * its own digits rather than through `new Date(...)`, which would attach a
+ * timezone and can shift the day — a customer in UTC−10 must not be told the
+ * box arrives on the 5th because we round-tripped the 6th through their clock.
+ *
+ * Returns null for a missing or unparseable date, so callers render nothing
+ * rather than "Invalid Date". A wrong date is worse than no date.
+ */
+export function formatDeliveryDate(isoDate: string | null | undefined): string | null {
+  if (!isoDate) return null;
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate.trim());
+  if (!match) return null;
+
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+
+  return `${day} ${MONTHS[month - 1]}`;
 }
 
 /** Joins parts into a natural list: ["a","b","c"] -> "a, b or c". */

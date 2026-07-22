@@ -308,3 +308,41 @@ export interface ExtrasListDto {
   rows: ExtraRowDto[];
   skipped: number;
 }
+
+/* ---- Checkout (Spec 068) ----------------------------------------------------- */
+
+/**
+ * `POST /commerce/carts/{cartId}/checkout`.
+ *
+ * The two required fields are `provider` and `paymentMethodType`. Aonik only
+ * checks they are non-empty — the vocabulary is the tenant's payment
+ * configuration, not a closed enum this storefront can validate.
+ */
+export interface CheckoutRequestDto {
+  provider: string;
+  paymentMethodType: string;
+  returnUrl?: string;
+  cancelUrl?: string;
+  customerAccountId?: string;
+  discountCode?: string;
+}
+
+/**
+ * The order that now exists. `clientSecret` (embedded PSP) and `checkoutUrl`
+ * (redirect PSP) are the payment handoff — already on the wire, deliberately
+ * unused in this iteration, which is what makes the PSP journey a later
+ * addition rather than a reshaping.
+ */
+export interface CheckoutResultDto {
+  orderId: string;
+  invoiceId: string | null;
+  paymentIntentId: string;
+  paymentStatus: string;
+  subtotal: number;
+  discountTotal: number;
+  taxTotal: number;
+  total: number;
+  currency: string;
+  clientSecret: string | null;
+  checkoutUrl: string | null;
+}

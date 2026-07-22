@@ -19,6 +19,7 @@ import type {
   ProductDto,
   ProductSummaryDto,
   PublicCollectionDto,
+  ExtrasListDto,
 } from './dto';
 import { AonikError } from './errors';
 import { EXTRA_FIXTURES } from './extras';
@@ -44,6 +45,7 @@ import {
   type MappedFacetGroup,
   type MappedOptionGroup,
   type StorefrontConfigDto,
+  mapExtraRow,
 } from './map';
 import type {
   BoxOffer,
@@ -67,7 +69,8 @@ export interface AonikClient {
   getBoxOffers(): Promise<BoxOffer[]>;
   /** Preset tiers, build-your-own scale and the extra-dish surcharge. */
   getBoxPricing(): Promise<BoxPricing>;
-  getDeliveryWindow(): Promise<DeliveryWindow>;
+  /** Null when the tenant has no fulfilment calendar — a state, not an error. */
+  getDeliveryWindow(): Promise<DeliveryWindow | null>;
   /** Selectable portions, proteins, sides and heat for the dish personaliser. */
   getPersonalisationOptions(): Promise<PersonalisationOptions>;
   getHeatingInstructions(): Promise<HeatingInstruction[]>;
@@ -124,7 +127,7 @@ export class MockAonikClient implements AonikClient {
     return BOX_PRICING_FIXTURE;
   }
 
-  async getDeliveryWindow(): Promise<DeliveryWindow> {
+  async getDeliveryWindow(): Promise<DeliveryWindow | null> {
     return DELIVERY_FIXTURE;
   }
 
@@ -342,23 +345,28 @@ export class HttpAonikClient implements AonikClient {
     );
   }
 
+  /**
+   * Empty, because catalogue-wide personalisation does not exist in Aonik.
+   *
+   * Option groups are per-product: `getDishOptionGroups(slug)` is the real
+   * read, and `Dish.personalisation` says which groups a dish offers. This is
+   * NOT a missing mapper — there is no endpoint to map, so the honest answer is
+   * "no global options", which every caller already reads as "not
+   * personalisable from here". Throwing instead would take four pages down over
+   * a concept that was retired by design.
+   */
   getPersonalisationOptions(): Promise<PersonalisationOptions> {
-    // Retired: option groups are per-product (`Dish` carries which it offers,
-    // and the detail read carries the groups themselves). Nothing global exists
-    // to fetch, so this cannot be implemented — its callers must move to the
-    // per-product groups as part of adopting the live personaliser.
-    return this.notYetMapped(
-      'global personalisation options',
-      'retired by SPEC-2026-07-22-catalog-browse (options are per-product)',
-    );
+    return Promise.resolve({ portions: [], proteins: [], sides: [], heatLevels: [] });
   }
 
+  /**
+   * Empty for the same reason: reheating guidance rides each dish's resolved
+   * content (`Dish.contentState.heating`), which the dish read already carries.
+   * `DishInfoPanels` falls back to its framed generic note when a dish has
+   * none, so an empty list here degrades to correct copy rather than a gap.
+   */
   getHeatingInstructions(): Promise<HeatingInstruction[]> {
-    // Likewise retired: heating rides each dish's resolved content.
-    return this.notYetMapped(
-      'catalogue-wide heating instructions',
-      'retired by SPEC-2026-07-22-catalog-browse (heating is per-dish content)',
-    );
+    return Promise.resolve([]);
   }
 
   /**
@@ -407,12 +415,42 @@ export class HttpAonikClient implements AonikClient {
     return this.resolveBoxPricing();
   }
 
-  getDeliveryWindow(): Promise<DeliveryWindow> {
-    return this.notYetMapped('the delivery promise', 'SPEC-2026-07-22-review-checkout FR-1');
+  /**
+   * The earliest-delivery promise, or null when there is none.
+   *
+   * A 404 here is Aonik saying the tenant has no resolvable fulfilment
+   * calendar. That is a designed state — the storefront hides the promise
+   * line rather than inventing a date — so it must not be cached and must not
+   * surface as an error.
+   */
+  async getDeliveryWindow(): Promise<DeliveryWindow | null> {
+    try {
+      return await this.get<DeliveryWindow>('/commerce/config/delivery');
+    } catch (error) {
+      if (error instanceof AonikError && error.isNotFound) return null;
+      throw error;
+    }
   }
 
-  getExtras(): Promise<Extra[]> {
-    return this.notYetMapped('extras', 'SPEC-2026-07-22-server-box-cart FR-6');
+  /**
+   * The extras rail (Spec 071 §4): the configured collection's members with
+   * retail prices — the deliberate exception to "dishes never show a price".
+   *
+   * `skipped` counts rows Aonik could not price. It is an OPERATOR signal, not
+   * a customer one: the rail simply shows fewer items, and logging it here is
+   * what makes a silently-shrinking rail diagnosable instead of mysterious.
+   */
+  async getExtras(): Promise<Extra[]> {
+    const list = await this.get<ExtrasListDto>('/commerce/catalog/extras');
+
+    if (list.skipped > 0) {
+      console.warn(
+        `[aonik] the extras rail omitted ${list.skipped} unpriceable row(s); ` +
+          'check their variant pricing in Aonik.',
+      );
+    }
+
+    return list.rows.map(mapExtraRow);
   }
 }
 
@@ -549,7 +587,7 @@ export async function getMenuPageData(options: {
   dishes: Dish[];
   totalCount: number;
   facetGroups: MappedFacetGroup[];
-  delivery: DeliveryWindow;
+  delivery: DeliveryWindow | null;
 }> {
   const client = await getAonikClient();
 
