@@ -12,7 +12,28 @@
  * minor units, these become identities and nothing else changes.
  */
 
-import type { StorefrontBoxPlan, StorefrontConfig } from './types';
+import type {
+  BoxPlanDto,
+  EffectiveOptionGroupDto,
+  FacetGroupDto,
+  NutritionDto,
+  ProductDto,
+  ProductSummaryDto,
+  ResolvedContentDto,
+} from './dto';
+import { HEAT_STEPS } from './types';
+import type {
+  BoxOffer,
+  Dish,
+  DishContentState,
+  DishNutrition,
+  DishOption,
+  HeatingInstruction,
+  HeatLevel,
+  PersonalisationOption,
+  StorefrontBoxPlan,
+  StorefrontConfig,
+} from './types';
 
 /* -------------------------------------------------------------------------- */
 /* Money                                                                       */
@@ -41,6 +62,165 @@ export function toMajor(pence: number): number {
 /** Optional amounts keep their absence — a null price is "not set", not zero. */
 export function toPenceOrUndefined(amount: number | null | undefined): number | undefined {
   return amount === null || amount === undefined ? undefined : toPence(amount);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Tolerant JSON parsing                                                       */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * `attributesJson` / `tagsJson` are free-form strings with no Aonik-enforced
+ * schema. Aonik's own summary mapper degrades a malformed row to empty rather
+ * than failing the read, and so do we: one badly-authored product must not take
+ * the menu down.
+ */
+function parseJsonObject(raw: string | null | undefined): Record<string, unknown> {
+  if (!raw) return {};
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function parseJsonStringArray(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Resolved content (Spec 067) — SAFETY-CRITICAL                               */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Nutrition figures. A null is "not published" and stays absent — never zero,
+ * never inferred.
+ *
+ * `DishNutrition` requires protein and fibre, so an unpublished figure becomes
+ * 0 there under protest; every optional figure keeps its absence. Callers that
+ * care about "was this published at all" should read the DTO, not this.
+ */
+export function mapNutrition(dto: NutritionDto): DishNutrition {
+  return {
+    proteinGrams: dto.proteinGrams ?? 0,
+    fibreGrams: dto.fibreGrams ?? 0,
+    carbsGrams: dto.carbsGrams ?? undefined,
+    fatGrams: dto.fatGrams ?? undefined,
+    calories: dto.kcal ?? undefined,
+    sugarsGrams: dto.sugarsGrams ?? undefined,
+    saltGrams: dto.saltGrams ?? undefined,
+  };
+}
+
+/**
+ * The one place declarations are allowed through.
+ *
+ * SAFETY — do not "simplify" this into a null check. Aonik sets
+ * `declarationsWithheld` whenever EITHER half is unauthored, and on the
+ * exact-variant path it still returns the half that IS authored. Gating on
+ * presence would render the ingredients and silently drop the allergen line,
+ * which Aonik's own source calls "the dangerous half".
+ *
+ * Clearing both here means every consumer — including one that only checks
+ * presence — is safe by construction. That redundancy is the point.
+ */
+export function mapResolvedContent(dto: ResolvedContentDto): {
+  nutrition: DishNutrition;
+  ingredients?: string;
+  allergens?: string;
+  heating: HeatingInstruction[];
+  state: DishContentState;
+} {
+  const withheld = dto.declarationsWithheld;
+
+  return {
+    nutrition: mapNutrition(dto.nutrition),
+    ingredients: withheld ? undefined : (dto.ingredients ?? undefined),
+    allergens: withheld ? undefined : (dto.allergens ?? undefined),
+    // Heating is never null on the wire — an empty list when withheld.
+    heating: dto.heatingWithheld ? [] : dto.heating.map((step) => ({ ...step })),
+    state: {
+      servingLabel: dto.servingLabel,
+      declarationsWithheld: withheld,
+      figuresAreStandardPreparation: dto.isStandardPreparation,
+      figuresAreStale: dto.isStale,
+      heatingWithheld: dto.heatingWithheld,
+      contentVersion: dto.contentVersion,
+    },
+  };
+}
+
+/**
+ * Whether the nutrition panel must be captioned rather than presented as
+ * current fact, and why. Either flag alone is sufficient.
+ */
+export function nutritionCaptionKind(
+  state: DishContentState | undefined,
+): 'standard-preparation' | 'stale' | undefined {
+  if (!state) return undefined;
+  if (state.figuresAreStandardPreparation) return 'standard-preparation';
+  if (state.figuresAreStale) return 'stale';
+  return undefined;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Option groups (Spec 066)                                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * One personalisation group, with prices converted to the DELTA the UI shows.
+ *
+ * Aonik serves absolute choice prices; the storefront displays the difference
+ * from the group's `defaultChoiceKey`. For a `Multi` group the committed
+ * adjustment subtracts the default ONCE across the whole selection (matching
+ * `OptionSelectionService`), so these per-choice deltas are label figures — the
+ * authoritative total comes from the selection-quote endpoint.
+ */
+export interface MappedOptionGroup {
+  key: string;
+  label: string;
+  helpText?: string;
+  /** `One` accepts a bare string; `Multi` REQUIRES an array (a string is rejected). */
+  selectionMode: 'One' | 'Multi';
+  defaultChoiceKey: string;
+  choices: DishOption[];
+}
+
+export function mapOptionGroup(dto: EffectiveOptionGroupDto): MappedOptionGroup {
+  const basePrice =
+    dto.choices.find((choice) => choice.key === dto.defaultChoiceKey)?.price ?? 0;
+
+  const choices = [...dto.choices]
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((choice) => ({
+      key: choice.key,
+      label: choice.label,
+      detail: choice.note ?? undefined,
+      pricePence: toPence(choice.price - basePrice),
+      isAbbysChoice: choice.key === dto.defaultChoiceKey,
+    }));
+
+  return {
+    key: dto.key,
+    label: dto.label,
+    helpText: dto.helpText ?? undefined,
+    selectionMode: dto.selectionMode,
+    defaultChoiceKey: dto.defaultChoiceKey,
+    choices,
+  };
+}
+
+/** An empty list means "not personalisable" — hide the panel, never render an empty one. */
+export function mapOptionGroups(dtos: EffectiveOptionGroupDto[]): MappedOptionGroup[] {
+  return [...dtos].sort((a, b) => a.sortOrder - b.sortOrder).map(mapOptionGroup);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -117,4 +297,243 @@ export function mapEmbeddedBoxPlan(dto: StorefrontBoxPlanDto): StorefrontBoxPlan
       savingPence: toPenceOrUndefined(preset.saving),
     })),
   };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Box plan (Spec 068)                                                         */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The full box-plan read. Unlike the config document's embedded copy this
+ * carries the formula inputs, so a custom size can be priced as
+ * `basePrice + (size - baseSize) * perSpacePrice`, with presets overriding at
+ * their own size.
+ *
+ * Still no list price: `savingAmount` is authored per preset and there is no
+ * equivalent for a custom size anywhere in the plan.
+ */
+export interface MappedBoxPlan {
+  bundleProductId: string;
+  minSize: number;
+  maxSize: number;
+  baseSize: number;
+  basePence: number;
+  perSpacePence: number;
+  currency: string;
+  offers: BoxOffer[];
+}
+
+export function mapBoxPlan(dto: BoxPlanDto): MappedBoxPlan {
+  const offers = [...dto.presets]
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((preset) => ({
+      id: `box-${preset.size}`,
+      name: `${preset.size}-dish box`,
+      dishCount: preset.size,
+      pricePence: toPence(preset.price),
+      badge: preset.badge ?? undefined,
+      blurb: preset.blurb ?? undefined,
+      savingPence: toPenceOrUndefined(preset.savingAmount),
+    }));
+
+  return {
+    bundleProductId: dto.bundleProductId,
+    minSize: dto.minSize,
+    maxSize: dto.maxSize,
+    baseSize: dto.baseSize,
+    basePence: toPence(dto.basePrice),
+    perSpacePence: toPence(dto.perSpacePrice),
+    currency: dto.currency,
+    offers,
+  };
+}
+
+/** Plan price for any size: the formula, with an authored preset winning at its size. */
+export function boxPlanPricePence(plan: MappedBoxPlan, size: number): number {
+  const preset = plan.offers.find((offer) => offer.dishCount === size);
+  if (preset) return preset.pricePence;
+  return plan.basePence + (size - plan.baseSize) * plan.perSpacePence;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Facets (Spec 070)                                                           */
+/* -------------------------------------------------------------------------- */
+
+export interface MappedFacetOption {
+  /** Stable token submitted back as `facet.<key>=<value>`. Never the label. */
+  value: string;
+  label: string;
+}
+
+export interface MappedFacetGroup {
+  key: string;
+  label: string;
+  options: MappedFacetOption[];
+}
+
+/**
+ * Facet groups drive the menu's filter rail, so the tenant can add, rename or
+ * retire a filter with no frontend change. Aonik rejects unknown keys/values
+ * with a 400, which is why the UI must only ever submit what this read returned.
+ */
+export function mapFacetGroups(dtos: FacetGroupDto[]): MappedFacetGroup[] {
+  return [...dtos]
+    .filter((group) => group.isActive)
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((group) => ({
+      key: group.key,
+      label: group.label,
+      options: group.options.map((option) => ({ value: option.value, label: option.label })),
+    }));
+}
+
+/* -------------------------------------------------------------------------- */
+/* Products → Dish                                                             */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The `attributesJson` keys this storefront reads.
+ *
+ * Aonik enforces NO schema here beyond "must be a JSON object" — these are a
+ * tenant convention, documented in SPEC-2026-07-22-catalog-browse § Operator
+ * data and nowhere else. A product missing a key simply does not match that
+ * filter and renders without that label; nothing is inferred.
+ */
+interface DishAttributes {
+  heatStep?: number;
+  protein?: string;
+  meal?: string;
+  wellness?: string[];
+  dietary?: string[];
+  /**
+   * Browse rows carry no nutrition at all (Aonik's summary DTO has no such
+   * field), so the menu card's "… · 520 kcal · 32g protein" meta line can only
+   * come from attributes. Absent means the card omits that part rather than
+   * showing a zero.
+   */
+  kcal?: number;
+  proteinGrams?: number;
+}
+
+function readAttributes(attributesJson: string): DishAttributes {
+  const raw = parseJsonObject(attributesJson);
+  const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : undefined);
+  const str = (v: unknown) => (typeof v === 'string' && v ? v : undefined);
+  const strArray = (v: unknown) =>
+    Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : undefined;
+
+  return {
+    heatStep: num(raw.heatStep),
+    protein: str(raw.protein),
+    meal: str(raw.meal),
+    wellness: strArray(raw.wellness),
+    dietary: strArray(raw.dietary),
+    kcal: num(raw.kcal),
+    proteinGrams: num(raw.proteinGrams),
+  };
+}
+
+/** `HEAT_STEPS` in reverse: 1→low, 2→medium, 3→high. Anything else is medium. */
+function heatFromStep(step: number | undefined): HeatLevel {
+  const match = (Object.entries(HEAT_STEPS) as [HeatLevel, number][]).find(
+    ([, value]) => value === step,
+  );
+  return match?.[0] ?? 'medium';
+}
+
+/**
+ * A browse row → the `Dish` the menu grid renders.
+ *
+ * LOSSY BY CONSTRUCTION. A summary carries no description, no content and no
+ * nutrition — only the detail read has those. Fields that cannot be sourced are
+ * left empty rather than invented: `description` is blank, `nutrition` carries
+ * only what `attributesJson` published, and `ingredients`/`allergens` are always
+ * absent (declarations come exclusively from a content resolution, never from a
+ * browse row).
+ */
+export function mapSummaryToDish(dto: ProductSummaryDto): Dish {
+  const attributes = readAttributes(dto.attributesJson);
+
+  return {
+    id: dto.id,
+    slug: dto.slug,
+    title: dto.name,
+    description: '',
+    imageUrl: dto.heroImageUrl ?? '',
+    heat: heatFromStep(attributes.heatStep),
+    tags: dto.tags,
+    isSignature: dto.unitSurcharge !== null,
+    upgradePence: toPenceOrUndefined(dto.unitSurcharge),
+    nutrition: {
+      proteinGrams: attributes.proteinGrams ?? 0,
+      fibreGrams: 0,
+      calories: attributes.kcal,
+    },
+    // Which groups a product offers is on the detail read; a card never needs it.
+    personalisation: [],
+    // Membership of the `featured` collection decides this, not a product flag.
+    isFeatured: false,
+    proteinType: attributes.protein as Dish['proteinType'],
+    mealType: attributes.meal as Dish['mealType'],
+    wellness: (attributes.wellness ?? []) as Dish['wellness'],
+    dietary: (attributes.dietary ?? []) as Dish['dietary'],
+  };
+}
+
+/** The four personalisation groups this storefront knows how to render. */
+const KNOWN_GROUP_KEYS: Record<string, PersonalisationOption> = {
+  portion: 'portion',
+  protein: 'protein',
+  side: 'sides',
+  sides: 'sides',
+  heat: 'heat',
+};
+
+/**
+ * A product detail read → a fully-populated `Dish`.
+ *
+ * Declarations pass through `mapResolvedContent`, which is the only path that
+ * may emit them — see its note. A product with no authored content block
+ * (`content: null`) yields a dish with no declarations and no `contentState`,
+ * which renders the same explicit "not yet published" state as a withheld one.
+ */
+export function mapProductToDish(dto: ProductDto): Dish {
+  const attributes = readAttributes(dto.attributesJson);
+  const content = dto.content ? mapResolvedContent(dto.content) : null;
+  const tags = parseJsonStringArray(dto.tagsJson);
+
+  const personalisation = dto.effectiveOptionGroups
+    .map((group) => KNOWN_GROUP_KEYS[group.key])
+    .filter((value): value is PersonalisationOption => value !== undefined);
+
+  return {
+    id: dto.id,
+    slug: dto.slug,
+    title: dto.name,
+    description: dto.description,
+    imageUrl: [...dto.media].sort((a, b) => a.sortOrder - b.sortOrder)[0]?.url ?? '',
+    heat: heatFromStep(attributes.heatStep),
+    tags,
+    isSignature: dto.unitSurcharge !== null,
+    upgradePence: toPenceOrUndefined(dto.unitSurcharge),
+    nutrition: content?.nutrition ?? {
+      proteinGrams: attributes.proteinGrams ?? 0,
+      fibreGrams: 0,
+      calories: attributes.kcal,
+    },
+    personalisation: [...new Set(personalisation)],
+    isFeatured: false,
+    proteinType: attributes.protein as Dish['proteinType'],
+    mealType: attributes.meal as Dish['mealType'],
+    wellness: (attributes.wellness ?? []) as Dish['wellness'],
+    dietary: (attributes.dietary ?? []) as Dish['dietary'],
+    ingredients: content?.ingredients,
+    allergens: content?.allergens,
+    contentState: content?.state,
+  };
+}
+
+/** Heating for a dish page: authored steps when present, else the caller's fallback. */
+export function mapProductHeating(dto: ProductDto): HeatingInstruction[] {
+  return dto.content ? mapResolvedContent(dto.content).heating : [];
 }

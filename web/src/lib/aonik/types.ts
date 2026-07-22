@@ -161,9 +161,42 @@ export interface Dish {
    * whose data the source templates actually published carry them; every other
    * dish renders an explicit "not yet published" state instead. Do not populate
    * these from anything but the real catalogue.
+   *
+   * When they come from Aonik, `mapResolvedContent` clears BOTH the moment
+   * `declarationsWithheld` is set — including the half Aonik still returns — so
+   * a component that checks presence alone is safe. `contentState` carries the
+   * flags for the captions that presence cannot express.
    */
   ingredients?: string;
   allergens?: string;
+
+  /** Present only on dishes resolved from Aonik content. See `DishContentState`. */
+  contentState?: DishContentState;
+}
+
+/**
+ * Aonik's content-resolution flags, carried so the dish page can caption
+ * correctly. Absent on fixture dishes, which have no resolution behind them.
+ *
+ * SAFETY: `figuresAreStandardPreparation` and `figuresAreStale` are separate on
+ * purpose. Aonik withholds declarations when content is stale but still serves
+ * the nutrition figures, and `isStandardPreparation` is FALSE when the customer
+ * is viewing the standard preparation itself — so without the stale flag those
+ * figures would render as current fact with no caption.
+ */
+export interface DishContentState {
+  /** e.g. "Per serving — Light table 225g". */
+  servingLabel: string;
+  /** Declarations were withheld; the panel shows its "not yet published" state. */
+  declarationsWithheld: boolean;
+  /** Figures are the default block's because this combination has no variant. */
+  figuresAreStandardPreparation: boolean;
+  /** The default block no longer describes the current standard preparation. */
+  figuresAreStale: boolean;
+  /** Reheating guidance was withheld; show the framed generic fallback. */
+  heatingWithheld: boolean;
+  /** Pass back verbatim as `v` when re-resolving for a selection. */
+  contentVersion: number;
 }
 
 export interface BoxOffer {

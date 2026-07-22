@@ -12,6 +12,15 @@
  */
 
 import { readAonikConfig, resolveDataMode } from './dataMode';
+import type {
+  BoxPlanDto,
+  FacetGroupDto,
+  PagedResultDto,
+  ProductDto,
+  ProductSummaryDto,
+  PublicCollectionDto,
+} from './dto';
+import { AonikError } from './errors';
 import { EXTRA_FIXTURES } from './extras';
 import {
   BOX_FIXTURES,
@@ -23,7 +32,16 @@ import {
   STOREFRONT_CONFIG_FIXTURE,
 } from './fixtures';
 import { aonikFetch } from './http';
-import { mapStorefrontConfig, type StorefrontConfigDto } from './map';
+import {
+  mapBoxPlan,
+  mapFacetGroups,
+  mapProductToDish,
+  mapStorefrontConfig,
+  mapSummaryToDish,
+  type MappedBoxPlan,
+  type MappedFacetGroup,
+  type StorefrontConfigDto,
+} from './map';
 import type {
   BoxOffer,
   BoxPricing,
@@ -102,6 +120,23 @@ export class MockAonikClient implements AonikClient {
   }
 }
 
+/**
+ * The tenant's curated homepage rail. A collection slug, not a product flag —
+ * `Dish.isFeatured` now reflects membership rather than owning the decision.
+ */
+const FEATURED_COLLECTION_SLUG = 'featured';
+
+/** Browse parameters. Facet values must be tokens the facets read advertised. */
+export interface ProductBrowseOptions {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  collection?: string;
+  /** `name` | `newest` | `rank` — rank is the curated order inside a collection. */
+  sort?: 'name' | 'newest' | 'rank';
+  facets?: Record<string, string[]>;
+}
+
 export interface HttpAonikClientOptions {
   baseUrl: string;
   /** Aonik partitions every storefront read by tenant; required on all requests. */
@@ -138,11 +173,10 @@ export class HttpAonikClient implements AonikClient {
   }
 
   /** Not yet mapped — see the class note. */
-  private notYetMapped(surface: string): never {
+  private notYetMapped(surface: string, spec: string): never {
     throw new Error(
-      `Live mode cannot serve ${surface} yet: the catalogue mapping is ` +
-        'SPEC-2026-07-22-catalog-browse. Switch the dev data-mode badge to demo, or ' +
-        'implement the mapper.',
+      `Live mode cannot serve ${surface} yet: that mapping is ${spec}. Switch the dev ` +
+        'data-mode badge to demo, or implement the mapper.',
     );
   }
 
@@ -152,43 +186,116 @@ export class HttpAonikClient implements AonikClient {
     );
   }
 
-  getDishes(): Promise<Dish[]> {
-    return this.notYetMapped('the dish catalogue');
+  /** The browse read, with optional facet/collection/sort/paging parameters. */
+  async listProducts(options: ProductBrowseOptions = {}): Promise<{
+    dishes: Dish[];
+    totalCount: number;
+    page: number;
+    pageSize: number;
+  }> {
+    const query: Record<string, string | number | undefined> = {
+      page: options.page,
+      pageSize: options.pageSize,
+      search: options.search,
+      collection: options.collection,
+      sort: options.sort,
+    };
+
+    // Repeatable `facet.<key>=v1,v2`. Values are option tokens the facets read
+    // advertised — Aonik 400s on anything it did not publish, deliberately.
+    for (const [key, values] of Object.entries(options.facets ?? {})) {
+      if (values.length > 0) query[`facet.${key}`] = values.join(',');
+    }
+
+    const page = await this.get<PagedResultDto<ProductSummaryDto>>(
+      '/commerce/catalog/products',
+      query,
+    );
+
+    return {
+      dishes: page.items.map(mapSummaryToDish),
+      totalCount: page.totalCount,
+      page: page.page,
+      pageSize: page.pageSize,
+    };
   }
 
-  getFeaturedDishes(): Promise<Dish[]> {
-    return this.notYetMapped('the featured rail');
+  async getDishes(): Promise<Dish[]> {
+    const { dishes } = await this.listProducts();
+    return dishes;
   }
 
-  getDishBySlug(): Promise<Dish | null> {
-    return this.notYetMapped('a dish page');
+  /** The curated `featured` collection, in rank order — not a derived flag. */
+  async getFeaturedDishes(): Promise<Dish[]> {
+    const collection = await this.get<PublicCollectionDto>(
+      `/commerce/catalog/collections/${encodeURIComponent(FEATURED_COLLECTION_SLUG)}`,
+    );
+    return collection.products.map((product) => ({
+      ...mapSummaryToDish(product),
+      isFeatured: true,
+    }));
+  }
+
+  async getDishBySlug(slug: string): Promise<Dish | null> {
+    try {
+      return mapProductToDish(
+        await this.get<ProductDto>(`/commerce/catalog/products/${encodeURIComponent(slug)}`),
+      );
+    } catch (error) {
+      // 404 is "no such dish" — the route renders not-found. Anything else is a
+      // real fault and must not be disguised as an empty page.
+      if (error instanceof AonikError && error.isNotFound) return null;
+      throw error;
+    }
+  }
+
+  /** The tenant's filter rail, so a facet can be added or retired without a deploy. */
+  async getFacetGroups(): Promise<MappedFacetGroup[]> {
+    return mapFacetGroups(await this.get<FacetGroupDto[]>('/commerce/catalog/facets'));
+  }
+
+  /** The default box bundle's full size plan, keyed on product slug. */
+  async getBoxPlan(slug: string): Promise<MappedBoxPlan> {
+    return mapBoxPlan(
+      await this.get<BoxPlanDto>(
+        `/commerce/catalog/products/${encodeURIComponent(slug)}/box-plan`,
+      ),
+    );
   }
 
   getPersonalisationOptions(): Promise<PersonalisationOptions> {
-    // Retired by catalog-browse: option groups are per-product, not global.
-    return this.notYetMapped('personalisation options');
+    // Retired: option groups are per-product (`Dish` carries which it offers,
+    // and the detail read carries the groups themselves). Nothing global exists
+    // to fetch, so this cannot be implemented — its callers must move to the
+    // per-product groups as part of adopting the live personaliser.
+    return this.notYetMapped(
+      'global personalisation options',
+      'retired by SPEC-2026-07-22-catalog-browse (options are per-product)',
+    );
   }
 
   getHeatingInstructions(): Promise<HeatingInstruction[]> {
-    // Retired by catalog-browse: heating rides each dish's resolved content.
-    return this.notYetMapped('heating instructions');
+    // Likewise retired: heating rides each dish's resolved content.
+    return this.notYetMapped(
+      'catalogue-wide heating instructions',
+      'retired by SPEC-2026-07-22-catalog-browse (heating is per-dish content)',
+    );
   }
 
   getBoxOffers(): Promise<BoxOffer[]> {
-    return this.notYetMapped('box offers');
+    return this.notYetMapped('box offers', 'SPEC-2026-07-22-catalog-browse FR-6');
   }
 
   getBoxPricing(): Promise<BoxPricing> {
-    return this.notYetMapped('box pricing');
+    return this.notYetMapped('box pricing', 'SPEC-2026-07-22-catalog-browse FR-6');
   }
 
   getDeliveryWindow(): Promise<DeliveryWindow> {
-    // Lands with review-checkout, including the 404 "no promise" state.
-    return this.notYetMapped('the delivery promise');
+    return this.notYetMapped('the delivery promise', 'SPEC-2026-07-22-review-checkout FR-1');
   }
 
   getExtras(): Promise<Extra[]> {
-    return this.notYetMapped('extras');
+    return this.notYetMapped('extras', 'SPEC-2026-07-22-server-box-cart FR-6');
   }
 }
 
