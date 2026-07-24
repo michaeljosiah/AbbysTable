@@ -459,7 +459,9 @@ export class HttpAonikClient implements AonikClient {
       custom: {
         minDishes: plan.minSize,
         maxDishes: plan.maxSize,
-        perDishPence: plan.perSpacePence,
+        baseDishes: plan.baseSize,
+        basePence: plan.basePence,
+        perSpacePence: plan.perSpacePence,
       },
       // Superseded by the plan: growing a box charges the marginal plan price
       // server-side, not a flat per-extra-dish figure (see server-box-cart).

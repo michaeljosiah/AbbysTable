@@ -32,6 +32,7 @@ import {
   type CartLine,
   type CartPersonalisation,
 } from '@/lib/cart/CartProvider';
+import { useCartQuote } from '@/lib/cart/quote';
 import { formatPrice, formatPriceExact } from '@/lib/format';
 
 import { DriftNotices } from './DriftNotices';
@@ -129,7 +130,19 @@ export function ReviewStep({
     [boxSize, isCustom, lines, pricing],
   );
   const extrasSum = useMemo(() => extrasTotals(extraLines, extras), [extraLines, extras]);
-  const totalLabel = formatPrice(totals.totalPence + extrasSum.totalPence);
+
+  /*
+   * The total is the QUOTE's, never a sum taken here.
+   *
+   * This is the last number a customer reads before "Place order", so it has to
+   * be the number Aonik will charge. Adding the local box and extras figures
+   * instead meant the page showed whatever the client could work out — £95 over
+   * a £104 box while the extras lookup was broken, and silently wrong by any
+   * amount Aonik prices differently. `useCartQuote` returns Aonik's quote live
+   * and the demo equivalent otherwise, so both engines render one authority.
+   */
+  const quote = useCartQuote(pricing, { extrasCatalogue: extras });
+  const totalLabel = formatPrice(quote.totalPence);
 
   // Signature upgrades vs other personalisation, with per-dish reconciliation.
   const split = useMemo(() => {

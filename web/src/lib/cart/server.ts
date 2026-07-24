@@ -8,7 +8,7 @@
  * SERVER-ONLY.
  */
 
-import type { BoxCartDto, CheckoutResultDto } from '@/lib/aonik/dto';
+import type { BoxCartDto, BoxPlanDto, CheckoutResultDto, ProductDto } from '@/lib/aonik/dto';
 import { AONIK_CODES, AonikError } from '@/lib/aonik/errors';
 import { aonikFetch, type AonikFetchOptions } from '@/lib/aonik/http';
 import {
@@ -18,6 +18,7 @@ import {
   type BoxCart,
   type CheckoutResult,
   type PersonalisationSelection,
+  type StorefrontConfigDto,
 } from '@/lib/aonik/map';
 import { readAonikConfig } from '@/lib/aonik/dataMode';
 
@@ -99,9 +100,18 @@ export async function createBoxCart(input: {
 /**
  * Runs an operation against the stored cart.
  *
- * A 404 means the cart is unknown OR not ours — Aonik makes those deliberately
- * indistinguishable, so the only safe response is to drop the cookie and let
- * the customer start again. No copy may speculate about which it was.
+ * A 404 about the CART means it is unknown OR not ours — Aonik makes those two
+ * deliberately indistinguishable, so the only safe response is to drop the
+ * cookie and let the customer start again. No copy may speculate about which it
+ * was.
+ *
+ * But a cart route can 404 about something that is not the cart: a variant that
+ * does not exist, a line already removed. Treating those the same way threw
+ * away a full box over a bad product id, reported as a cheerful 200 with an
+ * empty cart. Aonik returns the same bare 404 for both and only the message
+ * differs, so rather than pattern-match English, ask the question directly —
+ * re-read the cart, and let its answer decide. That costs one request on an
+ * error path and is immune to how the message is worded.
  */
 async function withCart<T>(
   run: (cartId: string, auth: CartFetchOptions) => Promise<T>,
@@ -109,14 +119,31 @@ async function withCart<T>(
   const cookie = await readCartCookie();
   if (!cookie) return null;
 
+  const auth = await cartAuth(cookie.cartToken);
+
   try {
-    return await run(cookie.cartId, await cartAuth(cookie.cartToken));
+    return await run(cookie.cartId, auth);
   } catch (error) {
-    if (error instanceof AonikError && error.isNotFound) {
-      await clearCartCookie();
-      return null;
+    if (!(error instanceof AonikError) || !error.isNotFound) throw error;
+
+    if (await cartStillExists(cookie.cartId, auth)) {
+      // The cart is fine; the 404 was about whatever the operation named.
+      // Surfacing it keeps the box intact and the failure honest.
+      throw error;
     }
-    throw error;
+
+    await clearCartCookie();
+    return null;
+  }
+}
+
+/** Whether the cart still resolves for us. Any failure is read as "gone". */
+async function cartStillExists(cartId: string, auth: CartFetchOptions): Promise<boolean> {
+  try {
+    await cartFetch<BoxCartDto>(`/commerce/carts/${cartId}`, auth);
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -158,16 +185,54 @@ export async function getBoxCart(): Promise<BoxCart | null> {
   return dto ? mapBoxCart(dto) : null;
 }
 
+/**
+ * Product slug → the variant a box line is actually built from.
+ *
+ * Aonik's cart takes a VARIANT id, and a browse row carries none — the summary
+ * DTO publishes `variantCount` and nothing else, so Step 2's grid genuinely
+ * cannot know it. Sending the product id instead is not a near miss: Aonik
+ * answers 404 "Product variant … was not found", which used to read as "this
+ * cart is gone" and wiped the box.
+ *
+ * So the client sends the slug — the identifier it already uses in URLs — and
+ * the translation to an Aonik id happens here, where every other Aonik id is
+ * resolved. Read on the `catalog` policy because that is what it is: a
+ * catalogue lookup, cacheable for the same window as the rest of the menu, not
+ * cart state.
+ */
+async function variantIdForSlug(slug: string): Promise<string> {
+  const product = await aonikFetch<ProductDto>(
+    `/commerce/catalog/products/${encodeURIComponent(slug)}`,
+    { ...connection(), policy: 'catalog' },
+  );
+
+  const variant = product.variants.find((candidate) => candidate.isActive) ?? product.variants[0];
+  if (!variant) {
+    throw new Error(
+      `"${slug}" has no variant to add. A product with no variant cannot be put in a box; ` +
+        'the catalogue needs fixing rather than this call retrying.',
+    );
+  }
+  return variant.id;
+}
+
 export async function addBoxLine(input: {
-  productVariantId: string;
+  /** Public product slug; resolved to a variant id here. */
+  slug: string;
   quantity: number;
   personalisation?: PersonalisationSelection;
 }): Promise<BoxCart | null> {
+  const productVariantId = await variantIdForSlug(input.slug);
+
   const dto = await withCart((cartId, auth) =>
     cartFetch<BoxCartDto>(`/commerce/carts/${cartId}/lines`, {
       ...auth,
       method: 'POST',
-      body: input,
+      body: {
+        productVariantId,
+        quantity: input.quantity,
+        personalisation: input.personalisation,
+      },
     }),
   );
   return dto ? mapBoxCart(dto) : null;
@@ -203,7 +268,20 @@ export async function removeBoxLine(lineId: string): Promise<BoxCart | null> {
 }
 
 /**
- * Changes the box size. The price change is the plan's marginal cost
+ * Sets the box to `size`, creating the cart if this is the first step.
+ *
+ * Step 1 is where a box begins, so there is usually no cart yet. `withCart`
+ * answers null when the cookie is absent, which made this a silent no-op that
+ * still returned 200: the size never persisted, and every later step showed
+ * "Choose your box size first" for a customer who had just chosen one. Creating
+ * on demand makes the operation mean what its name says at any point in the
+ * flow, rather than only after something else happened to create the cart.
+ *
+ * Which bundle to create is the tenant's `defaultBoxSlug`, resolved here rather
+ * than passed in: the client has no business knowing Aonik product ids, and
+ * this module is already the only place that talks to Aonik's cart routes.
+ *
+ * On an existing cart the price change is the plan's marginal cost
  * (`boxPrice(target) − boxPrice(current)`), computed server-side — it may bend
  * around preset price points and is never a flat per-dish figure.
  */
@@ -215,7 +293,28 @@ export async function setBoxSize(size: number): Promise<BoxCart | null> {
       body: { size },
     }),
   );
-  return dto ? mapBoxCart(dto) : null;
+  if (dto) return mapBoxCart(dto);
+
+  // No cart — either none was ever made, or `withCart` just dropped a stale
+  // cookie. Both mean the customer is starting a box, so start one.
+  //
+  // Read through this module's own transport rather than the catalogue client:
+  // only live mode reaches these routes at all (demo throws
+  // `CartUnavailableError` in `connection()`), so routing through the shared
+  // client would mean widening its interface with a method the mock could only
+  // ever answer with a fabricated bundle id.
+  const config = await cartFetch<StorefrontConfigDto>('/commerce/config/storefront');
+  if (!config.defaultBoxSlug) {
+    throw new Error(
+      'No defaultBoxSlug in the storefront config — the tenant has not named a box bundle, ' +
+        'so there is nothing to create a cart from.',
+    );
+  }
+
+  const plan = await cartFetch<BoxPlanDto>(
+    `/commerce/catalog/products/${encodeURIComponent(config.defaultBoxSlug)}/box-plan`,
+  );
+  return (await createBoxCart({ bundleProductId: plan.bundleProductId, size })).cart;
 }
 
 /** Adds an à-la-carte extra. Consumes no box space; lands in the `addOns` component. */

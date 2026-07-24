@@ -25,7 +25,7 @@ A running local Aonik with a tenant. See the platform repo; briefly:
 ```bash
 cd web
 
-# Dump the fixtures the seeders read.
+# One dump feeds every seeder below.
 npx tsx scripts/seed/export-fixtures.ts > /tmp/fixtures.json
 
 export TENANT_ID=<your tenant guid>
@@ -34,15 +34,26 @@ export ADMIN_TOKEN=$(curl -s -X POST http://localhost:5050/auth/token \
   -d '{"grantType":"password","clientId":"aonik-spa","username":"admin@aonik.local","password":"<dev password>"}' \
   | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>process.stdout.write(JSON.parse(d).accessToken))")
 
-node scripts/seed/seed.mjs            /tmp/seed-data.json   # products, box, collections, facets, config
+node scripts/seed/seed.mjs            /tmp/fixtures.json    # products, box, collections, facets, config
 node scripts/seed/menu-collection.mjs /tmp/fixtures.json    # the curated `menu` collection
 node scripts/seed/stock.mjs                                 # inventory for every variant
 node scripts/seed/content.mjs         /tmp/fixtures.json    # extras: nutrition + declarations
 node scripts/seed/dish-content.mjs    /tmp/fixtures.json    # dishes: nutrition, declarations where published
+node scripts/seed/images.mjs          /tmp/fixtures.json    # attach catalog photography
 ```
 
-`seed.mjs` reads the prepared shape written by `export-fixtures.ts` plus the
-dish-attribute mapping; see the script header.
+`export-fixtures.ts` emits both shapes the seeders need: the raw fixture fields
+the content seeders read, plus the derived `name` / `attributes` /
+`unitSurcharge` that `seed.mjs` posts. It used to emit only the former while
+`seed.mjs` was fed a hand-prepared `seed-data.json` that nothing in the repo
+produced — so following these instructions from a clean clone could not rebuild
+the catalog. The transform lives in `export-fixtures.ts` now, in TypeScript,
+where it is checked against the fixture types.
+
+`attributes` carries `kcal`, `proteinGrams` **and `fibreGrams`**, because a
+browse row's nutrition can only come from `attributesJson` — Aonik's product
+summary DTO has no nutrition fields. Omitting fibre is what made every menu card
+read "Fibre 0g" over dishes with 9g.
 
 Order matters — Aonik enforces most of it:
 

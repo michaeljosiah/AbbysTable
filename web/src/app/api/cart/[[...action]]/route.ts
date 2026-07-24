@@ -34,6 +34,8 @@ export const dynamic = 'force-dynamic';
 interface Body {
   bundleProductId?: string;
   size?: number;
+  /** Dish lines are named by product slug; extras already know their variant. */
+  slug?: string;
   productVariantId?: string;
   quantity?: number;
   personalisation?: PersonalisationSelection;
@@ -130,13 +132,15 @@ export async function POST(request: Request, context: { params: Promise<{ action
           ).cart,
         );
 
+      // A dish is named by slug: browse rows carry no variant id, so the
+      // product → variant resolution belongs on this side of the seam.
       case 'lines':
-        if (!body.productVariantId) {
-          return NextResponse.json({ error: 'productVariantId is required' }, { status: 400 });
+        if (!body.slug) {
+          return NextResponse.json({ error: 'slug is required' }, { status: 400 });
         }
         return cartResponse(
           await addBoxLine({
-            productVariantId: body.productVariantId,
+            slug: body.slug,
             quantity: body.quantity ?? 1,
             personalisation: body.personalisation,
           }),

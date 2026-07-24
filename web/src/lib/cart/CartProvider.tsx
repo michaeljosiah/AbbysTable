@@ -174,9 +174,14 @@ function projectServerCart(
       surchargePence: line.personalisationAdjustmentPence + line.unitSurchargePence,
     }));
 
+  // Keyed by VARIANT id, because that is what `Extra.id` is (`mapExtraRow`
+  // reads `productVariantId`) and what `addExtra` sends back. Using the product
+  // id here meant every catalogue lookup missed, and the review page — which
+  // skips a line it cannot resolve — rendered "0 items" over a box that had
+  // extras in it.
   const extras: ExtraLine[] = cart.lines
     .filter((line) => line.kind === 'AddOn')
-    .map((line) => ({ extraId: line.productId, quantity: line.quantity }));
+    .map((line) => ({ extraId: line.variantId, quantity: line.quantity }));
 
   return { boxSize: cart.quote.boxSize, isCustom: false, lines, extras };
 }
@@ -261,7 +266,9 @@ export function CartProvider({
         await server
           .request('/lines', {
             method: 'POST',
-            body: { productVariantId: line.dishId, quantity: line.quantity },
+            // The slug, not `dishId`: that is a PRODUCT id, and Aonik's cart
+            // wants a variant. The route resolves one from the other.
+            body: { slug: line.slug, quantity: line.quantity },
           })
           .catch(() => undefined);
         return;
@@ -463,6 +470,21 @@ export function useCart(): CartContextValue {
   return context;
 }
 
+/**
+ * Aonik's custom-size formula: `basePence + (size - baseDishes) * perSpacePence`.
+ *
+ * The first `baseDishes` are covered by `basePence` — they are NOT billed at the
+ * marginal rate. `size * perSpacePence` reads plausibly and is wrong at every
+ * size, over-quoting by `baseDishes * perSpacePence - basePence` (£7 on the
+ * seeded plan: 6 × £17 = £102 against a £95 base).
+ *
+ * Clamped at zero so a size below `baseDishes` cannot produce a negative box.
+ */
+export function customBoxPricePence(pricing: BoxPricing, size: number): number {
+  const { baseDishes, basePence, perSpacePence } = pricing.custom;
+  return Math.max(0, basePence + (size - baseDishes) * perSpacePence);
+}
+
 /** Price of the box itself, before personalisation surcharges. */
 export function boxPricePence(
   size: number | null,
@@ -474,7 +496,7 @@ export function boxPricePence(
     const preset = pricing.presets.find((offer) => offer.dishCount === size);
     if (preset) return preset.pricePence;
   }
-  return size * pricing.custom.perDishPence;
+  return customBoxPricePence(pricing, size);
 }
 
 /** Box price, personalisation surcharges, and any dishes beyond the box size. */

@@ -1330,10 +1330,14 @@ export function DishPicker({ dishes, pricing, personalisation, heating }: DishPi
                         </span>
                         <span className={styles.heatLabel}>{heatLabel}</span>
                       </span>
-                      <NutritionTag dot="protein">
-                        Protein {dish.nutrition.proteinGrams}g
-                      </NutritionTag>
-                      <NutritionTag dot="fibre">Fibre {dish.nutrition.fibreGrams}g</NutritionTag>
+                      {dish.nutrition.proteinGrams !== undefined ? (
+                        <NutritionTag dot="protein">
+                          Protein {dish.nutrition.proteinGrams}g
+                        </NutritionTag>
+                      ) : null}
+                      {dish.nutrition.fibreGrams !== undefined ? (
+                        <NutritionTag dot="fibre">Fibre {dish.nutrition.fibreGrams}g</NutritionTag>
+                      ) : null}
                     </div>
 
                     <div className={styles.mMeta}>
@@ -2780,7 +2784,9 @@ export function Nutrition({
     dish.nutrition.calories === undefined
       ? null
       : { label: 'kcal', value: scaled(dish.nutrition.calories, factor) },
-    { label: 'Protein', value: `${scaled(dish.nutrition.proteinGrams, factor)}g` },
+    dish.nutrition.proteinGrams === undefined
+      ? null
+      : { label: 'Protein', value: `${scaled(dish.nutrition.proteinGrams, factor)}g` },
     dish.nutrition.carbsGrams === undefined
       ? null
       : { label: 'Carbs', value: `${scaled(dish.nutrition.carbsGrams, factor)}g` },

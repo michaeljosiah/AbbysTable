@@ -260,7 +260,10 @@ export const BOX_PRICING_FIXTURE: BoxPricing = {
   custom: {
     minDishes: 6,
     maxDishes: 30,
-    perDishPence: 1700,
+    // Mirrors the seeded Aonik plan, so demo mode quotes what live mode charges.
+    baseDishes: 6,
+    basePence: 9500,
+    perSpacePence: 1700,
   },
   extraDishPence: 1500,
   // Both checkout templates show delivery as £10 struck through → Free.
