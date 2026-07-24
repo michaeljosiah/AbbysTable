@@ -21,7 +21,7 @@ import type {
   PublicCollectionDto,
   ExtrasListDto,
 } from './dto';
-import { AonikError } from './errors';
+import { AONIK_CODES, AonikError } from './errors';
 import { EXTRA_FIXTURES } from './extras';
 import { FACET_FIXTURES, fixtureMatchesFacet, fixtureOptionGroups } from './fixtureFacets';
 import {
@@ -201,6 +201,20 @@ export class MockAonikClient implements AonikClient {
  */
 const FEATURED_COLLECTION_SLUG = 'featured';
 
+/**
+ * The dish menu.
+ *
+ * `/commerce/catalog/products` is every Active product in the tenant, which
+ * includes the à-la-carte extras and the box bundle itself. Aonik has no "this
+ * is a dish" flag — curation is what a collection is for — so the browse is
+ * scoped to this collection instead.
+ *
+ * It is OPTIONAL. A tenant that has not curated one still gets a working menu
+ * (see `listProducts`), because "not curated yet" is a legitimate state and a
+ * blank or broken menu page is a far worse answer than an over-inclusive one.
+ */
+const MENU_COLLECTION_SLUG = 'menu';
+
 /** Browse parameters. Facet values must be tokens the facets read advertised. */
 export interface ProductBrowseOptions {
   page?: number;
@@ -263,15 +277,49 @@ export class HttpAonikClient implements AonikClient {
 
   /** The browse read, with optional facet/collection/sort/paging parameters. */
   async listProducts(options: ProductBrowseOptions = {}): Promise<ProductPage> {
+    // A caller that names no collection is browsing the dish menu; every such
+    // caller (the /menu page, the homepage rail, Step 2) wants dishes.
+    const defaultedCollection = options.collection === undefined;
+    const collection = options.collection ?? MENU_COLLECTION_SLUG;
+
+    try {
+      return await this.browse(options, collection);
+    } catch (error) {
+      // Aonik answers an unknown collection with a LOUD 400 rather than an
+      // empty list, deliberately. That is right for a collection the caller
+      // asked for by name, but our own default must not turn "this tenant has
+      // not curated a menu" into a broken menu page — so that one case, and
+      // only that one, retries unscoped.
+      const unknownDefault =
+        defaultedCollection &&
+        error instanceof AonikError &&
+        error.code === AONIK_CODES.storefrontValidation;
+
+      if (!unknownDefault) throw error;
+
+      console.warn(
+        `[aonik] no '${MENU_COLLECTION_SLUG}' collection for this tenant; the menu is falling ` +
+          'back to every simple product, which will include à-la-carte extras. Curate a ' +
+          `'${MENU_COLLECTION_SLUG}' collection to control what the menu shows.`,
+      );
+      return this.browse(options, undefined);
+    }
+  }
+
+  /** One browse round trip. `collection` undefined means unscoped. */
+  private async browse(
+    options: ProductBrowseOptions,
+    collection: string | undefined,
+  ): Promise<ProductPage> {
     const query: Record<string, string | number | undefined> = {
       page: options.page,
       pageSize: options.pageSize,
       search: options.search,
-      collection: options.collection,
+      collection,
       sort: options.sort,
-      // Dishes only. `/commerce/catalog/products` is every Active product in the
-      // tenant, which includes the box bundle itself — without this the box
-      // appears on the menu as though it were something you could put IN a box.
+      // Belt and braces alongside the collection: the box bundle is not a dish,
+      // and must never appear on the menu as though it were something you could
+      // put IN a box. This still holds on the unscoped fallback path.
       kind: 'Simple',
     };
 
