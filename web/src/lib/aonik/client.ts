@@ -269,6 +269,10 @@ export class HttpAonikClient implements AonikClient {
       search: options.search,
       collection: options.collection,
       sort: options.sort,
+      // Dishes only. `/commerce/catalog/products` is every Active product in the
+      // tenant, which includes the box bundle itself — without this the box
+      // appears on the menu as though it were something you could put IN a box.
+      kind: 'Simple',
     };
 
     // Repeatable `facet.<key>=v1,v2`. Values are option tokens the facets read
