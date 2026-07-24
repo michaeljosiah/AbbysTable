@@ -295,15 +295,28 @@ export class HttpAonikClient implements AonikClient {
     return dishes;
   }
 
-  /** The curated `featured` collection, in rank order — not a derived flag. */
+  /**
+   * The curated `featured` collection, in rank order — not a derived flag.
+   *
+   * A tenant that has not authored the collection is a legitimate state (every
+   * tenant starts that way), and Aonik answers 404 for it. That must degrade to
+   * an empty rail, not a 500: losing one homepage section is a merchandising
+   * gap, while throwing takes down the whole page over a collection the
+   * operator simply has not created yet.
+   */
   async getFeaturedDishes(): Promise<Dish[]> {
-    const collection = await this.get<PublicCollectionDto>(
-      `/commerce/catalog/collections/${encodeURIComponent(FEATURED_COLLECTION_SLUG)}`,
-    );
-    return collection.products.map((product) => ({
-      ...mapSummaryToDish(product),
-      isFeatured: true,
-    }));
+    try {
+      const collection = await this.get<PublicCollectionDto>(
+        `/commerce/catalog/collections/${encodeURIComponent(FEATURED_COLLECTION_SLUG)}`,
+      );
+      return collection.products.map((product) => ({
+        ...mapSummaryToDish(product),
+        isFeatured: true,
+      }));
+    } catch (error) {
+      if (error instanceof AonikError && error.isNotFound) return [];
+      throw error;
+    }
   }
 
   async getDishBySlug(slug: string): Promise<Dish | null> {
