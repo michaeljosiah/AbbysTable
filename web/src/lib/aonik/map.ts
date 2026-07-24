@@ -457,6 +457,8 @@ interface DishAttributes {
   kcal?: number;
   proteinGrams?: number;
   fibreGrams?: number;
+  carbsGrams?: number;
+  fatGrams?: number;
 }
 
 function readAttributes(attributesJson: string): DishAttributes {
@@ -475,6 +477,8 @@ function readAttributes(attributesJson: string): DishAttributes {
     kcal: num(raw.kcal),
     proteinGrams: num(raw.proteinGrams),
     fibreGrams: num(raw.fibreGrams),
+    carbsGrams: num(raw.carbsGrams),
+    fatGrams: num(raw.fatGrams),
   };
 }
 
@@ -512,6 +516,8 @@ export function mapSummaryToDish(dto: ProductSummaryDto): Dish {
     nutrition: {
       proteinGrams: attributes.proteinGrams,
       fibreGrams: attributes.fibreGrams,
+      carbsGrams: attributes.carbsGrams,
+      fatGrams: attributes.fatGrams,
       calories: attributes.kcal,
     },
     // Which groups a product offers is on the detail read; a card never needs it.
@@ -564,6 +570,8 @@ export function mapProductToDish(dto: ProductDto): Dish {
     nutrition: content?.nutrition ?? {
       proteinGrams: attributes.proteinGrams,
       fibreGrams: attributes.fibreGrams,
+      carbsGrams: attributes.carbsGrams,
+      fatGrams: attributes.fatGrams,
       calories: attributes.kcal,
     },
     personalisation: [...new Set(personalisation)],

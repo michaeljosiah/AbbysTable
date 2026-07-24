@@ -168,8 +168,21 @@ console.log('\n  per-dish attachment');
 const all = await call('GET', '/commerce/admin/products?pageSize=100');
 const bySlug = new Map((all?.items ?? []).map((p) => [p.slug, p.id]));
 
-/** The storefront's `KNOWN_GROUP_KEYS`, from fixture name to Aonik group key. */
-const GROUP_FOR = { portion: 'portion', protein: 'protein', sides: 'side', heat: 'heat' };
+/**
+ * Every dish gets every group, because that is what the design does.
+ *
+ * All three templates — Step 2's personaliser and both dish-detail pages —
+ * render "Choose your portion size / protein / side / heat level"
+ * unconditionally. The only `sc-if` near the card's personalise block is
+ * `d.notPersonalised`, which is a STATE (has this dish been personalised yet)
+ * and not a capability.
+ *
+ * The fixtures' per-dish `personalisation` arrays say otherwise — some dishes
+ * list two groups, three list none — but no template supports that, and the
+ * fixture header claims only to lift values from the templates. Seeding from
+ * them left dishes with a portion heading and no portions.
+ */
+const ALL_GROUP_KEYS = ['portion', 'protein', 'side', 'heat'];
 
 const defaultChoiceKey = (groupKey, dish) => {
   if (groupKey === 'heat') return String(HEAT_STEPS[dish.heat] ?? 2);
@@ -178,25 +191,14 @@ const defaultChoiceKey = (groupKey, dish) => {
   return (abbys ?? group.choices[0]).key;
 };
 
-let attached = 0, skipped = 0;
+let attached = 0;
 
 for (const dish of fixtures.dishes) {
   const id = bySlug.get(dish.slug);
   if (!id) { console.log(`    SKIP ${dish.slug} — no product`); continue; }
 
-  // Exactly the groups the design gives this dish. An empty list is a real
-  // answer: the dish is not personalisable, and the storefront must not offer
-  // it — not a gap to be filled by attaching everything.
-  const keys = (dish.personalisation ?? []).map((name) => GROUP_FOR[name]).filter(Boolean);
-
-  if (keys.length === 0) {
-    skipped += 1;
-    console.log(`    ${dish.slug} — no personalisation by design`);
-    continue;
-  }
-
   const ok = await call('PUT', `/commerce/admin/products/${id}/option-groups`, {
-    groups: keys.map((groupKey, index) => ({
+    groups: ALL_GROUP_KEYS.map((groupKey, index) => ({
       groupKey,
       allowedChoiceKeys: null, // null = every choice on the group
       defaultChoiceKey: defaultChoiceKey(groupKey, dish),
@@ -205,7 +207,7 @@ for (const dish of fixtures.dishes) {
     })),
   });
 
-  if (ok) { attached += 1; console.log(`    ${dish.slug} — ${keys.join(', ')}`); }
+  if (ok) { attached += 1; console.log(`    ${dish.slug} — ${ALL_GROUP_KEYS.join(', ')}`); }
 }
 
-console.log(`\n  attached ${attached} dish(es), ${skipped} deliberately without options`);
+console.log(`\n  attached all four groups to ${attached}/${fixtures.dishes.length} dishes`);

@@ -251,7 +251,30 @@ export async function addBoxLine(input: {
       },
     }),
   );
-  return dto ? mapBoxCart(dto) : null;
+  if (dto) return mapBoxCart(dto);
+
+  /*
+   * No cart yet — and this call is one of the two ways a box can begin.
+   *
+   * "Add this dish to your box" on a dish page adds BEFORE Step 1: the customer
+   * picks a dish, then chooses a size, and Step 1 greets them with "<dish> will
+   * be added to your box". Without this branch that add answered 200 with a
+   * null cart, the dish was silently dropped, and Step 1 showed an empty box —
+   * so the dish they had just chosen was gone. It bites hardest right after an
+   * order, when checkout has cleared the cookie and the next add is the first.
+   *
+   * Created at the plan's minimum size, which is what Step 1 preselects anyway;
+   * choosing a bigger box there PATCHes the size and keeps the line.
+   * `firstLine` exists on Aonik's create for exactly this — one call, so the
+   * cart is never briefly empty.
+   */
+  const plan = await defaultBoxPlan();
+  const created = await createBoxCart({
+    bundleProductId: plan.bundleProductId,
+    size: plan.minSize,
+    firstLine: { productVariantId: variantId, quantity: input.quantity, personalisation },
+  });
+  return created.cart;
 }
 
 /**
@@ -313,12 +336,20 @@ export async function setBoxSize(size: number): Promise<BoxCart | null> {
 
   // No cart — either none was ever made, or `withCart` just dropped a stale
   // cookie. Both mean the customer is starting a box, so start one.
-  //
-  // Read through this module's own transport rather than the catalogue client:
-  // only live mode reaches these routes at all (demo throws
-  // `CartUnavailableError` in `connection()`), so routing through the shared
-  // client would mean widening its interface with a method the mock could only
-  // ever answer with a fabricated bundle id.
+  const plan = await defaultBoxPlan();
+  return (await createBoxCart({ bundleProductId: plan.bundleProductId, size })).cart;
+}
+
+/**
+ * The tenant's box bundle plan, for the calls that may have to create a cart.
+ *
+ * Read through this module's own transport rather than the catalogue client:
+ * only live mode reaches these routes at all (demo throws
+ * `CartUnavailableError` in `connection()`), so routing through the shared
+ * client would mean widening its interface with a method the mock could only
+ * ever answer with a fabricated bundle id.
+ */
+async function defaultBoxPlan(): Promise<BoxPlanDto> {
   const config = await cartFetch<StorefrontConfigDto>('/commerce/config/storefront');
   if (!config.defaultBoxSlug) {
     throw new Error(
@@ -327,10 +358,9 @@ export async function setBoxSize(size: number): Promise<BoxCart | null> {
     );
   }
 
-  const plan = await cartFetch<BoxPlanDto>(
+  return cartFetch<BoxPlanDto>(
     `/commerce/catalog/products/${encodeURIComponent(config.defaultBoxSlug)}/box-plan`,
   );
-  return (await createBoxCart({ bundleProductId: plan.bundleProductId, size })).cart;
 }
 
 /** Adds an à-la-carte extra. Consumes no box space; lands in the `addOns` component. */

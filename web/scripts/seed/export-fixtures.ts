@@ -25,10 +25,11 @@ import { HEAT_STEPS } from '@/lib/aonik/types';
  * Keys are read back by `readAttributes` in `map.ts` and referenced by facet
  * `sourcePath`s in `seed.mjs` — the two must agree, so change them together.
  *
- * `kcal`, `proteinGrams` and `fibreGrams` are here because Aonik's product
- * summary DTO carries no nutrition at all: a menu card can only show a figure
- * that was published as an attribute. Omitting fibre is what made every card
- * read "Fibre 0g" over dishes with 9g.
+ * The macros are here because Aonik's product summary DTO carries no nutrition
+ * at all: a browse row can only show a figure that was published as an
+ * attribute. Omitting fibre is what made every card read "Fibre 0g" over dishes
+ * with 9g, and omitting carbs and fat left Step 2's personaliser showing two of
+ * the template's four "Nutritional highlights" cells.
  */
 const attributesOf = (dish: (typeof DISH_FIXTURES)[number]) => ({
   heatStep: HEAT_STEPS[dish.heat],
@@ -39,6 +40,8 @@ const attributesOf = (dish: (typeof DISH_FIXTURES)[number]) => ({
   kcal: dish.nutrition.calories,
   proteinGrams: dish.nutrition.proteinGrams,
   fibreGrams: dish.nutrition.fibreGrams,
+  carbsGrams: dish.nutrition.carbsGrams,
+  fatGrams: dish.nutrition.fatGrams,
 });
 
 console.log(

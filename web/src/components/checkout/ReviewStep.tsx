@@ -1115,10 +1115,12 @@ export function ReviewStep({
                           <div className={dmStyles.readoutRule} aria-hidden="true" />
                           <div>
                             <span className={dmStyles.readoutTitle}>Nutritional highlights</span>
+                            {/* Per-dish, so the portion scaling has real
+                                grams to work from — see the Step 2 note. */}
                             <Nutrition
                               dish={editor.dish}
                               choice={editor.draft}
-                              options={personalisation}
+                              options={editorOptions}
                             />
                           </div>
                         </div>

@@ -2628,7 +2628,11 @@ export function DishPicker({
                       <div className={styles.readoutRule} aria-hidden="true" />
                       <div>
                         <span className={styles.readoutTitle}>Nutritional highlights</span>
-                        <Nutrition dish={editor.dish} choice={draft} options={personalisation} />
+                        {/* `dishOptions`, not the catalogue-wide prop: the
+                            scaling factor is read off THIS dish's portion
+                            choices, and an empty list pins the factor at 1 —
+                            so the macros never moved when the portion did. */}
+                        <Nutrition dish={editor.dish} choice={draft} options={dishOptions} />
                       </div>
                     </div>
 
