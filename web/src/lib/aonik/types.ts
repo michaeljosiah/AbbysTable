@@ -84,8 +84,17 @@ export type DietaryTag = (typeof DIETARY_TAGS)[number];
 export type PersonalisationOption = 'portion' | 'protein' | 'sides' | 'heat';
 
 export interface DishNutrition {
-  proteinGrams: number;
-  fibreGrams: number;
+  /**
+   * Every figure is optional because every figure can genuinely be unpublished,
+   * and a nutrition panel is a factual claim about food.
+   *
+   * These two were once required, which made "not published" inexpressible and
+   * forced the mappers to write 0 — so a browse row, whose summary DTO carries
+   * no fibre at all, rendered "Fibre 0g" over a dish with 9g. A zero is a claim;
+   * absence is the truth. Callers omit the figure rather than default it.
+   */
+  proteinGrams?: number;
+  fibreGrams?: number;
   /** Full macros come from the menu catalogue; older fixtures may omit them. */
   carbsGrams?: number;
   fatGrams?: number;
@@ -217,12 +226,28 @@ export interface BoxOffer {
   savingPence?: number;
 }
 
-/** Build-your-own box: any count in range, priced per dish. */
+/**
+ * Build-your-own box: any count in range, priced off Aonik's plan formula
+ * `basePence + (size - baseDishes) * perSpacePence`.
+ *
+ * NOT a per-dish rate. This carried only the marginal rate under the name
+ * `perDishPence`, so both callers reached for `size * perDishPence` — which
+ * quoted every custom box £7 over what Aonik charges, because it billed the
+ * first `baseDishes` at the marginal rate instead of at `basePence`. The base
+ * pair is here so the real formula is expressible, and the rate is named for
+ * what it is so the wrong multiplication no longer reads as correct.
+ *
+ * Use `customBoxPricePence` rather than doing the arithmetic at the call site.
+ */
 export interface CustomBoxPricing {
   minDishes: number;
   maxDishes: number;
-  /** What the customer pays per dish. */
-  perDishPence: number;
+  /** Dishes included in `basePence` before the marginal rate applies. */
+  baseDishes: number;
+  /** Price of a box of exactly `baseDishes`. */
+  basePence: number;
+  /** What each space ABOVE `baseDishes` adds. */
+  perSpacePence: number;
 }
 
 /** Delivery charge line: struck-through list price and what is charged now. */

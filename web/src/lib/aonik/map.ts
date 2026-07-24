@@ -37,6 +37,7 @@ import type {
   HeatingInstruction,
   HeatLevel,
   PersonalisationOption,
+  PersonalisationOptions,
   StorefrontBoxPlan,
   StorefrontConfig,
   Extra,
@@ -113,14 +114,14 @@ function parseJsonStringArray(raw: string | null | undefined): string[] {
  * Nutrition figures. A null is "not published" and stays absent — never zero,
  * never inferred.
  *
- * `DishNutrition` requires protein and fibre, so an unpublished figure becomes
- * 0 there under protest; every optional figure keeps its absence. Callers that
- * care about "was this published at all" should read the DTO, not this.
+ * Every figure keeps its absence — none is defaulted to 0, because a nutrition
+ * panel is read as a claim about the food and "0g of fibre" is a different
+ * statement from "we have not published the fibre figure".
  */
 export function mapNutrition(dto: NutritionDto): DishNutrition {
   return {
-    proteinGrams: dto.proteinGrams ?? 0,
-    fibreGrams: dto.fibreGrams ?? 0,
+    proteinGrams: dto.proteinGrams ?? undefined,
+    fibreGrams: dto.fibreGrams ?? undefined,
     carbsGrams: dto.carbsGrams ?? undefined,
     fatGrams: dto.fatGrams ?? undefined,
     calories: dto.kcal ?? undefined,
@@ -202,6 +203,38 @@ export interface MappedOptionGroup {
   selectionMode: 'One' | 'Multi';
   defaultChoiceKey: string;
   choices: DishOption[];
+}
+
+/**
+ * A dish's own option groups → the shape the personaliser renders.
+ *
+ * The checkout UI was built against `PersonalisationOptions`, a catalogue-wide
+ * set, but Aonik has no such concept: groups are attached per product, with a
+ * per-product default. So the storefront asked for catalogue-wide options, got
+ * the honest empty answer, and rendered four headings with no choices under
+ * them — the personaliser was never connected to the real data.
+ *
+ * This adapts one to the other, per dish, so the dialog offers exactly what the
+ * dish offers. A dish missing a group yields an empty array for it, which the
+ * renderer now omits.
+ *
+ * Heat is keyed by step (`"0"`–`"3"`), matching `HEAT_STEPS` and what
+ * `personalisationToSelection` encodes back.
+ */
+export function optionGroupsToPersonalisation(
+  groups: MappedOptionGroup[],
+): PersonalisationOptions {
+  const choicesFor = (key: string) => groups.find((group) => group.key === key)?.choices ?? [];
+
+  return {
+    portions: choicesFor('portion'),
+    proteins: choicesFor('protein'),
+    // `KNOWN_GROUP_KEYS` accepts either spelling; Aonik's own key is singular.
+    sides: choicesFor('side').length > 0 ? choicesFor('side') : choicesFor('sides'),
+    heatLevels: choicesFor('heat')
+      .map((choice) => ({ label: choice.label, step: Number(choice.key) }))
+      .filter((level) => Number.isFinite(level.step)),
+  };
 }
 
 export function mapOptionGroup(dto: EffectiveOptionGroupDto): MappedOptionGroup {
@@ -423,6 +456,9 @@ interface DishAttributes {
    */
   kcal?: number;
   proteinGrams?: number;
+  fibreGrams?: number;
+  carbsGrams?: number;
+  fatGrams?: number;
 }
 
 function readAttributes(attributesJson: string): DishAttributes {
@@ -440,6 +476,9 @@ function readAttributes(attributesJson: string): DishAttributes {
     dietary: strArray(raw.dietary),
     kcal: num(raw.kcal),
     proteinGrams: num(raw.proteinGrams),
+    fibreGrams: num(raw.fibreGrams),
+    carbsGrams: num(raw.carbsGrams),
+    fatGrams: num(raw.fatGrams),
   };
 }
 
@@ -475,8 +514,10 @@ export function mapSummaryToDish(dto: ProductSummaryDto): Dish {
     isSignature: dto.unitSurcharge !== null,
     upgradePence: toPenceOrUndefined(dto.unitSurcharge),
     nutrition: {
-      proteinGrams: attributes.proteinGrams ?? 0,
-      fibreGrams: 0,
+      proteinGrams: attributes.proteinGrams,
+      fibreGrams: attributes.fibreGrams,
+      carbsGrams: attributes.carbsGrams,
+      fatGrams: attributes.fatGrams,
       calories: attributes.kcal,
     },
     // Which groups a product offers is on the detail read; a card never needs it.
@@ -527,8 +568,10 @@ export function mapProductToDish(dto: ProductDto): Dish {
     isSignature: dto.unitSurcharge !== null,
     upgradePence: toPenceOrUndefined(dto.unitSurcharge),
     nutrition: content?.nutrition ?? {
-      proteinGrams: attributes.proteinGrams ?? 0,
-      fibreGrams: 0,
+      proteinGrams: attributes.proteinGrams,
+      fibreGrams: attributes.fibreGrams,
+      carbsGrams: attributes.carbsGrams,
+      fatGrams: attributes.fatGrams,
       calories: attributes.kcal,
     },
     personalisation: [...new Set(personalisation)],
@@ -660,16 +703,48 @@ export function mapBoxChange(dto: BoxChangeDto): BoxChange {
   };
 }
 
+/**
+ * Drops an "unavailable" change that the very same payload contradicts.
+ *
+ * Aonik's add-extra response reports the add-on it just created as unavailable
+ * — `changes: [{lineId, reason: "unavailable"}]` with `isUnavailable: true` on
+ * the line — while an immediate `GET` of that same cart returns
+ * `isUnavailable: false` and no changes, for an extra with ~500 in stock.
+ * Verified against a local Aonik: same cart, same second, opposite answers.
+ *
+ * That contradiction is not information, so it is not surfaced as an alarm. The
+ * line's own flag wins because the rest of the UI already trusts it —
+ * `hasUnavailableLine` gates continue and checkout off exactly that field — so
+ * honouring the change here would have the notices and the blocking logic
+ * disagree about the same box.
+ *
+ * Deliberately narrow: only a change whose line is PRESENT and says it is
+ * available is dropped. A change about a line that is gone, or one the box
+ * agrees is unavailable, passes through untouched.
+ */
+function withoutContradictedUnavailability(
+  changes: BoxChange[],
+  lines: BoxLine[],
+): BoxChange[] {
+  return changes.filter((change) => {
+    if (change.reason !== 'unavailable' || !change.lineId) return true;
+    const line = lines.find((candidate) => candidate.lineId === change.lineId);
+    return line ? line.isUnavailable : true;
+  });
+}
+
 /** Every mutation returns the whole box; the provider replaces state wholesale. */
 export function mapBoxCart(dto: BoxCartDto): BoxCart {
+  const lines = dto.box.lines.map(mapBoxLine);
+
   return {
     cartId: dto.box.cartId,
     bundleProductId: dto.box.bundleProductId,
     size: dto.box.size,
     currency: dto.box.currency,
-    lines: dto.box.lines.map(mapBoxLine),
+    lines,
     quote: mapBoxQuote(dto.quote),
-    changes: dto.changes.map(mapBoxChange),
+    changes: withoutContradictedUnavailability(dto.changes.map(mapBoxChange), lines),
   };
 }
 
@@ -856,7 +931,7 @@ export function mapExtraRow(dto: ExtraRowDto): Extra {
           })),
         }
       : undefined,
-    nutrition: content?.nutrition ?? { proteinGrams: 0, fibreGrams: 0 },
+    nutrition: content?.nutrition ?? {},
     // SAFETY: `mapResolvedContent` has already cleared both when Aonik withheld
     // them, so absence here always means "not declared".
     ingredients: content?.ingredients,

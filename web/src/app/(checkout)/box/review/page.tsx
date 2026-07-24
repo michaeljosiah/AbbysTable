@@ -3,6 +3,7 @@ import Link from 'next/link';
 
 import { ReviewStep } from '@/components/checkout/ReviewStep';
 import { getAonikClient } from '@/lib/aonik/client';
+import { optionGroupsToPersonalisation } from '@/lib/aonik/map';
 import { formatDeliveryDate } from '@/lib/format';
 
 import styles from './page.module.css';
@@ -26,6 +27,18 @@ export default async function BoxReviewPage() {
     client.getDeliveryWindow(),
     client.getHeatingInstructions(),
   ]);
+
+  // Per-dish option groups, for the same reason as Step 2: Aonik attaches them
+  // per product, so the edit-personalisation modal has nothing to offer without
+  // them. See the note on `/box/dishes`.
+  const optionsBySlug = Object.fromEntries(
+    await Promise.all(
+      dishes.map(async (dish) => {
+        const groups = await client.getDishOptionGroups(dish.slug).catch(() => []);
+        return [dish.slug, optionGroupsToPersonalisation(groups)] as const;
+      }),
+    ),
+  );
 
   return (
     <div className={styles.page}>
@@ -51,6 +64,7 @@ export default async function BoxReviewPage() {
         extras={extras}
         pricing={pricing}
         personalisation={personalisation}
+        optionsBySlug={optionsBySlug}
         heating={heating}
         earliestDeliveryLabel={formatDeliveryDate(delivery?.earliestDeliveryDate)}
         heading={

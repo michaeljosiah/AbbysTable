@@ -25,7 +25,7 @@ A running local Aonik with a tenant. See the platform repo; briefly:
 ```bash
 cd web
 
-# Dump the fixtures the seeders read.
+# One dump feeds every seeder below.
 npx tsx scripts/seed/export-fixtures.ts > /tmp/fixtures.json
 
 export TENANT_ID=<your tenant guid>
@@ -34,15 +34,31 @@ export ADMIN_TOKEN=$(curl -s -X POST http://localhost:5050/auth/token \
   -d '{"grantType":"password","clientId":"aonik-spa","username":"admin@aonik.local","password":"<dev password>"}' \
   | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>process.stdout.write(JSON.parse(d).accessToken))")
 
-node scripts/seed/seed.mjs            /tmp/seed-data.json   # products, box, collections, facets, config
+node scripts/seed/seed.mjs            /tmp/fixtures.json    # products, box, collections, facets, config
 node scripts/seed/menu-collection.mjs /tmp/fixtures.json    # the curated `menu` collection
 node scripts/seed/stock.mjs                                 # inventory for every variant
 node scripts/seed/content.mjs         /tmp/fixtures.json    # extras: nutrition + declarations
 node scripts/seed/dish-content.mjs    /tmp/fixtures.json    # dishes: nutrition, declarations where published
+node scripts/seed/option-groups.mjs   /tmp/fixtures.json    # portion / protein / side / heat
+node scripts/seed/images.mjs          /tmp/fixtures.json    # attach catalog photography
 ```
 
-`seed.mjs` reads the prepared shape written by `export-fixtures.ts` plus the
-dish-attribute mapping; see the script header.
+Without `option-groups.mjs` every dish returns `effectiveOptionGroups: []` and
+the personaliser has nothing to offer — the storefront now hides the affordance
+rather than showing empty groups, so personalisation simply disappears.
+
+`export-fixtures.ts` emits both shapes the seeders need: the raw fixture fields
+the content seeders read, plus the derived `name` / `attributes` /
+`unitSurcharge` that `seed.mjs` posts. It used to emit only the former while
+`seed.mjs` was fed a hand-prepared `seed-data.json` that nothing in the repo
+produced — so following these instructions from a clean clone could not rebuild
+the catalog. The transform lives in `export-fixtures.ts` now, in TypeScript,
+where it is checked against the fixture types.
+
+`attributes` carries `kcal`, `proteinGrams` **and `fibreGrams`**, because a
+browse row's nutrition can only come from `attributesJson` — Aonik's product
+summary DTO has no nutrition fields. Omitting fibre is what made every menu card
+read "Fibre 0g" over dishes with 9g.
 
 Order matters — Aonik enforces most of it:
 
@@ -61,6 +77,12 @@ Order matters — Aonik enforces most of it:
 - **Every variant needs stock.** Without it each box add fails
   `R5: only 0 of this dish is available`. Aonik also enforces `R8` — the box
   must be full to continue or check out.
+- **An option group with no recommended default is dropped silently.** Attaching
+  it with `defaultChoiceKey: null` at least says so (`V8: … the group's
+  recommended default is not among the allowed choices`), but supplying an
+  explicit product-level default makes the group vanish from
+  `effectiveOptionGroups` with a 200 and no mention. `option-groups.mjs` sets a
+  group-level default on every run for exactly this reason.
 - **Recreating the Keycloak container rotates every user's `sub`**, orphaning
   the `AnkUsers.ExternalSubject` link. Every admin call then 401s in a way that
   looks like a bad token.

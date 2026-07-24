@@ -57,7 +57,30 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const { mode } = await resolveDataMode();
 
   return (
-    <html lang="en-GB" className={`${playfair.variable} ${cormorant.variable} ${figtree.variable}`}>
+    /*
+     * `suppressHydrationWarning` is here for BROWSER EXTENSIONS, not for us.
+     *
+     * `<html>` is the element extensions decorate before React hydrates — a
+     * dev browser here stamps `data-xt-extension-active` on it — and React
+     * reports the resulting attribute diff as a hydration mismatch on every
+     * page load. Nothing is wrong: the server sends
+     * `<html lang="en-GB" class="…">`, and an extension-free browser receives
+     * exactly that.
+     *
+     * The warning is worth silencing rather than living with, because a console
+     * that always has a hydration error in it is a console where the next real
+     * one goes unnoticed.
+     *
+     * It suppresses ONE level — this element's own attributes and text. It
+     * cannot hide a mismatch anywhere inside the app, so it is not a blanket.
+     * The only thing it gives up is a genuine mismatch on `<html>` itself, and
+     * both attributes here are constants resolved at build time.
+     */
+    <html
+      lang="en-GB"
+      className={`${playfair.variable} ${cormorant.variable} ${figtree.variable}`}
+      suppressHydrationWarning
+    >
       <body>
         <CartProvider mode={mode}>{children}</CartProvider>
         {/* Renders nothing in production. */}
