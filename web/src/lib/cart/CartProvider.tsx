@@ -71,6 +71,59 @@ export interface CartState {
 
 const EMPTY: CartState = { boxSize: null, isCustom: false, lines: [], extras: [] };
 
+/**
+ * A UI selection → chosen option key per Aonik GROUP key.
+ *
+ * The four keys match `KNOWN_GROUP_KEYS` in `map.ts`, and heat is keyed by its
+ * step (`"3"`), which is how the seeded choices are keyed. The server does the
+ * actual encoding — array vs bare string, and all-defaults → undefined — since
+ * that needs the product's groups.
+ *
+ * Returning undefined for an unpersonalised line is what makes Aonik flag
+ * `isDefaultPersonalisation`, so the box says "Abby's choice" rather than
+ * spelling out the defaults back at the customer.
+ */
+function toGroupChoices(
+  personalisation: CartPersonalisation | undefined,
+): Record<string, string> | undefined {
+  if (!personalisation) return undefined;
+  return {
+    portion: personalisation.portion,
+    protein: personalisation.protein,
+    side: personalisation.side,
+    heat: String(personalisation.heatStep),
+  };
+}
+
+/**
+ * The inverse: Aonik's stored selection → the UI's `CartPersonalisation`.
+ *
+ * Reads the canonical selection off the line. The projection used to put
+ * Aonik's rendered summary string into `portion` and zero the rest, which made
+ * every re-read of a personalised line render as "None" — the summary is not a
+ * choice key, so nothing matched, and `heatStep: 0` is literally the "None"
+ * heat. It also meant opening "Edit personalisation" seeded the draft with
+ * junk.
+ *
+ * A `Multi` group collapses to its first choice because `CartPersonalisation`
+ * holds one protein; that is the UI model's limit, not a decode error.
+ */
+function fromGroupSelection(
+  selection: Record<string, string | string[]> | undefined,
+): CartPersonalisation {
+  const one = (value: string | string[] | undefined) =>
+    (Array.isArray(value) ? value[0] : value) ?? '';
+
+  const heat = Number(one(selection?.heat));
+
+  return {
+    portion: one(selection?.portion),
+    protein: one(selection?.protein),
+    side: one(selection?.side),
+    heatStep: Number.isFinite(heat) ? heat : 0,
+  };
+}
+
 const STORAGE_KEY = 'abbys-table:box:v1';
 
 interface CartContextValue extends CartState {
@@ -162,15 +215,9 @@ function projectServerCart(
       title: line.name,
       imageUrl: display[line.productId]?.imageUrl ?? '',
       quantity: line.quantity,
-      // Aonik's own summary; the canonical selection lives on the server line.
       personalisation: line.isDefaultPersonalisation
         ? undefined
-        : ({
-            portion: line.personalisationSummary,
-            protein: '',
-            side: '',
-            heatStep: 0,
-          } as CartPersonalisation),
+        : fromGroupSelection(line.personalisation),
       surchargePence: line.personalisationAdjustmentPence + line.unitSurchargePence,
     }));
 
@@ -267,8 +314,13 @@ export function CartProvider({
           .request('/lines', {
             method: 'POST',
             // The slug, not `dishId`: that is a PRODUCT id, and Aonik's cart
-            // wants a variant. The route resolves one from the other.
-            body: { slug: line.slug, quantity: line.quantity },
+            // wants a variant. The route resolves one from the other, and
+            // encodes `choices` once it has the product's option groups.
+            body: {
+              slug: line.slug,
+              quantity: line.quantity,
+              choices: toGroupChoices(line.personalisation),
+            },
           })
           .catch(() => undefined);
         return;

@@ -36,6 +36,8 @@ interface Body {
   size?: number;
   /** Dish lines are named by product slug; extras already know their variant. */
   slug?: string;
+  /** Chosen option key per group key, pre-encoding. See `addBoxLine`. */
+  choices?: Record<string, string>;
   productVariantId?: string;
   quantity?: number;
   personalisation?: PersonalisationSelection;
@@ -142,7 +144,7 @@ export async function POST(request: Request, context: { params: Promise<{ action
           await addBoxLine({
             slug: body.slug,
             quantity: body.quantity ?? 1,
-            personalisation: body.personalisation,
+            choices: body.choices,
           }),
         );
 

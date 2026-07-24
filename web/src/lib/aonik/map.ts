@@ -37,6 +37,7 @@ import type {
   HeatingInstruction,
   HeatLevel,
   PersonalisationOption,
+  PersonalisationOptions,
   StorefrontBoxPlan,
   StorefrontConfig,
   Extra,
@@ -202,6 +203,38 @@ export interface MappedOptionGroup {
   selectionMode: 'One' | 'Multi';
   defaultChoiceKey: string;
   choices: DishOption[];
+}
+
+/**
+ * A dish's own option groups → the shape the personaliser renders.
+ *
+ * The checkout UI was built against `PersonalisationOptions`, a catalogue-wide
+ * set, but Aonik has no such concept: groups are attached per product, with a
+ * per-product default. So the storefront asked for catalogue-wide options, got
+ * the honest empty answer, and rendered four headings with no choices under
+ * them — the personaliser was never connected to the real data.
+ *
+ * This adapts one to the other, per dish, so the dialog offers exactly what the
+ * dish offers. A dish missing a group yields an empty array for it, which the
+ * renderer now omits.
+ *
+ * Heat is keyed by step (`"0"`–`"3"`), matching `HEAT_STEPS` and what
+ * `personalisationToSelection` encodes back.
+ */
+export function optionGroupsToPersonalisation(
+  groups: MappedOptionGroup[],
+): PersonalisationOptions {
+  const choicesFor = (key: string) => groups.find((group) => group.key === key)?.choices ?? [];
+
+  return {
+    portions: choicesFor('portion'),
+    proteins: choicesFor('protein'),
+    // `KNOWN_GROUP_KEYS` accepts either spelling; Aonik's own key is singular.
+    sides: choicesFor('side').length > 0 ? choicesFor('side') : choicesFor('sides'),
+    heatLevels: choicesFor('heat')
+      .map((choice) => ({ label: choice.label, step: Number(choice.key) }))
+      .filter((level) => Number.isFinite(level.step)),
+  };
 }
 
 export function mapOptionGroup(dto: EffectiveOptionGroupDto): MappedOptionGroup {

@@ -39,8 +39,13 @@ node scripts/seed/menu-collection.mjs /tmp/fixtures.json    # the curated `menu`
 node scripts/seed/stock.mjs                                 # inventory for every variant
 node scripts/seed/content.mjs         /tmp/fixtures.json    # extras: nutrition + declarations
 node scripts/seed/dish-content.mjs    /tmp/fixtures.json    # dishes: nutrition, declarations where published
+node scripts/seed/option-groups.mjs   /tmp/fixtures.json    # portion / protein / side / heat
 node scripts/seed/images.mjs          /tmp/fixtures.json    # attach catalog photography
 ```
+
+Without `option-groups.mjs` every dish returns `effectiveOptionGroups: []` and
+the personaliser has nothing to offer — the storefront now hides the affordance
+rather than showing empty groups, so personalisation simply disappears.
 
 `export-fixtures.ts` emits both shapes the seeders need: the raw fixture fields
 the content seeders read, plus the derived `name` / `attributes` /
@@ -72,6 +77,12 @@ Order matters — Aonik enforces most of it:
 - **Every variant needs stock.** Without it each box add fails
   `R5: only 0 of this dish is available`. Aonik also enforces `R8` — the box
   must be full to continue or check out.
+- **An option group with no recommended default is dropped silently.** Attaching
+  it with `defaultChoiceKey: null` at least says so (`V8: … the group's
+  recommended default is not among the allowed choices`), but supplying an
+  explicit product-level default makes the group vanish from
+  `effectiveOptionGroups` with a 200 and no mention. `option-groups.mjs` sets a
+  group-level default on every run for exactly this reason.
 - **Recreating the Keycloak container rotates every user's `sub`**, orphaning
   the `AnkUsers.ExternalSubject` link. Every admin call then 401s in a way that
   looks like a bad token.

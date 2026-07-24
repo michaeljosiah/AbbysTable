@@ -43,9 +43,31 @@ interface DishPickerProps {
   dishes: Dish[];
   /** Box pricing feeds the modal's totals, box-full copy and expand view. */
   pricing: BoxPricing;
+  /**
+   * Catalogue-wide options. Populated in demo; empty in live, where Aonik
+   * attaches groups per product instead — see `optionsBySlug`.
+   */
   personalisation: PersonalisationOptions;
+  /**
+   * Per-dish options, keyed by slug, resolved from Aonik's
+   * `effectiveOptionGroups`. Takes precedence over `personalisation`, and a
+   * dish absent here (or present with every group empty) offers no
+   * personalisation at all — which is a real state, not a loading gap.
+   */
+  optionsBySlug?: Record<string, PersonalisationOptions>;
   /** Reheating guidance for the personaliser's shared info panels. */
   heating: HeatingInstruction[];
+}
+
+/** True when a dish has at least one thing a customer could actually choose. */
+export function hasAnyOption(options: PersonalisationOptions | undefined): boolean {
+  if (!options) return false;
+  return (
+    options.portions.length > 0 ||
+    options.proteins.length > 0 ||
+    options.sides.length > 0 ||
+    options.heatLevels.length > 0
+  );
 }
 
 /** Dishes revealed per "Load more" — the template's page size. */
@@ -217,9 +239,21 @@ function CardPip({ size, lit }: { size: number; lit: boolean }) {
 /** The step-2 template names the top heat "Hot" (the dish page says "High"). */
 export const CARD_HEAT_LABELS: Record<number, string> = { 1: 'Mild', 2: 'Medium', 3: 'Hot' };
 
-export function DishPicker({ dishes, pricing, personalisation, heating }: DishPickerProps) {
+export function DishPicker({
+  dishes,
+  pricing,
+  personalisation,
+  optionsBySlug,
+  heating,
+}: DishPickerProps) {
   const { boxSize, isCustom: boxIsCustom, lines, hydrated, addLine, removeLine, setQuantity, setBoxSize } =
     useCart();
+
+  /** This dish's options, falling back to the catalogue-wide set (demo mode). */
+  const optionsFor = useCallback(
+    (dish: Dish): PersonalisationOptions => optionsBySlug?.[dish.slug] ?? personalisation,
+    [optionsBySlug, personalisation],
+  );
 
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<PickerFilters>(NO_FILTERS);
@@ -476,7 +510,7 @@ export function DishPicker({ dishes, pricing, personalisation, heating }: DishPi
       const dishLines = linesByDish.get(dish.id) ?? [];
       const inBox = dishLines.length > 0;
       const target = line ?? (inBox ? dishLines[0] : undefined);
-      const seedPers = target?.personalisation ?? abbysChoice(dish, personalisation);
+      const seedPers = target?.personalisation ?? abbysChoice(dish, optionsFor(dish));
       const chosen = inBox ? opts?.personalise !== undefined : true;
       const needPicker = dishLines.length > 1 || (target?.quantity ?? 0) > 1;
       setEditor({
@@ -495,7 +529,7 @@ export function DishPicker({ dishes, pricing, personalisation, heating }: DishPi
       });
       setUpdTip(false);
     },
-    [linesByDish, personalisation],
+    [linesByDish, optionsFor],
   );
 
   const closeEditor = useCallback(() => {
@@ -568,11 +602,19 @@ export function DishPicker({ dishes, pricing, personalisation, heating }: DishPi
 
   /* ---- Modal derivations (template `renderVals` locals) ---------------------- */
 
-  const abbys = editor ? abbysChoice(editor.dish, personalisation) : null;
+  /*
+   * The open dish's own options. Everything below derives from these rather
+   * than the catalogue-wide prop: Abby's default, the surcharge and the chips
+   * all have to describe THIS dish, whose groups and defaults are its own —
+   * its heat default is its own heat level, and it may offer no side at all.
+   */
+  const dishOptions = editor ? optionsFor(editor.dish) : personalisation;
+
+  const abbys = editor ? abbysChoice(editor.dish, dishOptions) : null;
   const enabled = editor?.personalise ?? false;
   const draft = editor?.draft ?? null;
   const isCustom = Boolean(enabled && draft && abbys && !sameChoice(draft, abbys));
-  const changePence = isCustom && draft ? choiceSurcharge(draft, personalisation) : 0;
+  const changePence = isCustom && draft ? choiceSurcharge(draft, dishOptions) : 0;
 
   const editorLines = editor ? (linesByDish.get(editor.dish.id) ?? []) : [];
   const inBox = editorLines.length > 0;
@@ -601,7 +643,7 @@ export function DishPicker({ dishes, pricing, personalisation, heating }: DishPi
   // The template prices the change against the whole line, not the chosen count.
   const deltaPence =
     draft && origPers
-      ? (choiceSurcharge(draft, personalisation) - choiceSurcharge(origPers, personalisation)) *
+      ? (choiceSurcharge(draft, dishOptions) - choiceSurcharge(origPers, dishOptions)) *
         (targetLine?.quantity ?? 1)
       : 0;
 
@@ -690,7 +732,7 @@ export function DishPicker({ dishes, pricing, personalisation, heating }: DishPi
     const dish = editor.dish;
     const pers = enabled ? draft : abbys;
     const surcharge =
-      (dish.upgradePence ?? 0) + (custom ? choiceSurcharge(pers, personalisation) : 0);
+      (dish.upgradePence ?? 0) + (custom ? choiceSurcharge(pers, dishOptions) : 0);
 
     if (editor.mode !== 'update') {
       // Add (in-box "Add another" and every not-in-box add).
@@ -742,7 +784,7 @@ export function DishPicker({ dishes, pricing, personalisation, heating }: DishPi
     draft,
     abbys,
     enabled,
-    personalisation,
+    dishOptions,
     boxFull,
     targetLine,
     updCount,
@@ -1349,6 +1391,18 @@ export function DishPicker({ dishes, pricing, personalisation, heating }: DishPi
                       <span>{mMeta}</span>
                     </div>
 
+                    {/*
+                      Only offered when this dish actually has options.
+
+                      Gated on the resolved options rather than
+                      `dish.personalisation`, which a browse row cannot fill —
+                      the summary DTO carries no groups, so it is always empty
+                      on this grid and would hide the block for every dish.
+                      Three of the seeded ten genuinely offer nothing, and
+                      inviting "Personalise this dish" there opened a dialog
+                      with no choices in it.
+                    */}
+                    {hasAnyOption(optionsFor(dish)) ? (
                     <div className={styles.persBlock}>
                       {personalised.length > 0 ? (
                         <>
@@ -1384,7 +1438,7 @@ export function DishPicker({ dishes, pricing, personalisation, heating }: DishPi
                               ? `${personalised.length} versions in your box`
                               : personalisationSummary(
                                   personalised[0].personalisation,
-                                  personalisation,
+                                  optionsFor(dish),
                                 )}
                           </div>
                         </>
@@ -1418,6 +1472,7 @@ export function DishPicker({ dishes, pricing, personalisation, heating }: DishPi
                         </>
                       )}
                     </div>
+                    ) : null}
 
                     <div className={styles.actions}>
                       <button
@@ -2008,7 +2063,7 @@ export function DishPicker({ dishes, pricing, personalisation, heating }: DishPi
                                                   <span className={styles.versionLabel}>
                                                     {personalisationSummary(
                                                       line.personalisation,
-                                                      personalisation,
+                                                      dishOptions,
                                                     )}
                                                   </span>
                                                   <span className={styles.versionQty}>
@@ -2357,7 +2412,7 @@ export function DishPicker({ dishes, pricing, personalisation, heating }: DishPi
                           <span className={styles.persPanelSummary}>
                             {personalisationSummary(
                               enabled && isCustom ? draft : undefined,
-                              personalisation,
+                              dishOptions,
                             )}
                           </span>
                         ) : null}
@@ -2439,7 +2494,7 @@ export function DishPicker({ dishes, pricing, personalisation, heating }: DishPi
                     </span>
                     {isCustom ? (
                       <span className={styles.forkSummary}>
-                        {personalisationSummary(draft, personalisation)}
+                        {personalisationSummary(draft, dishOptions)}
                       </span>
                     ) : null}
                   </span>
@@ -2492,7 +2547,7 @@ export function DishPicker({ dishes, pricing, personalisation, heating }: DishPi
                           <path d="M9 5.5h6" />
                         </svg>
                       }
-                      group={personalisation.portions}
+                      group={dishOptions.portions}
                       selected={draft.portion}
                       onSelect={(portion) => setDraft({ ...draft, portion })}
                     />
@@ -2504,7 +2559,7 @@ export function DishPicker({ dishes, pricing, personalisation, heating }: DishPi
                           <path d="M12 3C8 3 6 6 6 9c0 4 3 7 6 12 3-5 6-8 6-12 0-3-2-6-6-6z" />
                         </svg>
                       }
-                      group={personalisation.proteins}
+                      group={dishOptions.proteins}
                       selected={draft.protein}
                       onSelect={(protein) => setDraft({ ...draft, protein })}
                     />
@@ -2515,7 +2570,7 @@ export function DishPicker({ dishes, pricing, personalisation, heating }: DishPi
                           <path d="M4 11h16M6 11c0-3 2.5-5 6-5s6 2 6 5M8 15h8M9 19h6" />
                         </svg>
                       }
-                      group={personalisation.sides}
+                      group={dishOptions.sides}
                       selected={draft.side}
                       onSelect={(side) => setDraft({ ...draft, side })}
                     />
@@ -2529,7 +2584,7 @@ export function DishPicker({ dishes, pricing, personalisation, heating }: DishPi
                         Choose your heat level
                       </legend>
                       <div className={styles.groupChips}>
-                        {personalisation.heatLevels.map((level) => (
+                        {dishOptions.heatLevels.map((level) => (
                           <button
                             key={level.label}
                             type="button"
@@ -2548,7 +2603,7 @@ export function DishPicker({ dishes, pricing, personalisation, heating }: DishPi
                         ))}
                       </div>
                       <p className={styles.abbysNote}>
-                        {personalisation.heatLevels.find((level) => level.step === abbys.heatStep)
+                        {dishOptions.heatLevels.find((level) => level.step === abbys.heatStep)
                           ?.label ?? ''}{' '}
                         is Abby&apos;s choice.
                       </p>
@@ -2729,6 +2784,17 @@ export function OptionGroup({
   onSelect: (key: string) => void;
 }) {
   const abbys = group.find((option) => option.isAbbysChoice);
+
+  /*
+   * A group with nothing in it is not a group.
+   *
+   * This rendered the legend regardless, so a tenant with no authored option
+   * groups produced four headings — "Choose your portion size", "Choose your
+   * protein" — with no chips beneath any of them. It asked a question it had no
+   * answers to, and it hid the real fault: the seeders never wrote option
+   * groups at all, and the UI looked close enough to working to mask it.
+   */
+  if (group.length === 0) return null;
 
   return (
     <fieldset className={`${styles.group} ${styles.groupRuled}`}>

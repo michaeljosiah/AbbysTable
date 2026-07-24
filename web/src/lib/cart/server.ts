@@ -12,11 +12,14 @@ import type { BoxCartDto, BoxPlanDto, CheckoutResultDto, ProductDto } from '@/li
 import { AONIK_CODES, AonikError } from '@/lib/aonik/errors';
 import { aonikFetch, type AonikFetchOptions } from '@/lib/aonik/http';
 import {
+  encodeSelection,
   mapBoxCart,
   mapCheckoutResult,
+  mapOptionGroups,
   toMajor,
   type BoxCart,
   type CheckoutResult,
+  type MappedOptionGroup,
   type PersonalisationSelection,
   type StorefrontConfigDto,
 } from '@/lib/aonik/map';
@@ -200,7 +203,10 @@ export async function getBoxCart(): Promise<BoxCart | null> {
  * catalogue lookup, cacheable for the same window as the rest of the menu, not
  * cart state.
  */
-async function variantIdForSlug(slug: string): Promise<string> {
+async function resolveForCart(slug: string): Promise<{
+  variantId: string;
+  groups: MappedOptionGroup[];
+}> {
   const product = await aonikFetch<ProductDto>(
     `/commerce/catalog/products/${encodeURIComponent(slug)}`,
     { ...connection(), policy: 'catalog' },
@@ -213,25 +219,35 @@ async function variantIdForSlug(slug: string): Promise<string> {
         'the catalogue needs fixing rather than this call retrying.',
     );
   }
-  return variant.id;
+
+  // The same read answers both questions, so encoding costs no extra request.
+  return { variantId: variant.id, groups: mapOptionGroups(product.effectiveOptionGroups) };
 }
 
 export async function addBoxLine(input: {
   /** Public product slug; resolved to a variant id here. */
   slug: string;
   quantity: number;
-  personalisation?: PersonalisationSelection;
+  /**
+   * Chosen option key per GROUP key (`{portion: 'full', heat: '3'}`), as the UI
+   * holds them. Encoded here rather than client-side because encoding needs the
+   * product's groups — `Multi` wants an array where `One` wants a bare string,
+   * and an all-defaults selection must become `undefined` — and this is the
+   * only side of the seam that knows them.
+   */
+  choices?: Record<string, string>;
 }): Promise<BoxCart | null> {
-  const productVariantId = await variantIdForSlug(input.slug);
+  const { variantId, groups } = await resolveForCart(input.slug);
+  const personalisation = input.choices ? encodeSelection(groups, input.choices) : undefined;
 
   const dto = await withCart((cartId, auth) =>
     cartFetch<BoxCartDto>(`/commerce/carts/${cartId}/lines`, {
       ...auth,
       method: 'POST',
       body: {
-        productVariantId,
+        productVariantId: variantId,
         quantity: input.quantity,
-        personalisation: input.personalisation,
+        personalisation,
       },
     }),
   );
