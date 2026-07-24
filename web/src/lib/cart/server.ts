@@ -28,7 +28,12 @@ import { readAonikConfig } from '@/lib/aonik/dataMode';
 import { isExpired, readSession } from '@/lib/auth/session';
 
 import { clearCartCookie, readCartCookie, writeCartCookie } from './cartCookie';
-import { writePlacedOrder, type PlacedOrder, type PlacedOrderLine } from './orderCookie';
+import {
+  clearPlacedOrder,
+  writePlacedOrder,
+  type PlacedOrder,
+  type PlacedOrderLine,
+} from './orderCookie';
 
 /**
  * Raised when a cart route is called without a configured Aonik.
@@ -97,6 +102,24 @@ export async function createBoxCart(input: {
   }
 
   await writeCartCookie({ cartId: dto.box.cartId, cartToken: dto.cartToken });
+
+  /*
+   * A new box ends the last one's receipt.
+   *
+   * The order snapshot is what `/box/confirmation` renders, and it has to
+   * outlive the redirect so a refresh or a back-navigation still shows the
+   * order. But it was only expiring on its own two-hour clock, so a customer
+   * who ordered and then started building again could open the confirmation
+   * mid-build and be shown the PREVIOUS order — reference, dish list, total —
+   * as though it were the box they were working on.
+   *
+   * Starting a box is the unambiguous moment that stops being true, so it is
+   * cleared here rather than on read: clearing on read would lose the receipt
+   * to a refresh, which is the one thing customers reliably do on a
+   * confirmation page.
+   */
+  await clearPlacedOrder();
+
   return { cart: mapBoxCart(dto) };
 }
 

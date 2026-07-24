@@ -172,7 +172,15 @@ export async function POST(request: Request, context: { params: Promise<{ action
           // The cart is gone or was never ours; there is nothing to check out.
           return NextResponse.json({ error: 'There is no box to check out.' }, { status: 404 });
         }
-        return NextResponse.json({ order: result });
+        /*
+         * `cart: null` is not decoration — checkout has just deleted the cart
+         * cookie, so it is the literal truth, and it is what resets the
+         * provider. Returning only the order left `payload.cart` undefined,
+         * which the engine reads as "this response carried no box, leave the
+         * current one alone" — so the client went on holding the box it had
+         * just bought until something else happened to refresh it.
+         */
+        return NextResponse.json({ order: result, cart: null });
       }
 
       default:
