@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import {
   abbysChoice,
   choiceSurcharge,
+  hasAnyOption,
   personalisationSummary,
   sameChoice,
   CARD_HEAT_LABELS,
@@ -32,6 +33,7 @@ import {
   type CartLine,
   type CartPersonalisation,
 } from '@/lib/cart/CartProvider';
+import { useCartQuote } from '@/lib/cart/quote';
 import { formatPrice, formatPriceExact } from '@/lib/format';
 
 import { DriftNotices } from './DriftNotices';
@@ -48,7 +50,14 @@ interface ReviewStepProps {
   dishes: Dish[];
   extras: Extra[];
   pricing: BoxPricing;
+  /** Catalogue-wide options: populated in demo, empty in live. */
   personalisation: PersonalisationOptions;
+  /**
+   * Per-dish options from Aonik's `effectiveOptionGroups`, keyed by slug.
+   * Takes precedence — Aonik attaches groups per product, so this is the only
+   * source that reflects what a given dish actually offers.
+   */
+  optionsBySlug?: Record<string, PersonalisationOptions>;
   /** Reheating guidance for the modal's shared info panels. */
   heating: HeatingInstruction[];
   /**
@@ -65,6 +74,7 @@ export function ReviewStep({
   extras,
   pricing,
   personalisation,
+  optionsBySlug,
   heating,
   earliestDeliveryLabel,
   heading,
@@ -83,6 +93,12 @@ export function ReviewStep({
     revalidate,
     isServerCart,
   } = useCart();
+
+  /** This dish's own options, falling back to catalogue-wide (demo mode). */
+  const optionsFor = useCallback(
+    (dish: Dish): PersonalisationOptions => optionsBySlug?.[dish.slug] ?? personalisation,
+    [optionsBySlug, personalisation],
+  );
 
   /**
    * The continue gate (SPEC review-checkout FR-2).
@@ -129,7 +145,19 @@ export function ReviewStep({
     [boxSize, isCustom, lines, pricing],
   );
   const extrasSum = useMemo(() => extrasTotals(extraLines, extras), [extraLines, extras]);
-  const totalLabel = formatPrice(totals.totalPence + extrasSum.totalPence);
+
+  /*
+   * The total is the QUOTE's, never a sum taken here.
+   *
+   * This is the last number a customer reads before "Place order", so it has to
+   * be the number Aonik will charge. Adding the local box and extras figures
+   * instead meant the page showed whatever the client could work out — £95 over
+   * a £104 box while the extras lookup was broken, and silently wrong by any
+   * amount Aonik prices differently. `useCartQuote` returns Aonik's quote live
+   * and the demo equivalent otherwise, so both engines render one authority.
+   */
+  const quote = useCartQuote(pricing, { extrasCatalogue: extras });
+  const totalLabel = formatPrice(quote.totalPence);
 
   // Signature upgrades vs other personalisation, with per-dish reconciliation.
   const split = useMemo(() => {
@@ -189,10 +217,10 @@ export function ReviewStep({
       setEditor({
         line,
         dish,
-        draft: line.personalisation ?? abbysChoice(dish, personalisation),
+        draft: line.personalisation ?? abbysChoice(dish, optionsFor(dish)),
       });
     },
-    [dishById, personalisation],
+    [dishById, optionsFor],
   );
 
   const closeEditor = useCallback(() => {
@@ -210,7 +238,7 @@ export function ReviewStep({
   const saveEditor = useCallback(() => {
     if (!editor) return;
     const { line, dish, draft } = editor;
-    const custom = !sameChoice(draft, abbysChoice(dish, personalisation));
+    const custom = !sameChoice(draft, abbysChoice(dish, optionsFor(dish)));
     removeLine(line.lineId);
     addLine({
       dishId: dish.id,
@@ -220,11 +248,11 @@ export function ReviewStep({
       quantity: line.quantity,
       personalisation: custom ? draft : undefined,
       surchargePence:
-        (dish.upgradePence ?? 0) + (custom ? choiceSurcharge(draft, personalisation) : 0),
+        (dish.upgradePence ?? 0) + (custom ? choiceSurcharge(draft, optionsFor(dish)) : 0),
     });
     setEditor(null);
     flash('Personalisation updated');
-  }, [editor, personalisation, addLine, removeLine, flash]);
+  }, [editor, optionsFor, addLine, removeLine, flash]);
 
   // Escape closes the modal and the page behind it must not scroll.
   useEffect(() => {
@@ -253,12 +281,13 @@ export function ReviewStep({
   }
 
   // Edit-modal derivations (template step 4's `footTitle`/`footSub`).
-  const editorAbbys = editor ? abbysChoice(editor.dish, personalisation) : null;
+  const editorOptions = editor ? optionsFor(editor.dish) : personalisation;
+  const editorAbbys = editor ? abbysChoice(editor.dish, editorOptions) : null;
   const editorCustom = Boolean(
     editor && editorAbbys && !sameChoice(editor.draft, editorAbbys),
   );
   const editorChangePence =
-    editor && editorCustom ? choiceSurcharge(editor.draft, personalisation) : 0;
+    editor && editorCustom ? choiceSurcharge(editor.draft, editorOptions) : 0;
   const editorSigUp = editor?.dish.isSignature ? (editor.dish.upgradePence ?? 0) : 0;
   const editorFootTitle = editor
     ? editor.dish.isSignature
@@ -438,10 +467,17 @@ export function ReviewStep({
                           <div className={styles.orderOpts}>
                             {line.quantity > 1 ? `${line.quantity} × ` : ''}
                             {line.personalisation
-                              ? personalisationSummary(line.personalisation, personalisation)
+                              ? personalisationSummary(
+                                  line.personalisation,
+                                  dish ? optionsFor(dish) : personalisation,
+                                )
                               : "Abby's choice"}
                           </div>
                           <div className={styles.orderActions}>
+                            {/* Same rule as Step 2: never offer an edit with
+                                nothing to change. A dish Aonik gives no option
+                                groups is served one way. */}
+                            {dish && hasAnyOption(optionsFor(dish)) ? (
                             <button
                               type="button"
                               className={styles.editLink}
@@ -455,6 +491,7 @@ export function ReviewStep({
                               </svg>
                               Edit personalisation
                             </button>
+                            ) : null}
                           </div>
                         </div>
                       </div>
@@ -994,7 +1031,7 @@ export function ReviewStep({
                               <path d="M9 5.5h6" />
                             </svg>
                           }
-                          group={personalisation.portions}
+                          group={editorOptions.portions}
                           selected={editor.draft.portion}
                           onSelect={(portion) => setDraft({ ...editor.draft, portion })}
                         />
@@ -1006,7 +1043,7 @@ export function ReviewStep({
                               <path d="M12 3C8 3 6 6 6 9c0 4 3 7 6 12 3-5 6-8 6-12 0-3-2-6-6-6z" />
                             </svg>
                           }
-                          group={personalisation.proteins}
+                          group={editorOptions.proteins}
                           selected={editor.draft.protein}
                           onSelect={(protein) => setDraft({ ...editor.draft, protein })}
                         />
@@ -1017,7 +1054,7 @@ export function ReviewStep({
                               <path d="M4 11h16M6 11c0-3 2.5-5 6-5s6 2 6 5M8 15h8M9 19h6" />
                             </svg>
                           }
-                          group={personalisation.sides}
+                          group={editorOptions.sides}
                           selected={editor.draft.side}
                           onSelect={(side) => setDraft({ ...editor.draft, side })}
                         />
@@ -1031,7 +1068,7 @@ export function ReviewStep({
                             Choose your heat level
                           </legend>
                           <div className={dmStyles.groupChips}>
-                            {personalisation.heatLevels.map((level) => (
+                            {editorOptions.heatLevels.map((level) => (
                               <button
                                 key={level.label}
                                 type="button"
@@ -1050,7 +1087,7 @@ export function ReviewStep({
                             ))}
                           </div>
                           <p className={dmStyles.abbysNote}>
-                            {personalisation.heatLevels.find(
+                            {editorOptions.heatLevels.find(
                               (level) => level.step === editorAbbys.heatStep,
                             )?.label ?? ''}{' '}
                             is Abby&apos;s choice.
@@ -1078,10 +1115,12 @@ export function ReviewStep({
                           <div className={dmStyles.readoutRule} aria-hidden="true" />
                           <div>
                             <span className={dmStyles.readoutTitle}>Nutritional highlights</span>
+                            {/* Per-dish, so the portion scaling has real
+                                grams to work from — see the Step 2 note. */}
                             <Nutrition
                               dish={editor.dish}
                               choice={editor.draft}
-                              options={personalisation}
+                              options={editorOptions}
                             />
                           </div>
                         </div>

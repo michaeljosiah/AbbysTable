@@ -2,10 +2,75 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
+import { Nutrition } from '@/components/checkout/DishPicker';
 import { HEAT_LABELS, HEAT_STEPS, type Dish, type DishOption, type PersonalisationOptions } from '@/lib/aonik/types';
 import { formatPrice } from '@/lib/format';
 
 import styles from './DishPersonaliser.module.css';
+
+/**
+ * "Price change" and "Nutritional highlights", as the dish-detail template
+ * draws them beneath the options.
+ *
+ * The panel promised "Price and nutritional information update as you
+ * personalise" and then showed neither — only a one-line surcharge note. The
+ * template hardcodes its macro figures (645 kcal, 47g protein …) because it is
+ * a static mockup; here they come from the dish and scale with the chosen
+ * portion, which is what the promise means.
+ *
+ * `Nutrition` is the same component Step 2 and Step 4 render, so all three
+ * places that show live macros agree on the scaling and on which figures are
+ * omitted when unpublished.
+ */
+function DishReadout({
+  dish,
+  options,
+  selection,
+  surchargePence,
+}: {
+  dish: Dish;
+  options: PersonalisationOptions;
+  selection: Selection;
+  surchargePence: number;
+}) {
+  const label =
+    surchargePence > 0
+      ? `+${formatPrice(surchargePence)}`
+      : surchargePence < 0
+        ? `−${formatPrice(Math.abs(surchargePence))}`
+        : '+£0';
+
+  const sub =
+    surchargePence === 0
+      ? 'No change'
+      : surchargePence > 0
+        ? 'Added to base price'
+        : 'Below base price';
+
+  return (
+    <div className={styles.readout}>
+      <div>
+        <span className={styles.readoutTitle}>Price change</span>
+        <span className={styles.readoutValue}>{label}</span>
+        <span className={styles.readoutSub}>{sub}</span>
+      </div>
+      <div className={styles.readoutRule} aria-hidden="true" />
+      <div>
+        <span className={styles.readoutTitle}>Nutritional highlights</span>
+        <Nutrition
+          dish={dish}
+          choice={{
+            portion: selection.portion,
+            protein: selection.protein,
+            side: selection.side,
+            heatStep: selection.heatStep,
+          }}
+          options={options}
+        />
+      </div>
+    </div>
+  );
+}
 
 /**
  * The dish configurator: portion, protein, side and heat.
@@ -102,7 +167,10 @@ export function DishPersonaliser({ dish, options, onChange }: DishPersonaliserPr
     selected: string,
     onSelect: (key: string) => void,
     columns: 2 | 4,
-  ) => (
+  ) =>
+    // A dish Aonik gives no choices for is served one way; rendering the legend
+    // anyway asked a question with no answers under it.
+    group.length === 0 ? null : (
     <fieldset className={styles.group}>
       <legend className={styles.groupTitle}>{legend}</legend>
       <div className={styles.chips} data-columns={columns}>
@@ -238,6 +306,7 @@ export function DishPersonaliser({ dish, options, onChange }: DishPersonaliserPr
                 4,
               )}
 
+              {options.heatLevels.length === 0 ? null : (
               <fieldset className={styles.group}>
                 <legend className={styles.groupTitle}>Choose your heat level</legend>
                 <div className={styles.chips} data-columns={4}>
@@ -262,6 +331,14 @@ export function DishPersonaliser({ dish, options, onChange }: DishPersonaliserPr
                   })}
                 </div>
               </fieldset>
+              )}
+
+              <DishReadout
+                dish={dish}
+                options={options}
+                selection={selection}
+                surchargePence={surchargePence}
+              />
             </div>
 
             <div className={styles.sheetFoot}>

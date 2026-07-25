@@ -32,7 +32,14 @@ export function RelatedDishes({ dishes }: { dishes: Dish[] }) {
               <span className={styles.text}>
                 <span className={styles.title}>{dish.title}</span>
                 <span className={styles.nutrition}>
-                  Protein {dish.nutrition.proteinGrams}g · Fibre {dish.nutrition.fibreGrams}g
+                  {[
+                    dish.nutrition.proteinGrams !== undefined &&
+                      `Protein ${dish.nutrition.proteinGrams}g`,
+                    dish.nutrition.fibreGrams !== undefined &&
+                      `Fibre ${dish.nutrition.fibreGrams}g`,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
                 </span>
               </span>
             </Link>

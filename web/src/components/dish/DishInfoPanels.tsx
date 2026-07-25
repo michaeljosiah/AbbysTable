@@ -193,10 +193,13 @@ export function DishInfoPanels({ dish, heating, compact, onBackToTop }: DishInfo
   const { nutrition } = dish;
   const cells: { label: string; value: string }[] = [
     nutrition.calories !== undefined && { label: 'kcal', value: String(nutrition.calories) },
-    { label: 'Protein', value: `${nutrition.proteinGrams}g` },
+    nutrition.proteinGrams !== undefined && {
+      label: 'Protein',
+      value: `${nutrition.proteinGrams}g`,
+    },
     nutrition.carbsGrams !== undefined && { label: 'Carbs', value: `${nutrition.carbsGrams}g` },
     nutrition.fatGrams !== undefined && { label: 'Fat', value: `${nutrition.fatGrams}g` },
-    { label: 'Fibre', value: `${nutrition.fibreGrams}g` },
+    nutrition.fibreGrams !== undefined && { label: 'Fibre', value: `${nutrition.fibreGrams}g` },
     nutrition.sugarsGrams !== undefined && { label: 'Sugars', value: `${nutrition.sugarsGrams}g` },
     nutrition.saltGrams !== undefined && { label: 'Salt', value: `${nutrition.saltGrams}g` },
   ].filter(Boolean) as { label: string; value: string }[];

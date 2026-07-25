@@ -92,8 +92,12 @@ export function DishCard({ dish, variant = 'rail', href }: DishCardProps) {
 
         <div className={styles.facts}>
           <HeatPips heat={dish.heat} />
-          <NutritionTag dot="protein">Protein {dish.nutrition.proteinGrams}g</NutritionTag>
-          <NutritionTag dot="fibre">Fibre {dish.nutrition.fibreGrams}g</NutritionTag>
+          {dish.nutrition.proteinGrams !== undefined ? (
+            <NutritionTag dot="protein">Protein {dish.nutrition.proteinGrams}g</NutritionTag>
+          ) : null}
+          {dish.nutrition.fibreGrams !== undefined ? (
+            <NutritionTag dot="fibre">Fibre {dish.nutrition.fibreGrams}g</NutritionTag>
+          ) : null}
         </div>
 
         {personalisation ? (

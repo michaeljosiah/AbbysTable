@@ -34,6 +34,10 @@ export const dynamic = 'force-dynamic';
 interface Body {
   bundleProductId?: string;
   size?: number;
+  /** Dish lines are named by product slug; extras already know their variant. */
+  slug?: string;
+  /** Chosen option key per group key, pre-encoding. See `addBoxLine`. */
+  choices?: Record<string, string>;
   productVariantId?: string;
   quantity?: number;
   personalisation?: PersonalisationSelection;
@@ -130,15 +134,17 @@ export async function POST(request: Request, context: { params: Promise<{ action
           ).cart,
         );
 
+      // A dish is named by slug: browse rows carry no variant id, so the
+      // product → variant resolution belongs on this side of the seam.
       case 'lines':
-        if (!body.productVariantId) {
-          return NextResponse.json({ error: 'productVariantId is required' }, { status: 400 });
+        if (!body.slug) {
+          return NextResponse.json({ error: 'slug is required' }, { status: 400 });
         }
         return cartResponse(
           await addBoxLine({
-            productVariantId: body.productVariantId,
+            slug: body.slug,
             quantity: body.quantity ?? 1,
-            personalisation: body.personalisation,
+            choices: body.choices,
           }),
         );
 
@@ -166,7 +172,15 @@ export async function POST(request: Request, context: { params: Promise<{ action
           // The cart is gone or was never ours; there is nothing to check out.
           return NextResponse.json({ error: 'There is no box to check out.' }, { status: 404 });
         }
-        return NextResponse.json({ order: result });
+        /*
+         * `cart: null` is not decoration — checkout has just deleted the cart
+         * cookie, so it is the literal truth, and it is what resets the
+         * provider. Returning only the order left `payload.cart` undefined,
+         * which the engine reads as "this response carried no box, leave the
+         * current one alone" — so the client went on holding the box it had
+         * just bought until something else happened to refresh it.
+         */
+        return NextResponse.json({ order: result, cart: null });
       }
 
       default:

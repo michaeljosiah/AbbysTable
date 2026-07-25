@@ -19,6 +19,14 @@
  * silently corrected — worth confirming with the real catalogue.
  *
  * NOTE: the ten dishes share three photographs; that is how the templates ship.
+ *
+ * NOTE: every dish carries all four `personalisation` groups because all three
+ * templates render them unconditionally — Step 2's personaliser and both
+ * dish-detail pages. These arrays previously varied per dish (three were
+ * empty), which no template supports and which the seeders then reproduced in
+ * Aonik, leaving dishes with a "Choose your portion size" heading and no
+ * portions under it. If a dish really is served one way, that belongs in the
+ * tenant's option groups, not here.
  */
 
 import type {
@@ -84,7 +92,7 @@ export const DISH_FIXTURES: Dish[] = [
     tags: [],
     isSignature: false,
     nutrition: { proteinGrams: 27, carbsGrams: 31, fatGrams: 11, calories: 520, fibreGrams: 9 },
-    personalisation: [],
+    personalisation: ['portion', 'protein', 'sides', 'heat'],
     isFeatured: true,
     category: 'Everyday balance',
     proteinType: 'Fish',
@@ -103,7 +111,7 @@ export const DISH_FIXTURES: Dish[] = [
     isSignature: true,
     upgradePence: 500,
     nutrition: { proteinGrams: 40, carbsGrams: 14, fatGrams: 19, calories: 560, fibreGrams: 7 },
-    personalisation: ['portion', 'sides', 'heat'],
+    personalisation: ['portion', 'protein', 'sides', 'heat'],
     isFeatured: false,
     proteinType: 'Fish',
     mealType: 'Stew',
@@ -123,7 +131,7 @@ export const DISH_FIXTURES: Dish[] = [
     tags: ['Under 500 kcal', 'Protein-led'],
     isSignature: false,
     nutrition: { proteinGrams: 32, carbsGrams: 16, fatGrams: 18, calories: 520, fibreGrams: 9 },
-    personalisation: ['sides', 'heat'],
+    personalisation: ['portion', 'protein', 'sides', 'heat'],
     isFeatured: true,
     category: 'Plant-led',
     proteinType: 'Fish',
@@ -141,7 +149,7 @@ export const DISH_FIXTURES: Dish[] = [
     tags: ['New'],
     isSignature: false,
     nutrition: { proteinGrams: 24, carbsGrams: 24, fatGrams: 18, calories: 510, fibreGrams: 9 },
-    personalisation: ['portion'],
+    personalisation: ['portion', 'protein', 'sides', 'heat'],
     isFeatured: false,
     proteinType: 'Plant-based',
     mealType: 'Bowl',
@@ -158,7 +166,7 @@ export const DISH_FIXTURES: Dish[] = [
     tags: ['Protein-led'],
     isSignature: false,
     nutrition: { proteinGrams: 30, carbsGrams: 18, fatGrams: 16, calories: 500, fibreGrams: 9 },
-    personalisation: [],
+    personalisation: ['portion', 'protein', 'sides', 'heat'],
     isFeatured: false,
     proteinType: 'Turkey',
     mealType: 'Stew',
@@ -176,7 +184,7 @@ export const DISH_FIXTURES: Dish[] = [
     tags: ['Under 500 kcal'],
     isSignature: false,
     nutrition: { proteinGrams: 31, carbsGrams: 16, fatGrams: 17, calories: 480, fibreGrams: 9 },
-    personalisation: ['portion', 'protein', 'heat'],
+    personalisation: ['portion', 'protein', 'sides', 'heat'],
     isFeatured: false,
     proteinType: 'Chicken',
     mealType: 'Bowl',
@@ -195,7 +203,7 @@ export const DISH_FIXTURES: Dish[] = [
     tags: ['New'],
     isSignature: false,
     nutrition: { proteinGrams: 32, fibreGrams: 9 },
-    personalisation: [],
+    personalisation: ['portion', 'protein', 'sides', 'heat'],
     isFeatured: true,
     category: 'Protein-led',
     wellness: [],
@@ -211,7 +219,7 @@ export const DISH_FIXTURES: Dish[] = [
     tags: [],
     isSignature: false,
     nutrition: { proteinGrams: 32, fibreGrams: 9 },
-    personalisation: ['portion', 'sides', 'heat'],
+    personalisation: ['portion', 'protein', 'sides', 'heat'],
     isFeatured: true,
     category: 'Everyday balance',
     wellness: [],
@@ -260,7 +268,10 @@ export const BOX_PRICING_FIXTURE: BoxPricing = {
   custom: {
     minDishes: 6,
     maxDishes: 30,
-    perDishPence: 1700,
+    // Mirrors the seeded Aonik plan, so demo mode quotes what live mode charges.
+    baseDishes: 6,
+    basePence: 9500,
+    perSpacePence: 1700,
   },
   extraDishPence: 1500,
   // Both checkout templates show delivery as £10 struck through → Free.

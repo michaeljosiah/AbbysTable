@@ -20,7 +20,13 @@ import {
   type BoxPricing,
   type HeatLevel,
 } from '@/lib/aonik/types';
-import { boxPricePence, cartTotals, useCart, type CartLine } from '@/lib/cart/CartProvider';
+import {
+  boxPricePence,
+  cartTotals,
+  customBoxPricePence,
+  useCart,
+  type CartLine,
+} from '@/lib/cart/CartProvider';
 import { formatPrice } from '@/lib/format';
 
 import styles from './BoxChooser.module.css';
@@ -80,8 +86,7 @@ function offerFor(pricing: BoxPricing, size: number) {
    * computed itself would be a number nobody authored. So a non-preset size
    * shows its price alone. See SPEC-2026-07-22-catalog-browse FR-6.
    */
-  const pricePence = size * pricing.custom.perDishPence;
-  return { pricePence, listPence: undefined, savingPence: 0 };
+  return { pricePence: customBoxPricePence(pricing, size), listPence: undefined, savingPence: 0 };
 }
 
 const HEAT_LEVELS = Object.keys(HEAT_STEPS) as HeatLevel[];

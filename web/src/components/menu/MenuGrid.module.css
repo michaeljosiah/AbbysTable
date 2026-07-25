@@ -9,12 +9,30 @@
   margin-bottom: 26px;
 }
 
+/*
+ * Announced, never drawn.
+ *
+ * The template carries this span too and hides it outright
+ * (`.at-result-count { display: none }`, a base rule no media query re-shows):
+ * the count a customer reads is the one in the toolbar, and rendering both put
+ * the same sentence on screen twice, adjacent.
+ *
+ * Visually hidden rather than `display: none` because this copy is the
+ * `role="status"` live region — `display: none` would drop it from the
+ * accessibility tree and silence the announcement filtering depends on.
+ * Absolute positioning keeps it out of `.resultBar`'s flex flow, so the active
+ * filter chips sit where the template puts them.
+ */
 .resultCount {
-  font-family: var(--font-sans);
-  font-weight: var(--weight-semibold);
-  font-size: var(--btn-size);
-  letter-spacing: 0.02em;
-  color: var(--text-heading);
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .activeRow {
