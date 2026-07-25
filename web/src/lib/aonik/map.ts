@@ -703,48 +703,16 @@ export function mapBoxChange(dto: BoxChangeDto): BoxChange {
   };
 }
 
-/**
- * Drops an "unavailable" change that the very same payload contradicts.
- *
- * Aonik's add-extra response reports the add-on it just created as unavailable
- * — `changes: [{lineId, reason: "unavailable"}]` with `isUnavailable: true` on
- * the line — while an immediate `GET` of that same cart returns
- * `isUnavailable: false` and no changes, for an extra with ~500 in stock.
- * Verified against a local Aonik: same cart, same second, opposite answers.
- *
- * That contradiction is not information, so it is not surfaced as an alarm. The
- * line's own flag wins because the rest of the UI already trusts it —
- * `hasUnavailableLine` gates continue and checkout off exactly that field — so
- * honouring the change here would have the notices and the blocking logic
- * disagree about the same box.
- *
- * Deliberately narrow: only a change whose line is PRESENT and says it is
- * available is dropped. A change about a line that is gone, or one the box
- * agrees is unavailable, passes through untouched.
- */
-function withoutContradictedUnavailability(
-  changes: BoxChange[],
-  lines: BoxLine[],
-): BoxChange[] {
-  return changes.filter((change) => {
-    if (change.reason !== 'unavailable' || !change.lineId) return true;
-    const line = lines.find((candidate) => candidate.lineId === change.lineId);
-    return line ? line.isUnavailable : true;
-  });
-}
-
 /** Every mutation returns the whole box; the provider replaces state wholesale. */
 export function mapBoxCart(dto: BoxCartDto): BoxCart {
-  const lines = dto.box.lines.map(mapBoxLine);
-
   return {
     cartId: dto.box.cartId,
     bundleProductId: dto.box.bundleProductId,
     size: dto.box.size,
     currency: dto.box.currency,
-    lines,
+    lines: dto.box.lines.map(mapBoxLine),
     quote: mapBoxQuote(dto.quote),
-    changes: withoutContradictedUnavailability(dto.changes.map(mapBoxChange), lines),
+    changes: dto.changes.map(mapBoxChange),
   };
 }
 
