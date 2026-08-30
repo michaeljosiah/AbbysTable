@@ -37,9 +37,9 @@ export ADMIN_TOKEN=$(curl -s -X POST http://localhost:5050/auth/token \
 node scripts/seed/seed.mjs            /tmp/fixtures.json    # products, box, collections, facets, config
 node scripts/seed/menu-collection.mjs /tmp/fixtures.json    # the curated `menu` collection
 node scripts/seed/stock.mjs                                 # inventory for every variant
+node scripts/seed/option-groups.mjs   /tmp/fixtures.json    # portion / protein / side / heat
 node scripts/seed/content.mjs         /tmp/fixtures.json    # extras: nutrition + declarations
 node scripts/seed/dish-content.mjs    /tmp/fixtures.json    # dishes: nutrition, declarations where published
-node scripts/seed/option-groups.mjs   /tmp/fixtures.json    # portion / protein / side / heat
 node scripts/seed/images.mjs          /tmp/fixtures.json    # attach catalog photography
 ```
 
@@ -65,6 +65,7 @@ Order matters — Aonik enforces most of it:
 - product → variant → price
 - bundle product (`kind: "Bundle"`) → size plan → slots
 - product → collection membership
+- product option defaults → default content block
 - **default content block → content variants** (`V-C8`)
 
 ## Four things that fail silently or confusingly

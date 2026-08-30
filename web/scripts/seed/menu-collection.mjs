@@ -1,5 +1,6 @@
 /** Creates the `menu` collection: the 10 dishes, in fixture order. Extras and the bundle stay out. */
-const API='http://localhost:5050', T=process.env.TENANT_ID, TOK=process.env.ADMIN_TOKEN;
+const API=(process.env.AONIK_API_URL??'http://localhost:5050').replace(/\/$/,''), T=process.env.TENANT_ID, TOK=process.env.ADMIN_TOKEN;
+if(!T||!TOK) throw new Error('TENANT_ID and ADMIN_TOKEN are required');
 const h={'Content-Type':'application/json','X-Tenant-Id':T,Authorization:`Bearer ${TOK}`};
 import {readFileSync} from 'node:fs';
 const seed=JSON.parse(readFileSync(process.argv[2],'utf8'));
@@ -19,4 +20,5 @@ if(!col){
 
 const items=seed.dishes.map((d,i)=>({productId:bySlug.get(d.slug),rank:i+1})).filter(x=>x.productId);
 const r=await fetch(`${API}/commerce/admin/collections/${col.id}/items`,{method:'PUT',headers:h,body:JSON.stringify({items})});
-console.log(r.ok?`  menu: ${items.length} dishes`:`  items FAILED ${r.status} ${(await r.text()).slice(0,200)}`);
+if(r.ok) console.log(`  menu: ${items.length} dishes`);
+else { console.log(`  items FAILED ${r.status} ${(await r.text()).slice(0,200)}`); process.exitCode=1; }

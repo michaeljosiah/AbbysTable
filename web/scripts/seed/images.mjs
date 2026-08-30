@@ -51,11 +51,12 @@ function resolveCli() {
   }
 }
 
-const CLI = resolveCli();
-
-const API = process.env.AONIK_API_URL ?? 'http://localhost:5050';
+const API = (process.env.AONIK_API_URL ?? 'http://localhost:5050').replace(/\/$/, '');
 const T = process.env.TENANT_ID;
 const DRY = process.argv.includes('--dry-run');
+const fixturePath = process.argv.slice(2).find((arg) => !arg.startsWith('--'));
+if (!T) throw new Error('TENANT_ID is required');
+if (!fixturePath) throw new Error('Fixture JSON path is required');
 
 /**
  * This script outruns an access token.
@@ -112,7 +113,7 @@ async function api(path, init = {}) {
   return res;
 }
 
-const fixtures = JSON.parse(readFileSync(process.argv[2], 'utf8'));
+const fixtures = JSON.parse(readFileSync(fixturePath, 'utf8'));
 const OUT = 'public/assets/catalog';
 const WEB = '/assets/catalog';
 mkdirSync(OUT, { recursive: true });
@@ -164,6 +165,7 @@ const all = await (await api('/commerce/admin/products?pageSize=100')).json();
 const bySlug = new Map(all.items.map((p) => [p.slug, p.id]));
 
 const toGenerate = items.filter((i) => !i.shipped && !existsSync(join(OUT, `${i.slug}.webp`)));
+const CLI = toGenerate.length > 0 && !DRY ? resolveCli() : null;
 console.log(`  ${items.length} items | ${items.filter((i) => i.shipped).length} keep shipped art | ` +
   `${toGenerate.length} to generate (~${toGenerate.length * 7} credits)`);
 const plan = () => toGenerate.forEach((i) => console.log(`    would generate: ${i.slug}`));
@@ -227,3 +229,4 @@ for (const item of DRY ? [] : items) {
 
 if (DRY) plan();
 else console.log(`\n  generated ${generated}, attached ${attached}/${items.length}${failed ? `, ${failed} failed` : ''}`);
+if (failed) process.exitCode = 1;

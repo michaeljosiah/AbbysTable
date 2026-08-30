@@ -1,5 +1,5 @@
 /**
- * Seeds the Abby's Table catalog into a local Aonik tenant.
+ * Seeds the Abby's Table catalog into an Aonik tenant.
  *
  * Source data is the design-template fixtures, so the seeded shop is the menu
  * Abby actually designed rather than placeholders.
@@ -13,7 +13,7 @@
  */
 import { readFileSync } from 'node:fs';
 
-const API = 'http://localhost:5050';
+const API = (process.env.AONIK_API_URL ?? 'http://localhost:5050').replace(/\/$/, '');
 const TENANT = process.env.TENANT_ID;
 const TOKEN = process.env.ADMIN_TOKEN;
 const DATA = JSON.parse(readFileSync(process.argv[2], 'utf8'));
@@ -176,7 +176,7 @@ if (box) {
     maxSize: DATA.box.custom.maxDishes,
     baseSize: DATA.box.custom.minDishes,
     basePrice: major(DATA.box.presets[0].pricePence),
-    perSpacePrice: major(DATA.box.custom.perDishPence),
+    perSpacePrice: major(DATA.box.custom.perSpacePence),
     currency: 'GBP',
     presets,
   });
@@ -261,3 +261,4 @@ const cfg = await call('PUT', '/commerce/admin/storefront-config', {
 console.log(`    ${cfg ? 'ok' : 'FAILED'}`);
 
 console.log(`\n${failures ? failures + ' REQUEST(S) FAILED' : 'seed completed with no failures'}`);
+if (failures) process.exitCode = 1;

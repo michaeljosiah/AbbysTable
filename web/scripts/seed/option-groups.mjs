@@ -20,7 +20,7 @@
  */
 import { readFileSync } from 'node:fs';
 
-const API = process.env.AONIK_API_URL ?? 'http://localhost:5050';
+const API = (process.env.AONIK_API_URL ?? 'http://localhost:5050').replace(/\/$/, '');
 const T = process.env.TENANT_ID;
 const TOK = process.env.ADMIN_TOKEN;
 const h = { 'Content-Type': 'application/json', 'X-Tenant-Id': T, Authorization: `Bearer ${TOK}` };
@@ -28,10 +28,13 @@ const fixtures = JSON.parse(readFileSync(process.argv[2], 'utf8'));
 
 if (!T || !TOK) throw new Error('TENANT_ID and ADMIN_TOKEN are required');
 
+let failures = 0;
+
 async function call(method, path, body) {
   const res = await fetch(`${API}${path}`, { method, headers: h, body: body && JSON.stringify(body) });
   const text = await res.text();
   if (!res.ok) {
+    failures += 1;
     console.log(`    FAIL ${method} ${path} -> ${res.status} ${text.slice(0, 200)}`);
     return null;
   }
@@ -211,3 +214,4 @@ for (const dish of fixtures.dishes) {
 }
 
 console.log(`\n  attached all four groups to ${attached}/${fixtures.dishes.length} dishes`);
+if (failures) process.exitCode = 1;

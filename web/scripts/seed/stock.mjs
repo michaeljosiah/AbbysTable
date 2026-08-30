@@ -1,5 +1,6 @@
 /** Stocks every variant so box adds pass Aonik's R5 availability rule. */
-const API='http://localhost:5050', T=process.env.TENANT_ID, TOK=process.env.ADMIN_TOKEN;
+const API=(process.env.AONIK_API_URL??'http://localhost:5050').replace(/\/$/,''), T=process.env.TENANT_ID, TOK=process.env.ADMIN_TOKEN;
+if(!T||!TOK) throw new Error('TENANT_ID and ADMIN_TOKEN are required');
 const h={'Content-Type':'application/json','X-Tenant-Id':T,Authorization:`Bearer ${TOK}`};
 const list=await (await fetch(`${API}/commerce/admin/products?pageSize=100`,{headers:h})).json();
 let ok=0, fail=0;
@@ -11,3 +12,4 @@ for (const p of list.items) {
   }
 }
 console.log(`  stocked ${ok} variant(s)${fail?`, ${fail} failed`:''}`);
+if(fail) process.exitCode=1;

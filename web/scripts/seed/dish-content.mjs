@@ -18,9 +18,10 @@
  */
 import { readFileSync } from 'node:fs';
 
-const API = 'http://localhost:5050';
+const API = (process.env.AONIK_API_URL ?? 'http://localhost:5050').replace(/\/$/, '');
 const T = process.env.TENANT_ID;
 const TOK = process.env.ADMIN_TOKEN;
+if (!T || !TOK) throw new Error('TENANT_ID and ADMIN_TOKEN are required');
 const h = { 'Content-Type': 'application/json', 'X-Tenant-Id': T, Authorization: `Bearer ${TOK}` };
 const fixtures = JSON.parse(readFileSync(process.argv[2], 'utf8'));
 
@@ -40,11 +41,23 @@ for (const d of fixtures.dishes) {
   const id = bySlug.get(d.slug);
   if (!id) { console.log(`    SKIP ${d.slug} — no product`); continue; }
 
+  const currentRes = await fetch(`${API}/commerce/admin/products/${id}/content`, { headers: h });
+  if (!currentRes.ok) {
+    fail += 1;
+    console.log(`    FAIL read ${d.slug} -> ${currentRes.status} ${(await currentRes.text()).slice(0, 170)}`);
+    continue;
+  }
+  const current = await currentRes.json();
+
   // Published only where the source template published it. Never derived from
   // the dish name, its protein type, or anything else.
   const hasDeclarations = Boolean(d.ingredients && d.allergens);
 
   const body = {
+    // Every full replacement asserts both the preparation and block read above
+    // are still current, preventing a stale seed from erasing declarations.
+    expectedDefaultsSelectionJson: current.currentDefaultsSelectionJson,
+    expectedBlockSignature: current.block?.blockSignature ?? null,
     servingLabel: 'Per serving',
     kcal: d.nutrition?.calories ?? null,
     proteinGrams: d.nutrition?.proteinGrams ?? null,
@@ -75,3 +88,4 @@ for (const d of fixtures.dishes) {
 
 console.log(`\n  ${declared} dish(es) with published declarations, ${withheld} nutrition-only${fail ? `, ${fail} failed` : ''}`);
 console.log('  the nutrition-only dishes render the explicit "not yet published" notice — by design');
+if (fail) process.exitCode = 1;

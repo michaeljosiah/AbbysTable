@@ -16,9 +16,10 @@
  */
 import { readFileSync } from 'node:fs';
 
-const API = 'http://localhost:5050';
+const API = (process.env.AONIK_API_URL ?? 'http://localhost:5050').replace(/\/$/, '');
 const T = process.env.TENANT_ID;
 const TOK = process.env.ADMIN_TOKEN;
+if (!T || !TOK) throw new Error('TENANT_ID and ADMIN_TOKEN are required');
 const h = { 'Content-Type': 'application/json', 'X-Tenant-Id': T, Authorization: `Bearer ${TOK}` };
 const fixtures = JSON.parse(readFileSync(process.argv[2], 'utf8'));
 
@@ -33,10 +34,22 @@ for (const e of fixtures.extras) {
   const id = bySlug.get(slugify(e.name));
   if (!id) { console.log(`    SKIP ${e.name} — no product`); continue; }
 
+  const currentRes = await fetch(`${API}/commerce/admin/products/${id}/content`, { headers: h });
+  if (!currentRes.ok) {
+    fail += 1;
+    console.log(`    FAIL read ${e.name} -> ${currentRes.status} ${(await currentRes.text()).slice(0, 180)}`);
+    continue;
+  }
+  const current = await currentRes.json();
+
   const hasAllergens = Array.isArray(e.allergens) && e.allergens.length > 0;
   if (!hasAllergens) declaredNone += 1;
 
   const body = {
+    // Every full replacement asserts both the preparation and block read above
+    // are still current, preventing a stale seed from erasing declarations.
+    expectedDefaultsSelectionJson: current.currentDefaultsSelectionJson,
+    expectedBlockSignature: current.block?.blockSignature ?? null,
     // The DEFAULT content block, not a per-selection variant. An extra has no
     // option groups, so there is exactly one preparation and this is it — and
     // Aonik requires the default to exist first anyway (V-C8), as the baseline
@@ -69,3 +82,4 @@ for (const e of fixtures.extras) {
 
 console.log(`\n  authored ${ok}/${fixtures.extras.length}${fail ? `, ${fail} failed` : ''}`);
 console.log(`  of those, ${declaredNone} declare "None" (explicit, not absent)`);
+if (fail) process.exitCode = 1;
