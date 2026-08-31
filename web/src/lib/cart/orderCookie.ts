@@ -136,5 +136,11 @@ export async function writePlacedOrder(order: PlacedOrder): Promise<void> {
 }
 
 export async function clearPlacedOrder(): Promise<void> {
-  (await cookies()).delete(ORDER_COOKIE);
+  (await cookies()).set(ORDER_COOKIE, 'deleted', {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 0,
+  });
 }

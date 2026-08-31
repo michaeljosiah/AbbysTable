@@ -107,7 +107,13 @@ export async function writeSession(session: CustomerSession): Promise<void> {
 }
 
 export async function clearSession(): Promise<void> {
-  (await cookies()).delete(SESSION_COOKIE);
+  (await cookies()).set(SESSION_COOKIE, 'deleted', {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 0,
+  });
 }
 
 /** What a page may know about the session. Deliberately carries no token. */

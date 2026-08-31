@@ -42,6 +42,11 @@ export async function DELETE() {
   if (process.env.NODE_ENV === 'production') return notFound();
 
   const response = NextResponse.json({ cleared: true });
-  response.cookies.delete(DATA_MODE_COOKIE);
+  response.cookies.set(DATA_MODE_COOKIE, 'deleted', {
+    httpOnly: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 0,
+  });
   return response;
 }

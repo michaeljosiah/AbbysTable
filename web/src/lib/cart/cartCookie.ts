@@ -61,5 +61,14 @@ export async function writeCartCookie(value: CartCookie): Promise<void> {
 }
 
 export async function clearCartCookie(): Promise<void> {
-  (await cookies()).delete(CART_COOKIE);
+  // Azure Static Web Apps drops empty-value Set-Cookie headers. A non-empty
+  // expired tombstone is forwarded, and still reads as no cart if expiry is
+  // mishandled by an intermediary because it is deliberately not JSON.
+  (await cookies()).set(CART_COOKIE, 'deleted', {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 0,
+  });
 }
