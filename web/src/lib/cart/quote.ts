@@ -55,13 +55,14 @@ export function quoteComponentLabel(key: string): string {
 function splitSurcharges(
   state: CartState,
   signatureUpgradeFor: (dishId: string) => number,
-): { signaturePence: number; personalisationPence: number } {
+): { signaturePence: number; personalisationPence: number } | null {
   let signaturePence = 0;
   let personalisationPence = 0;
 
   for (const line of state.lines) {
+    if (line.surchargePence === undefined) return null;
     const upgrade = signatureUpgradeFor(line.dishId);
-    const perUnitPersonalisation = Math.max(0, line.surchargePence - upgrade);
+    const perUnitPersonalisation = line.surchargePence - upgrade;
     signaturePence += upgrade * line.quantity;
     personalisationPence += perUnitPersonalisation * line.quantity;
   }
@@ -84,10 +85,12 @@ export function buildDemoQuote({
   pricing,
   extrasCatalogue = [],
   signatureUpgradeFor = () => 0,
-}: DemoQuoteInput): BoxQuote {
+}: DemoQuoteInput): BoxQuote | null {
   const boxSize = state.boxSize ?? 0;
   const boxPence = boxPricePence(state.boxSize, state.isCustom, pricing);
-  const { signaturePence, personalisationPence } = splitSurcharges(state, signatureUpgradeFor);
+  const surcharges = splitSurcharges(state, signatureUpgradeFor);
+  if (!surcharges) return null;
+  const { signaturePence, personalisationPence } = surcharges;
 
   const dishCount = state.lines.reduce((total, line) => total + line.quantity, 0);
   const overflow = state.boxSize === null ? 0 : Math.max(0, dishCount - state.boxSize);
@@ -96,8 +99,11 @@ export function buildDemoQuote({
   const byId = new Map(extrasCatalogue.map((extra) => [extra.id, extra]));
   let addOnsPence = 0;
   for (const line of state.extras) {
-    const extra = byId.get(line.extraId);
-    if (extra) addOnsPence += extraUnitPence(line, extra) * line.quantity;
+    const extra = byId.get(line.variantId);
+    if (!extra) continue;
+    const unitPence = extraUnitPence(line, extra);
+    if (unitPence === undefined) return null;
+    addOnsPence += unitPence * line.quantity;
   }
 
   const deliveryChargedPence = pricing.delivery?.pricePence ?? 0;
@@ -136,12 +142,12 @@ export function buildDemoQuote({
 export function useCartQuote(
   pricing: BoxPricing,
   options: { extrasCatalogue?: Extra[]; signatureUpgradeFor?: (dishId: string) => number } = {},
-): BoxQuote {
+): BoxQuote | null {
   const cart = useCart();
   const { extrasCatalogue, signatureUpgradeFor } = options;
 
   return useMemo(() => {
-    if (cart.quote) return cart.quote;
+    if (cart.isServerCart) return cart.quote;
     return buildDemoQuote({
       state: {
         boxSize: cart.boxSize,
@@ -155,6 +161,7 @@ export function useCartQuote(
     });
   }, [
     cart.quote,
+    cart.isServerCart,
     cart.boxSize,
     cart.isCustom,
     cart.lines,

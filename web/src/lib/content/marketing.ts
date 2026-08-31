@@ -50,11 +50,3 @@ export const HOW_IT_WORKS_STEPS: HowItWorksStep[] = [
     imageUrl: '/assets/how-4-heat-eat-live-well.jpg',
   },
 ];
-
-/** Human labels for the personalisation options Aonik returns per dish. */
-export const PERSONALISATION_LABELS: Record<string, string> = {
-  portion: 'portion size',
-  protein: 'protein',
-  sides: 'sides',
-  heat: 'heat level',
-};

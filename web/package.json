@@ -7,6 +7,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "pretest": "node -e \"require('node:fs').rmSync('.test-dist',{recursive:true,force:true})\"",
+    "test": "tsc --project tsconfig.test.json && node --test .test-dist/tests/effective-option-groups.test.js .test-dist/tests/rendered-option-groups.test.js .test-dist/tests/live-cart-convergence.test.js scripts/seed/extra-option-groups.test.mjs",
+    "posttest": "node -e \"require('node:fs').rmSync('.test-dist',{recursive:true,force:true})\"",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },

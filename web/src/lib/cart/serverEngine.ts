@@ -15,6 +15,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { BoxCart, CheckoutResult, PersonalisationSelection } from '@/lib/aonik/map';
 
+import {
+  admitCartRequest,
+  adoptCartResponse,
+  CartRequestError,
+  processCartResponse,
+  type CartResponse,
+} from './transport';
+
 /**
  * Display-only cache of productId → { slug, imageUrl }.
  *
@@ -51,44 +59,19 @@ function writeDisplayIndex(index: Record<string, LineDisplay>): void {
   }
 }
 
-/** An `/api/cart` failure, carrying whatever the handler could tell us. */
-export class CartRequestError extends Error {
-  readonly status: number;
-  readonly code?: string;
-  /** The refreshed box on a 409 drift, already mapped by the route. */
-  readonly drift?: BoxCart;
-
-  constructor(status: number, message: string, code?: string, drift?: BoxCart) {
-    super(message);
-    this.name = 'CartRequestError';
-    this.status = status;
-    this.code = code;
-    this.drift = drift;
-  }
-}
-
-interface CartResponse {
-  /**
-   * Present on every cart response — and ALSO on a 409 drift, where it is the
-   * refreshed box the route mapped out of the error body. Absent (undefined)
-   * when the failure carried no box at all, which is not the same as null.
-   */
-  cart?: BoxCart | null;
-  order?: CheckoutResult;
-  error?: string;
-  code?: string;
-}
-
 export interface ServerCartEngine {
   cart: BoxCart | null;
   hydrated: boolean;
-  /** True while a mutation is in flight, so the UI can disable and not double-fire. */
+  /** True while a request is in flight; UI disabling is defense-in-depth. */
   pending: boolean;
   /** The last failure, for inline messages. Cleared on the next success. */
   error: CartRequestError | null;
   display: Record<string, LineDisplay>;
   rememberDisplay: (productId: string, display: LineDisplay) => void;
-  request: (path: string, init?: { method?: string; body?: unknown }) => Promise<BoxCart | null>;
+  request: (
+    path: string,
+    init?: { method?: string; body?: unknown },
+  ) => Promise<BoxCart | null | undefined>;
   /**
    * Places the order. Resolves with the order on success; on drift it has
    * already replaced the box with the refreshed one and then throws, so the
@@ -104,8 +87,10 @@ export function useServerCart(enabled: boolean): ServerCartEngine {
   const [error, setError] = useState<CartRequestError | null>(null);
   const [display, setDisplay] = useState<Record<string, LineDisplay>>({});
 
-  /** Serialises mutations so a fast double-click cannot interleave two writes. */
+  /** Retains activation order for admitted requests, including after rejection. */
   const queue = useRef<Promise<unknown>>(Promise.resolve());
+  /** Synchronous admission; unlike React state, this changes before the next click. */
+  const inFlight = useRef(false);
 
   /**
    * One `/api/cart` round trip, queued behind any in-flight mutation.
@@ -117,7 +102,7 @@ export function useServerCart(enabled: boolean): ServerCartEngine {
    * outcome worse than either.
    */
   const send = useCallback(
-    async (path: string, init?: { method?: string; body?: unknown }): Promise<CartResponse> => {
+    (path: string, init?: { method?: string; body?: unknown }): Promise<CartResponse> => {
       const run = async () => {
         setPending(true);
         try {
@@ -129,41 +114,39 @@ export function useServerCart(enabled: boolean): ServerCartEngine {
 
           const payload = (await response.json().catch(() => ({}))) as CartResponse;
 
-          // `cart: null` is a real state: the cookie was dropped because the
-          // cart is gone or was never ours. The UI resets to an empty box.
-          // `cart: undefined` means this response carried no box — leave the
-          // current one alone.
-          if (payload.cart !== undefined) setCart(payload.cart);
-
-          if (!response.ok) {
-            const failure = new CartRequestError(
-              response.status,
-              payload.error ?? 'The box could not be updated.',
-              payload.code,
-              payload.cart ?? undefined,
-            );
-            setError(failure);
-            throw failure;
-          }
+          processCartResponse(response, payload, (authoritative) => {
+            // Null is an authoritative empty cart. Absence carries no cart
+            // information and therefore preserves the confirmed projection.
+            setCart((current) => adoptCartResponse(current, authoritative));
+          });
 
           setError(null);
           return payload;
+        } catch (cause) {
+          const failure =
+            cause instanceof CartRequestError
+              ? cause
+              : new CartRequestError(
+                  0,
+                  cause instanceof Error ? cause.message : 'The box could not be updated.',
+                );
+          setError(failure);
+          throw failure;
         } finally {
           setPending(false);
         }
       };
 
-      const next = queue.current.then(run, run);
-      // Keep the chain alive even when a link in it rejected.
-      queue.current = next.catch(() => undefined);
-      return next;
+      return admitCartRequest(queue, inFlight, run);
     },
     [],
   );
 
   const request = useCallback(
-    async (path: string, init?: { method?: string; body?: unknown }): Promise<BoxCart | null> =>
-      (await send(path, init)).cart ?? null,
+    async (
+      path: string,
+      init?: { method?: string; body?: unknown },
+    ): Promise<BoxCart | null | undefined> => (await send(path, init)).cart,
     [send],
   );
 
@@ -171,7 +154,9 @@ export function useServerCart(enabled: boolean): ServerCartEngine {
     async (body?: { discountCode?: string }): Promise<CheckoutResult> => {
       const payload = await send('/checkout', { method: 'POST', body: body ?? {} });
       if (!payload.order) {
-        throw new CartRequestError(500, 'The order was placed but could not be read back.');
+        const failure = new CartRequestError(500, 'The order was placed but could not be read back.');
+        setError(failure);
+        throw failure;
       }
       return payload.order;
     },

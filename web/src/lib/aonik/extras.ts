@@ -26,13 +26,16 @@ export const EXTRA_FIXTURES: Extra[] = [
     longDescription:
       'Soft, pillowy balls of lightly sweetened fried dough with golden, crisp edges — a Nigerian party classic, best warm.',
     imageUrl: extraImage(0),
-    option: {
-      kind: 'Size',
+    optionGroups: [{
+      key: 'size',
+      label: 'Size',
+      selectionMode: 'One',
+      defaultChoiceKey: '6',
       choices: [
-        { key: '6', label: '6 pieces', addPence: 0 },
-        { key: '12', label: '12 pieces', addPence: 350 },
+        { key: '6', label: '6 pieces', pricePence: 0 },
+        { key: '12', label: '12 pieces', pricePence: 350 },
       ],
-    },
+    }],
     nutrition: {
       calories: 210,
       proteinGrams: 4,
@@ -72,6 +75,7 @@ export const EXTRA_FIXTURES: Extra[] = [
     serveStyle: 'hot',
     heating:
       'Oven 180°C for 8–10 min until crisp, or air-fry 6 min. Do not microwave — pastry softens.',
+    optionGroups: [],
   },
   {
     id: 'extra-scotchegg',
@@ -96,6 +100,7 @@ export const EXTRA_FIXTURES: Extra[] = [
     allergens: ['Egg', 'Gluten (wheat)'],
     serveStyle: 'hot',
     heating: 'Oven 170°C for 10 min until hot through. Halve before serving with pepper sauce.',
+    optionGroups: [],
   },
   {
     id: 'extra-plantain',
@@ -107,13 +112,16 @@ export const EXTRA_FIXTURES: Extra[] = [
     longDescription:
       'Ripe plantain fried in a whisper of oil until the edges caramelise — soft, sweet and golden. A table favourite.',
     imageUrl: extraImage(3),
-    option: {
-      kind: 'Size',
+    optionGroups: [{
+      key: 'size',
+      label: 'Size',
+      selectionMode: 'One',
+      defaultChoiceKey: 'reg',
       choices: [
-        { key: 'reg', label: 'Regular', addPence: 0 },
-        { key: 'lg', label: 'Large', addPence: 150 },
+        { key: 'reg', label: 'Regular', pricePence: 0 },
+        { key: 'lg', label: 'Large', pricePence: 150 },
       ],
-    },
+    }],
     nutrition: {
       calories: 180,
       proteinGrams: 2,
@@ -151,6 +159,7 @@ export const EXTRA_FIXTURES: Extra[] = [
     allergens: [],
     serveStyle: 'hot',
     heating: 'Steam or microwave 2–3 min until piping hot throughout.',
+    optionGroups: [],
   },
   {
     id: 'extra-jollofcup',
@@ -176,6 +185,7 @@ export const EXTRA_FIXTURES: Extra[] = [
     serveStyle: 'hot',
     heating:
       'Microwave 2–3 min, stirring halfway, until piping hot. Add a splash of water if needed.',
+    optionGroups: [],
   },
   {
     id: 'extra-chinchin',
@@ -187,13 +197,16 @@ export const EXTRA_FIXTURES: Extra[] = [
     longDescription:
       'Lightly sweet, crunchy fried pastry cut into little cubes — our nostalgic snack, made with date sugar.',
     imageUrl: extraImage(6),
-    option: {
-      kind: 'Size',
+    optionGroups: [{
+      key: 'size',
+      label: 'Size',
+      selectionMode: 'One',
+      defaultChoiceKey: 'reg',
       choices: [
-        { key: 'reg', label: 'Regular', addPence: 0 },
-        { key: 'share', label: 'Sharing bag', addPence: 200 },
+        { key: 'reg', label: 'Regular', pricePence: 0 },
+        { key: 'share', label: 'Sharing bag', pricePence: 200 },
       ],
-    },
+    }],
     nutrition: {
       calories: 230,
       proteinGrams: 4,
@@ -231,6 +244,7 @@ export const EXTRA_FIXTURES: Extra[] = [
     allergens: ['Gluten (wheat)', 'Milk'],
     serveStyle: 'hot',
     heating: 'Oven 180°C for 10–12 min until hot through. Best not microwaved.',
+    optionGroups: [],
   },
   {
     id: 'extra-zobo',
@@ -242,13 +256,16 @@ export const EXTRA_FIXTURES: Extra[] = [
     longDescription:
       'Deep-red hibiscus steeped with ginger and a hint of pineapple, chilled and lightly sweetened — refreshing and tart.',
     imageUrl: extraImage(8),
-    option: {
-      kind: 'Size',
+    optionGroups: [{
+      key: 'size',
+      label: 'Size',
+      selectionMode: 'One',
+      defaultChoiceKey: 'reg',
       choices: [
-        { key: 'reg', label: 'Regular', addPence: 0 },
-        { key: 'lg', label: 'Large', addPence: 100 },
+        { key: 'reg', label: 'Regular', pricePence: 0 },
+        { key: 'lg', label: 'Large', pricePence: 100 },
       ],
-    },
+    }],
     nutrition: {
       calories: 70,
       proteinGrams: 0,
@@ -286,6 +303,7 @@ export const EXTRA_FIXTURES: Extra[] = [
     allergens: [],
     serveStyle: 'chilled',
     heating: 'Serve chilled over ice, garnished with cucumber.',
+    optionGroups: [],
   },
   {
     id: 'extra-ginger',
@@ -310,6 +328,7 @@ export const EXTRA_FIXTURES: Extra[] = [
     allergens: [],
     serveStyle: 'chilled',
     heating: 'Serve chilled. Shake well before pouring.',
+    optionGroups: [],
   },
   {
     id: 'extra-peppersauce',
@@ -321,14 +340,17 @@ export const EXTRA_FIXTURES: Extra[] = [
     longDescription:
       'Our fiery blend of scotch bonnet, red pepper and native spices fried low in oil — a little goes a long way.',
     imageUrl: extraImage(11),
-    option: {
-      kind: 'Heat',
+    optionGroups: [{
+      key: 'heat',
+      label: 'Heat',
+      selectionMode: 'One',
+      defaultChoiceKey: 'mild',
       choices: [
-        { key: 'mild', label: 'Mild', addPence: 0 },
-        { key: 'med', label: 'Medium', addPence: 0 },
-        { key: 'hot', label: 'Hot', addPence: 0 },
+        { key: 'mild', label: 'Mild', pricePence: 0 },
+        { key: 'med', label: 'Medium', pricePence: 0 },
+        { key: 'hot', label: 'Hot', pricePence: 0 },
       ],
-    },
+    }],
     nutrition: {
       calories: 60,
       proteinGrams: 1,
@@ -353,14 +375,17 @@ export const EXTRA_FIXTURES: Extra[] = [
     longDescription:
       "The smoky, peppery fried-pepper sauce at the heart of Abby's cooking — rich with tomatoes, red peppers and native spices.",
     imageUrl: extraImage(12),
-    option: {
-      kind: 'Heat',
+    optionGroups: [{
+      key: 'heat',
+      label: 'Heat',
+      selectionMode: 'One',
+      defaultChoiceKey: 'mild',
       choices: [
-        { key: 'mild', label: 'Mild', addPence: 0 },
-        { key: 'med', label: 'Medium', addPence: 0 },
-        { key: 'hot', label: 'Hot', addPence: 0 },
+        { key: 'mild', label: 'Mild', pricePence: 0 },
+        { key: 'med', label: 'Medium', pricePence: 0 },
+        { key: 'hot', label: 'Hot', pricePence: 0 },
       ],
-    },
+    }],
     nutrition: {
       calories: 80,
       proteinGrams: 1,

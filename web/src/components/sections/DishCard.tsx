@@ -3,8 +3,7 @@ import Link from 'next/link';
 
 import { HeatPips, NutritionTag } from '@/components/ui';
 import type { Dish } from '@/lib/aonik/types';
-import { PERSONALISATION_LABELS } from '@/lib/content/marketing';
-import { formatPrice, joinWithOr } from '@/lib/format';
+import { formatPrice } from '@/lib/format';
 
 import styles from './DishCard.module.css';
 
@@ -25,14 +24,7 @@ interface DishCardProps {
 const SIGNATURE_EXPLAINER =
   "One of Abby's specials. Counts as one of your box dishes — the upgrade is added on top.";
 
-function personalisationSummary(dish: Dish): string {
-  const labels = dish.personalisation.map((option) => PERSONALISATION_LABELS[option]).filter(Boolean);
-  return labels.length > 0 ? `Change ${joinWithOr(labels)}.` : '';
-}
-
 export function DishCard({ dish, variant = 'rail', href }: DishCardProps) {
-  const personalisation = personalisationSummary(dish);
-
   // An anchor may not contain a button, so the signature explainer is exposed as
   // text rather than a control — keeping the card linkable without invalid nesting.
   const content = (
@@ -100,29 +92,6 @@ export function DishCard({ dish, variant = 'rail', href }: DishCardProps) {
           ) : null}
         </div>
 
-        {personalisation ? (
-          <div className={styles.personalise}>
-            <span className={styles.personaliseHead}>
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                aria-hidden="true"
-              >
-                <line x1="4" y1="8" x2="20" y2="8" />
-                <circle cx="10" cy="8" r="2.4" fill="var(--surface-card)" />
-                <line x1="4" y1="16" x2="20" y2="16" />
-                <circle cx="15" cy="16" r="2.4" fill="var(--surface-card)" />
-              </svg>
-              Personalise this dish
-            </span>
-            <p className={styles.personaliseCopy}>{personalisation}</p>
-          </div>
-        ) : null}
       </div>
     </>
   );

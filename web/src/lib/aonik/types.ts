@@ -10,6 +10,8 @@
  * edge with `formatPrice()`.
  */
 
+import type { MappedOptionGroup } from './map';
+
 export type HeatLevel = 'low' | 'medium' | 'high';
 
 /** Heat as a 0-3 step, so the menu's spice facet can compare numerically. */
@@ -80,9 +82,6 @@ export const DIETARY_TAGS = ['Gluten-free', 'Dairy-free', 'High-fibre'] as const
 
 export type DietaryTag = (typeof DIETARY_TAGS)[number];
 
-/** Attributes a customer may change on a dish when building a box. */
-export type PersonalisationOption = 'portion' | 'protein' | 'sides' | 'heat';
-
 export interface DishNutrition {
   /**
    * Every figure is optional because every figure can genuinely be unpublished,
@@ -123,16 +122,6 @@ export interface DishOption {
   pricePence: number;
   /** Rendered as a secondary line, e.g. a portion weight. */
   detail?: string;
-  /** Abby's recommended default for this group. */
-  isAbbysChoice?: boolean;
-}
-
-export interface PersonalisationOptions {
-  portions: DishOption[];
-  proteins: DishOption[];
-  sides: DishOption[];
-  /** Selectable heat, including "None". Steps match `HEAT_STEPS`. */
-  heatLevels: { label: string; step: number }[];
 }
 
 export interface Dish {
@@ -149,7 +138,6 @@ export interface Dish {
   /** Surcharge in pence, set only when `isSignature`. */
   upgradePence?: number;
   nutrition: DishNutrition;
-  personalisation: PersonalisationOption[];
   /** Shown in the homepage's curated rail. */
   isFeatured: boolean;
 
@@ -338,19 +326,6 @@ export interface StorefrontConfig {
 export const EXTRA_CATEGORIES = ['Small chops', 'Sides', 'Snacks', 'Drinks', 'Sauces'] as const;
 export type ExtraCategory = (typeof EXTRA_CATEGORIES)[number];
 
-export interface ExtraOptionChoice {
-  key: string;
-  label: string;
-  /** Added to the base price when this choice is selected. */
-  addPence: number;
-}
-
-/** A single option group ("Size", "Heat") on an extra. */
-export interface ExtraOption {
-  kind: string;
-  choices: ExtraOptionChoice[];
-}
-
 export type ExtraServeStyle = 'hot' | 'chilled' | 'ambient';
 
 /**
@@ -367,7 +342,8 @@ export interface Extra {
   /** Detail-modal copy. */
   longDescription: string;
   imageUrl: string;
-  option?: ExtraOption;
+  /** The same effective groups used by dish personalisers, in authored order. */
+  optionGroups: MappedOptionGroup[];
   nutrition: DishNutrition;
   /**
    * SAFETY: optional and NEVER inferred, exactly as on `Dish`.

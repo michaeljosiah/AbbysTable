@@ -14,8 +14,8 @@
 
 import { DIETARY_TAGS, HEAT_STEPS, MEAL_TYPES, PROTEIN_TYPES, WELLNESS_GOALS } from './types';
 import type { Dish } from './types';
-import type { MappedFacetGroup, MappedOptionGroup } from './map';
-import { PERSONALISATION_FIXTURE } from './fixtures';
+import { mapOptionGroups, type MappedFacetGroup, type MappedOptionGroup } from './map';
+import { PERSONALISATION_GROUP_SOURCE } from './fixtures';
 
 /** A stable request token from a display label: "Gluten-free" → "gluten-free". */
 export function toFacetToken(label: string): string {
@@ -100,67 +100,18 @@ export function fixtureMatchesFacet(dish: Dish, key: string, value: string): boo
 /**
  * A dish's personalisation groups, in Aonik's shape.
  *
- * Built from the global fixture options, filtered to the groups that dish
- * actually offers — so a dish whose `personalisation` list is empty correctly
- * yields no groups and the panel hides.
- *
  * Protein is `Multi` here deliberately: the template's own copy says "Choose 1
  * or more", and exercising the array-valued path in demo mode is the only way
  * to catch an encoder that assumes a bare string before it reaches live data.
  */
 export function fixtureOptionGroups(dish: Dish): MappedOptionGroup[] {
-  const groups: MappedOptionGroup[] = [];
-  const has = (key: string) => dish.personalisation.includes(key as never);
-
-  const defaultKey = (options: { key: string; isAbbysChoice?: boolean }[]) =>
-    options.find((option) => option.isAbbysChoice)?.key ?? options[0]?.key ?? '';
-
-  if (has('portion')) {
-    groups.push({
-      key: 'portion',
-      label: 'Choose your portion size',
-      selectionMode: 'One',
-      defaultChoiceKey: defaultKey(PERSONALISATION_FIXTURE.portions),
-      choices: PERSONALISATION_FIXTURE.portions,
-    });
-  }
-
-  if (has('protein')) {
-    groups.push({
-      key: 'protein',
-      label: 'Choose your protein',
-      helpText: 'Choose 1 or more',
-      selectionMode: 'Multi',
-      defaultChoiceKey: defaultKey(PERSONALISATION_FIXTURE.proteins),
-      choices: PERSONALISATION_FIXTURE.proteins,
-    });
-  }
-
-  if (has('sides')) {
-    groups.push({
-      key: 'side',
-      label: 'Choose your side',
-      selectionMode: 'One',
-      defaultChoiceKey: defaultKey(PERSONALISATION_FIXTURE.sides),
-      choices: PERSONALISATION_FIXTURE.sides,
-    });
-  }
-
-  if (has('heat')) {
-    const choices = PERSONALISATION_FIXTURE.heatLevels.map((level) => ({
-      key: String(level.step),
-      label: level.label,
-      pricePence: 0,
-      isAbbysChoice: level.step === HEAT_STEPS[dish.heat],
-    }));
-    groups.push({
-      key: 'heat',
-      label: 'Choose your heat level',
-      selectionMode: 'One',
-      defaultChoiceKey: String(HEAT_STEPS[dish.heat]),
-      choices,
-    });
-  }
-
-  return groups;
+  const heatDefault = String(HEAT_STEPS[dish.heat]);
+  return mapOptionGroups(PERSONALISATION_GROUP_SOURCE.map((group) =>
+    group.key === 'heat'
+      ? {
+          ...group,
+          defaultChoiceKey: heatDefault,
+        }
+      : group,
+  ));
 }

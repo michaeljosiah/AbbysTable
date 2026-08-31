@@ -1,24 +1,20 @@
 /**
- * Authors the personalisation option groups — portion, protein, side, heat.
+ * Authors and attaches fixture personalisation groups for dishes and extras.
  *
- * Without these every dish comes back with `effectiveOptionGroups: []`, and the
- * whole personaliser is dead in live mode: the storefront offers "Personalise
- * this dish", the customer says yes, and gets four headings with nothing under
- * them. Aonik has supported per-product option groups all along (Spec 066); the
- * seeders simply never wrote any.
+ * Dish groups retain their established tenant-global keys. Extra groups cannot:
+ * fixture extras reuse keys and choice keys with different prices, so each is
+ * namespaced before authoring and attached only to its matching product.
  *
  * Two levels, in this order — a product can only reference a group that exists:
  *   1. tenant groups + their choices  (`/commerce/admin/option-groups`)
  *   2. attach per product            (`PUT /products/{id}/option-groups`)
  *
- * WHICH dishes get WHICH groups comes from each fixture's `personalisation`
- * array, so the seeded tenant offers exactly what the design does — "Fish
- * peppersoup bone broth" declares none and stays unpersonalisable.
- *
- * Idempotent: existing groups and choices are reused, so a re-run re-attaches
- * rather than duplicating.
+ * Idempotent: existing owned groups and choices are reconciled to fixture truth;
+ * missing records are created and every product attachment is replaced.
  */
 import { readFileSync } from 'node:fs';
+
+import { extraOptionGroupSeeds, slugify } from './extra-option-groups.mjs';
 
 const API = (process.env.AONIK_API_URL ?? 'http://localhost:5050').replace(/\/$/, '');
 const T = process.env.TENANT_ID;
@@ -41,9 +37,6 @@ async function call(method, path, body) {
   return text ? JSON.parse(text) : {};
 }
 
-/** Aonik money is decimal major units; the fixtures are pence. */
-const major = (pence) => Number((pence / 100).toFixed(2));
-
 /**
  * `HEAT_STEPS` in the storefront: the choice key IS the step, as a string, and
  * `map.ts` parses it straight back into `heatStep`. Keep them in step.
@@ -51,49 +44,17 @@ const major = (pence) => Number((pence / 100).toFixed(2));
 const HEAT_STEPS = { low: 1, medium: 2, high: 3 };
 
 /**
- * Mirrors `fixtureOptionGroups` in `src/lib/aonik/fixtureFacets.ts` — the demo
- * analogue of exactly this data. Keys must match `KNOWN_GROUP_KEYS` in
- * `map.ts` (`portion`, `protein`, `side`, `heat`) or the storefront drops the
- * group as one it does not know how to render.
+ * This is the same absolute-price DTO source that demo mode passes through the
+ * live mapper. Adding an authored group does not require a parallel hierarchy.
  */
-const GROUPS = [
-  {
-    key: 'portion',
-    label: 'Choose your portion size',
-    selectionMode: 'One',
-    // `fixtureKey` names the array on PERSONALISATION_FIXTURE this mirrors.
-    choices: fixtures.personalisation.portions,
-  },
-  {
-    key: 'protein',
-    label: 'Choose your protein',
-    helpText: 'Choose 1 or more',
-    selectionMode: 'Multi',
-    choices: fixtures.personalisation.proteins,
-  },
-  {
-    key: 'side',
-    label: 'Choose your side',
-    selectionMode: 'One',
-    choices: fixtures.personalisation.sides,
-  },
-  {
-    key: 'heat',
-    label: 'Choose your heat level',
-    selectionMode: 'One',
-    // Heat carries no surcharge and is keyed by step, so it is built rather
-    // than copied. The DEFAULT is per dish, applied at attach time below —
-    // but the GROUP still needs a recommended default of its own (see
-    // `recommendedDefaultKey`), even though every product overrides it.
-    choices: fixtures.personalisation.heatLevels.map((level) => ({
-      key: String(level.step),
-      label: level.label,
-      pricePence: 0,
-      // Medium: the catalogue-wide middle, and only a placeholder — each dish
-      // attaches its own heat as the product-level default below.
-      isAbbysChoice: level.step === 2,
-    })),
-  },
+const GROUPS = fixtures.optionGroups;
+const EXTRA_GROUP_SEEDS = extraOptionGroupSeeds(fixtures.extras);
+const GROUPS_TO_AUTHOR = [
+  ...GROUPS.map((group, index) => ({ group, tenantSortOrder: index })),
+  ...EXTRA_GROUP_SEEDS.map((seed, index) => ({
+    group: seed.group,
+    tenantSortOrder: GROUPS.length + index,
+  })),
 ];
 
 /* ---- 1. Tenant groups + choices ------------------------------------------- */
@@ -101,13 +62,12 @@ const GROUPS = [
 console.log('  option groups');
 const existing = (await call('GET', '/commerce/admin/option-groups')) ?? [];
 const existingList = Array.isArray(existing) ? existing : (existing.items ?? []);
-const idByKey = new Map(existingList.map((g) => [g.key, g.id]));
-const choiceKeysByGroup = new Map(
-  existingList.map((g) => [g.key, new Set((g.choices ?? []).map((c) => c.key))]),
-);
+const existingByKey = new Map(existingList.map((group) => [group.key, group]));
+const staleChoiceDeactivations = [];
 
-for (const group of GROUPS) {
-  let id = idByKey.get(group.key);
+for (const { group, tenantSortOrder } of GROUPS_TO_AUTHOR) {
+  let persisted = existingByKey.get(group.key);
+  let id = persisted?.id;
 
   if (!id) {
     const created = await call('POST', '/commerce/admin/option-groups', {
@@ -116,30 +76,54 @@ for (const group of GROUPS) {
       helpText: group.helpText ?? null,
       selectionMode: group.selectionMode,
       currency: 'GBP',
-      sortOrder: GROUPS.indexOf(group),
+      sortOrder: tenantSortOrder,
     });
     if (!created) continue;
     id = created.id;
-    idByKey.set(group.key, id);
-    choiceKeysByGroup.set(group.key, new Set());
-  }
-
-  const already = choiceKeysByGroup.get(group.key) ?? new Set();
-  let added = 0;
-
-  for (const [index, choice] of group.choices.entries()) {
-    if (already.has(choice.key)) continue;
-    const ok = await call('POST', `/commerce/admin/option-groups/${id}/choices`, {
-      key: choice.key,
-      label: choice.label,
-      note: choice.detail ?? null,
-      price: major(choice.pricePence ?? 0),
-      // Abby's choice is the recommended default the storefront labels.
-      isRecommendedDefault: Boolean(choice.isAbbysChoice),
-      sortOrder: index,
+    persisted = { ...created, choices: created.choices ?? [] };
+    existingByKey.set(group.key, persisted);
+  } else {
+    await call('PUT', `/commerce/admin/option-groups/${id}`, {
+      label: group.label,
+      helpText: group.helpText ?? null,
+      selectionMode: group.selectionMode,
+      currency: 'GBP',
+      sortOrder: tenantSortOrder,
       isActive: true,
     });
-    if (ok) added += 1;
+  }
+
+  const existingChoices = new Map((persisted?.choices ?? []).map((choice) => [choice.key, choice]));
+  const authoredChoiceKeys = new Set(group.choices.map((choice) => choice.key));
+  let added = 0;
+  let reconciled = 0;
+  let staleQueued = 0;
+
+  for (const [index, choice] of group.choices.entries()) {
+    const current = existingChoices.get(choice.key);
+    if (current) {
+      const ok = await call('PUT', `/commerce/admin/option-choices/${current.id}`, {
+        label: choice.label,
+        note: choice.note,
+        // Already an absolute decimal major-unit price, exactly as Aonik stores it.
+        price: choice.price,
+        sortOrder: index,
+        isActive: true,
+      });
+      if (ok) reconciled += 1;
+    } else {
+      const ok = await call('POST', `/commerce/admin/option-groups/${id}/choices`, {
+        key: choice.key,
+        label: choice.label,
+        note: choice.note,
+        price: choice.price,
+        // Default ownership always moves through the dedicated endpoint below.
+        isRecommendedDefault: false,
+        sortOrder: index,
+        isActive: true,
+      });
+      if (ok) added += 1;
+    }
   }
 
   /*
@@ -154,14 +138,34 @@ for (const group of GROUPS) {
    * Sent on every run rather than only at creation, so a group authored before
    * this line existed is repaired by re-running.
    */
-  const recommended = group.choices.find((choice) => choice.isAbbysChoice) ?? group.choices[0];
   await call('PUT', `/commerce/admin/option-groups/${id}/recommended-default`, {
-    choiceKey: recommended.key,
+    choiceKey: group.defaultChoiceKey,
   });
+
+  // Fixture-owned groups are source-of-truth, but V9 prevents deactivation while
+  // an old product attachment still names the choice. Queue these until every
+  // fixture product has received its full replacement attachment below.
+  for (const choice of existingChoices.values()) {
+    if (authoredChoiceKeys.has(choice.key)) continue;
+    staleChoiceDeactivations.push({
+      groupKey: group.key,
+      choiceKey: choice.key,
+      id: choice.id,
+      body: {
+        label: choice.label,
+        note: choice.note ?? null,
+        price: choice.price,
+        sortOrder: choice.sortOrder,
+        isActive: false,
+      },
+    });
+    staleQueued += 1;
+  }
 
   console.log(
     `    ${group.key} (${group.selectionMode}) — ${group.choices.length} choices, ` +
-      `${added} new, default "${recommended.key}"`,
+      `${added} new, ${reconciled} reconciled, ${staleQueued} stale queued, ` +
+      `default "${group.defaultChoiceKey}"`,
   );
 }
 
@@ -185,13 +189,12 @@ const bySlug = new Map((all?.items ?? []).map((p) => [p.slug, p.id]));
  * fixture header claims only to lift values from the templates. Seeding from
  * them left dishes with a portion heading and no portions.
  */
-const ALL_GROUP_KEYS = ['portion', 'protein', 'side', 'heat'];
+const ALL_GROUP_KEYS = GROUPS.map((group) => group.key);
 
 const defaultChoiceKey = (groupKey, dish) => {
   if (groupKey === 'heat') return String(HEAT_STEPS[dish.heat] ?? 2);
   const group = GROUPS.find((g) => g.key === groupKey);
-  const abbys = group.choices.find((c) => c.isAbbysChoice);
-  return (abbys ?? group.choices[0]).key;
+  return group.defaultChoiceKey;
 };
 
 let attached = 0;
@@ -214,4 +217,49 @@ for (const dish of fixtures.dishes) {
 }
 
 console.log(`\n  attached all four groups to ${attached}/${fixtures.dishes.length} dishes`);
+
+/* ---- 3. Attach each extra's own namespaced groups -------------------------- */
+
+console.log('\n  per-extra attachment');
+const extraGroupsBySlug = new Map();
+for (const seed of EXTRA_GROUP_SEEDS) {
+  const productGroups = extraGroupsBySlug.get(seed.productSlug) ?? [];
+  productGroups.push(seed);
+  extraGroupsBySlug.set(seed.productSlug, productGroups);
+}
+
+let extrasAttached = 0;
+for (const extra of fixtures.extras) {
+  const slug = slugify(extra.name);
+  const seeds = extraGroupsBySlug.get(slug) ?? [];
+  const id = bySlug.get(slug);
+  if (!id) { console.log(`    SKIP ${slug} — no product`); continue; }
+
+  const ok = await call('PUT', `/commerce/admin/products/${id}/option-groups`, {
+    groups: seeds.map((seed) => seed.attachment),
+  });
+  if (ok) {
+    extrasAttached += 1;
+    console.log(`    ${slug} — ${seeds.map((seed) => seed.group.key).join(', ') || '(none)'}`);
+  }
+}
+
+console.log(
+  `\n  replaced fixture groups on ${extrasAttached}/${fixtures.extras.length} extras`,
+);
+
+/* ---- 4. Deactivate choices removed from fixture-owned groups --------------- */
+
+console.log('\n  stale option choices');
+let staleChoicesDeactivated = 0;
+for (const stale of staleChoiceDeactivations) {
+  const ok = await call('PUT', `/commerce/admin/option-choices/${stale.id}`, stale.body);
+  if (ok) {
+    staleChoicesDeactivated += 1;
+    console.log(`    ${stale.groupKey}/${stale.choiceKey} — deactivated`);
+  }
+}
+console.log(
+  `\n  deactivated ${staleChoicesDeactivated}/${staleChoiceDeactivations.length} stale choices`,
+);
 if (failures) process.exitCode = 1;

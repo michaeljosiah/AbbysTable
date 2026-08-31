@@ -20,22 +20,18 @@
  *
  * NOTE: the ten dishes share three photographs; that is how the templates ship.
  *
- * NOTE: every dish carries all four `personalisation` groups because all three
- * templates render them unconditionally — Step 2's personaliser and both
- * dish-detail pages. These arrays previously varied per dish (three were
- * empty), which no template supports and which the seeders then reproduced in
- * Aonik, leaving dishes with a "Choose your portion size" heading and no
- * portions under it. If a dish really is served one way, that belongs in the
- * tenant's option groups, not here.
+ * Demo personalisation starts in Aonik's absolute-price DTO shape and is mapped
+ * through the same adapter as live data. Components never receive a
+ * fixture-only option shape.
  */
 
+import type { EffectiveOptionGroupDto } from './dto';
 import type {
   BoxOffer,
   BoxPricing,
   DeliveryWindow,
   Dish,
   HeatingInstruction,
-  PersonalisationOptions,
   StorefrontConfig,
 } from './types';
 
@@ -50,7 +46,6 @@ export const DISH_FIXTURES: Dish[] = [
     tags: ['New', 'Under 500 kcal'],
     isSignature: false,
     nutrition: { proteinGrams: 32, carbsGrams: 31, fatGrams: 11, calories: 520, fibreGrams: 9 },
-    personalisation: ['portion', 'protein', 'sides', 'heat'],
     isFeatured: true,
     category: 'Protein-led',
     proteinType: 'Beef',
@@ -70,7 +65,6 @@ export const DISH_FIXTURES: Dish[] = [
     isSignature: true,
     upgradePence: 400,
     nutrition: { proteinGrams: 38, carbsGrams: 20, fatGrams: 22, calories: 620, fibreGrams: 8 },
-    personalisation: ['portion', 'protein', 'sides', 'heat'],
     isFeatured: true,
     category: 'Protein-led',
     proteinType: 'Lamb',
@@ -92,7 +86,6 @@ export const DISH_FIXTURES: Dish[] = [
     tags: [],
     isSignature: false,
     nutrition: { proteinGrams: 27, carbsGrams: 31, fatGrams: 11, calories: 520, fibreGrams: 9 },
-    personalisation: ['portion', 'protein', 'sides', 'heat'],
     isFeatured: true,
     category: 'Everyday balance',
     proteinType: 'Fish',
@@ -111,7 +104,6 @@ export const DISH_FIXTURES: Dish[] = [
     isSignature: true,
     upgradePence: 500,
     nutrition: { proteinGrams: 40, carbsGrams: 14, fatGrams: 19, calories: 560, fibreGrams: 7 },
-    personalisation: ['portion', 'protein', 'sides', 'heat'],
     isFeatured: false,
     proteinType: 'Fish',
     mealType: 'Stew',
@@ -131,7 +123,6 @@ export const DISH_FIXTURES: Dish[] = [
     tags: ['Under 500 kcal', 'Protein-led'],
     isSignature: false,
     nutrition: { proteinGrams: 32, carbsGrams: 16, fatGrams: 18, calories: 520, fibreGrams: 9 },
-    personalisation: ['portion', 'protein', 'sides', 'heat'],
     isFeatured: true,
     category: 'Plant-led',
     proteinType: 'Fish',
@@ -149,7 +140,6 @@ export const DISH_FIXTURES: Dish[] = [
     tags: ['New'],
     isSignature: false,
     nutrition: { proteinGrams: 24, carbsGrams: 24, fatGrams: 18, calories: 510, fibreGrams: 9 },
-    personalisation: ['portion', 'protein', 'sides', 'heat'],
     isFeatured: false,
     proteinType: 'Plant-based',
     mealType: 'Bowl',
@@ -166,7 +156,6 @@ export const DISH_FIXTURES: Dish[] = [
     tags: ['Protein-led'],
     isSignature: false,
     nutrition: { proteinGrams: 30, carbsGrams: 18, fatGrams: 16, calories: 500, fibreGrams: 9 },
-    personalisation: ['portion', 'protein', 'sides', 'heat'],
     isFeatured: false,
     proteinType: 'Turkey',
     mealType: 'Stew',
@@ -184,7 +173,6 @@ export const DISH_FIXTURES: Dish[] = [
     tags: ['Under 500 kcal'],
     isSignature: false,
     nutrition: { proteinGrams: 31, carbsGrams: 16, fatGrams: 17, calories: 480, fibreGrams: 9 },
-    personalisation: ['portion', 'protein', 'sides', 'heat'],
     isFeatured: false,
     proteinType: 'Chicken',
     mealType: 'Bowl',
@@ -203,7 +191,6 @@ export const DISH_FIXTURES: Dish[] = [
     tags: ['New'],
     isSignature: false,
     nutrition: { proteinGrams: 32, fibreGrams: 9 },
-    personalisation: ['portion', 'protein', 'sides', 'heat'],
     isFeatured: true,
     category: 'Protein-led',
     wellness: [],
@@ -219,7 +206,6 @@ export const DISH_FIXTURES: Dish[] = [
     tags: [],
     isSignature: false,
     nutrition: { proteinGrams: 32, fibreGrams: 9 },
-    personalisation: ['portion', 'protein', 'sides', 'heat'],
     isFeatured: true,
     category: 'Everyday balance',
     wellness: [],
@@ -283,39 +269,73 @@ export const DELIVERY_FIXTURE: DeliveryWindow = {
   timezone: 'Europe/London',
 };
 
-/**
- * Dish personaliser options, from the dish-detail template. Catalogue-wide there
- * rather than per dish; Aonik will likely scope them per dish, which is why they
- * are fetched separately instead of embedded in `Dish`.
- */
-export const PERSONALISATION_FIXTURE: PersonalisationOptions = {
-  portions: [
-    { key: 'light', label: 'Light table', detail: '225g', pricePence: 0, isAbbysChoice: true },
-    { key: 'full', label: 'Full table', detail: '450g', pricePence: 1000 },
-  ],
-  proteins: [
-    { key: 'prawns', label: 'King prawns', pricePence: 0 },
-    { key: 'chicken', label: 'Chicken', pricePence: 0, isAbbysChoice: true },
-    { key: 'salmon', label: 'Salmon', pricePence: 300 },
-    {
-      key: 'mixed',
-      label: 'Mixed meats (chicken, beef, goat meat, tripe, cow foot)',
-      pricePence: 400,
-    },
-  ],
-  sides: [
-    { key: 'none', label: 'No side', pricePence: 0 },
-    { key: 'wildrice', label: 'Wild rice', pricePence: 200, isAbbysChoice: true },
-    { key: 'quinoa', label: 'Quinoa', pricePence: 200 },
-    { key: 'plantain', label: 'Plantain', pricePence: 200 },
-  ],
-  heatLevels: [
-    { label: 'None', step: 0 },
-    { label: 'Low', step: 1 },
-    { label: 'Medium', step: 2 },
-    { label: 'High', step: 3 },
-  ],
-};
+/** Aonik-shaped source prices are absolute major units, never UI deltas. */
+export const PERSONALISATION_GROUP_SOURCE: EffectiveOptionGroupDto[] = [
+  {
+    key: 'portion',
+    label: 'Choose your portion size',
+    helpText: null,
+    selectionMode: 'One',
+    currency: 'GBP',
+    sortOrder: 0,
+    defaultChoiceKey: 'light',
+    choices: [
+      { key: 'light', label: 'Light table', note: '225g', price: 0, sortOrder: 0 },
+      { key: 'full', label: 'Full table', note: '450g', price: 10, sortOrder: 1 },
+    ],
+  },
+  {
+    key: 'protein',
+    label: 'Choose your protein',
+    helpText: 'Choose 1 or more',
+    selectionMode: 'Multi',
+    currency: 'GBP',
+    sortOrder: 1,
+    defaultChoiceKey: 'chicken',
+    choices: [
+      { key: 'prawns', label: 'King prawns', note: null, price: 0, sortOrder: 0 },
+      { key: 'chicken', label: 'Chicken', note: null, price: 0, sortOrder: 1 },
+      { key: 'salmon', label: 'Salmon', note: null, price: 3, sortOrder: 2 },
+      {
+        key: 'mixed',
+        label: 'Mixed meats (chicken, beef, goat meat, tripe, cow foot)',
+        note: null,
+        price: 4,
+        sortOrder: 3,
+      },
+    ],
+  },
+  {
+    key: 'side',
+    label: 'Choose your side',
+    helpText: null,
+    selectionMode: 'One',
+    currency: 'GBP',
+    sortOrder: 2,
+    defaultChoiceKey: 'wildrice',
+    choices: [
+      { key: 'none', label: 'No side', note: null, price: 0, sortOrder: 0 },
+      { key: 'wildrice', label: 'Wild rice', note: null, price: 2, sortOrder: 1 },
+      { key: 'quinoa', label: 'Quinoa', note: null, price: 2, sortOrder: 2 },
+      { key: 'plantain', label: 'Plantain', note: null, price: 2, sortOrder: 3 },
+    ],
+  },
+  {
+    key: 'heat',
+    label: 'Choose your heat level',
+    helpText: null,
+    selectionMode: 'One',
+    currency: 'GBP',
+    sortOrder: 3,
+    defaultChoiceKey: '2',
+    choices: [
+      { key: '0', label: 'None', note: null, price: 0, sortOrder: 0 },
+      { key: '1', label: 'Low', note: null, price: 0, sortOrder: 1 },
+      { key: '2', label: 'Medium', note: null, price: 0, sortOrder: 2 },
+      { key: '3', label: 'High', note: null, price: 0, sortOrder: 3 },
+    ],
+  },
+];
 
 /**
  * Stands in for `GET /commerce/config/storefront`.

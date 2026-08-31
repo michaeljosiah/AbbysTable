@@ -4,10 +4,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { personalisationSummary } from '@/components/checkout/DishPicker';
-import type { BoxPricing, Dish, PersonalisationOptions } from '@/lib/aonik/types';
+import type { MappedOptionGroup } from '@/lib/aonik/map';
+import { selectionSummary } from '@/lib/aonik/personalisation';
+import type { BoxPricing, Dish } from '@/lib/aonik/types';
 import { boxPricePence, cartTotals, useCart, type CartLine } from '@/lib/cart/CartProvider';
-import { formatPrice } from '@/lib/format';
+import { recordCartProjection } from '@/lib/cart/convergence';
+import { quoteComponentLabel } from '@/lib/cart/quote';
+import { formatPrice, formatSignedPrice } from '@/lib/format';
 
 import { ContinueLink } from './ContinueLink';
 
@@ -23,7 +26,7 @@ import styles from './BoxSummary.module.css';
 interface BoxSummaryProps {
   dishes: Dish[];
   pricing: BoxPricing;
-  personalisation: PersonalisationOptions;
+  optionGroupsBySlug: Record<string, MappedOptionGroup[]>;
   /**
    * Pre-formatted delivery date, e.g. "6 August", or null when the tenant
    * publishes no promise — in which case the line is not rendered at all. A
@@ -61,11 +64,23 @@ function BoxIcon({ size = 24 }: { size?: number }) {
 export function BoxSummary({
   dishes,
   pricing,
-  personalisation,
+  optionGroupsBySlug,
   earliestDeliveryLabel,
 }: BoxSummaryProps) {
-  const { boxSize, isCustom, lines, dishCount, hydrated, setBoxSize, removeLine, setQuantity } =
-    useCart();
+  const {
+    boxSize,
+    isCustom,
+    lines,
+    dishCount,
+    hydrated,
+    setBoxSize,
+    removeLine,
+    setQuantity,
+    pending,
+    isServerCart,
+    quote,
+    error,
+  } = useCart();
 
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   /** The ⓘ "About pricing" card next to the estimated total. */
@@ -87,10 +102,18 @@ export function BoxSummary({
 
   const dishById = useMemo(() => new Map(dishes.map((dish) => [dish.id, dish])), [dishes]);
 
-  const totals = useMemo(
-    () => cartTotals({ boxSize, isCustom, lines }, pricing),
-    [boxSize, isCustom, lines, pricing],
+  const demoTotals = useMemo(
+    () => (isServerCart ? null : cartTotals({ boxSize, isCustom, lines }, pricing)),
+    [isServerCart, boxSize, isCustom, lines, pricing],
   );
+  const totals = demoTotals ?? {
+    dishCount,
+    boxPence: boxPricePence(boxSize, isCustom, pricing),
+    surchargePence: undefined,
+    extraDishes: 0,
+    extraPence: 0,
+    totalPence: undefined,
+  };
 
   /** Units are filled in order, so anything past the box size is an extra. */
   const rows = useMemo<BoxRow[]>(() => {
@@ -114,20 +137,41 @@ export function BoxSummary({
     let signatureCount = 0;
     let personalisationPence = 0;
     let extraPersonalisationPence = 0;
+    let personalisationUnavailable = false;
+
+    if (isServerCart) {
+      return {
+        signaturePence,
+        signatureCount,
+        personalisationPence,
+        extraPersonalisationPence,
+        personalisationUnavailable,
+      };
+    }
 
     for (const { line, extra } of rows) {
       const dish = dishById.get(line.dishId);
       const upgrade = dish?.isSignature ? (dish.upgradePence ?? 0) : 0;
-      const perUnit = Math.max(0, line.surchargePence - upgrade);
 
       signaturePence += upgrade * line.quantity;
       if (upgrade > 0) signatureCount += line.quantity;
+      if (line.surchargePence === undefined) {
+        personalisationUnavailable = true;
+        continue;
+      }
+      const perUnit = line.surchargePence - upgrade;
       personalisationPence += perUnit * (line.quantity - extra);
       extraPersonalisationPence += perUnit * extra;
     }
 
-    return { signaturePence, signatureCount, personalisationPence, extraPersonalisationPence };
-  }, [rows, dishById]);
+    return {
+      signaturePence,
+      signatureCount,
+      personalisationPence,
+      extraPersonalisationPence,
+      personalisationUnavailable,
+    };
+  }, [isServerCart, rows, dishById]);
 
   const openSheet = useCallback(() => {
     sheetOpenerRef.current = document.activeElement as HTMLElement | null;
@@ -215,22 +259,42 @@ export function BoxSummary({
 
   useEffect(() => {
     if (!hydrated) return;
-    // The first value after hydration is the restored box, not an edit.
-    if (lastLinesRef.current === null) {
-      lastLinesRef.current = linesSignature;
+    const outcome = recordCartProjection(lastLinesRef, linesSignature, error !== null);
+    if (outcome === 'failed') {
+      // A repaired projection can arrive with a rejected mutation. Remember it
+      // so clearing the error cannot announce a belated success.
+      setToastOpen(false);
       return;
     }
-    if (lastLinesRef.current === linesSignature) return;
-    lastLinesRef.current = linesSignature;
+    if (outcome !== 'succeeded') return;
 
     setToastOpen(true);
     const timer = window.setTimeout(() => setToastOpen(false), 2600);
     return () => window.clearTimeout(timer);
-  }, [hydrated, linesSignature]);
+  }, [hydrated, linesSignature, error]);
 
   const changeQuantity = useCallback(
-    (lineId: string, quantity: number) => setQuantity(lineId, quantity),
-    [setQuantity],
+    async (lineId: string, quantity: number) => {
+      if (pending) return;
+      try {
+        await setQuantity(lineId, quantity);
+      } catch {
+        // The provider exposes the failure and keeps the confirmed quantity.
+      }
+    },
+    [pending, setQuantity],
+  );
+
+  const deleteLine = useCallback(
+    async (lineId: string) => {
+      if (pending) return;
+      try {
+        await removeLine(lineId);
+      } catch {
+        // The provider exposes the failure and keeps the confirmed line.
+      }
+    },
+    [pending, removeLine],
   );
 
   const scrollListDown = useCallback(() => {
@@ -277,8 +341,22 @@ export function BoxSummary({
   const largerPreset = pricing.presets.find((offer) => offer.dishCount === largerSize);
   const largerPence = boxPricePence(largerSize, !largerPreset, pricing);
   const canGrow = totals.extraDishes > 0 && largerSize <= pricing.custom.maxDishes;
+  const growBox = async () => {
+    if (pending) return;
+    try {
+      await setBoxSize(largerSize, !largerPreset);
+    } catch {
+      // The provider exposes the failure and keeps the confirmed size.
+    }
+  };
 
-  const totalLabel = formatPrice(totals.totalPence);
+  const totalLabel = isServerCart
+    ? quote
+      ? formatPrice(quote.totalPence)
+      : ''
+    : totals.totalPence === undefined
+      ? 'Price unavailable'
+      : formatPrice(totals.totalPence);
 
   /* ---- Change box size ------------------------------------------------------- */
 
@@ -303,15 +381,20 @@ export function BoxSummary({
         ? 'Save changes'
         : 'No changes to save';
 
-  const applyChange = () => {
+  const applyChange = async () => {
     // With too many dishes chosen there is nothing to save yet — close so the
     // customer can remove some.
     if (overBy > 0 || !sizeChanged) {
       closeChange();
       return;
     }
-    setBoxSize(nextSize, !nextPreset);
-    closeChange();
+    if (pending) return;
+    try {
+      await setBoxSize(nextSize, !nextPreset);
+      closeChange();
+    } catch {
+      // Keep the dialog open until the authoritative resize succeeds.
+    }
   };
 
   const stepSize = (delta: number) =>
@@ -371,7 +454,10 @@ export function BoxSummary({
       <ul className={styles.lines}>
         {rows.map(({ line, extra }) => {
           const dish = dishById.get(line.dishId);
-          const addPence = extra * pricing.extraDishPence + line.quantity * line.surchargePence;
+          const addPence =
+            isServerCart || line.surchargePence === undefined
+              ? undefined
+              : extra * pricing.extraDishPence + line.quantity * line.surchargePence;
 
           return (
             <li key={line.lineId} className={styles.line}>
@@ -390,8 +476,10 @@ export function BoxSummary({
                   <Link href={`/menu/${line.slug}`} className={styles.lineName}>
                     {line.title}
                   </Link>
-                  {addPence > 0 ? (
-                    <span className={styles.lineAdd}>+{formatPrice(addPence)}</span>
+                  {isServerCart ? null : addPence === undefined ? (
+                    <span className={styles.lineAdd}>Price unavailable</span>
+                  ) : addPence !== 0 ? (
+                    <span className={styles.lineAdd}>{formatSignedPrice(addPence)}</span>
                   ) : null}
                 </div>
 
@@ -425,7 +513,12 @@ export function BoxSummary({
                     <line x1="4" y1="16" x2="20" y2="16" />
                     <circle cx="15" cy="16" r="2.4" fill="var(--surface-bright)" />
                   </svg>
-                  <span>{personalisationSummary(line.personalisation, personalisation)}</span>
+                  <span>
+                    {selectionSummary(
+                      optionGroupsBySlug[line.slug] ?? [],
+                      line.personalisation,
+                    )}
+                  </span>
                 </p>
 
                 <div className={styles.lineActions}>
@@ -433,8 +526,8 @@ export function BoxSummary({
                     <button
                       type="button"
                       className={styles.stepButton}
-                      onClick={() => changeQuantity(line.lineId, line.quantity - 1)}
-                      disabled={line.quantity <= 1}
+                      onClick={() => void changeQuantity(line.lineId, line.quantity - 1)}
+                      disabled={pending || line.quantity <= 1}
                       aria-label={`Fewer ${line.title}`}
                     >
                       −
@@ -443,7 +536,8 @@ export function BoxSummary({
                     <button
                       type="button"
                       className={styles.stepButton}
-                      onClick={() => changeQuantity(line.lineId, line.quantity + 1)}
+                      onClick={() => void changeQuantity(line.lineId, line.quantity + 1)}
+                      disabled={pending}
                       aria-label={`More ${line.title}`}
                     >
                       +
@@ -453,7 +547,8 @@ export function BoxSummary({
                   <button
                     type="button"
                     className={styles.remove}
-                    onClick={() => removeLine(line.lineId)}
+                    onClick={() => void deleteLine(line.lineId)}
+                    disabled={pending}
                   >
                     <svg
                       width="13"
@@ -501,7 +596,8 @@ export function BoxSummary({
       <button
         type="button"
         className={styles.growButton}
-        onClick={() => setBoxSize(largerSize, !largerPreset)}
+        onClick={() => void growBox()}
+        disabled={pending}
       >
         <span>Make it a {largerSize}-dish box</span>
         <span className={styles.growPrice}>{formatPrice(largerPence)}</span>
@@ -512,7 +608,23 @@ export function BoxSummary({
 
   // The template's step-2 rows: box at its paid price (no discount line here —
   // that's step 1's breakdown), then the itemised additions, then delivery.
-  const breakdown = (
+  const breakdown = isServerCart ? (
+    quote ? (
+      <div className={styles.rows}>
+        {quote.components.map((component, index) => (
+          <div key={`${component.key}:${index}`} className={styles.row}>
+            <span>{quoteComponentLabel(component.key)}</span>
+            <span className={styles.rowStrong}>{formatPrice(component.amountPence)}</span>
+          </div>
+        ))}
+        <span className={styles.rowsRule} aria-hidden="true" />
+        <div className={styles.rowTotal}>
+          <span>Total</span>
+          <span>{formatPrice(quote.totalPence)}</span>
+        </div>
+      </div>
+    ) : null
+  ) : (
     <div className={styles.rows}>
       <div className={styles.row}>
         <span>{boxLabel}</span>
@@ -527,10 +639,18 @@ export function BoxSummary({
           <span className={styles.rowAccent}>+{formatPrice(split.signaturePence)}</span>
         </div>
       ) : null}
-      {split.personalisationPence > 0 ? (
+      {split.personalisationPence !== 0 ? (
         <div className={styles.row}>
           <span>Personalisation</span>
-          <span className={styles.rowAccent}>+{formatPrice(split.personalisationPence)}</span>
+          <span className={styles.rowAccent}>
+            {formatSignedPrice(split.personalisationPence)}
+          </span>
+        </div>
+      ) : null}
+      {split.personalisationUnavailable ? (
+        <div className={styles.row}>
+          <span>Personalisation</span>
+          <span className={styles.rowAccent}>Price unavailable</span>
         </div>
       ) : null}
       {totals.extraDishes > 0 ? (
@@ -541,11 +661,11 @@ export function BoxSummary({
           <span className={styles.rowStrong}>{formatPrice(totals.extraPence)}</span>
         </div>
       ) : null}
-      {split.extraPersonalisationPence > 0 ? (
+      {split.extraPersonalisationPence !== 0 ? (
         <div className={styles.row}>
           <span>Extra-dish personalisation</span>
           <span className={styles.rowAccent}>
-            +{formatPrice(split.extraPersonalisationPence)}
+            {formatSignedPrice(split.extraPersonalisationPence)}
           </span>
         </div>
       ) : null}
@@ -989,7 +1109,11 @@ export function BoxSummary({
                     <span className={styles.changeTotalValue}>
                       {/* No dish sits outside the box at this size, so the estimate
                           is the new box plus the surcharges already chosen. */}
-                      {formatPrice(nextBoxPence + totals.surchargePence)}
+                      {isServerCart
+                        ? 'Confirmed after saving'
+                        : totals.surchargePence === undefined
+                        ? 'Price unavailable'
+                        : formatPrice(nextBoxPence + totals.surchargePence)}
                     </span>
                     <span className={styles.changeRowNote}>Includes current personalisation</span>
                   </span>
@@ -1001,7 +1125,7 @@ export function BoxSummary({
               type="button"
               className={styles.changeCta}
               onClick={applyChange}
-              disabled={overBy === 0 && !sizeChanged}
+              disabled={pending || (overBy === 0 && !sizeChanged)}
             >
               {changeCta}
             </button>

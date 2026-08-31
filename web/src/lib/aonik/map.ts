@@ -36,8 +36,6 @@ import type {
   DishOption,
   HeatingInstruction,
   HeatLevel,
-  PersonalisationOption,
-  PersonalisationOptions,
   StorefrontBoxPlan,
   StorefrontConfig,
   Extra,
@@ -205,38 +203,6 @@ export interface MappedOptionGroup {
   choices: DishOption[];
 }
 
-/**
- * A dish's own option groups → the shape the personaliser renders.
- *
- * The checkout UI was built against `PersonalisationOptions`, a catalogue-wide
- * set, but Aonik has no such concept: groups are attached per product, with a
- * per-product default. So the storefront asked for catalogue-wide options, got
- * the honest empty answer, and rendered four headings with no choices under
- * them — the personaliser was never connected to the real data.
- *
- * This adapts one to the other, per dish, so the dialog offers exactly what the
- * dish offers. A dish missing a group yields an empty array for it, which the
- * renderer now omits.
- *
- * Heat is keyed by step (`"0"`–`"3"`), matching `HEAT_STEPS` and what
- * `personalisationToSelection` encodes back.
- */
-export function optionGroupsToPersonalisation(
-  groups: MappedOptionGroup[],
-): PersonalisationOptions {
-  const choicesFor = (key: string) => groups.find((group) => group.key === key)?.choices ?? [];
-
-  return {
-    portions: choicesFor('portion'),
-    proteins: choicesFor('protein'),
-    // `KNOWN_GROUP_KEYS` accepts either spelling; Aonik's own key is singular.
-    sides: choicesFor('side').length > 0 ? choicesFor('side') : choicesFor('sides'),
-    heatLevels: choicesFor('heat')
-      .map((choice) => ({ label: choice.label, step: Number(choice.key) }))
-      .filter((level) => Number.isFinite(level.step)),
-  };
-}
-
 export function mapOptionGroup(dto: EffectiveOptionGroupDto): MappedOptionGroup {
   const basePrice =
     dto.choices.find((choice) => choice.key === dto.defaultChoiceKey)?.price ?? 0;
@@ -248,7 +214,6 @@ export function mapOptionGroup(dto: EffectiveOptionGroupDto): MappedOptionGroup 
       label: choice.label,
       detail: choice.note ?? undefined,
       pricePence: toPence(choice.price - basePrice),
-      isAbbysChoice: choice.key === dto.defaultChoiceKey,
     }));
 
   return {
@@ -520,8 +485,6 @@ export function mapSummaryToDish(dto: ProductSummaryDto): Dish {
       fatGrams: attributes.fatGrams,
       calories: attributes.kcal,
     },
-    // Which groups a product offers is on the detail read; a card never needs it.
-    personalisation: [],
     // Membership of the `featured` collection decides this, not a product flag.
     isFeatured: false,
     proteinType: attributes.protein as Dish['proteinType'],
@@ -530,15 +493,6 @@ export function mapSummaryToDish(dto: ProductSummaryDto): Dish {
     dietary: (attributes.dietary ?? []) as Dish['dietary'],
   };
 }
-
-/** The four personalisation groups this storefront knows how to render. */
-const KNOWN_GROUP_KEYS: Record<string, PersonalisationOption> = {
-  portion: 'portion',
-  protein: 'protein',
-  side: 'sides',
-  sides: 'sides',
-  heat: 'heat',
-};
 
 /**
  * A product detail read → a fully-populated `Dish`.
@@ -552,10 +506,6 @@ export function mapProductToDish(dto: ProductDto): Dish {
   const attributes = readAttributes(dto.attributesJson);
   const content = dto.content ? mapResolvedContent(dto.content) : null;
   const tags = parseJsonStringArray(dto.tagsJson);
-
-  const personalisation = dto.effectiveOptionGroups
-    .map((group) => KNOWN_GROUP_KEYS[group.key])
-    .filter((value): value is PersonalisationOption => value !== undefined);
 
   return {
     id: dto.id,
@@ -574,7 +524,6 @@ export function mapProductToDish(dto: ProductDto): Dish {
       fatGrams: attributes.fatGrams,
       calories: attributes.kcal,
     },
-    personalisation: [...new Set(personalisation)],
     isFeatured: false,
     proteinType: attributes.protein as Dish['proteinType'],
     mealType: attributes.meal as Dish['mealType'],
@@ -737,19 +686,23 @@ export type PersonalisationSelection = Record<string, string | string[]>;
  *  - a `Multi` group always emits an array, even for one choice;
  *  - a `One` group always emits a bare string;
  *  - groups the product does not offer are dropped rather than sent;
- *  - an all-defaults selection encodes to `undefined`, which Aonik reads as
- *    "the defaults" and flags `isDefaultPersonalisation` on the line.
+ *  - add policy (`omitDefaults: true`) encodes all-defaults as `undefined`;
+ *  - edit policy (`omitDefaults: false`) emits complete canonical defaults.
  */
 export function encodeSelection(
   groups: MappedOptionGroup[],
   chosen: Record<string, string | string[] | undefined>,
+  omitDefaults = true,
 ): PersonalisationSelection | undefined {
   const selection: PersonalisationSelection = {};
   let differsFromDefault = false;
 
   for (const group of groups) {
     const raw = chosen[group.key];
-    const values = (Array.isArray(raw) ? raw : raw === undefined ? [] : [raw]).filter(Boolean);
+    let values = (Array.isArray(raw) ? raw : raw === undefined ? [] : [raw]).filter(Boolean);
+    if (values.length === 0 && !omitDefaults && group.defaultChoiceKey) {
+      values = [group.defaultChoiceKey];
+    }
     if (values.length === 0) continue;
 
     const isDefault = values.length === 1 && values[0] === group.defaultChoiceKey;
@@ -758,7 +711,7 @@ export function encodeSelection(
     selection[group.key] = group.selectionMode === 'Multi' ? values : values[0];
   }
 
-  return differsFromDefault ? selection : undefined;
+  return omitDefaults && !differsFromDefault ? undefined : selection;
 }
 
 /** Reads a stored selection back into UI state, tolerating either encoding. */
@@ -878,8 +831,6 @@ function splitAllergens(declaration: string | undefined): string[] | undefined {
 export function mapExtraRow(dto: ExtraRowDto): Extra {
   const attributes = parseExtraAttributes(dto.attributesJson);
   const content = dto.content ? mapResolvedContent(dto.content) : undefined;
-  const groups = mapOptionGroups(dto.optionGroups);
-  const group = groups[0];
 
   return {
     id: dto.productVariantId,
@@ -889,16 +840,7 @@ export function mapExtraRow(dto: ExtraRowDto): Extra {
     description: dto.description ?? '',
     longDescription: attributes.longDescription ?? dto.description ?? '',
     imageUrl: dto.imageUrl ?? '',
-    option: group
-      ? {
-          kind: group.label,
-          choices: group.choices.map((choice) => ({
-            key: choice.key,
-            label: choice.label,
-            addPence: choice.pricePence,
-          })),
-        }
-      : undefined,
+    optionGroups: mapOptionGroups(dto.optionGroups),
     nutrition: content?.nutrition ?? {},
     // SAFETY: `mapResolvedContent` has already cleared both when Aonik withheld
     // them, so absence here always means "not declared".

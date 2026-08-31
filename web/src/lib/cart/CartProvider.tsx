@@ -10,10 +10,29 @@ import {
   type ReactNode,
 } from 'react';
 
-import type { BoxCart, BoxChange, BoxQuote, CheckoutResult } from '@/lib/aonik/map';
+import type {
+  BoxCart,
+  BoxChange,
+  BoxQuote,
+  CheckoutResult,
+  PersonalisationSelection,
+} from '@/lib/aonik/map';
+import { localSurcharge, selectionDraft } from '@/lib/aonik/personalisation';
 import type { BoxPricing, Extra } from '@/lib/aonik/types';
 
-import { useServerCart, type CartRequestError } from './serverEngine';
+import {
+  projectAddOnLines,
+  type ProjectedExtraLine,
+} from './convergence';
+import {
+  decodeDemoCart,
+  extraLinePersonalisation,
+  type DemoCartLine,
+  type DemoCartState,
+} from './demoStorage';
+import { deleteExtra, patchDishPersonalisation, patchExtra, postExtra } from './mutations';
+import { useServerCart } from './serverEngine';
+import type { CartRequestError } from './transport';
 
 /**
  * The box a customer is building.
@@ -27,121 +46,49 @@ import { useServerCart, type CartRequestError } from './serverEngine';
  *    that money.
  *
  * `useCart()` looks the same either way, which is what keeps Steps 1–4 and the
- * mobile sheet from caring. Operations are async because the live engine is;
- * demo resolves immediately, so callers that fire-and-forget still behave as
- * they always did.
+ * mobile sheet from caring. Operations return promises in both modes so callers
+ * can put navigation and success copy strictly after confirmation.
  */
 
-export interface CartPersonalisation {
-  portion: string;
-  protein: string;
-  side: string;
-  heatStep: number;
-}
-
-export interface CartLine {
-  /** Stable id for this line — the same dish can appear twice, personalised differently. */
-  lineId: string;
-  dishId: string;
-  slug: string;
-  title: string;
-  imageUrl: string;
-  quantity: number;
-  personalisation?: CartPersonalisation;
-  /** Personalisation surcharge for ONE unit of this line, in pence. */
-  surchargePence: number;
-}
+export type CartLine = DemoCartLine;
 
 /** An à-la-carte extra in the box: one line per item + option combination. */
-export interface ExtraLine {
-  extraId: string;
-  quantity: number;
-  /** Selected option choice key ("lg", "12", "hot"), when the extra has one. */
-  optionKey?: string;
-}
+export type ExtraLine = ProjectedExtraLine;
 
-export interface CartState {
-  /** Chosen box size, or null before Step 1. */
-  boxSize: number | null;
-  /** True when the size came from "build your own" rather than a preset. */
-  isCustom: boolean;
-  lines: CartLine[];
-  extras: ExtraLine[];
-}
+export type CartState = DemoCartState;
 
 const EMPTY: CartState = { boxSize: null, isCustom: false, lines: [], extras: [] };
 
-/**
- * A UI selection → chosen option key per Aonik GROUP key.
- *
- * The four keys match `KNOWN_GROUP_KEYS` in `map.ts`, and heat is keyed by its
- * step (`"3"`), which is how the seeded choices are keyed. The server does the
- * actual encoding — array vs bare string, and all-defaults → undefined — since
- * that needs the product's groups.
- *
- * Returning undefined for an unpersonalised line is what makes Aonik flag
- * `isDefaultPersonalisation`, so the box says "Abby's choice" rather than
- * spelling out the defaults back at the customer.
- */
-function toGroupChoices(
-  personalisation: CartPersonalisation | undefined,
-): Record<string, string> | undefined {
-  if (!personalisation) return undefined;
-  return {
-    portion: personalisation.portion,
-    protein: personalisation.protein,
-    side: personalisation.side,
-    heat: String(personalisation.heatStep),
-  };
-}
-
-/**
- * The inverse: Aonik's stored selection → the UI's `CartPersonalisation`.
- *
- * Reads the canonical selection off the line. The projection used to put
- * Aonik's rendered summary string into `portion` and zero the rest, which made
- * every re-read of a personalised line render as "None" — the summary is not a
- * choice key, so nothing matched, and `heatStep: 0` is literally the "None"
- * heat. It also meant opening "Edit personalisation" seeded the draft with
- * junk.
- *
- * A `Multi` group collapses to its first choice because `CartPersonalisation`
- * holds one protein; that is the UI model's limit, not a decode error.
- */
-function fromGroupSelection(
-  selection: Record<string, string | string[]> | undefined,
-): CartPersonalisation {
-  const one = (value: string | string[] | undefined) =>
-    (Array.isArray(value) ? value[0] : value) ?? '';
-
-  const heat = Number(one(selection?.heat));
-
-  return {
-    portion: one(selection?.portion),
-    protein: one(selection?.protein),
-    side: one(selection?.side),
-    heatStep: Number.isFinite(heat) ? heat : 0,
-  };
-}
-
-const STORAGE_KEY = 'abbys-table:box:v1';
+const STORAGE_KEY = 'abbys-table:box:v2';
+const LEGACY_STORAGE_KEY = 'abbys-table:box:v1';
 
 interface CartContextValue extends CartState {
   /** False during the first client render, before storage or the server answered. */
   hydrated: boolean;
   dishCount: number;
-  setBoxSize: (size: number, isCustom?: boolean) => void | Promise<void>;
-  addLine: (line: Omit<CartLine, 'lineId'> & { lineId?: string }) => void | Promise<void>;
-  removeLine: (lineId: string) => void | Promise<void>;
-  setQuantity: (lineId: string, quantity: number) => void | Promise<void>;
-  /** Adds one of an extra (or bumps its quantity). */
-  addExtra: (extraId: string, optionKey?: string) => void | Promise<void>;
-  /** Quantity ≤ 0 removes the line. */
-  setExtraQuantity: (extraId: string, quantity: number) => void | Promise<void>;
-  /** Updates an extra's chosen option (one line per extra, as the template keys them). */
-  setExtraOption: (extraId: string, optionKey: string) => void | Promise<void>;
-  removeExtra: (extraId: string) => void | Promise<void>;
-  clear: () => void | Promise<void>;
+  setBoxSize: (size: number, isCustom?: boolean) => Promise<void>;
+  addLine: (line: Omit<CartLine, 'lineId'> & { lineId?: string }) => Promise<void>;
+  removeLine: (lineId: string) => Promise<void>;
+  setQuantity: (lineId: string, quantity: number) => Promise<void>;
+  updateLinePersonalisation: (
+    lineId: string,
+    input: {
+      personalisation: PersonalisationSelection;
+      applyToUnits?: number;
+      surchargePence: number | undefined;
+    },
+  ) => Promise<void>;
+  addExtra: (
+    variantId: string,
+    quantity: number,
+    personalisation?: PersonalisationSelection,
+  ) => Promise<void>;
+  updateExtra: (
+    lineId: string,
+    patch: { quantity?: number; personalisation?: PersonalisationSelection },
+  ) => Promise<void>;
+  removeExtra: (lineId: string) => Promise<void>;
+  clear: () => Promise<void>;
 
   /* ---- Live-mode surface. Null/empty in demo, where there is no server. ---- */
 
@@ -182,13 +129,13 @@ const CartContext = createContext<CartContextValue | null>(null);
 
 function readStorage(): CartState | null {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    // Demo only: read the current shape first, then the shipped v1 cart. Live
+    // mode returns before this function is called and never touches either key.
+    const raw =
+      window.localStorage.getItem(STORAGE_KEY) ??
+      window.localStorage.getItem(LEGACY_STORAGE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as CartState;
-    if (!Array.isArray(parsed.lines)) return null;
-    // Carts saved before extras existed simply have none.
-    if (!Array.isArray(parsed.extras)) parsed.extras = [];
-    return parsed;
+    return decodeDemoCart(JSON.parse(raw));
   } catch {
     // Corrupt or unavailable storage should never break the page.
     return null;
@@ -215,9 +162,7 @@ function projectServerCart(
       title: line.name,
       imageUrl: display[line.productId]?.imageUrl ?? '',
       quantity: line.quantity,
-      personalisation: line.isDefaultPersonalisation
-        ? undefined
-        : fromGroupSelection(line.personalisation),
+      personalisation: line.isDefaultPersonalisation ? undefined : line.personalisation,
       surchargePence: line.personalisationAdjustmentPence + line.unitSurchargePence,
     }));
 
@@ -226,9 +171,7 @@ function projectServerCart(
   // id here meant every catalogue lookup missed, and the review page — which
   // skips a line it cannot resolve — rendered "0 items" over a box that had
   // extras in it.
-  const extras: ExtraLine[] = cart.lines
-    .filter((line) => line.kind === 'AddOn')
-    .map((line) => ({ extraId: line.variantId, quantity: line.quantity }));
+  const extras = projectAddOnLines(cart.lines);
 
   return { boxSize: cart.quote.boxSize, isCustom: false, lines, extras };
 }
@@ -269,7 +212,7 @@ export function CartProvider({
       if (isServerCart) {
         // A size change is a server operation: the price delta is the plan's
         // marginal cost, which may bend around preset price points.
-        await server.request('/size', { method: 'PATCH', body: { size } }).catch(() => undefined);
+        await server.request('/size', { method: 'PATCH', body: { size } });
         return;
       }
       setState((current) => ({ ...current, boxSize: size, isCustom }));
@@ -310,19 +253,17 @@ export function CartProvider({
         // Remember how to render this dish before the server answers with a
         // line that knows only its name.
         server.rememberDisplay(line.dishId, { slug: line.slug, imageUrl: line.imageUrl });
-        await server
-          .request('/lines', {
-            method: 'POST',
-            // The slug, not `dishId`: that is a PRODUCT id, and Aonik's cart
-            // wants a variant. The route resolves one from the other, and
-            // encodes `choices` once it has the product's option groups.
-            body: {
-              slug: line.slug,
-              quantity: line.quantity,
-              choices: toGroupChoices(line.personalisation),
-            },
-          })
-          .catch(() => undefined);
+        await server.request('/lines', {
+          method: 'POST',
+          // The slug, not `dishId`: that is a PRODUCT id, and Aonik's cart
+          // wants a variant. The route resolves one from the other, and
+          // encodes `choices` once it has the product's option groups.
+          body: {
+            slug: line.slug,
+            quantity: line.quantity,
+            choices: line.personalisation,
+          },
+        });
         return;
       }
       addLineLocal(line);
@@ -333,7 +274,7 @@ export function CartProvider({
   const removeLine = useCallback(
     async (lineId: string) => {
       if (isServerCart) {
-        await server.request(`/lines/${lineId}`, { method: 'DELETE' }).catch(() => undefined);
+        await server.request(`/lines/${lineId}`, { method: 'DELETE' });
         return;
       }
       setState((current) => ({
@@ -348,9 +289,7 @@ export function CartProvider({
     async (lineId: string, quantity: number) => {
       if (isServerCart) {
         // Quantity 0 deletes the line server-side, so one route covers both.
-        await server
-          .request(`/lines/${lineId}`, { method: 'PATCH', body: { quantity } })
-          .catch(() => undefined);
+        await server.request(`/lines/${lineId}`, { method: 'PATCH', body: { quantity } });
         return;
       }
       setState((current) => ({
@@ -364,67 +303,142 @@ export function CartProvider({
     [isServerCart, server],
   );
 
-  const addExtraLocal = useCallback((extraId: string, optionKey?: string) => {
-    setState((current) => {
-      const existing = current.extras.find((line) => line.extraId === extraId);
-      if (existing) {
+  const updateLinePersonalisation = useCallback(
+    async (
+      lineId: string,
+      input: {
+        personalisation: PersonalisationSelection;
+        applyToUnits?: number;
+        surchargePence: number | undefined;
+      },
+    ) => {
+      if (isServerCart) {
+        await patchDishPersonalisation(
+          server.request,
+          lineId,
+          input.personalisation,
+          input.applyToUnits,
+        );
+        return;
+      }
+
+      setState((current) => {
+        const source = current.lines.find((line) => line.lineId === lineId);
+        if (!source) return current;
+        const units = Math.min(source.quantity, Math.max(1, input.applyToUnits ?? source.quantity));
+        const updated = {
+          ...source,
+          quantity: units,
+          personalisation: input.personalisation,
+          surchargePence: input.surchargePence,
+        };
+
+        if (units === source.quantity) {
+          return {
+            ...current,
+            lines: current.lines.map((line) => (line.lineId === lineId ? updated : line)),
+          };
+        }
+
         return {
           ...current,
-          extras: current.extras.map((line) =>
-            line.extraId === extraId ? { ...line, quantity: line.quantity + 1 } : line,
-          ),
+          lines: [
+            ...current.lines.map((line) =>
+              line.lineId === lineId ? { ...line, quantity: line.quantity - units } : line,
+            ),
+            { ...updated, lineId: `${source.dishId}-${current.lines.length + 1}` },
+          ],
         };
-      }
-      return { ...current, extras: [...current.extras, { extraId, quantity: 1, optionKey }] };
-    });
-  }, []);
+      });
+    },
+    [isServerCart, server],
+  );
 
+  const addExtraLocal = useCallback(
+    (variantId: string, quantity: number, personalisation?: PersonalisationSelection) => {
+      setState((current) => {
+        const signature = JSON.stringify(personalisation ?? null);
+        const existing = current.extras.find(
+          (line) =>
+            line.variantId === variantId &&
+            JSON.stringify(line.personalisation ?? null) === signature,
+        );
+        if (existing) {
+          return {
+            ...current,
+            extras: current.extras.map((line) =>
+              line.lineId === existing.lineId
+                ? { ...line, quantity: line.quantity + quantity }
+                : line,
+            ),
+          };
+        }
+        return {
+          ...current,
+          extras: [
+            ...current.extras,
+            {
+              lineId: `${variantId}-${current.extras.length + 1}`,
+              variantId,
+              quantity,
+              personalisation,
+            },
+          ],
+        };
+      });
+    },
+    [],
+  );
 
   const addExtra = useCallback(
-    async (extraId: string, optionKey?: string) => {
+    async (
+      variantId: string,
+      quantity: number,
+      personalisation?: PersonalisationSelection,
+    ) => {
       if (isServerCart) {
         // Add-ons consume no box space; their money lands in the `addOns`
         // quote component and `spacesLeft` never moves.
-        await server
-          .request('/extras', {
-            method: 'POST',
-            body: { productVariantId: extraId, quantity: 1 },
-          })
-          .catch(() => undefined);
+        await postExtra(server.request, variantId, quantity, personalisation);
         return;
       }
-      addExtraLocal(extraId, optionKey);
+      addExtraLocal(variantId, quantity, personalisation);
     },
     [isServerCart, server, addExtraLocal],
   );
 
-  const setExtraQuantity = useCallback((extraId: string, quantity: number) => {
-    setState((current) => ({
-      ...current,
-      extras:
-        quantity <= 0
-          ? current.extras.filter((line) => line.extraId !== extraId)
-          : current.extras.map((line) =>
-              line.extraId === extraId ? { ...line, quantity } : line,
-            ),
-    }));
-  }, []);
+  const updateExtra = useCallback(
+    async (
+      lineId: string,
+      patch: { quantity?: number; personalisation?: PersonalisationSelection },
+    ) => {
+      if (isServerCart) {
+        await patchExtra(server.request, lineId, patch);
+        return;
+      }
+      setState((current) => ({
+        ...current,
+        extras: current.extras.map((line) =>
+          line.lineId === lineId ? { ...line, ...patch } : line,
+        ),
+      }));
+    },
+    [isServerCart, server],
+  );
 
-  const setExtraOption = useCallback((extraId: string, optionKey: string) => {
-    setState((current) => ({
-      ...current,
-      extras: current.extras.map((line) =>
-        line.extraId === extraId ? { ...line, optionKey } : line,
-      ),
-    }));
-  }, []);
-
-  const removeExtra = useCallback((extraId: string) => {
-    setState((current) => ({
-      ...current,
-      extras: current.extras.filter((line) => line.extraId !== extraId),
-    }));
-  }, []);
+  const removeExtra = useCallback(
+    async (lineId: string) => {
+      if (isServerCart) {
+        await deleteExtra(server.request, lineId);
+        return;
+      }
+      setState((current) => ({
+        ...current,
+        extras: current.extras.filter((line) => line.lineId !== lineId),
+      }));
+    },
+    [isServerCart, server],
+  );
 
   /**
    * Demo only. Aonik has no "empty the cart" route — a server cart ends by
@@ -432,7 +446,7 @@ export function CartProvider({
    * blanking local state (which the next server response would immediately
    * contradict), this is a no-op in live mode.
    */
-  const clear = useCallback(() => {
+  const clear = useCallback(async () => {
     if (isServerCart) return;
     setState(EMPTY);
   }, [isServerCart]);
@@ -443,7 +457,7 @@ export function CartProvider({
    */
   const revalidate = useCallback(async (): Promise<BoxChange[]> => {
     if (!isServerCart) return [];
-    const cart = await server.request('/continue', { method: 'POST' }).catch(() => null);
+    const cart = await server.request('/continue', { method: 'POST' });
     return cart?.changes ?? [];
   }, [isServerCart, server]);
 
@@ -477,9 +491,9 @@ export function CartProvider({
       addLine,
       removeLine,
       setQuantity,
+      updateLinePersonalisation,
       addExtra,
-      setExtraQuantity,
-      setExtraOption,
+      updateExtra,
       removeExtra,
       clear,
       quote: server.cart?.quote ?? null,
@@ -503,9 +517,9 @@ export function CartProvider({
       addLine,
       removeLine,
       setQuantity,
+      updateLinePersonalisation,
       addExtra,
-      setExtraQuantity,
-      setExtraOption,
+      updateExtra,
       removeExtra,
       clear,
       revalidate,
@@ -557,10 +571,9 @@ export function cartTotals(
   pricing: BoxPricing,
 ) {
   const box = boxPricePence(state.boxSize, state.isCustom, pricing);
-  const surcharges = state.lines.reduce(
-    (total, line) => total + line.surchargePence * line.quantity,
-    0,
-  );
+  const surcharges = state.lines.every((line) => line.surchargePence !== undefined)
+    ? state.lines.reduce((total, line) => total + line.surchargePence! * line.quantity, 0)
+    : undefined;
   const dishCount = state.lines.reduce((total, line) => total + line.quantity, 0);
   const overflow = state.boxSize === null ? 0 : Math.max(0, dishCount - state.boxSize);
   const extras = overflow * pricing.extraDishPence;
@@ -571,26 +584,33 @@ export function cartTotals(
     surchargePence: surcharges,
     extraDishes: overflow,
     extraPence: extras,
-    totalPence: box + surcharges + extras,
+    totalPence: surcharges === undefined ? undefined : box + surcharges + extras,
   };
 }
 
 /** Unit price of one extra line: base price plus its chosen option. */
-export function extraUnitPence(line: ExtraLine, extra: Extra): number {
-  const add = extra.option?.choices.find((choice) => choice.key === line.optionKey)?.addPence ?? 0;
-  return extra.pricePence + add;
+export function extraUnitPence(line: ExtraLine, extra: Extra): number | undefined {
+  const add = localSurcharge(
+    extra.optionGroups,
+    selectionDraft(extra.optionGroups, extraLinePersonalisation(line, extra.optionGroups)),
+  );
+  return add === undefined ? undefined : extra.pricePence + add;
 }
 
 /** Total for the extras lines, resolved against the catalogue. */
 export function extrasTotals(extraLines: ExtraLine[], catalogue: Extra[]) {
   const byId = new Map(catalogue.map((extra) => [extra.id, extra]));
   let quantity = 0;
-  let totalPence = 0;
+  let totalPence: number | undefined = 0;
   for (const line of extraLines) {
-    const extra = byId.get(line.extraId);
+    const extra = byId.get(line.variantId);
     if (!extra) continue;
     quantity += line.quantity;
-    totalPence += extraUnitPence(line, extra) * line.quantity;
+    const unitPence = extraUnitPence(line, extra);
+    totalPence =
+      totalPence === undefined || unitPence === undefined
+        ? undefined
+        : totalPence + unitPence * line.quantity;
   }
   return { quantity, totalPence };
 }

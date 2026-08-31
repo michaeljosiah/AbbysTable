@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { BoxSummary } from '@/components/checkout/BoxSummary';
 import { DishPicker } from '@/components/checkout/DishPicker';
 import { getAonikClient } from '@/lib/aonik/client';
-import { optionGroupsToPersonalisation } from '@/lib/aonik/map';
 import { formatDeliveryDate } from '@/lib/format';
 
 import styles from './page.module.css';
@@ -28,10 +27,9 @@ export default async function BoxDishesPage() {
   // `heating` feeds the shared DishInfoPanels inside the personaliser, so the
   // dialog states allergen and reheating facts from the catalogue rather than
   // repeating them locally.
-  const [dishes, pricing, personalisation, delivery, heating] = await Promise.all([
+  const [dishes, pricing, delivery, heating] = await Promise.all([
     client.getDishes(),
     client.getBoxPricing(),
-    client.getPersonalisationOptions(),
     client.getDeliveryWindow(),
     client.getHeatingInstructions(),
   ]);
@@ -39,22 +37,20 @@ export default async function BoxDishesPage() {
   /*
    * Per-dish option groups, because Aonik has no catalogue-wide ones.
    *
-   * `getPersonalisationOptions` answers empty in live mode — correctly, there
-   * is no such endpoint — so the personaliser had nothing to render and showed
-   * bare headings. Groups are attached per product with a per-product default
+   * There is no catalogue-wide option endpoint. Groups are attached per product with a per-product default
    * (each dish's own heat level, for one), which is also more faithful than a
    * shared set would be.
    *
    * One catalogue read per dish, in parallel and on the `catalog` cache policy,
    * so they collapse to nothing on repeat renders. A dish whose groups fail to
-   * load falls back to the catalogue-wide answer rather than taking the page
-   * down; in live that is empty, and the UI omits what it cannot offer.
+   * load yields no groups rather than taking the page down, and the UI omits
+   * what it cannot offer.
    */
-  const optionsBySlug = Object.fromEntries(
+  const optionGroupsBySlug = Object.fromEntries(
     await Promise.all(
       dishes.map(async (dish) => {
         const groups = await client.getDishOptionGroups(dish.slug).catch(() => []);
-        return [dish.slug, optionGroupsToPersonalisation(groups)] as const;
+        return [dish.slug, groups] as const;
       }),
     ),
   );
@@ -94,8 +90,7 @@ export default async function BoxDishesPage() {
           <DishPicker
             dishes={dishes}
             pricing={pricing}
-            personalisation={personalisation}
-            optionsBySlug={optionsBySlug}
+            optionGroupsBySlug={optionGroupsBySlug}
             heating={heating}
           />
         </div>
@@ -104,7 +99,7 @@ export default async function BoxDishesPage() {
           <BoxSummary
             dishes={dishes}
             pricing={pricing}
-            personalisation={personalisation}
+            optionGroupsBySlug={optionGroupsBySlug}
             earliestDeliveryLabel={formatDeliveryDate(delivery?.earliestDeliveryDate)}
           />
         </aside>

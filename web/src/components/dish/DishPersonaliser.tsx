@@ -3,136 +3,89 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { Nutrition } from '@/components/checkout/DishPicker';
-import { HEAT_LABELS, HEAT_STEPS, type Dish, type DishOption, type PersonalisationOptions } from '@/lib/aonik/types';
-import { formatPrice } from '@/lib/format';
+import {
+  encodeSelection,
+  type MappedOptionGroup,
+  type PersonalisationSelection,
+} from '@/lib/aonik/map';
+import {
+  localSurcharge,
+  sameSelection,
+  selectChoice,
+  selectionDraft,
+  selectionSummary,
+  type PersonalisationDraft,
+} from '@/lib/aonik/personalisation';
+import { HEAT_LABELS, type Dish } from '@/lib/aonik/types';
+import { formatPrice, formatSignedPrice } from '@/lib/format';
 
 import styles from './DishPersonaliser.module.css';
 
-/**
- * "Price change" and "Nutritional highlights", as the dish-detail template
- * draws them beneath the options.
- *
- * The panel promised "Price and nutritional information update as you
- * personalise" and then showed neither — only a one-line surcharge note. The
- * template hardcodes its macro figures (645 kcal, 47g protein …) because it is
- * a static mockup; here they come from the dish and scale with the chosen
- * portion, which is what the promise means.
- *
- * `Nutrition` is the same component Step 2 and Step 4 render, so all three
- * places that show live macros agree on the scaling and on which figures are
- * omitted when unpublished.
- */
 function DishReadout({
   dish,
-  options,
+  optionGroups,
   selection,
   surchargePence,
 }: {
   dish: Dish;
-  options: PersonalisationOptions;
-  selection: Selection;
-  surchargePence: number;
+  optionGroups: MappedOptionGroup[];
+  selection: PersonalisationDraft;
+  surchargePence: number | undefined;
 }) {
   const label =
-    surchargePence > 0
-      ? `+${formatPrice(surchargePence)}`
-      : surchargePence < 0
-        ? `−${formatPrice(Math.abs(surchargePence))}`
-        : '+£0';
-
-  const sub =
-    surchargePence === 0
-      ? 'No change'
-      : surchargePence > 0
-        ? 'Added to base price'
-        : 'Below base price';
+    surchargePence === undefined
+      ? null
+      : surchargePence === 0
+        ? '+£0'
+        : formatSignedPrice(surchargePence);
 
   return (
     <div className={styles.readout}>
-      <div>
-        <span className={styles.readoutTitle}>Price change</span>
-        <span className={styles.readoutValue}>{label}</span>
-        <span className={styles.readoutSub}>{sub}</span>
-      </div>
-      <div className={styles.readoutRule} aria-hidden="true" />
+      {label && surchargePence !== undefined ? (
+        <>
+          <div>
+            <span className={styles.readoutTitle}>Price change</span>
+            <span className={styles.readoutValue}>{label}</span>
+            <span className={styles.readoutSub}>
+              {surchargePence === 0
+                ? 'No change'
+                : surchargePence > 0
+                  ? 'Added to base price'
+                  : 'Below base price'}
+            </span>
+          </div>
+          <div className={styles.readoutRule} aria-hidden="true" />
+        </>
+      ) : null}
       <div>
         <span className={styles.readoutTitle}>Nutritional highlights</span>
-        <Nutrition
-          dish={dish}
-          choice={{
-            portion: selection.portion,
-            protein: selection.protein,
-            side: selection.side,
-            heatStep: selection.heatStep,
-          }}
-          options={options}
-        />
+        <Nutrition dish={dish} choice={selection} optionGroups={optionGroups} />
       </div>
     </div>
   );
 }
 
-/**
- * The dish configurator: portion, protein, side and heat.
- *
- * Options render inline on desktop and as a bottom sheet below 640px, matching
- * the design template. Surcharges are summed in pence and formatted at the edge.
- */
 interface DishPersonaliserProps {
   dish: Dish;
-  options: PersonalisationOptions;
-  /**
-   * Reports the current choice so a parent can put it in the cart. Labels are
-   * emitted rather than option keys, because the cart is read by pages that have
-   * no access to the options catalogue.
-   */
+  optionGroups: MappedOptionGroup[];
+  /** Choice keys are emitted in Aonik's canonical One/Multi shape. */
   onChange?: (selection: {
-    personalisation?: { portion: string; protein: string; side: string; heatStep: number };
-    surchargePence: number;
+    personalisation?: PersonalisationSelection;
+    surchargePence: number | undefined;
   }) => void;
 }
 
-interface Selection {
-  portion: string;
-  protein: string;
-  side: string;
-  heatStep: number;
-}
-
-/** Abby's pick per group, falling back to the first option. */
-function defaultKey(group: DishOption[]): string {
-  return (group.find((option) => option.isAbbysChoice) ?? group[0])?.key ?? '';
-}
-
-function findOption(group: DishOption[], key: string): DishOption | undefined {
-  return group.find((option) => option.key === key);
-}
-
-export function DishPersonaliser({ dish, options, onChange }: DishPersonaliserProps) {
-  const initial: Selection = useMemo(
-    () => ({
-      portion: defaultKey(options.portions),
-      protein: defaultKey(options.proteins),
-      side: defaultKey(options.sides),
-      heatStep: HEAT_STEPS[dish.heat],
-    }),
-    [options, dish.heat],
-  );
-
+export function DishPersonaliser({ dish, optionGroups, onChange }: DishPersonaliserProps) {
+  const initial = useMemo(() => selectionDraft(optionGroups), [optionGroups]);
   const [enabled, setEnabled] = useState(false);
-  const [selection, setSelection] = useState<Selection>(initial);
+  const [selection, setSelection] = useState<PersonalisationDraft>(initial);
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const surchargePence = useMemo(() => {
-    if (!enabled) return 0;
-    return (
-      (findOption(options.portions, selection.portion)?.pricePence ?? 0) +
-      (findOption(options.proteins, selection.protein)?.pricePence ?? 0) +
-      (findOption(options.sides, selection.side)?.pricePence ?? 0)
-    );
-  }, [enabled, options, selection]);
+  const surchargePence = useMemo(
+    () => (enabled ? localSurcharge(optionGroups, selection) : 0),
+    [enabled, optionGroups, selection],
+  );
 
-  // Publish the choice upward whenever it changes.
   useEffect(() => {
     if (!onChange) return;
     if (!enabled) {
@@ -140,66 +93,16 @@ export function DishPersonaliser({ dish, options, onChange }: DishPersonaliserPr
       return;
     }
     onChange({
-      personalisation: {
-        portion: findOption(options.portions, selection.portion)?.label ?? '',
-        protein: findOption(options.proteins, selection.protein)?.label ?? '',
-        side: findOption(options.sides, selection.side)?.label ?? '',
-        heatStep: selection.heatStep,
-      },
+      personalisation: encodeSelection(optionGroups, selection, true),
       surchargePence,
     });
-  }, [onChange, enabled, options, selection, surchargePence]);
+  }, [onChange, enabled, optionGroups, selection, surchargePence]);
 
-  const summary = enabled
-    ? [
-        findOption(options.portions, selection.portion)?.label,
-        findOption(options.proteins, selection.protein)?.label,
-        findOption(options.sides, selection.side)?.label,
-        options.heatLevels.find((level) => level.step === selection.heatStep)?.label,
-      ]
-        .filter(Boolean)
-        .join(' · ')
-    : 'Kept as Abby designed it';
-
-  const renderGroup = (
-    legend: string,
-    group: DishOption[],
-    selected: string,
-    onSelect: (key: string) => void,
-    columns: 2 | 4,
-  ) =>
-    // A dish Aonik gives no choices for is served one way; rendering the legend
-    // anyway asked a question with no answers under it.
-    group.length === 0 ? null : (
-    <fieldset className={styles.group}>
-      <legend className={styles.groupTitle}>{legend}</legend>
-      <div className={styles.chips} data-columns={columns}>
-        {group.map((option) => {
-          const isSelected = option.key === selected;
-          return (
-            <span key={option.key} className={styles.chipCell}>
-              <button
-                type="button"
-                className={styles.chip}
-                data-selected={isSelected || undefined}
-                aria-pressed={isSelected}
-                onClick={() => onSelect(option.key)}
-              >
-                <span className={styles.chipLabel}>{option.label}</span>
-                {option.detail ? <span className={styles.chipDetail}>{option.detail}</span> : null}
-                {option.pricePence > 0 ? (
-                  <span className={styles.chipPrice}>+{formatPrice(option.pricePence)}</span>
-                ) : null}
-              </button>
-              {option.isAbbysChoice ? (
-                <span className={styles.abbysChoice}>Abby&apos;s choice</span>
-              ) : null}
-            </span>
-          );
-        })}
-      </div>
-    </fieldset>
-  );
+  const updateGroup = (group: MappedOptionGroup, key: string) =>
+    setSelection((current) => ({
+      ...current,
+      [group.key]: selectChoice(group, current[group.key] ?? [], key),
+    }));
 
   return (
     <section className={styles.panel} aria-labelledby="personalise-heading">
@@ -207,9 +110,9 @@ export function DishPersonaliser({ dish, options, onChange }: DishPersonaliserPr
         Would you like to personalise this dish?
       </h2>
       <p className={styles.intro}>
-        You can choose your portion size, swap proteins, change sides or adjust heat levels.{' '}
+        Choose from the options Abby has prepared for this dish.{' '}
         <span className={styles.introMuted}>
-          Price and nutritional information update as you personalise.
+          Price and nutritional information update where they can be resolved locally.
         </span>
       </p>
 
@@ -233,7 +136,11 @@ export function DishPersonaliser({ dish, options, onChange }: DishPersonaliserPr
           </span>
           <span className={styles.choiceText}>
             <span className={styles.choiceLabel}>Yes, I&apos;d like to personalise this dish</span>
-            {enabled ? <span className={styles.choiceSummary}>{summary}</span> : null}
+            {enabled ? (
+              <span className={styles.choiceSummary}>
+                {selectionSummary(optionGroups, selection)}
+              </span>
+            ) : null}
           </span>
         </button>
 
@@ -269,7 +176,6 @@ export function DishPersonaliser({ dish, options, onChange }: DishPersonaliserPr
             onClick={() => setSheetOpen(false)}
             aria-hidden="true"
           />
-
           <div className={styles.sheet} data-open={sheetOpen || undefined}>
             <div className={styles.sheetHead}>
               <span className={styles.sheetTitle}>Personalise this dish</span>
@@ -284,58 +190,54 @@ export function DishPersonaliser({ dish, options, onChange }: DishPersonaliserPr
             </div>
 
             <div className={styles.sheetBody}>
-              {renderGroup(
-                'Choose your portion size',
-                options.portions,
-                selection.portion,
-                (portion) => setSelection((s) => ({ ...s, portion })),
-                2,
-              )}
-              {renderGroup(
-                'Choose your protein',
-                options.proteins,
-                selection.protein,
-                (protein) => setSelection((s) => ({ ...s, protein })),
-                4,
-              )}
-              {renderGroup(
-                'Choose your side',
-                options.sides,
-                selection.side,
-                (side) => setSelection((s) => ({ ...s, side })),
-                4,
-              )}
+              {optionGroups.map((group) => (
+                <fieldset key={group.key} className={styles.group}>
+                  <legend className={styles.groupTitle}>{group.label}</legend>
+                  {group.helpText ? <p className={styles.introMuted}>{group.helpText}</p> : null}
+                  <div className={styles.chips} data-columns={group.choices.length <= 2 ? 2 : 4}>
+                    {group.choices.map((option) => {
+                      const selected = selection[group.key]?.includes(option.key) ?? false;
+                      return (
+                        <span key={option.key} className={styles.chipCell}>
+                          <button
+                            type="button"
+                            className={styles.chip}
+                            data-selected={selected || undefined}
+                            aria-pressed={selected}
+                            onClick={() => updateGroup(group, option.key)}
+                          >
+                            <span className={styles.chipLabel}>{option.label}</span>
+                            {option.detail ? (
+                              <span className={styles.chipDetail}>{option.detail}</span>
+                            ) : null}
+                            {option.pricePence !== 0 ? (
+                              <span className={styles.chipPrice}>
+                                {formatSignedPrice(option.pricePence)}
+                              </span>
+                            ) : null}
+                          </button>
+                          {option.key === group.defaultChoiceKey ? (
+                            <span className={styles.abbysChoice}>Abby&apos;s choice</span>
+                          ) : null}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+              ))}
 
-              {options.heatLevels.length === 0 ? null : (
-              <fieldset className={styles.group}>
-                <legend className={styles.groupTitle}>Choose your heat level</legend>
-                <div className={styles.chips} data-columns={4}>
-                  {options.heatLevels.map((level) => {
-                    const isSelected = level.step === selection.heatStep;
-                    return (
-                      <span key={level.label} className={styles.chipCell}>
-                        <button
-                          type="button"
-                          className={styles.chip}
-                          data-selected={isSelected || undefined}
-                          aria-pressed={isSelected}
-                          onClick={() => setSelection((s) => ({ ...s, heatStep: level.step }))}
-                        >
-                          <span className={styles.chipLabel}>{level.label}</span>
-                        </button>
-                        {HEAT_STEPS[dish.heat] === level.step ? (
-                          <span className={styles.abbysChoice}>Abby&apos;s choice</span>
-                        ) : null}
-                      </span>
-                    );
-                  })}
-                </div>
-              </fieldset>
-              )}
+              <button
+                type="button"
+                className={styles.reopen}
+                onClick={() => setSelection(initial)}
+                disabled={sameSelection(optionGroups, selection, initial)}
+              >
+                Reset to defaults
+              </button>
 
               <DishReadout
                 dish={dish}
-                options={options}
+                optionGroups={optionGroups}
                 selection={selection}
                 surchargePence={surchargePence}
               />
@@ -357,10 +259,12 @@ export function DishPersonaliser({ dish, options, onChange }: DishPersonaliserPr
       ) : null}
 
       <p className={styles.total}>
-        {surchargePence > 0 ? (
-          <>
-            Personalisation adds <strong>{formatPrice(surchargePence)}</strong> to this dish.
-          </>
+        {surchargePence === undefined ? (
+          <>Your selected combination will be priced when it is added to the cart.</>
+        ) : surchargePence > 0 ? (
+          <>Personalisation adds <strong>{formatPrice(surchargePence)}</strong> to this dish.</>
+        ) : surchargePence < 0 ? (
+          <>Personalisation reduces this dish by <strong>{formatPrice(Math.abs(surchargePence))}</strong>.</>
         ) : (
           <>
             Served {enabled ? 'as selected' : `at ${HEAT_LABELS[dish.heat].toLowerCase()} heat`} with

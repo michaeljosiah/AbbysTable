@@ -5,25 +5,31 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import {
-  abbysChoice,
-  choiceSurcharge,
-  hasAnyOption,
-  personalisationSummary,
-  sameChoice,
   CARD_HEAT_LABELS,
   Nutrition,
-  OptionGroup,
 } from '@/components/checkout/DishPicker';
+import {
+  OptionGroupsControl,
+  type OptionGroupControlClasses,
+} from '@/components/personalisation/OptionGroupsControl';
 import { DishInfoPanels } from '@/components/dish/DishInfoPanels';
 import { HeatPips } from '@/components/ui';
-import { CHILLI_BODY_PATH, CHILLI_STEM_PATH, CHILLI_VIEW_BOX } from '@/components/ui/glyphs';
+import { encodeSelection, type MappedOptionGroup } from '@/lib/aonik/map';
+import {
+  defaultSelection,
+  hasOptionChoices,
+  localSurcharge,
+  sameSelection,
+  selectionDraft,
+  selectionSummary,
+  type PersonalisationDraft,
+} from '@/lib/aonik/personalisation';
 import {
   HEAT_STEPS,
   type BoxPricing,
   type Dish,
   type Extra,
   type HeatingInstruction,
-  type PersonalisationOptions,
 } from '@/lib/aonik/types';
 import {
   cartTotals,
@@ -31,15 +37,29 @@ import {
   extrasTotals,
   useCart,
   type CartLine,
-  type CartPersonalisation,
+  type ExtraLine,
 } from '@/lib/cart/CartProvider';
-import { useCartQuote } from '@/lib/cart/quote';
-import { formatPrice, formatPriceExact } from '@/lib/format';
+import { afterCartMutation } from '@/lib/cart/convergence';
+import { extraLinePersonalisation } from '@/lib/cart/demoStorage';
+import { quoteComponentLabel, useCartQuote } from '@/lib/cart/quote';
+import { formatPrice, formatPriceExact, formatSignedPrice } from '@/lib/format';
 
 import { DriftNotices } from './DriftNotices';
 import { PlaceOrderButton } from './PlaceOrderButton';
 import dmStyles from './DishPicker.module.css';
 import styles from './ReviewStep.module.css';
+
+const OPTION_GROUP_CLASSES: OptionGroupControlClasses = {
+  group: `${dmStyles.group} ${dmStyles.groupRuled}`,
+  title: dmStyles.groupTitle,
+  caption: dmStyles.groupCaption,
+  choices: dmStyles.groupChips,
+  choice: dmStyles.optionChip,
+  choiceLabel: dmStyles.optionLabel,
+  choiceDetail: dmStyles.optionDetail,
+  choicePrice: dmStyles.optionPrice,
+  defaultNote: dmStyles.abbysNote,
+};
 
 /**
  * Step 4: the whole order in review — box dishes, extras, and the summary
@@ -50,14 +70,7 @@ interface ReviewStepProps {
   dishes: Dish[];
   extras: Extra[];
   pricing: BoxPricing;
-  /** Catalogue-wide options: populated in demo, empty in live. */
-  personalisation: PersonalisationOptions;
-  /**
-   * Per-dish options from Aonik's `effectiveOptionGroups`, keyed by slug.
-   * Takes precedence — Aonik attaches groups per product, so this is the only
-   * source that reflects what a given dish actually offers.
-   */
-  optionsBySlug?: Record<string, PersonalisationOptions>;
+  optionGroupsBySlug: Record<string, MappedOptionGroup[]>;
   /** Reheating guidance for the modal's shared info panels. */
   heating: HeatingInstruction[];
   /**
@@ -73,8 +86,7 @@ export function ReviewStep({
   dishes,
   extras,
   pricing,
-  personalisation,
-  optionsBySlug,
+  optionGroupsBySlug,
   heating,
   earliestDeliveryLabel,
   heading,
@@ -85,19 +97,18 @@ export function ReviewStep({
     lines,
     extras: extraLines,
     hydrated,
-    addLine,
-    removeLine,
-    setExtraQuantity,
-    setExtraOption,
+    updateLinePersonalisation,
+    updateExtra,
     removeExtra,
     revalidate,
     isServerCart,
+    pending,
   } = useCart();
 
-  /** This dish's own options, falling back to catalogue-wide (demo mode). */
+  /** This dish's own effective groups. */
   const optionsFor = useCallback(
-    (dish: Dish): PersonalisationOptions => optionsBySlug?.[dish.slug] ?? personalisation,
-    [optionsBySlug, personalisation],
+    (dish: Dish): MappedOptionGroup[] => optionGroupsBySlug[dish.slug] ?? [],
+    [optionGroupsBySlug],
   );
 
   /**
@@ -109,22 +120,35 @@ export function ReviewStep({
    * runs ONCE per visit: it is a POST that can repair the cart, not a poll.
    */
   const gateRun = useRef(false);
+  const [gateStatus, setGateStatus] = useState<'idle' | 'pending' | 'ready' | 'failed'>(
+    isServerCart ? 'idle' : 'ready',
+  );
+  const runGate = useCallback(async () => {
+    if (!isServerCart || pending) return;
+    setGateStatus('pending');
+    try {
+      await revalidate();
+      setGateStatus('ready');
+    } catch {
+      setGateStatus('failed');
+    }
+  }, [isServerCart, pending, revalidate]);
+
   useEffect(() => {
     if (!isServerCart || !hydrated || gateRun.current) return;
     gateRun.current = true;
-    void revalidate();
-  }, [isServerCart, hydrated, revalidate]);
+    void runGate();
+  }, [isServerCart, hydrated, runGate]);
 
   const [boxOpen, setBoxOpen] = useState(true);
   const [extrasOpen, setExtrasOpen] = useState(true);
-  const [openOption, setOpenOption] = useState<string | null>(null);
   /** The mobile bar's order-summary sheet. */
   const [sheetOpen, setSheetOpen] = useState(false);
   /** The in-place edit-personalisation modal, seeded from a cart line. */
   const [editor, setEditor] = useState<{
     line: CartLine;
     dish: Dish;
-    draft: CartPersonalisation;
+    draft: PersonalisationDraft;
   } | null>(null);
   /** The template's flash toast ("Personalisation updated"). */
   const [toast, setToast] = useState('');
@@ -140,11 +164,17 @@ export function ReviewStep({
   const dishById = useMemo(() => new Map(dishes.map((dish) => [dish.id, dish])), [dishes]);
   const extraById = useMemo(() => new Map(extras.map((extra) => [extra.id, extra])), [extras]);
 
-  const totals = useMemo(
-    () => cartTotals({ boxSize, isCustom, lines }, pricing),
-    [boxSize, isCustom, lines, pricing],
+  const demoTotals = useMemo(
+    () => (isServerCart ? null : cartTotals({ boxSize, isCustom, lines }, pricing)),
+    [isServerCart, boxSize, isCustom, lines, pricing],
   );
-  const extrasSum = useMemo(() => extrasTotals(extraLines, extras), [extraLines, extras]);
+  const extrasSum: { quantity: number; totalPence?: number } = useMemo(
+    () =>
+      isServerCart
+        ? { quantity: extraLines.reduce((total, line) => total + line.quantity, 0) }
+        : extrasTotals(extraLines, extras),
+    [isServerCart, extraLines, extras],
+  );
 
   /*
    * The total is the QUOTE's, never a sum taken here.
@@ -157,7 +187,7 @@ export function ReviewStep({
    * and the demo equivalent otherwise, so both engines render one authority.
    */
   const quote = useCartQuote(pricing, { extrasCatalogue: extras });
-  const totalLabel = formatPrice(quote.totalPence);
+  const totalLabel = quote ? formatPrice(quote.totalPence) : 'Price unavailable';
 
   // Signature upgrades vs other personalisation, with per-dish reconciliation.
   const split = useMemo(() => {
@@ -166,31 +196,27 @@ export function ReviewStep({
     const signatureItems: { name: string; pence: number }[] = [];
     const personalisedItems: { name: string; pence: number }[] = [];
 
+    if (isServerCart) {
+      return { signaturePence, personalisationPence, signatureItems, personalisedItems };
+    }
+
     for (const line of lines) {
       const dish = dishById.get(line.dishId);
       const upgrade = dish?.isSignature ? (dish.upgradePence ?? 0) : 0;
-      const perUnit = Math.max(0, line.surchargePence - upgrade);
       if (upgrade > 0) {
         signaturePence += upgrade * line.quantity;
         signatureItems.push({ name: line.title, pence: upgrade });
       }
-      if (perUnit > 0) {
-        personalisationPence += perUnit * line.quantity;
-        personalisedItems.push({ name: line.title, pence: perUnit });
+      if (line.surchargePence === undefined) continue;
+      const perUnit = line.surchargePence - upgrade;
+      if (perUnit !== 0) {
+        const linePence = perUnit * line.quantity;
+        personalisationPence += linePence;
+        personalisedItems.push({ name: line.title, pence: linePence });
       }
     }
     return { signaturePence, personalisationPence, signatureItems, personalisedItems };
-  }, [lines, dishById]);
-
-  useEffect(() => {
-    if (openOption === null) return;
-    const close = () => setOpenOption(null);
-    const onKey = (event: globalThis.KeyboardEvent) => {
-      if (event.key === 'Escape') close();
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [openOption]);
+  }, [isServerCart, lines, dishById]);
 
   // The sheet locks the page behind it and closes on Escape, as on steps 2-3.
   useEffect(() => {
@@ -217,7 +243,7 @@ export function ReviewStep({
       setEditor({
         line,
         dish,
-        draft: line.personalisation ?? abbysChoice(dish, optionsFor(dish)),
+        draft: selectionDraft(optionsFor(dish), line.personalisation),
       });
     },
     [dishById, optionsFor],
@@ -229,30 +255,62 @@ export function ReviewStep({
     editorOpenerRef.current = null;
   }, []);
 
-  const setDraft = useCallback((draft: CartPersonalisation) => {
+  const setDraft = useCallback((draft: PersonalisationDraft) => {
     setEditor((current) => (current ? { ...current, draft } : current));
   }, []);
 
-  // Save moves the line onto the new personalisation; `addLine` merges into a
-  // twin line when one already exists, as the template's update flow does.
-  const saveEditor = useCallback(() => {
-    if (!editor) return;
+  const saveEditor = useCallback(async () => {
+    if (!editor || pending) return;
     const { line, dish, draft } = editor;
-    const custom = !sameChoice(draft, abbysChoice(dish, optionsFor(dish)));
-    removeLine(line.lineId);
-    addLine({
-      dishId: dish.id,
-      slug: dish.slug,
-      title: dish.title,
-      imageUrl: dish.imageUrl,
-      quantity: line.quantity,
-      personalisation: custom ? draft : undefined,
-      surchargePence:
-        (dish.upgradePence ?? 0) + (custom ? choiceSurcharge(draft, optionsFor(dish)) : 0),
-    });
-    setEditor(null);
-    flash('Personalisation updated');
-  }, [editor, optionsFor, addLine, removeLine, flash]);
+    const groups = optionsFor(dish);
+    const custom = !sameSelection(groups, draft, defaultSelection(groups));
+    const personalisationSurcharge = custom ? localSurcharge(groups, draft) : 0;
+    const personalisation = encodeSelection(groups, draft, false);
+    if (!personalisation) return;
+    try {
+      await afterCartMutation(
+        () =>
+          updateLinePersonalisation(line.lineId, {
+            personalisation,
+            surchargePence:
+              personalisationSurcharge === undefined
+                ? undefined
+                : (dish.upgradePence ?? 0) + personalisationSurcharge,
+          }),
+        () => {
+          setEditor(null);
+          flash('Personalisation updated');
+        },
+      );
+    } catch {
+      // Keep the editor open on the last confirmed line.
+    }
+  }, [editor, pending, optionsFor, updateLinePersonalisation, flash]);
+
+  const changeExtraQuantity = useCallback(
+    async (line: ExtraLine, quantity: number) => {
+      if (pending) return;
+      try {
+        if (quantity <= 0) await removeExtra(line.lineId);
+        else await updateExtra(line.lineId, { quantity });
+      } catch {
+        // The provider exposes the failure and retains the confirmed cart.
+      }
+    },
+    [pending, removeExtra, updateExtra],
+  );
+
+  const deleteExtra = useCallback(
+    async (line: ExtraLine) => {
+      if (pending) return;
+      try {
+        await removeExtra(line.lineId);
+      } catch {
+        // The provider exposes the failure and retains the confirmed cart.
+      }
+    },
+    [pending, removeExtra],
+  );
 
   // Escape closes the modal and the page behind it must not scroll.
   useEffect(() => {
@@ -281,13 +339,13 @@ export function ReviewStep({
   }
 
   // Edit-modal derivations (template step 4's `footTitle`/`footSub`).
-  const editorOptions = editor ? optionsFor(editor.dish) : personalisation;
-  const editorAbbys = editor ? abbysChoice(editor.dish, editorOptions) : null;
+  const editorOptions = editor ? optionsFor(editor.dish) : [];
+  const editorHasOptions = hasOptionChoices(editorOptions);
+  const editorAbbys = editor ? defaultSelection(editorOptions) : null;
   const editorCustom = Boolean(
-    editor && editorAbbys && !sameChoice(editor.draft, editorAbbys),
+    editor && editorAbbys && !sameSelection(editorOptions, editor.draft, editorAbbys),
   );
-  const editorChangePence =
-    editor && editorCustom ? choiceSurcharge(editor.draft, editorOptions) : 0;
+  const editorChangePence = editor ? localSurcharge(editorOptions, editor.draft) : 0;
   const editorSigUp = editor?.dish.isSignature ? (editor.dish.upgradePence ?? 0) : 0;
   const editorFootTitle = editor
     ? editor.dish.isSignature
@@ -299,13 +357,15 @@ export function ReviewStep({
   const editorFootSub = editor
     ? editorSigUp
       ? `+${formatPrice(editorSigUp)} signature upgrade${
-          editorChangePence !== 0
-            ? ` · +${formatPrice(editorChangePence)} personalisation`
+          editorChangePence !== undefined && editorChangePence !== 0
+            ? ` · ${formatSignedPrice(editorChangePence)} personalisation`
             : ''
         }`
-      : editorChangePence !== 0
-        ? `+${formatPrice(editorChangePence)} personalisation`
-        : 'No extra cost'
+      : editorChangePence === undefined
+        ? 'Price confirmed in your cart'
+        : editorChangePence !== 0
+          ? `${formatSignedPrice(editorChangePence)} personalisation`
+          : 'No extra cost'
     : '';
 
   const boxLabel = `${boxSize ?? pricing.custom.minDishes}-dish box`;
@@ -318,11 +378,27 @@ export function ReviewStep({
       : '');
 
   // The summary rows render twice: in the sidebar card and the mobile sheet.
-  const summaryRowsJsx = (
+  const summaryRowsJsx = isServerCart ? (
+    quote ? (
+      <>
+        {quote.components.map((component, index) => (
+          <div key={`${component.key}:${index}`}>
+            <div className={styles.summaryRow}>
+              <span className={styles.summaryLabel}>{quoteComponentLabel(component.key)}</span>
+              <span className={styles.summaryValue}>
+                {formatPriceExact(component.amountPence)}
+              </span>
+            </div>
+            <div className={styles.summaryRule} />
+          </div>
+        ))}
+      </>
+    ) : null
+  ) : (
     <>
       <div className={styles.summaryRow}>
         <span className={styles.summaryLabel}>{boxLabel}</span>
-        <span className={styles.summaryValue}>{formatPriceExact(totals.boxPence)}</span>
+        <span className={styles.summaryValue}>{formatPriceExact(demoTotals!.boxPence)}</span>
       </div>
       <div className={styles.summaryRule} />
 
@@ -341,28 +417,30 @@ export function ReviewStep({
         </>
       ) : null}
 
-      {split.personalisationPence > 0 ? (
+      {split.personalisationPence !== 0 ? (
         <>
           <div className={styles.summaryRow}>
             <span className={styles.summaryLabel}>Personalisation</span>
             <span className={styles.summaryValue}>
-              +{formatPriceExact(split.personalisationPence)}
+              {formatSignedPrice(split.personalisationPence, true)}
             </span>
           </div>
           <div className={styles.summaryRecon}>
             {split.personalisedItems
-              .map((item) => `${item.name} +${formatPrice(item.pence)}`)
+              .map((item) => `${item.name} ${formatSignedPrice(item.pence)}`)
               .join('  ·  ')}
           </div>
           <div className={styles.summaryRule} />
         </>
       ) : null}
 
-      {totals.extraDishes > 0 ? (
+      {demoTotals!.extraDishes > 0 ? (
         <>
           <div className={styles.summaryRow}>
             <span className={styles.summaryLabel}>Extra dishes</span>
-            <span className={styles.summaryValue}>+{formatPriceExact(totals.extraPence)}</span>
+            <span className={styles.summaryValue}>
+              +{formatPriceExact(demoTotals!.extraPence)}
+            </span>
           </div>
           <div className={styles.summaryRule} />
         </>
@@ -372,7 +450,11 @@ export function ReviewStep({
         <>
           <div className={styles.summaryRow}>
             <span className={styles.summaryLabel}>Extras</span>
-            <span className={styles.summaryValue}>+{formatPriceExact(extrasSum.totalPence)}</span>
+            <span className={styles.summaryValue}>
+              {extrasSum.totalPence === undefined
+                ? 'Price unavailable'
+                : formatSignedPrice(extrasSum.totalPence, true)}
+            </span>
           </div>
           <div className={styles.summaryRecon}>
             {extrasSum.quantity} {extrasSum.quantity === 1 ? 'item' : 'items'}
@@ -403,6 +485,19 @@ export function ReviewStep({
         {heading}
 
         <DriftNotices />
+        {gateStatus === 'failed' ? (
+          <div role="alert" className={styles.groupFootNote}>
+            Your box could not be checked against the latest catalogue.{' '}
+            <button
+              type="button"
+              className={styles.footNoteLink}
+              onClick={() => void runGate()}
+              disabled={pending}
+            >
+              Retry validation
+            </button>
+          </div>
+        ) : null}
 
         {/* ---- Your box ------------------------------------------------------ */}
         <section className={styles.groupCard}>
@@ -458,18 +553,20 @@ export function ReviewStep({
                                 <span aria-hidden="true">⬥</span>Signature
                               </span>
                             ) : null}
-                            {line.surchargePence > 0 ? (
+                            {isServerCart ? null : line.surchargePence === undefined ? (
+                              <span className={styles.orderDelta}>Price unavailable</span>
+                            ) : line.surchargePence !== 0 ? (
                               <span className={styles.orderDelta}>
-                                +{formatPrice(line.surchargePence * line.quantity)}
+                                {formatSignedPrice(line.surchargePence * line.quantity)}
                               </span>
                             ) : null}
                           </div>
                           <div className={styles.orderOpts}>
                             {line.quantity > 1 ? `${line.quantity} × ` : ''}
                             {line.personalisation
-                              ? personalisationSummary(
+                              ? selectionSummary(
+                                  dish ? optionsFor(dish) : [],
                                   line.personalisation,
-                                  dish ? optionsFor(dish) : personalisation,
                                 )
                               : "Abby's choice"}
                           </div>
@@ -477,7 +574,7 @@ export function ReviewStep({
                             {/* Same rule as Step 2: never offer an edit with
                                 nothing to change. A dish Aonik gives no option
                                 groups is served one way. */}
-                            {dish && hasAnyOption(optionsFor(dish)) ? (
+                            {dish && hasOptionChoices(optionsFor(dish)) ? (
                             <button
                               type="button"
                               className={styles.editLink}
@@ -536,11 +633,11 @@ export function ReviewStep({
               <>
                 <div className={styles.groupBody}>
                   {extraLines.map((line, index) => {
-                    const extra = extraById.get(line.extraId);
+                    const extra = extraById.get(line.variantId);
                     if (!extra) return null;
-                    const chosen = extra.option?.choices.find((c) => c.key === line.optionKey);
+                    const unitPence = isServerCart ? line.unitPricePence : extraUnitPence(line, extra);
                     return (
-                      <div key={line.extraId}>
+                      <div key={line.lineId}>
                         <div className={styles.orderRow}>
                           <span className={styles.orderThumb}>
                             <Image src={extra.imageUrl} alt="" width={74} height={74} />
@@ -549,55 +646,20 @@ export function ReviewStep({
                             <div className={styles.orderTitleRow}>
                               <span className={styles.orderName}>{extra.name}</span>
                               <span className={styles.orderDelta} data-tone="price">
-                                {formatPriceExact(extraUnitPence(line, extra) * line.quantity)}
+                                {unitPence === undefined
+                                  ? 'Price unavailable'
+                                  : formatPriceExact(
+                                      isServerCart ? unitPence : unitPence * line.quantity,
+                                    )}
                               </span>
                             </div>
                             <div className={styles.orderActions}>
-                              {extra.option ? (
+                              {extra.optionGroups.length > 0 ? (
                                 <span className={styles.optWrap}>
-                                  <span className={styles.optKind}>{extra.option.kind}</span>
-                                  <span className={styles.optAnchor}>
-                                    <button
-                                      type="button"
-                                      className={styles.optToken}
-                                      onClick={() =>
-                                        setOpenOption((open) =>
-                                          open === extra.id ? null : extra.id,
-                                        )
-                                      }
-                                      aria-expanded={openOption === extra.id}
-                                    >
-                                      {chosen?.label ?? extra.option.kind}
-                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={styles.chevron} data-open={openOption === extra.id || undefined} aria-hidden="true">
-                                        <path d="M6 9l6 6 6-6" />
-                                      </svg>
-                                    </button>
-                                    {openOption === extra.id ? (
-                                      <div className={styles.optMenu}>
-                                        {extra.option.choices.map((choice) => (
-                                          <button
-                                            key={choice.key}
-                                            type="button"
-                                            className={styles.optMenuRow}
-                                            data-selected={
-                                              choice.key === line.optionKey || undefined
-                                            }
-                                            onClick={() => {
-                                              setExtraOption(extra.id, choice.key);
-                                              setOpenOption(null);
-                                            }}
-                                          >
-                                            <span>{choice.label}</span>
-                                            {choice.key === line.optionKey ? (
-                                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                                <path d="M5 12.5l4.5 4.5L19 7" />
-                                              </svg>
-                                            ) : null}
-                                          </button>
-                                        ))}
-                                      </div>
-                                    ) : null}
-                                  </span>
+                                  {selectionSummary(
+                                    extra.optionGroups,
+                                    extraLinePersonalisation(line, extra.optionGroups),
+                                  )}
                                 </span>
                               ) : null}
                               <span className={styles.stepGroup} role="group" aria-label="Quantity">
@@ -605,8 +667,9 @@ export function ReviewStep({
                                   type="button"
                                   className={styles.cstep}
                                   onClick={() =>
-                                    setExtraQuantity(extra.id, line.quantity - 1)
+                                    void changeExtraQuantity(line, line.quantity - 1)
                                   }
+                                  disabled={pending}
                                   aria-label="Fewer"
                                 >
                                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
@@ -618,8 +681,9 @@ export function ReviewStep({
                                   type="button"
                                   className={styles.cstep}
                                   onClick={() =>
-                                    setExtraQuantity(extra.id, line.quantity + 1)
+                                    void changeExtraQuantity(line, line.quantity + 1)
                                   }
+                                  disabled={pending}
                                   aria-label="More"
                                 >
                                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
@@ -631,7 +695,8 @@ export function ReviewStep({
                               <button
                                 type="button"
                                 className={styles.removeButton}
-                                onClick={() => removeExtra(extra.id)}
+                                onClick={() => void deleteExtra(line)}
+                                disabled={pending}
                               >
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                   <path d="M4 7h16" />
@@ -681,7 +746,7 @@ export function ReviewStep({
               <span>Total</span>
               <span className={styles.totalValue}>{totalLabel}</span>
             </div>
-            <PlaceOrderButton className={styles.cta}>
+            <PlaceOrderButton className={styles.cta} disabled={gateStatus !== 'ready'}>
               <span className={styles.ctaMain}>
                 Place order
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -733,7 +798,7 @@ export function ReviewStep({
           </span>
         </button>
         <span className={styles.barDivider} aria-hidden="true" />
-        <PlaceOrderButton className={styles.barCta}>
+        <PlaceOrderButton className={styles.barCta} disabled={gateStatus !== 'ready'}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <line x1="4" y1="12" x2="19" y2="12" />
             <path d="M13 6l6 6-6 6" />
@@ -775,7 +840,10 @@ export function ReviewStep({
                 <span>Total</span>
                 <span className={styles.sheetTotalValue}>{totalLabel}</span>
               </div>
-              <PlaceOrderButton className={`${styles.cta} ${styles.sheetCta}`}>
+              <PlaceOrderButton
+                className={`${styles.cta} ${styles.sheetCta}`}
+                disabled={gateStatus !== 'ready'}
+              >
                 <span className={styles.ctaMain}>
                   Place order
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -885,31 +953,33 @@ export function ReviewStep({
                     </p>
                   ) : null}
 
-                  <button
-                    type="button"
-                    className={dmStyles.dmShortcut}
-                    onClick={() =>
-                      document
-                        .getElementById('review-dm-personalise')
-                        ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                    }
-                  >
-                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
-                      <line x1="4" y1="8" x2="20" y2="8" />
-                      <circle cx="10" cy="8" r="2.4" fill="var(--surface-bright)" />
-                      <line x1="4" y1="16" x2="20" y2="16" />
-                      <circle cx="15" cy="16" r="2.4" fill="var(--surface-bright)" />
-                    </svg>
-                    <span className={dmStyles.dmShortcutText}>
-                      <span className={dmStyles.dmShortcutTitle}>Personalise this dish</span>
-                      <span className={dmStyles.dmShortcutSub}>
-                        Portion, protein, side &amp; heat — your way.
+                  {editorHasOptions ? (
+                    <button
+                      type="button"
+                      className={dmStyles.dmShortcut}
+                      onClick={() =>
+                        document
+                          .getElementById('review-dm-personalise')
+                          ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                      }
+                    >
+                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+                        <line x1="4" y1="8" x2="20" y2="8" />
+                        <circle cx="10" cy="8" r="2.4" fill="var(--surface-bright)" />
+                        <line x1="4" y1="16" x2="20" y2="16" />
+                        <circle cx="15" cy="16" r="2.4" fill="var(--surface-bright)" />
+                      </svg>
+                      <span className={dmStyles.dmShortcutText}>
+                        <span className={dmStyles.dmShortcutTitle}>Personalise this dish</span>
+                        <span className={dmStyles.dmShortcutSub}>
+                          Portion, protein, side &amp; heat — your way.
+                        </span>
                       </span>
-                    </span>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--taupe)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M9 6l6 6-6 6" />
-                    </svg>
-                  </button>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--taupe)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M9 6l6 6-6 6" />
+                      </svg>
+                    </button>
+                  ) : null}
 
                   <div className={dmStyles.dmJumps}>
                     {[
@@ -999,8 +1069,8 @@ export function ReviewStep({
                   />
                 </div>
 
-                {/* ---- Right: personalise (always editing) ----------------- */}
-                <div className={dmStyles.dmRight}>
+                {/* ---- Right: personalise (only when effective choices exist) */}
+                {editorHasOptions ? <div className={dmStyles.dmRight}>
                   <div className={dmStyles.persPanel} id="review-dm-personalise">
                     <div className={styles.persHeadStatic}>
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
@@ -1016,103 +1086,43 @@ export function ReviewStep({
                       <p className={dmStyles.dialogIntro}>
                         Choose your portion size, swap proteins, change sides or adjust heat.{' '}
                         <span className={dmStyles.dialogIntroSoft}>
-                          Price and nutrition update as you personalise.
+                          Nutrition updates as you personalise; your cart confirms the final price.
                         </span>
                       </p>
 
                       <div className={dmStyles.optionsCard}>
-                        <OptionGroup
-                          legend="Choose your portion size"
-                          icon={
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <path d="M3 11h18" />
-                              <path d="M4.5 11a7.5 7.5 0 0 0 15 0" />
-                              <path d="M12 3.5v2" />
-                              <path d="M9 5.5h6" />
-                            </svg>
+                        <OptionGroupsControl
+                          groups={editorOptions}
+                          selection={editor.draft}
+                          onChange={(groupKey, selected) =>
+                            setDraft({ ...editor.draft, [groupKey]: selected })
                           }
-                          group={editorOptions.portions}
-                          selected={editor.draft.portion}
-                          onSelect={(portion) => setDraft({ ...editor.draft, portion })}
+                          classes={OPTION_GROUP_CLASSES}
                         />
-                        <OptionGroup
-                          legend="Choose your protein"
-                          caption="Choose 1 or more"
-                          icon={
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <path d="M12 3C8 3 6 6 6 9c0 4 3 7 6 12 3-5 6-8 6-12 0-3-2-6-6-6z" />
-                            </svg>
-                          }
-                          group={editorOptions.proteins}
-                          selected={editor.draft.protein}
-                          onSelect={(protein) => setDraft({ ...editor.draft, protein })}
-                        />
-                        <OptionGroup
-                          legend="Choose your side"
-                          icon={
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <path d="M4 11h16M6 11c0-3 2.5-5 6-5s6 2 6 5M8 15h8M9 19h6" />
-                            </svg>
-                          }
-                          group={editorOptions.sides}
-                          selected={editor.draft.side}
-                          onSelect={(side) => setDraft({ ...editor.draft, side })}
-                        />
-
-                        <fieldset className={`${dmStyles.group} ${dmStyles.groupRuled}`}>
-                          <legend className={dmStyles.groupTitle}>
-                            <svg width="18" height="18" viewBox={CHILLI_VIEW_BOX} aria-hidden="true" style={{ display: 'block' }}>
-                              <path fill="var(--green-forest)" d={CHILLI_STEM_PATH} />
-                              <path fill="var(--terracotta)" d={CHILLI_BODY_PATH} />
-                            </svg>
-                            Choose your heat level
-                          </legend>
-                          <div className={dmStyles.groupChips}>
-                            {editorOptions.heatLevels.map((level) => (
-                              <button
-                                key={level.label}
-                                type="button"
-                                className={dmStyles.optionChip}
-                                data-selected={level.step === editor.draft.heatStep || undefined}
-                                aria-pressed={level.step === editor.draft.heatStep}
-                                onClick={() => setDraft({ ...editor.draft, heatStep: level.step })}
-                              >
-                                <span className={dmStyles.optionLabel}>{level.label}</span>
-                                {level.step === editor.draft.heatStep ? (
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--white)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                    <path d="M20 6L9 17l-5-5" />
-                                  </svg>
-                                ) : null}
-                              </button>
-                            ))}
-                          </div>
-                          <p className={dmStyles.abbysNote}>
-                            {editorOptions.heatLevels.find(
-                              (level) => level.step === editorAbbys.heatStep,
-                            )?.label ?? ''}{' '}
-                            is Abby&apos;s choice.
-                          </p>
-                        </fieldset>
 
                         <div className={dmStyles.readout}>
-                          <div>
-                            <span className={dmStyles.readoutTitle}>Price change</span>
-                            <span className={dmStyles.readoutPriceRow}>
-                              <span className={dmStyles.readoutValue}>
-                                {editorChangePence > 0
-                                  ? `+${formatPrice(editorChangePence)}`
-                                  : '£0'}
+                          {editorChangePence !== undefined ? (
+                            <div>
+                              <span className={dmStyles.readoutTitle}>Price change</span>
+                              <span className={dmStyles.readoutPriceRow}>
+                                <span className={dmStyles.readoutValue}>
+                                  {editorChangePence === 0
+                                    ? '£0'
+                                    : formatSignedPrice(editorChangePence)}
+                                </span>
+                                <span className={dmStyles.readoutValueSub}>
+                                  {editorChangePence === 0
+                                    ? 'Abby’s choice — no extra cost'
+                                    : editorChangePence > 0
+                                      ? 'Added to base price'
+                                      : 'Below base price'}
+                                </span>
                               </span>
-                              <span className={dmStyles.readoutValueSub}>
-                                {editorChangePence === 0
-                                  ? 'Abby’s choice — no extra cost'
-                                  : editorChangePence > 0
-                                    ? 'Added to base price'
-                                    : 'Below base price'}
-                              </span>
-                            </span>
-                          </div>
-                          <div className={dmStyles.readoutRule} aria-hidden="true" />
+                            </div>
+                          ) : null}
+                          {editorChangePence !== undefined ? (
+                            <div className={dmStyles.readoutRule} aria-hidden="true" />
+                          ) : null}
                           <div>
                             <span className={dmStyles.readoutTitle}>Nutritional highlights</span>
                             {/* Per-dish, so the portion scaling has real
@@ -1120,13 +1130,13 @@ export function ReviewStep({
                             <Nutrition
                               dish={editor.dish}
                               choice={editor.draft}
-                              options={editorOptions}
+                              optionGroups={editorOptions}
                             />
                           </div>
                         </div>
 
                         <p className={dmStyles.readoutNote}>
-                          Price and nutrition update as you personalise.
+                          Choice prices are shown above; your cart confirms the final total.
                         </p>
 
                         <div className={dmStyles.resetRule} aria-hidden="true" />
@@ -1134,7 +1144,7 @@ export function ReviewStep({
                           type="button"
                           className={dmStyles.reset}
                           onClick={() => setDraft(editorAbbys)}
-                          disabled={sameChoice(editor.draft, editorAbbys)}
+                          disabled={pending || sameSelection(editorOptions, editor.draft, editorAbbys)}
                         >
                           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                             <path d="M4 8h9" />
@@ -1149,11 +1159,11 @@ export function ReviewStep({
                       </div>
                     </div>
                   </div>
-                </div>
+                </div> : null}
               </div>
             </div>
 
-            <div className={styles.dmFootStatic}>
+            {editorHasOptions ? <div className={styles.dmFootStatic}>
               <div className={dmStyles.dmCtaRow}>
                 <div className={dmStyles.footNote}>
                   <span className={dmStyles.footTitle}>{editorFootTitle}</span>
@@ -1161,7 +1171,12 @@ export function ReviewStep({
                 </div>
                 <span className={dmStyles.footDivider} aria-hidden="true" />
                 <span className={dmStyles.dmCtaWrap}>
-                  <button type="button" className={dmStyles.dmCta} onClick={saveEditor}>
+                    <button
+                      type="button"
+                      className={dmStyles.dmCta}
+                      onClick={saveEditor}
+                      disabled={pending}
+                    >
                     Save changes
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M5 12.5l4.5 4.5L19 7" />
@@ -1169,7 +1184,7 @@ export function ReviewStep({
                   </button>
                 </span>
               </div>
-            </div>
+            </div> : null}
           </div>
         </div>
       ) : null}

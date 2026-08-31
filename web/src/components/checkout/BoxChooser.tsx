@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   useCallback,
   useEffect,
@@ -13,13 +14,7 @@ import {
   type ReactNode,
 } from 'react';
 
-import {
-  HEAT_LABELS,
-  HEAT_STEPS,
-  type BoxOffer,
-  type BoxPricing,
-  type HeatLevel,
-} from '@/lib/aonik/types';
+import { type BoxOffer, type BoxPricing } from '@/lib/aonik/types';
 import {
   boxPricePence,
   cartTotals,
@@ -27,9 +22,12 @@ import {
   useCart,
   type CartLine,
 } from '@/lib/cart/CartProvider';
-import { formatPrice } from '@/lib/format';
+import { afterCartMutation } from '@/lib/cart/convergence';
+import { quoteComponentLabel } from '@/lib/cart/quote';
+import { formatPrice, formatSignedPrice } from '@/lib/format';
 
 import styles from './BoxChooser.module.css';
+import { DriftNotices } from './DriftNotices';
 
 /**
  * Step 1: choose a set box or build your own.
@@ -89,26 +87,6 @@ function offerFor(pricing: BoxPricing, size: number) {
   return { pricePence: customBoxPricePence(pricing, size), listPence: undefined, savingPence: 0 };
 }
 
-const HEAT_LEVELS = Object.keys(HEAT_STEPS) as HeatLevel[];
-
-/**
- * "Full Table · Beef · Rice · Medium".
- *
- * The stored values are display labels: the dish page resolves its options
- * before writing the line, so this page never needs the options catalogue.
- */
-function personalisationSummary(line: CartLine): string | null {
-  const chosen = line.personalisation;
-  if (!chosen) return null;
-
-  const heat = HEAT_LEVELS.find((level) => HEAT_STEPS[level] === chosen.heatStep);
-  const summary = [chosen.portion, chosen.protein, chosen.side, heat ? HEAT_LABELS[heat] : null]
-    .filter(Boolean)
-    .join(' · ');
-
-  return summary.length > 0 ? summary : null;
-}
-
 export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChooserProps) {
   const {
     boxSize,
@@ -119,6 +97,9 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
     removeLine,
     setQuantity,
     setBoxSize,
+    pending,
+    isServerCart,
+    quote,
   } = useCart();
   const { minDishes, maxDishes } = pricing.custom;
   const summaryTitleId = useId();
@@ -156,19 +137,35 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
   const size = selection.source === 'custom' ? customQty : selection.size;
   const isCustom = presetFor(pricing, size) === undefined;
 
-  const totals = cartTotals({ boxSize: size, isCustom, lines }, pricing);
+  const demoTotals = isServerCart
+    ? null
+    : cartTotals({ boxSize: size, isCustom, lines }, pricing);
+  const totals = demoTotals ?? {
+    dishCount: quote?.unitsSelected ?? lines.reduce((total, line) => total + line.quantity, 0),
+    boxPence: offerFor(pricing, size).pricePence,
+    surchargePence: undefined,
+    extraDishes: 0,
+    extraPence: 0,
+    totalPence: undefined,
+  };
   const offer = offerFor(pricing, size);
   const customOffer = offerFor(pricing, customQty);
 
   // Before hydration the cart is always empty, so gate on it rather than render
   // a banner on the server that the client would immediately drop.
   const carried = hydrated ? (lines[0] ?? null) : null;
-  const carriedNote = carried ? personalisationSummary(carried) : null;
+  const carriedNote = carried?.personalisation ? 'Personalised on the dish page' : null;
 
   const filled = Math.min(totals.dishCount, size);
   const remaining = size - filled;
   const boxLabel = `${size}-dish box`;
-  const totalLabel = formatPrice(totals.totalPence);
+  const totalLabel = isServerCart
+    ? quote
+      ? formatPrice(quote.totalPence)
+      : ''
+    : totals.totalPence === undefined
+      ? 'Price unavailable'
+      : formatPrice(totals.totalPence);
 
   const selectCustom = () => setSelection({ source: 'custom' });
 
@@ -205,21 +202,40 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
     if (toastTimer.current) clearTimeout(toastTimer.current);
   }, []);
 
-  const removeCarried = (line: CartLine) => {
-    setRemoved(line);
-    removeLine(line.lineId);
-    flash(`${line.title} removed`);
+  const removeCarried = async (line: CartLine) => {
+    if (pending) return;
+    try {
+      await removeLine(line.lineId);
+      setRemoved(line);
+      flash(`${line.title} removed`);
+    } catch {
+      // Keep the confirmed line visible and expose the provider error.
+    }
   };
 
-  const restoreCarried = useCallback(() => {
-    if (!removed) return;
-    addLine({ ...removed, quantity: 1 });
-    setRemoved(null);
-    setToast('');
-  }, [removed, addLine]);
+  const restoreCarried = useCallback(async () => {
+    if (!removed || pending) return;
+    try {
+      await afterCartMutation(
+        () => addLine({ ...removed, quantity: 1 }),
+        () => {
+          setRemoved(null);
+          setToast('');
+        },
+      );
+    } catch {
+      // The provider exposes the failure; keep the restore action available.
+    }
+  }, [removed, pending, addLine]);
 
-  const stepLine = (line: CartLine, delta: number) =>
-    setQuantity(line.lineId, Math.min(maxDishes, Math.max(1, line.quantity + delta)));
+  const stepLine = async (line: CartLine, delta: number) => {
+    if (pending) return;
+    try {
+      await setQuantity(line.lineId, Math.min(maxDishes, Math.max(1, line.quantity + delta)));
+    } catch {
+      // The provider exposes the failure and keeps the confirmed quantity.
+    }
+  };
 
   const commit = () => setBoxSize(size, isCustom);
 
@@ -259,7 +275,18 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
   }, [sheetOpen]);
 
   /** Itemised rows shared by the desktop panel and the sheet. */
-  const breakdownRows = (
+  const breakdownRows = isServerCart ? (
+    quote ? (
+      <>
+        {quote.components.map((component, index) => (
+          <div key={`${component.key}:${index}`} className={styles.estRow}>
+            <span>{quoteComponentLabel(component.key)}</span>
+            <span className={styles.estStrong}>{formatPrice(component.amountPence)}</span>
+          </div>
+        ))}
+      </>
+    ) : null
+  ) : (
     <>
       <div className={styles.estRow}>
         <span>{boxLabel}</span>
@@ -275,10 +302,10 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
         </div>
       ) : null}
 
-      {totals.surchargePence > 0 ? (
+      {totals.surchargePence !== undefined && totals.surchargePence !== 0 ? (
         <div className={styles.estRow}>
           <span>Personalisation</span>
-          <span className={styles.estAccent}>+{formatPrice(totals.surchargePence)}</span>
+          <span className={styles.estAccent}>{formatSignedPrice(totals.surchargePence)}</span>
         </div>
       ) : null}
 
@@ -313,7 +340,12 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
             Your box is empty — add dishes next, or put it back.
           </div>
         </div>
-        <button type="button" className={styles.textLink} onClick={restoreCarried}>
+        <button
+          type="button"
+          className={styles.textLink}
+          onClick={restoreCarried}
+          disabled={pending}
+        >
           Add back
         </button>
       </div>
@@ -324,6 +356,7 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
       <div className={styles.shell}>
         <div className={styles.mainColumn}>
           {heading}
+          <DriftNotices />
 
           {carried ? (
             <>
@@ -355,7 +388,8 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
                 <button
                   type="button"
                   className={`${styles.lineRemove} ${styles.carryRemove}`}
-                  onClick={() => removeCarried(carried)}
+                  onClick={() => void removeCarried(carried)}
+                  disabled={pending}
                   aria-label={`Remove ${carried.title}`}
                 >
                   <TrashIcon size={14} />
@@ -387,7 +421,7 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
                       {carriedNote ? (
                         <div className={styles.bannerNote}>
                           <SlidersIcon size={17} />
-                          <span>Personalised on the dish page — {carriedNote}.</span>
+                          <span>{carriedNote}.</span>
                         </div>
                       ) : null}
                     </div>
@@ -735,9 +769,11 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
                       <div className={styles.lineText}>
                         <div className={styles.lineTop}>
                           <span className={styles.lineTitle}>{carried.title}</span>
-                          {carried.surchargePence > 0 ? (
+                          {isServerCart ? null : carried.surchargePence === undefined ? (
+                            <span className={styles.linePrice}>Price unavailable</span>
+                          ) : carried.surchargePence !== 0 ? (
                             <span className={styles.linePrice}>
-                              +{formatPrice(carried.surchargePence * carried.quantity)}
+                              {formatSignedPrice(carried.surchargePence * carried.quantity)}
                             </span>
                           ) : null}
                         </div>
@@ -753,8 +789,8 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
                               type="button"
                               className={styles.stepButton}
                               data-size="xs"
-                              onClick={() => stepLine(carried, -1)}
-                              disabled={carried.quantity <= 1}
+                              onClick={() => void stepLine(carried, -1)}
+                              disabled={pending || carried.quantity <= 1}
                               aria-label="Fewer"
                             >
                               −
@@ -766,8 +802,8 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
                               type="button"
                               className={styles.stepButton}
                               data-size="xs"
-                              onClick={() => stepLine(carried, 1)}
-                              disabled={carried.quantity >= maxDishes}
+                              onClick={() => void stepLine(carried, 1)}
+                              disabled={pending || carried.quantity >= maxDishes}
                               aria-label="More"
                             >
                               +
@@ -776,7 +812,8 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
                           <button
                             type="button"
                             className={styles.lineRemove}
-                            onClick={() => removeCarried(carried)}
+                            onClick={() => void removeCarried(carried)}
+                            disabled={pending}
                           >
                             <TrashIcon size={13} />
                             Remove
@@ -877,7 +914,7 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
             </div>
 
             <div className={styles.summaryFoot}>
-              <ContinueCta onCommit={commit} className={styles.cta}>
+              <ContinueCta onCommit={commit} className={styles.cta} pending={pending}>
                 <span className={styles.ctaMain}>
                   Continue to dishes
                   <ArrowIcon size={20} />
@@ -920,7 +957,7 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
           </span>
         </button>
 
-        <ContinueCta onCommit={commit} className={styles.mobileCta}>
+        <ContinueCta onCommit={commit} className={styles.mobileCta} pending={pending}>
           Continue
           <ArrowIcon size={18} />
         </ContinueCta>
@@ -985,9 +1022,11 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
                   <div className={styles.lineText}>
                     <div className={styles.lineTop}>
                       <span className={styles.lineTitle}>{carried.title}</span>
-                      {carried.surchargePence > 0 ? (
+                      {isServerCart ? null : carried.surchargePence === undefined ? (
+                        <span className={styles.linePrice}>Price unavailable</span>
+                      ) : carried.surchargePence !== 0 ? (
                         <span className={styles.linePrice}>
-                          +{formatPrice(carried.surchargePence * carried.quantity)}
+                          {formatSignedPrice(carried.surchargePence * carried.quantity)}
                         </span>
                       ) : null}
                     </div>
@@ -1003,8 +1042,8 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
                           type="button"
                           className={styles.stepButton}
                           data-size="sheet"
-                          onClick={() => stepLine(carried, -1)}
-                          disabled={carried.quantity <= 1}
+                          onClick={() => void stepLine(carried, -1)}
+                          disabled={pending || carried.quantity <= 1}
                           aria-label="Fewer"
                         >
                           −
@@ -1016,8 +1055,8 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
                           type="button"
                           className={styles.stepButton}
                           data-size="sheet"
-                          onClick={() => stepLine(carried, 1)}
-                          disabled={carried.quantity >= maxDishes}
+                          onClick={() => void stepLine(carried, 1)}
+                          disabled={pending || carried.quantity >= maxDishes}
                           aria-label="More"
                         >
                           +
@@ -1027,7 +1066,8 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
                         type="button"
                         className={styles.lineRemove}
                         data-context="sheet"
-                        onClick={() => removeCarried(carried)}
+                        onClick={() => void removeCarried(carried)}
+                        disabled={pending}
                       >
                         <TrashIcon size={14} />
                         Remove
@@ -1086,7 +1126,12 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
                 </div>
               ) : null}
 
-              <ContinueCta onCommit={commit} className={styles.cta} data-context="sheet">
+              <ContinueCta
+                onCommit={commit}
+                className={styles.cta}
+                pending={pending}
+                data-context="sheet"
+              >
                 <span className={styles.ctaMain} data-context="sheet">
                   Continue to dishes
                   <ArrowIcon size={18} />
@@ -1111,7 +1156,12 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
       <div className={styles.toast} data-shown={toast ? '' : undefined} role="status">
         <span>{toast}</span>
         {removed ? (
-          <button type="button" className={styles.toastUndo} onClick={restoreCarried}>
+          <button
+            type="button"
+            className={styles.toastUndo}
+            onClick={restoreCarried}
+            disabled={pending}
+          >
             Undo
           </button>
         ) : null}
@@ -1129,14 +1179,32 @@ function ContinueCta({
   onCommit,
   className,
   children,
+  pending,
   ...rest
 }: {
-  onCommit: () => void;
+  onCommit: () => Promise<void>;
   className: string;
   children: ReactNode;
+  pending: boolean;
 } & Record<`data-${string}`, string | undefined>) {
+  const router = useRouter();
+
   return (
-    <Link href="/box/dishes" className={className} onClick={onCommit} {...rest}>
+    <Link
+      href="/box/dishes"
+      className={className}
+      aria-disabled={pending || undefined}
+      onClick={async (event) => {
+        event.preventDefault();
+        if (pending) return;
+        try {
+          await afterCartMutation(onCommit, () => router.push('/box/dishes'));
+        } catch {
+          // Stay on Step 1; DriftNotices renders the provider's recorded error.
+        }
+      }}
+      {...rest}
+    >
       {children}
     </Link>
   );

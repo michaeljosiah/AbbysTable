@@ -1,0 +1,27 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "incremental": false,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "jsx": "react-jsx",
+    "noEmit": false,
+    "outDir": ".test-dist",
+    "rootDir": "."
+  },
+  "include": [
+    "tests/effective-option-groups.test.ts",
+    "tests/rendered-option-groups.test.tsx",
+    "tests/live-cart-convergence.test.ts",
+    "src/components/personalisation/OptionGroupsControl.tsx",
+    "src/lib/aonik/dto.ts",
+    "src/lib/aonik/map.ts",
+    "src/lib/aonik/personalisation.ts",
+    "src/lib/aonik/types.ts",
+    "src/lib/cart/cartMissing.ts",
+    "src/lib/cart/convergence.ts",
+    "src/lib/cart/demoStorage.ts",
+    "src/lib/cart/mutations.ts",
+    "src/lib/cart/transport.ts"
+  ]
+}

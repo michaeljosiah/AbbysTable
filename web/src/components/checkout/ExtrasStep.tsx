@@ -4,8 +4,14 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
-import { personalisationSummary } from '@/components/checkout/DishPicker';
-import { EXTRA_CATEGORIES, type BoxPricing, type Extra, type PersonalisationOptions } from '@/lib/aonik/types';
+import { encodeSelection } from '@/lib/aonik/map';
+import {
+  localSurcharge,
+  selectionDraft,
+  selectionSummary,
+  type PersonalisationDraft,
+} from '@/lib/aonik/personalisation';
+import { EXTRA_CATEGORIES, type BoxPricing, type Extra } from '@/lib/aonik/types';
 import {
   cartTotals,
   extraUnitPence,
@@ -13,7 +19,10 @@ import {
   useCart,
   type ExtraLine,
 } from '@/lib/cart/CartProvider';
-import { formatPrice, formatPriceExact } from '@/lib/format';
+import { afterCartMutation } from '@/lib/cart/convergence';
+import { extraLinePersonalisation } from '@/lib/cart/demoStorage';
+import { quoteComponentLabel } from '@/lib/cart/quote';
+import { formatPrice, formatPriceExact, formatSignedPrice } from '@/lib/format';
 
 import { ContinueLink } from './ContinueLink';
 import { DriftNotices } from './DriftNotices';
@@ -29,7 +38,6 @@ import styles from './ExtrasStep.module.css';
 interface ExtrasStepProps {
   extras: Extra[];
   pricing: BoxPricing;
-  personalisation: PersonalisationOptions;
   /**
    * Pre-formatted delivery date, e.g. "6 August", or null when the tenant
    * publishes no promise — in which case the line is not rendered at all. A
@@ -39,14 +47,18 @@ interface ExtrasStepProps {
   heading: ReactNode;
 }
 
-type ModalState = { id: string; quantity: number; optionKey: string | null };
+type ModalState = {
+  variantId: string;
+  lineId?: string;
+  quantity: number;
+  draft: PersonalisationDraft;
+};
 
 const ALL = 'All';
 
 export function ExtrasStep({
   extras,
   pricing,
-  personalisation,
   earliestDeliveryLabel,
   heading,
 }: ExtrasStepProps) {
@@ -57,17 +69,15 @@ export function ExtrasStep({
     extras: extraLines,
     hydrated,
     addExtra,
-    setExtraQuantity,
-    setExtraOption,
+    updateExtra,
     removeExtra,
+    pending,
+    isServerCart,
+    quote,
   } = useCart();
 
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState(ALL);
-  /** Option picked on a card before the item is in the box, per extra id. */
-  const [cardOption, setCardOption] = useState<Record<string, string>>({});
-  /** Which card's option dropdown is open. */
-  const [openOption, setOpenOption] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [dishesOpen, setDishesOpen] = useState(false);
   const [estOpen, setEstOpen] = useState(false);
@@ -93,18 +103,33 @@ export function ExtrasStep({
 
   const extraById = useMemo(() => new Map(extras.map((extra) => [extra.id, extra])), [extras]);
   const lineFor = useCallback(
-    (extraId: string): ExtraLine | undefined =>
-      extraLines.find((line) => line.extraId === extraId),
+    (variantId: string): ExtraLine | undefined =>
+      extraLines.find((line) => line.variantId === variantId),
     [extraLines],
   );
 
   const boxTotals = useMemo(
-    () => cartTotals({ boxSize, isCustom, lines }, pricing),
-    [boxSize, isCustom, lines, pricing],
+    () => (isServerCart ? null : cartTotals({ boxSize, isCustom, lines }, pricing)),
+    [isServerCart, boxSize, isCustom, lines, pricing],
   );
-  const extrasSum = useMemo(() => extrasTotals(extraLines, extras), [extraLines, extras]);
-  const grandTotalPence = boxTotals.totalPence + extrasSum.totalPence;
-  const totalLabel = formatPrice(grandTotalPence);
+  const extrasSum: { quantity: number; totalPence?: number } = useMemo(
+    () =>
+      isServerCart
+        ? { quantity: extraLines.reduce((total, line) => total + line.quantity, 0) }
+        : extrasTotals(extraLines, extras),
+    [isServerCart, extraLines, extras],
+  );
+  const grandTotalPence = isServerCart
+    ? quote?.totalPence
+    : boxTotals?.totalPence === undefined || extrasSum.totalPence === undefined
+      ? undefined
+      : boxTotals.totalPence + extrasSum.totalPence;
+  const totalLabel =
+    grandTotalPence === undefined
+      ? isServerCart
+        ? ''
+        : 'Price unavailable'
+      : formatPrice(grandTotalPence);
 
   /* ---- Filtering ------------------------------------------------------------ */
 
@@ -124,74 +149,108 @@ export function ExtrasStep({
 
   /* ---- Card actions --------------------------------------------------------- */
 
-  const chosenKeyFor = (extra: Extra): string | null => {
-    const line = lineFor(extra.id);
-    return line?.optionKey ?? cardOption[extra.id] ?? null;
-  };
-
-  const addFromCard = (extra: Extra) => {
-    const chosen = chosenKeyFor(extra);
-    if (extra.option && !chosen) {
-      setOpenOption(extra.id);
-      flash(`Please choose a ${extra.option.kind.toLowerCase()} before adding ${extra.name}`);
+  const addFromCard = async (extra: Extra) => {
+    if (pending) return;
+    if (extra.optionGroups.length > 0) {
+      openModal(extra);
       return;
     }
-    addExtra(extra.id, chosen ?? undefined);
-    flash(`${extra.name} added to your box`);
+    try {
+      await afterCartMutation(
+        () => addExtra(extra.id, 1),
+        () => flash(`${extra.name} added to your box`),
+      );
+    } catch {
+      // The provider has recorded the actionable error; do not announce success.
+    }
   };
 
-  const pickCardOption = (extra: Extra, key: string) => {
-    setCardOption((current) => ({ ...current, [extra.id]: key }));
-    if (lineFor(extra.id)) setExtraOption(extra.id, key);
-    setOpenOption(null);
-  };
-
-  const step = (extra: Extra, delta: number) => {
+  const step = async (extra: Extra, delta: number) => {
+    if (pending) return;
     const line = lineFor(extra.id);
     if (!line) {
-      if (delta > 0) addFromCard(extra);
+      if (delta > 0) await addFromCard(extra);
       return;
     }
-    setExtraQuantity(extra.id, line.quantity + delta);
+    const quantity = line.quantity + delta;
+    try {
+      if (quantity <= 0) await removeExtra(line.lineId);
+      else await updateExtra(line.lineId, { quantity });
+    } catch {
+      // The provider owns the visible error and retains server truth.
+    }
+  };
+
+  const changeExtraLine = async (line: ExtraLine, quantity: number) => {
+    if (pending) return;
+    try {
+      if (quantity <= 0) await removeExtra(line.lineId);
+      else await updateExtra(line.lineId, { quantity });
+    } catch {
+      // The provider owns the visible error and retains server truth.
+    }
+  };
+
+  const removeExtraLine = async (line: ExtraLine, name: string) => {
+    if (pending) return;
+    try {
+      await afterCartMutation(
+        () => removeExtra(line.lineId),
+        () => flash(`${name} removed`),
+      );
+    } catch {
+      // Do not announce removal until the server confirms it.
+    }
   };
 
   /* ---- Modal ---------------------------------------------------------------- */
 
-  const openModal = (extra: Extra) => {
-    const line = lineFor(extra.id);
+  const openModal = (extra: Extra, selectedLine = lineFor(extra.id)) => {
     setModal({
-      id: extra.id,
-      quantity: line?.quantity ?? 1,
-      optionKey: line?.optionKey ?? cardOption[extra.id] ?? null,
+      variantId: extra.id,
+      lineId: selectedLine?.lineId,
+      quantity: selectedLine?.quantity ?? 1,
+      draft: selectionDraft(
+        extra.optionGroups,
+        selectedLine ? extraLinePersonalisation(selectedLine, extra.optionGroups) : undefined,
+      ),
     });
   };
 
-  const commitModal = () => {
-    if (!modal) return;
-    const extra = extraById.get(modal.id);
+  const commitModal = async () => {
+    if (!modal || pending) return;
+    const extra = extraById.get(modal.variantId);
     if (!extra) return;
-    const line = lineFor(extra.id);
-    if (line) {
-      setExtraQuantity(extra.id, modal.quantity);
-      if (modal.optionKey) setExtraOption(extra.id, modal.optionKey);
-      flash(`${extra.name} updated`);
-    } else {
-      addExtra(extra.id, modal.optionKey ?? undefined);
-      if (modal.quantity > 1) setExtraQuantity(extra.id, modal.quantity);
-      flash(`${extra.name} added to your box`);
+    const personalisation = encodeSelection(extra.optionGroups, modal.draft, !modal.lineId);
+    try {
+      await afterCartMutation(
+        () =>
+          modal.lineId
+            ? updateExtra(modal.lineId, {
+                quantity: modal.quantity,
+                ...(extra.optionGroups.length > 0
+                  ? { personalisation: personalisation ?? {} }
+                  : {}),
+              })
+            : addExtra(extra.id, modal.quantity, personalisation),
+        () => {
+          flash(`${extra.name} ${modal.lineId ? 'updated' : 'added to your box'}`);
+          setModal(null);
+        },
+      );
+    } catch {
+      // Keep the modal open with the confirmed values when the write fails.
     }
-    setModal(null);
   };
 
   // One owner for Escape and the body scroll lock across the step's overlays.
   useEffect(() => {
     const anyOpen = modal !== null || sheetOpen;
-    if (!anyOpen && openOption === null) return;
+    if (!anyOpen) return;
     const onKey = (event: globalThis.KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       if (modal) setModal(null);
       else if (sheetOpen) setSheetOpen(false);
-      else setOpenOption(null);
     };
     document.addEventListener('keydown', onKey);
     const previous = document.body.style.overflow;
@@ -200,7 +259,7 @@ export function ExtrasStep({
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = previous;
     };
-  }, [modal, sheetOpen, openOption]);
+  }, [modal, sheetOpen]);
 
   if (hydrated && boxSize === null) {
     return (
@@ -223,19 +282,21 @@ export function ExtrasStep({
       : ''
   }`;
 
-  const modalExtra = modal ? extraById.get(modal.id) : undefined;
-  const modalChosen = modalExtra?.option?.choices.find((c) => c.key === modal?.optionKey);
-  const modalUnitPence = modalExtra
-    ? modalExtra.pricePence + (modalChosen?.addPence ?? 0)
+  const modalExtra = modal ? extraById.get(modal.variantId) : undefined;
+  const modalSurcharge = modalExtra && modal
+    ? localSurcharge(modalExtra.optionGroups, modal.draft)
     : 0;
-  const modalInBox = modal ? Boolean(lineFor(modal.id)) : false;
-  const modalNeedsOption = Boolean(modalExtra?.option) && !modal?.optionKey;
+  const modalUnitPence =
+    modalExtra && modalSurcharge !== undefined
+      ? modalExtra.pricePence + modalSurcharge
+      : undefined;
+  const modalInBox = Boolean(modal?.lineId);
   const modalCommitLabel = modalExtra
-    ? modalNeedsOption
-      ? `Select a ${modalExtra.option!.kind.toLowerCase()}`
-      : `${modalInBox ? 'Update' : 'Add to box'} · ${formatPriceExact(
-          modalUnitPence * (modal?.quantity ?? 1),
-        )}`
+    ? `${modalInBox ? 'Update' : 'Add to box'}${
+        modalUnitPence === undefined
+          ? ''
+          : ` · ${formatPriceExact(modalUnitPence * (modal?.quantity ?? 1))}`
+      }`
     : '';
 
   /* ---- Shared fragments ------------------------------------------------------ */
@@ -271,15 +332,15 @@ export function ExtrasStep({
   const extrasList = (context: 'summary' | 'sheet') => (
     <>
       {extraLines.map((line) => {
-        const extra = extraById.get(line.extraId);
+        const extra = extraById.get(line.variantId);
         if (!extra) return null;
-        const chosen = extra.option?.choices.find((c) => c.key === line.optionKey);
+        const unitPence = isServerCart ? line.unitPricePence : extraUnitPence(line, extra);
         return (
-          <div key={line.extraId} className={styles.boxRow}>
+          <div key={line.lineId} className={styles.boxRow}>
             <button
               type="button"
               className={styles.rowThumb}
-              onClick={() => openModal(extra)}
+              onClick={() => openModal(extra, line)}
               aria-label={`View ${extra.name}`}
             >
               <Image src={extra.imageUrl} alt="" width={52} height={52} />
@@ -289,17 +350,22 @@ export function ExtrasStep({
                 <button
                   type="button"
                   className={styles.rowName}
-                  onClick={() => openModal(extra)}
+                  onClick={() => openModal(extra, line)}
                 >
                   {extra.name}
                 </button>
                 <span className={styles.rowPrice}>
-                  {formatPriceExact(extraUnitPence(line, extra) * line.quantity)}
+                  {unitPence === undefined
+                    ? 'Price unavailable'
+                    : formatPriceExact(isServerCart ? unitPence : unitPence * line.quantity)}
                 </span>
               </div>
-              {extra.option && chosen ? (
+              {extra.optionGroups.length > 0 ? (
                 <div className={styles.rowOpt}>
-                  {extra.option.kind}: {chosen.label}
+                  {selectionSummary(
+                    extra.optionGroups,
+                    extraLinePersonalisation(line, extra.optionGroups),
+                  )}
                 </div>
               ) : null}
               <div className={styles.rowControls}>
@@ -307,7 +373,8 @@ export function ExtrasStep({
                   <button
                     type="button"
                     className={styles.cstep}
-                    onClick={() => setExtraQuantity(extra.id, line.quantity - 1)}
+                    onClick={() => void changeExtraLine(line, line.quantity - 1)}
+                    disabled={pending}
                     aria-label="Fewer"
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
@@ -318,7 +385,8 @@ export function ExtrasStep({
                   <button
                     type="button"
                     className={styles.cstep}
-                    onClick={() => setExtraQuantity(extra.id, line.quantity + 1)}
+                    onClick={() => void changeExtraLine(line, line.quantity + 1)}
+                    disabled={pending}
                     aria-label="More"
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
@@ -330,10 +398,8 @@ export function ExtrasStep({
                 <button
                   type="button"
                   className={styles.rowRemove}
-                  onClick={() => {
-                    removeExtra(extra.id);
-                    flash(`${extra.name} removed`);
-                  }}
+                  onClick={() => void removeExtraLine(line, extra.name)}
+                  disabled={pending}
                 >
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M4 7h16" />
@@ -365,18 +431,42 @@ export function ExtrasStep({
     </>
   );
 
-  const estRows = (
+  const estRows = isServerCart ? (
+    quote ? (
+      <>
+        {quote.components.map((component, index) => (
+          <div key={`${component.key}:${index}`} className={styles.estRow}>
+            <span>{quoteComponentLabel(component.key)}</span>
+            <span className={styles.estStrong}>{formatPriceExact(component.amountPence)}</span>
+          </div>
+        ))}
+        <span className={styles.estRule} aria-hidden="true" />
+        <div className={styles.estTotalRow}>
+          <span>Total</span>
+          <span className={styles.estTotalValue}>{formatPrice(quote.totalPence)}</span>
+        </div>
+      </>
+    ) : null
+  ) : (
     <>
       <div className={styles.estRow}>
         <span>{boxLabel}</span>
-        <span className={styles.estStrong}>{formatPrice(boxTotals.totalPence)}</span>
+        <span className={styles.estStrong}>
+          {boxTotals?.totalPence === undefined
+            ? 'Price unavailable'
+            : formatPrice(boxTotals.totalPence)}
+        </span>
       </div>
       {extrasSum.quantity > 0 ? (
         <div className={styles.estRow}>
           <span>
             {extrasSum.quantity} {extrasSum.quantity === 1 ? 'extra' : 'extras'}
           </span>
-          <span className={styles.estStrong}>+{formatPriceExact(extrasSum.totalPence)}</span>
+          <span className={styles.estStrong}>
+            {extrasSum.totalPence === undefined
+              ? 'Price unavailable'
+              : formatSignedPrice(extrasSum.totalPence, true)}
+          </span>
         </div>
       ) : null}
       {pricing.delivery ? (
@@ -527,8 +617,6 @@ export function ExtrasStep({
           <div className={styles.grid}>
             {filtered.map((extra) => {
               const line = lineFor(extra.id);
-              const chosenKey = chosenKeyFor(extra);
-              const chosen = extra.option?.choices.find((c) => c.key === chosenKey);
               return (
                 <article
                   key={extra.id}
@@ -569,53 +657,25 @@ export function ExtrasStep({
                     <p className={styles.cardDesc}>{extra.description}</p>
 
                     <div className={styles.cardActions}>
-                      {extra.option ? (
+                      {extra.optionGroups.length > 0 ? (
                         <div className={styles.optDrop}>
                           <button
                             type="button"
                             className={styles.optTrigger}
-                            onClick={() =>
-                              setOpenOption((open) => (open === extra.id ? null : extra.id))
-                            }
-                            aria-haspopup="listbox"
-                            aria-expanded={openOption === extra.id}
+                            onClick={() => openModal(extra)}
                           >
-                            <span data-chosen={chosen ? '' : undefined}>
-                              {chosen ? `${extra.option.kind}: ${chosen.label}` : extra.option.kind}
+                            <span data-chosen={line ? '' : undefined}>
+                              {line
+                                ? selectionSummary(
+                                    extra.optionGroups,
+                                    extraLinePersonalisation(line, extra.optionGroups),
+                                  )
+                                : 'Choose options'}
                             </span>
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--taupe)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={styles.filterChevron} data-open={openOption === extra.id || undefined} aria-hidden="true">
-                              <path d="M6 9l6 6 6-6" />
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--taupe)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M9 6l6 6-6 6" />
                             </svg>
                           </button>
-                          {openOption === extra.id ? (
-                            <div className={styles.optMenu} role="listbox">
-                              {extra.option.choices.map((choice) => (
-                                <button
-                                  key={choice.key}
-                                  type="button"
-                                  role="option"
-                                  aria-selected={choice.key === chosenKey}
-                                  data-selected={choice.key === chosenKey || undefined}
-                                  className={styles.optRow}
-                                  onClick={() => pickCardOption(extra, choice.key)}
-                                >
-                                  <span>{choice.label}</span>
-                                  <span className={styles.optRowEnd}>
-                                    {choice.addPence > 0 ? (
-                                      <span className={styles.optAdd}>
-                                        +{formatPriceExact(choice.addPence)}
-                                      </span>
-                                    ) : null}
-                                    {choice.key === chosenKey ? (
-                                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                        <path d="M5 12.5l4.5 4.5L19 7" />
-                                      </svg>
-                                    ) : null}
-                                  </span>
-                                </button>
-                              ))}
-                            </div>
-                          ) : null}
                         </div>
                       ) : null}
 
@@ -631,7 +691,8 @@ export function ExtrasStep({
                           <span className={styles.cardStep} role="group" aria-label="Quantity">
                             <button
                               type="button"
-                              onClick={() => step(extra, -1)}
+                              onClick={() => void step(extra, -1)}
+                              disabled={pending}
                               aria-label="Remove one"
                             >
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
@@ -641,7 +702,8 @@ export function ExtrasStep({
                             <span className={styles.cardStepQty}>{line.quantity}</span>
                             <button
                               type="button"
-                              onClick={() => step(extra, 1)}
+                              onClick={() => void step(extra, 1)}
+                              disabled={pending}
                               aria-label="Add one"
                             >
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
@@ -654,7 +716,8 @@ export function ExtrasStep({
                           <button
                             type="button"
                             className={styles.add}
-                            onClick={() => addFromCard(extra)}
+                            onClick={() => void addFromCard(extra)}
+                            disabled={pending}
                           >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
                               <path d="M12 5v14" />
@@ -734,7 +797,7 @@ export function ExtrasStep({
                             <div className={styles.dishName}>{line.title}</div>
                             <div className={styles.dishPers}>
                               {line.personalisation
-                                ? personalisationSummary(line.personalisation, personalisation)
+                                ? 'Personalised'
                                 : "Abby's choice"}
                             </div>
                           </div>
@@ -897,7 +960,7 @@ export function ExtrasStep({
                             <div className={styles.dishName}>{line.title}</div>
                             <div className={styles.dishPers}>
                               {line.personalisation
-                                ? personalisationSummary(line.personalisation, personalisation)
+                                ? 'Personalised'
                                 : "Abby's choice"}
                             </div>
                           </div>
@@ -998,36 +1061,68 @@ export function ExtrasStep({
                 ))}
               </div>
 
-              {modalExtra.option ? (
-                <div className={styles.modalOpt}>
-                  <label className={styles.modalOptLabel} htmlFor="extra-option">
-                    {modalExtra.option.kind}
+              {modalExtra.optionGroups.map((group) => (
+                <div key={group.key} className={styles.modalOpt}>
+                  <label className={styles.modalOptLabel} htmlFor={`extra-option-${group.key}`}>
+                    {group.label}
+                    {group.helpText ? ` — ${group.helpText}` : ''}
                   </label>
                   <div className={styles.modalSelectWrap}>
                     <select
-                      id="extra-option"
-                      value={modal.optionKey ?? ''}
-                      onChange={(event) =>
-                        setModal((current) =>
-                          current ? { ...current, optionKey: event.target.value || null } : current,
-                        )
+                      id={`extra-option-${group.key}`}
+                      multiple={group.selectionMode === 'Multi'}
+                      value={
+                        group.selectionMode === 'Multi'
+                          ? (modal.draft[group.key] ?? [])
+                          : (modal.draft[group.key]?.[0] ?? '')
                       }
+                      onChange={(event) => {
+                        const values =
+                          group.selectionMode === 'Multi'
+                            ? Array.from(event.currentTarget.selectedOptions, (option) => option.value)
+                            : [event.currentTarget.value];
+                        if (values.length === 0) return;
+                        setModal((current) =>
+                          current
+                            ? { ...current, draft: { ...current.draft, [group.key]: values } }
+                            : current,
+                        );
+                      }}
                     >
-                      <option value="" disabled>
-                        Choose a {modalExtra.option.kind.toLowerCase()}
-                      </option>
-                      {modalExtra.option.choices.map((choice) => (
+                      {group.choices.map((choice) => (
                         <option key={choice.key} value={choice.key}>
                           {choice.label}
-                          {choice.addPence > 0 ? ` (+${formatPriceExact(choice.addPence)})` : ''}
+                          {choice.pricePence !== 0
+                            ? ` (${formatSignedPrice(choice.pricePence, true)})`
+                            : ''}
                         </option>
                       ))}
                     </select>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--taupe)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M6 9l6 6 6-6" />
-                    </svg>
+                    {group.selectionMode === 'One' ? (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--taupe)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M6 9l6 6 6-6" />
+                      </svg>
+                    ) : null}
                   </div>
                 </div>
+              ))}
+              {modalExtra.optionGroups.length > 0 ? (
+                <button
+                  type="button"
+                  className={styles.view}
+                  onClick={() =>
+                    setModal((current) =>
+                      current
+                        ? {
+                            ...current,
+                            draft: selectionDraft(modalExtra.optionGroups),
+                          }
+                        : current,
+                    )
+                  }
+                >
+                  Reset to defaults
+                </button>
               ) : null}
 
               <div className={styles.modalQtyRow}>
@@ -1150,14 +1245,16 @@ export function ExtrasStep({
               <div className={styles.modalFootRow}>
                 <span className={styles.modalFootNote}>Added on top of your box price</span>
                 <span className={styles.modalFootTotal}>
-                  {formatPriceExact(modalUnitPence * modal.quantity)}
+                  {modalUnitPence === undefined
+                    ? 'Price unavailable'
+                    : formatPriceExact(modalUnitPence * modal.quantity)}
                 </span>
               </div>
               <button
                 type="button"
                 className={styles.modalCommit}
                 onClick={commitModal}
-                disabled={modalNeedsOption}
+                disabled={pending}
               >
                 {modalCommitLabel}
               </button>

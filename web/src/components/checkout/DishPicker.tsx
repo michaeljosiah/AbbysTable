@@ -1,9 +1,13 @@
 'use client';
 
 import Image from 'next/image';
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { DishInfoPanels } from '@/components/dish/DishInfoPanels';
+import {
+  OptionGroupsControl,
+  type OptionGroupControlClasses,
+} from '@/components/personalisation/OptionGroupsControl';
 import { Button, HeatPips, NutritionTag } from '@/components/ui';
 import { CHILLI_BODY_PATH, CHILLI_STEM_PATH, CHILLI_VIEW_BOX } from '@/components/ui/glyphs';
 import {
@@ -12,20 +16,43 @@ import {
   MEAL_TYPES,
   type BoxPricing,
   type Dish,
-  type DishOption,
   type HeatingInstruction,
-  type PersonalisationOptions,
 } from '@/lib/aonik/types';
+import {
+  encodeSelection,
+  type MappedOptionGroup,
+} from '@/lib/aonik/map';
+import {
+  defaultSelection,
+  hasOptionChoices,
+  localSurcharge,
+  sameSelection,
+  selectionDraft,
+  selectionSummary,
+  type PersonalisationDraft,
+} from '@/lib/aonik/personalisation';
 import {
   boxPricePence,
   cartTotals,
   useCart,
   type CartLine,
-  type CartPersonalisation,
 } from '@/lib/cart/CartProvider';
-import { formatPrice } from '@/lib/format';
+import { formatPrice, formatSignedPrice } from '@/lib/format';
 
 import styles from './DishPicker.module.css';
+import { DriftNotices } from './DriftNotices';
+
+const OPTION_GROUP_CLASSES: OptionGroupControlClasses = {
+  group: `${styles.group} ${styles.groupRuled}`,
+  title: styles.groupTitle,
+  caption: styles.groupCaption,
+  choices: styles.groupChips,
+  choice: styles.optionChip,
+  choiceLabel: styles.optionLabel,
+  choiceDetail: styles.optionDetail,
+  choicePrice: styles.optionPrice,
+  defaultNote: styles.abbysNote,
+};
 
 /**
  * Step 2's browsing surface: search, facets, the dish grid, and the per-dish
@@ -43,31 +70,10 @@ interface DishPickerProps {
   dishes: Dish[];
   /** Box pricing feeds the modal's totals, box-full copy and expand view. */
   pricing: BoxPricing;
-  /**
-   * Catalogue-wide options. Populated in demo; empty in live, where Aonik
-   * attaches groups per product instead — see `optionsBySlug`.
-   */
-  personalisation: PersonalisationOptions;
-  /**
-   * Per-dish options, keyed by slug, resolved from Aonik's
-   * `effectiveOptionGroups`. Takes precedence over `personalisation`, and a
-   * dish absent here (or present with every group empty) offers no
-   * personalisation at all — which is a real state, not a loading gap.
-   */
-  optionsBySlug?: Record<string, PersonalisationOptions>;
+  /** Per-product effective groups, in authored order. */
+  optionGroupsBySlug: Record<string, MappedOptionGroup[]>;
   /** Reheating guidance for the personaliser's shared info panels. */
   heating: HeatingInstruction[];
-}
-
-/** True when a dish has at least one thing a customer could actually choose. */
-export function hasAnyOption(options: PersonalisationOptions | undefined): boolean {
-  if (!options) return false;
-  return (
-    options.portions.length > 0 ||
-    options.proteins.length > 0 ||
-    options.sides.length > 0 ||
-    options.heatLevels.length > 0
-  );
 }
 
 /** Dishes revealed per "Load more" — the template's page size. */
@@ -111,65 +117,8 @@ const FACET_ICONS: Record<FacetKey, string[]> = {
 /* Personalisation                                                             */
 /* -------------------------------------------------------------------------- */
 
-function findOption(group: DishOption[], key: string): DishOption | undefined {
-  return group.find((option) => option.key === key);
-}
-
-/** Abby's pick for a group, falling back to the first option. */
-function abbysKey(group: DishOption[]): string {
-  return (group.find((option) => option.isAbbysChoice) ?? group[0])?.key ?? '';
-}
-
-/** The template's `DEFAULT`: Abby's choice per group, at the dish's own heat. */
-export function abbysChoice(dish: Dish, options: PersonalisationOptions): CartPersonalisation {
-  return {
-    portion: abbysKey(options.portions),
-    protein: abbysKey(options.proteins),
-    side: abbysKey(options.sides),
-    heatStep: HEAT_STEPS[dish.heat],
-  };
-}
-
-export function sameChoice(a: CartPersonalisation, b: CartPersonalisation): boolean {
-  return (
-    a.portion === b.portion &&
-    a.protein === b.protein &&
-    a.side === b.side &&
-    a.heatStep === b.heatStep
-  );
-}
-
-/** Per-unit surcharge for a personalised line: the selected options, summed. */
-export function choiceSurcharge(choice: CartPersonalisation, options: PersonalisationOptions): number {
-  return (
-    (findOption(options.portions, choice.portion)?.pricePence ?? 0) +
-    (findOption(options.proteins, choice.protein)?.pricePence ?? 0) +
-    (findOption(options.sides, choice.side)?.pricePence ?? 0)
-  );
-}
-
-/**
- * How a line's personalisation reads in the box and on the card. Lines kept as
- * Abby designed them carry no `personalisation` at all.
- */
-export function personalisationSummary(
-  choice: CartPersonalisation | undefined,
-  options: PersonalisationOptions,
-): string {
-  if (!choice) return 'As Abby designed it';
-
-  return [
-    findOption(options.portions, choice.portion)?.label,
-    findOption(options.proteins, choice.protein)?.label,
-    findOption(options.sides, choice.side)?.label,
-    options.heatLevels.find((level) => level.step === choice.heatStep)?.label,
-  ]
-    .filter(Boolean)
-    .join(' · ');
-}
-
 /** Portion weight in grams, read from the option's detail line ("225g"). */
-function gramsOf(option: DishOption | undefined): number {
+function gramsOf(option: { detail?: string } | undefined): number {
   const grams = Number.parseInt(option?.detail ?? '', 10);
   return Number.isFinite(grams) && grams > 0 ? grams : 0;
 }
@@ -198,7 +147,7 @@ interface EditorNav {
   updateCount: number;
   /** The Yes side of the personalise fork. */
   personalise: boolean;
-  draft: CartPersonalisation;
+  draft: PersonalisationDraft;
 }
 
 interface Editor extends EditorNav {
@@ -242,17 +191,26 @@ export const CARD_HEAT_LABELS: Record<number, string> = { 1: 'Mild', 2: 'Medium'
 export function DishPicker({
   dishes,
   pricing,
-  personalisation,
-  optionsBySlug,
+  optionGroupsBySlug,
   heating,
 }: DishPickerProps) {
-  const { boxSize, isCustom: boxIsCustom, lines, hydrated, addLine, removeLine, setQuantity, setBoxSize } =
-    useCart();
+  const {
+    boxSize,
+    isCustom: boxIsCustom,
+    lines,
+    hydrated,
+    addLine,
+    setQuantity,
+    setBoxSize,
+    updateLinePersonalisation,
+    pending,
+    isServerCart,
+  } = useCart();
 
-  /** This dish's options, falling back to the catalogue-wide set (demo mode). */
+  /** This dish's own effective groups; an absent entry is not personalisable. */
   const optionsFor = useCallback(
-    (dish: Dish): PersonalisationOptions => optionsBySlug?.[dish.slug] ?? personalisation,
-    [optionsBySlug, personalisation],
+    (dish: Dish): MappedOptionGroup[] => optionGroupsBySlug[dish.slug] ?? [],
+    [optionGroupsBySlug],
   );
 
   const [query, setQuery] = useState('');
@@ -462,41 +420,57 @@ export function DishPicker({
   /* ---- Cart ----------------------------------------------------------------- */
 
   const addPlain = useCallback(
-    (dish: Dish) => {
-      addLine({
-        dishId: dish.id,
-        slug: dish.slug,
-        title: dish.title,
-        imageUrl: dish.imageUrl,
-        quantity: 1,
-        // A signature upgrade is a per-unit surcharge on the line, like
-        // personalisation; `cartTotals` bills both through `surchargePence`.
-        surchargePence: dish.upgradePence ?? 0,
-      });
+    async (dish: Dish) => {
+      if (pending) return;
+      try {
+        await addLine({
+          dishId: dish.id,
+          slug: dish.slug,
+          title: dish.title,
+          imageUrl: dish.imageUrl,
+          quantity: 1,
+          surchargePence: dish.upgradePence ?? 0,
+        });
+      } catch {
+        // The provider exposes the failure and keeps the confirmed cart.
+      }
     },
-    [addLine],
+    [addLine, pending],
   );
 
   const increment = useCallback(
-    (dish: Dish) => {
+    async (dish: Dish) => {
+      if (pending) return;
       const dishLines = linesByDish.get(dish.id) ?? [];
       // Prefer the untouched line, so "+" never silently duplicates a
       // personalisation the customer set up deliberately.
       const target =
         dishLines.find((line) => !line.personalisation) ?? dishLines[dishLines.length - 1];
-      if (target) setQuantity(target.lineId, target.quantity + 1);
-      else addPlain(dish);
+      if (target) {
+        try {
+          await setQuantity(target.lineId, target.quantity + 1);
+        } catch {
+          // The provider exposes the failure and keeps the confirmed cart.
+        }
+      } else await addPlain(dish);
     },
-    [linesByDish, setQuantity, addPlain],
+    [linesByDish, setQuantity, addPlain, pending],
   );
 
   const decrement = useCallback(
-    (dish: Dish) => {
+    async (dish: Dish) => {
+      if (pending) return;
       const dishLines = linesByDish.get(dish.id) ?? [];
       const target = dishLines[dishLines.length - 1];
-      if (target) setQuantity(target.lineId, target.quantity - 1);
+      if (target) {
+        try {
+          await setQuantity(target.lineId, target.quantity - 1);
+        } catch {
+          // The provider exposes the failure and keeps the confirmed cart.
+        }
+      }
     },
-    [linesByDish, setQuantity],
+    [linesByDish, setQuantity, pending],
   );
 
   /* ---- Personaliser --------------------------------------------------------- */
@@ -510,7 +484,8 @@ export function DishPicker({
       const dishLines = linesByDish.get(dish.id) ?? [];
       const inBox = dishLines.length > 0;
       const target = line ?? (inBox ? dishLines[0] : undefined);
-      const seedPers = target?.personalisation ?? abbysChoice(dish, optionsFor(dish));
+      const groups = optionsFor(dish);
+      const seedPers = selectionDraft(groups, target?.personalisation);
       const chosen = inBox ? opts?.personalise !== undefined : true;
       const needPicker = dishLines.length > 1 || (target?.quantity ?? 0) > 1;
       setEditor({
@@ -551,7 +526,7 @@ export function DishPicker({
     setEditor((current) => (current ? { ...current, ...patch } : current));
   }, []);
 
-  const setDraft = useCallback((draft: CartPersonalisation) => {
+  const setDraft = useCallback((draft: PersonalisationDraft) => {
     setEditor((current) => (current ? { ...current, draft } : current));
   }, []);
 
@@ -604,17 +579,20 @@ export function DishPicker({
 
   /*
    * The open dish's own options. Everything below derives from these rather
-   * than the catalogue-wide prop: Abby's default, the surcharge and the chips
-   * all have to describe THIS dish, whose groups and defaults are its own —
+   * than a fixed catalogue contract: Abby's default, the surcharge and the
+   * chips all have to describe THIS dish, whose groups and defaults are its own —
    * its heat default is its own heat level, and it may offer no side at all.
    */
-  const dishOptions = editor ? optionsFor(editor.dish) : personalisation;
+  const dishOptions = useMemo(
+    () => (editor ? optionsFor(editor.dish) : []),
+    [editor, optionsFor],
+  );
 
-  const abbys = editor ? abbysChoice(editor.dish, dishOptions) : null;
+  const abbys = editor ? defaultSelection(dishOptions) : null;
   const enabled = editor?.personalise ?? false;
   const draft = editor?.draft ?? null;
-  const isCustom = Boolean(enabled && draft && abbys && !sameChoice(draft, abbys));
-  const changePence = isCustom && draft ? choiceSurcharge(draft, dishOptions) : 0;
+  const isCustom = Boolean(enabled && draft && abbys && !sameSelection(dishOptions, draft, abbys));
+  const changePence = draft ? localSurcharge(dishOptions, draft) : 0;
 
   const editorLines = editor ? (linesByDish.get(editor.dish.id) ?? []) : [];
   const inBox = editorLines.length > 0;
@@ -635,16 +613,24 @@ export function DishPicker({
   const remaining = Math.max(0, effectiveSize - usedCount);
 
   // "Updated estimated total": box + surcharges + extra dishes, as the summary bills them.
-  const grandTotalPence =
-    boxSize === null ? 0 : cartTotals({ boxSize, isCustom: boxIsCustom, lines }, pricing).totalPence;
-  const origPers = targetLine?.personalisation ?? abbys;
+  const grandTotalPence = isServerCart
+    ? undefined
+    : boxSize === null
+      ? 0
+      : cartTotals({ boxSize, isCustom: boxIsCustom, lines }, pricing).totalPence;
+  const origPers = targetLine ? selectionDraft(dishOptions, targetLine.personalisation) : abbys;
   const changedFromOrig =
-    targetLine && draft && origPers ? !sameChoice(draft, origPers) : true;
+    targetLine && draft && origPers ? !sameSelection(dishOptions, draft, origPers) : true;
   // The template prices the change against the whole line, not the chosen count.
   const deltaPence =
     draft && origPers
-      ? (choiceSurcharge(draft, dishOptions) - choiceSurcharge(origPers, dishOptions)) *
-        (targetLine?.quantity ?? 1)
+      ? (() => {
+          const next = localSurcharge(dishOptions, draft);
+          const previous = localSurcharge(dishOptions, origPers);
+          return next === undefined || previous === undefined
+            ? undefined
+            : (next - previous) * (targetLine?.quantity ?? 1);
+        })()
       : 0;
 
   /* ---- Mode handlers (template `setModeUpdate` / `setModeAdd` / …) ----------- */
@@ -669,9 +655,9 @@ export function DishPicker({
       targetLineId: multi ? null : (target?.lineId ?? null),
       updateCount: multi ? 1 : (target?.quantity ?? 1),
       personalise: !multi,
-      draft: multi ? abbys : (target?.personalisation ?? abbys),
+      draft: multi ? abbys : selectionDraft(dishOptions, target?.personalisation),
     });
-  }, [editor, abbys, linesByDish, navSet]);
+  }, [editor, abbys, dishOptions, linesByDish, navSet]);
 
   const setModeAdd = useCallback(() => {
     if (!editor || !abbys) return;
@@ -697,12 +683,12 @@ export function DishPicker({
       navSet({
         targetLineId: lineId,
         updateCount: seed?.quantity ?? 1,
-        draft: seed?.personalisation ?? abbys,
+        draft: selectionDraft(dishOptions, seed?.personalisation),
         personalise: true,
       });
       setUpdTip(false);
     },
-    [editor, abbys, linesByDish, navSet],
+    [editor, abbys, dishOptions, linesByDish, navSet],
   );
 
   const incUpdateCount = useCallback(() => {
@@ -726,13 +712,17 @@ export function DishPicker({
 
   /* ---- Commit + expand ------------------------------------------------------- */
 
-  const commit = useCallback(() => {
-    if (!editor || !draft || !abbys) return;
-    const custom = enabled && !sameChoice(draft, abbys);
+  const commit = useCallback(async () => {
+    if (!editor || !draft || !abbys || pending) return;
+    const custom = enabled && !sameSelection(dishOptions, draft, abbys);
     const dish = editor.dish;
     const pers = enabled ? draft : abbys;
+    const encoded = encodeSelection(dishOptions, pers, editor.mode !== 'update');
+    const personalisationSurcharge = custom ? localSurcharge(dishOptions, pers) : 0;
     const surcharge =
-      (dish.upgradePence ?? 0) + (custom ? choiceSurcharge(pers, dishOptions) : 0);
+      personalisationSurcharge === undefined
+        ? undefined
+        : (dish.upgradePence ?? 0) + personalisationSurcharge;
 
     if (editor.mode !== 'update') {
       // Add (in-box "Add another" and every not-in-box add).
@@ -740,17 +730,21 @@ export function DishPicker({
         patchEditor({ expandOpen: true, expandQty: 1 });
         return;
       }
-      addLine({
-        dishId: dish.id,
-        slug: dish.slug,
-        title: dish.title,
-        imageUrl: dish.imageUrl,
-        quantity: 1,
-        personalisation: custom ? pers : undefined,
-        surchargePence: surcharge,
-      });
-      closeEditor();
-      flash(dish.title + (custom ? ' added — personalised' : ' added to your box'));
+      try {
+        await addLine({
+          dishId: dish.id,
+          slug: dish.slug,
+          title: dish.title,
+          imageUrl: dish.imageUrl,
+          quantity: 1,
+          personalisation: encoded,
+          surchargePence: surcharge,
+        });
+        closeEditor();
+        flash(dish.title + (custom ? ' added — personalised' : ' added to your box'));
+      } catch {
+        // Keep the editor open and let the provider surface the error.
+      }
       return;
     }
 
@@ -761,24 +755,23 @@ export function DishPicker({
       return;
     }
     const count = updCount;
-    if (count >= targetLine.quantity) removeLine(targetLine.lineId);
-    else setQuantity(targetLine.lineId, targetLine.quantity - count);
-    addLine({
-      dishId: dish.id,
-      slug: dish.slug,
-      title: dish.title,
-      imageUrl: dish.imageUrl,
-      quantity: count,
-      personalisation: custom ? pers : undefined,
-      surchargePence: surcharge,
-    });
-    closeEditor();
-    flash(
-      dish.title +
-        (targetLine.quantity > 1
-          ? ` — ${count} ${count === 1 ? 'dish' : 'dishes'} updated`
-          : ' updated'),
-    );
+    if (!encoded) return;
+    try {
+      await updateLinePersonalisation(targetLine.lineId, {
+        personalisation: encoded,
+        applyToUnits: count < targetLine.quantity ? count : undefined,
+        surchargePence: surcharge,
+      });
+      closeEditor();
+      flash(
+        dish.title +
+          (targetLine.quantity > 1
+            ? ` — ${count} ${count === 1 ? 'dish' : 'dishes'} updated`
+            : ' updated'),
+      );
+    } catch {
+      // Atomic PATCH rejection leaves the original line and editor intact.
+    }
   }, [
     editor,
     draft,
@@ -788,9 +781,9 @@ export function DishPicker({
     boxFull,
     targetLine,
     updCount,
+    pending,
     addLine,
-    removeLine,
-    setQuantity,
+    updateLinePersonalisation,
     patchEditor,
     closeEditor,
     flash,
@@ -801,9 +794,7 @@ export function DishPicker({
     [patchEditor],
   );
 
-  // "Make your box larger?" — consent to more dish spaces. Billing needs no
-  // mutation (`cartTotals` already prices overflow at `extraDishPence`); the
-  // consented size drives the capacity gate and the labels.
+  // "Make your box larger?" commits one size mutation before the add can proceed.
   const expandRoom = Math.max(1, pricing.custom.maxDishes - effectiveSize);
   const expandQty = Math.max(1, Math.min(expandRoom, editor?.expandQty ?? 1));
   const expandNewSize = effectiveSize + expandQty;
@@ -813,23 +804,11 @@ export function DishPicker({
       : boxPricePence(boxSize, boxIsCustom, pricing) +
         Math.max(0, expandNewSize - boxSize) * pricing.extraDishPence;
 
-  const confirmExpand = useCallback(() => {
-    if (!editor) return;
-    setExpandedTo(expandNewSize);
-    patchEditor({
-      expandOpen: false,
-      mode: 'add',
-      chosen: true,
-      personalise: false,
-      whatOpen: false,
-    });
-    flash(`Your box is now ${expandNewSize} dishes`);
-  }, [editor, expandNewSize, patchEditor, flash]);
-
-  const chooseExpandPreset = useCallback(
-    (dishCount: number) => {
-      setBoxSize(dishCount, false);
-      setExpandedTo(0);
+  const confirmExpand = useCallback(async () => {
+    if (!editor || pending) return;
+    try {
+      await setBoxSize(expandNewSize, true);
+      setExpandedTo(expandNewSize);
       patchEditor({
         expandOpen: false,
         mode: 'add',
@@ -837,9 +816,31 @@ export function DishPicker({
         personalise: false,
         whatOpen: false,
       });
-      flash(`Your box is now ${dishCount} dishes`);
+      flash(`Your box is now ${expandNewSize} dishes`);
+    } catch {
+      // Keep the resize view open until the server confirms it.
+    }
+  }, [editor, pending, setBoxSize, expandNewSize, patchEditor, flash]);
+
+  const chooseExpandPreset = useCallback(
+    async (dishCount: number) => {
+      if (pending) return;
+      try {
+        await setBoxSize(dishCount, false);
+        setExpandedTo(0);
+        patchEditor({
+          expandOpen: false,
+          mode: 'add',
+          chosen: true,
+          personalise: false,
+          whatOpen: false,
+        });
+        flash(`Your box is now ${dishCount} dishes`);
+      } catch {
+        // Keep the resize view open until the server confirms it.
+      }
     },
-    [setBoxSize, patchEditor, flash],
+    [pending, setBoxSize, patchEditor, flash],
   );
 
   /* ---- Foot CTA machine (template lines 3846-3864) --------------------------- */
@@ -892,10 +893,13 @@ export function DishPicker({
             action: commit,
           };
         }
-        if (deltaPence > 0) {
+        if (deltaPence !== undefined && deltaPence > 0) {
           return {
             title: `Personalisation +${formatPrice(deltaPence)}`,
-            sub: `Updated estimated total ${formatPrice(grandTotalPence + deltaPence)}`,
+            sub:
+              grandTotalPence === undefined
+                ? 'Updated price unavailable'
+                : `Updated estimated total ${formatPrice(grandTotalPence + deltaPence)}`,
             sub2: 'This will replace your current dish',
             label: saveLabel,
             disabled: false,
@@ -903,10 +907,13 @@ export function DishPicker({
             action: commit,
           };
         }
-        if (deltaPence < 0) {
+        if (deltaPence !== undefined && deltaPence < 0) {
           return {
             title: `Reset to Abby’s choice · ${formatPrice(-deltaPence)} removed`,
-            sub: `Updated estimated total ${formatPrice(grandTotalPence + deltaPence)}`,
+            sub:
+              grandTotalPence === undefined
+                ? 'Updated price unavailable'
+                : `Updated estimated total ${formatPrice(grandTotalPence + deltaPence)}`,
             sub2: 'This will replace your current dish',
             label: saveLabel,
             disabled: false,
@@ -966,7 +973,9 @@ export function DishPicker({
         title: 'Abby’s Signature',
         sub:
           `+${formatPrice(sigUp)} signature upgrade` +
-          (isCustom && changePence !== 0 ? ` · +${formatPrice(changePence)} personalisation` : ''),
+          (isCustom && changePence !== undefined && changePence !== 0
+            ? ` · ${formatSignedPrice(changePence)} personalisation`
+            : ''),
         sub2: 'Added on top of your box price',
         label: `Add to your box · +${formatPrice(sigUp)}`,
         disabled: false,
@@ -977,9 +986,23 @@ export function DishPicker({
     if (isCustom) {
       return {
         title: 'Personalised your way',
-        sub: changePence !== 0 ? `+${formatPrice(changePence)} personalisation` : 'No extra cost',
-        sub2: changePence > 0 ? 'Added to base price' : '',
-        label: `Add to your box${changePence > 0 ? ` · +${formatPrice(changePence)} extra` : ''}`,
+        sub:
+          changePence === undefined
+            ? 'Price confirmed in your cart'
+            : changePence !== 0
+              ? `${formatSignedPrice(changePence)} personalisation`
+              : 'No extra cost',
+        sub2:
+          changePence === undefined || changePence === 0
+            ? ''
+            : changePence > 0
+              ? 'Added to base price'
+              : 'Below base price',
+        label: `Add to your box${
+          changePence !== undefined && changePence !== 0
+            ? ` · ${formatSignedPrice(changePence)} adjustment`
+            : ''
+        }`,
         disabled: false,
         ghost: false,
         action: commit,
@@ -998,7 +1021,7 @@ export function DishPicker({
 
   /* ---- Right-column visibility (template `showPersonalise` etc.) ------------- */
 
-  const showPersonalise = inBox
+  const showPersonalise = hasOptionChoices(dishOptions) && (inBox
     ? Boolean(
         editor &&
           editor.chosen &&
@@ -1007,7 +1030,7 @@ export function DishPicker({
           !(adding && !editor.personalise) &&
           !(editing && editorLines.length > 1 && !editor.targetLineId),
       )
-    : true;
+    : true);
   const showSpaceBanner = inBox && adding && !boxFull;
   const showInBoxHeader = inBox && !showSpaceBanner;
   const showVersionPicker = editing && editorLines.length > 1;
@@ -1034,6 +1057,7 @@ export function DishPicker({
 
   return (
     <div className={styles.picker}>
+      <DriftNotices />
       {/* The template keeps box progress in the summary column and the mobile
           bar — the main column goes straight from the intro to the filters. */}
 
@@ -1394,15 +1418,13 @@ export function DishPicker({
                     {/*
                       Only offered when this dish actually has options.
 
-                      Gated on the resolved options rather than
-                      `dish.personalisation`, which a browse row cannot fill —
-                      the summary DTO carries no groups, so it is always empty
-                      on this grid and would hide the block for every dish.
+                      Gated on the resolved effective groups, which a browse row
+                      does not carry.
                       Three of the seeded ten genuinely offer nothing, and
                       inviting "Personalise this dish" there opened a dialog
                       with no choices in it.
                     */}
-                    {hasAnyOption(optionsFor(dish)) ? (
+                    {hasOptionChoices(optionsFor(dish)) ? (
                     <div className={styles.persBlock}>
                       {personalised.length > 0 ? (
                         <>
@@ -1436,9 +1458,9 @@ export function DishPicker({
                           <div className={styles.persAction}>
                             {personalised.length > 1
                               ? `${personalised.length} versions in your box`
-                              : personalisationSummary(
-                                  personalised[0].personalisation,
+                              : selectionSummary(
                                   optionsFor(dish),
+                                  personalised[0].personalisation,
                                 )}
                           </div>
                         </>
@@ -1487,7 +1509,8 @@ export function DishPicker({
                         <span className={styles.cardStep} role="group" aria-label="Quantity">
                           <button
                             type="button"
-                            onClick={() => decrement(dish)}
+                            onClick={() => void decrement(dish)}
+                            disabled={pending}
                             aria-label={`Remove one ${dish.title}`}
                           >
                             <svg
@@ -1506,7 +1529,8 @@ export function DishPicker({
                           <span className={styles.cardStepQty}>{quantity}</span>
                           <button
                             type="button"
-                            onClick={() => increment(dish)}
+                            onClick={() => void increment(dish)}
+                            disabled={pending}
                             aria-label={`Add one ${dish.title}`}
                           >
                             <svg
@@ -1525,7 +1549,12 @@ export function DishPicker({
                           </button>
                         </span>
                       ) : (
-                        <button type="button" className={styles.add} onClick={() => addPlain(dish)}>
+                        <button
+                          type="button"
+                          className={styles.add}
+                          onClick={() => void addPlain(dish)}
+                          disabled={pending}
+                        >
                           <svg
                             width="16"
                             height="16"
@@ -1884,7 +1913,12 @@ export function DishPicker({
                           </span>
                         </div>
                       </div>
-                      <button type="button" className={styles.expandCta} onClick={confirmExpand}>
+                      <button
+                        type="button"
+                        className={styles.expandCta}
+                        onClick={confirmExpand}
+                        disabled={pending}
+                      >
                         Expand to {expandNewSize} dishes — {formatPrice(expandNewPricePence)}
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <line x1="4" y1="12" x2="19" y2="12" />
@@ -1907,6 +1941,7 @@ export function DishPicker({
                                   type="button"
                                   className={styles.expandPreset}
                                   onClick={() => chooseExpandPreset(offer.dishCount)}
+                                  disabled={pending}
                                 >
                                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                     <path d="M3 8l9-4 9 4-9 4-9-4z" />
@@ -2061,9 +2096,9 @@ export function DishPicker({
                                                 </span>
                                                 <span className={styles.versionText}>
                                                   <span className={styles.versionLabel}>
-                                                    {personalisationSummary(
-                                                      line.personalisation,
+                                                    {selectionSummary(
                                                       dishOptions,
+                                                      line.personalisation,
                                                     )}
                                                   </span>
                                                   <span className={styles.versionQty}>
@@ -2410,9 +2445,9 @@ export function DishPicker({
                         </span>
                         {!editor.persOpen ? (
                           <span className={styles.persPanelSummary}>
-                            {personalisationSummary(
-                              enabled && isCustom ? draft : undefined,
+                            {selectionSummary(
                               dishOptions,
+                              enabled && isCustom ? draft : undefined,
                             )}
                           </span>
                         ) : null}
@@ -2460,14 +2495,14 @@ export function DishPicker({
                   Your current choices are shown below.
                   <br />
                   <span className={styles.dialogIntroSoft}>
-                    Price and nutrition update as you personalise.
+                    Nutrition updates as you personalise; your cart confirms the final price.
                   </span>
                 </p>
               ) : (
                 <p className={styles.dialogIntro}>
                   Choose your portion size, swap proteins, change sides or adjust heat.{' '}
                   <span className={styles.dialogIntroSoft}>
-                    Price and nutrition update as you personalise.
+                    Nutrition updates as you personalise; your cart confirms the final price.
                   </span>
                 </p>
               )}
@@ -2494,7 +2529,7 @@ export function DishPicker({
                     </span>
                     {isCustom ? (
                       <span className={styles.forkSummary}>
-                        {personalisationSummary(draft, dishOptions)}
+                        {selectionSummary(dishOptions, draft)}
                       </span>
                     ) : null}
                   </span>
@@ -2537,107 +2572,48 @@ export function DishPicker({
                       <span className={styles.optionsHeadLabel}>Personalisation options</span>
                     </div>
 
-                    <OptionGroup
-                      legend="Choose your portion size"
-                      icon={
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M3 11h18" />
-                          <path d="M4.5 11a7.5 7.5 0 0 0 15 0" />
-                          <path d="M12 3.5v2" />
-                          <path d="M9 5.5h6" />
-                        </svg>
+                    <OptionGroupsControl
+                      groups={dishOptions}
+                      selection={draft}
+                      onChange={(groupKey, selected) =>
+                        setDraft({ ...draft, [groupKey]: selected })
                       }
-                      group={dishOptions.portions}
-                      selected={draft.portion}
-                      onSelect={(portion) => setDraft({ ...draft, portion })}
+                      classes={OPTION_GROUP_CLASSES}
                     />
-                    <OptionGroup
-                      legend="Choose your protein"
-                      caption="Choose 1 or more"
-                      icon={
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M12 3C8 3 6 6 6 9c0 4 3 7 6 12 3-5 6-8 6-12 0-3-2-6-6-6z" />
-                        </svg>
-                      }
-                      group={dishOptions.proteins}
-                      selected={draft.protein}
-                      onSelect={(protein) => setDraft({ ...draft, protein })}
-                    />
-                    <OptionGroup
-                      legend="Choose your side"
-                      icon={
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M4 11h16M6 11c0-3 2.5-5 6-5s6 2 6 5M8 15h8M9 19h6" />
-                        </svg>
-                      }
-                      group={dishOptions.sides}
-                      selected={draft.side}
-                      onSelect={(side) => setDraft({ ...draft, side })}
-                    />
-
-                    <fieldset className={`${styles.group} ${styles.groupRuled}`}>
-                      <legend className={styles.groupTitle}>
-                        <svg width="18" height="18" viewBox={CHILLI_VIEW_BOX} aria-hidden="true" style={{ display: 'block' }}>
-                          <path fill="var(--green-forest)" d={CHILLI_STEM_PATH} />
-                          <path fill="var(--terracotta)" d={CHILLI_BODY_PATH} />
-                        </svg>
-                        Choose your heat level
-                      </legend>
-                      <div className={styles.groupChips}>
-                        {dishOptions.heatLevels.map((level) => (
-                          <button
-                            key={level.label}
-                            type="button"
-                            className={styles.optionChip}
-                            data-selected={level.step === draft.heatStep || undefined}
-                            aria-pressed={level.step === draft.heatStep}
-                            onClick={() => setDraft({ ...draft, heatStep: level.step })}
-                          >
-                            <span className={styles.optionLabel}>{level.label}</span>
-                            {level.step === draft.heatStep ? (
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--white)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <path d="M20 6L9 17l-5-5" />
-                              </svg>
-                            ) : null}
-                          </button>
-                        ))}
-                      </div>
-                      <p className={styles.abbysNote}>
-                        {dishOptions.heatLevels.find((level) => level.step === abbys.heatStep)
-                          ?.label ?? ''}{' '}
-                        is Abby&apos;s choice.
-                      </p>
-                    </fieldset>
 
                     <div className={styles.readout}>
-                      <div>
-                        <span className={styles.readoutTitle}>Price change</span>
-                        <span className={styles.readoutPriceRow}>
-                          <span className={styles.readoutValue}>
-                            {changePence > 0 ? `+${formatPrice(changePence)}` : '£0'}
+                      {changePence !== undefined ? (
+                        <div>
+                          <span className={styles.readoutTitle}>Price change</span>
+                          <span className={styles.readoutPriceRow}>
+                            <span className={styles.readoutValue}>
+                              {changePence === 0 ? '£0' : formatSignedPrice(changePence)}
+                            </span>
+                            <span className={styles.readoutValueSub}>
+                              {changePence === 0
+                                ? 'Abby’s choice — no extra cost'
+                                : changePence > 0
+                                  ? 'Added to base price'
+                                  : 'Below base price'}
+                            </span>
                           </span>
-                          <span className={styles.readoutValueSub}>
-                            {changePence === 0
-                              ? 'Abby’s choice — no extra cost'
-                              : changePence > 0
-                                ? 'Added to base price'
-                                : 'Below base price'}
-                          </span>
-                        </span>
-                      </div>
-                      <div className={styles.readoutRule} aria-hidden="true" />
+                        </div>
+                      ) : null}
+                      {changePence !== undefined ? (
+                        <div className={styles.readoutRule} aria-hidden="true" />
+                      ) : null}
                       <div>
                         <span className={styles.readoutTitle}>Nutritional highlights</span>
                         {/* `dishOptions`, not the catalogue-wide prop: the
                             scaling factor is read off THIS dish's portion
                             choices, and an empty list pins the factor at 1 —
                             so the macros never moved when the portion did. */}
-                        <Nutrition dish={editor.dish} choice={draft} options={dishOptions} />
+                        <Nutrition dish={editor.dish} choice={draft} optionGroups={dishOptions} />
                       </div>
                     </div>
 
                     <p className={styles.readoutNote}>
-                      Price and nutrition update as you personalise.
+                      Choice prices are shown above; your cart confirms the final total.
                     </p>
 
                     <div className={styles.resetRule} aria-hidden="true" />
@@ -2645,7 +2621,7 @@ export function DishPicker({
                       type="button"
                       className={styles.reset}
                       onClick={() => setDraft(abbys)}
-                      disabled={sameChoice(draft, abbys)}
+                      disabled={sameSelection(dishOptions, draft, abbys)}
                     >
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <path d="M4 8h9" />
@@ -2718,7 +2694,7 @@ export function DishPicker({
                       className={styles.dmCta}
                       data-ghost={cta.ghost || undefined}
                       onClick={cta.action}
-                      disabled={cta.disabled}
+                      disabled={cta.disabled || pending}
                     >
                       {cta.label}
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -2770,83 +2746,22 @@ export function DishPicker({
 
 /* -------------------------------------------------------------------------- */
 
-export function OptionGroup({
-  legend,
-  caption,
-  icon,
-  group,
-  selected,
-  onSelect,
-}: {
-  legend: string;
-  /** Secondary note beside the legend, e.g. the protein group's "Choose 1 or more". */
-  caption?: string;
-  /** The template's 18px glyph beside the group title. */
-  icon?: ReactNode;
-  group: DishOption[];
-  selected: string;
-  onSelect: (key: string) => void;
-}) {
-  const abbys = group.find((option) => option.isAbbysChoice);
-
-  /*
-   * A group with nothing in it is not a group.
-   *
-   * This rendered the legend regardless, so a tenant with no authored option
-   * groups produced four headings — "Choose your portion size", "Choose your
-   * protein" — with no chips beneath any of them. It asked a question it had no
-   * answers to, and it hid the real fault: the seeders never wrote option
-   * groups at all, and the UI looked close enough to working to mask it.
-   */
-  if (group.length === 0) return null;
-
-  return (
-    <fieldset className={`${styles.group} ${styles.groupRuled}`}>
-      <legend className={styles.groupTitle}>
-        {icon}
-        {legend}
-        {caption ? <span className={styles.groupCaption}>{caption}</span> : null}
-      </legend>
-      <div className={styles.groupChips}>
-        {group.map((option) => (
-          <button
-            key={option.key}
-            type="button"
-            className={styles.optionChip}
-            data-selected={option.key === selected || undefined}
-            aria-pressed={option.key === selected}
-            onClick={() => onSelect(option.key)}
-          >
-            <span className={styles.optionLabel}>{option.label}</span>
-            {option.detail ? <span className={styles.optionDetail}>{option.detail}</span> : null}
-            {option.pricePence > 0 ? (
-              <span className={styles.optionPrice}>+{formatPrice(option.pricePence)}</span>
-            ) : null}
-            {option.key === selected ? (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--white)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M20 6L9 17l-5-5" />
-              </svg>
-            ) : null}
-          </button>
-        ))}
-      </div>
-      {abbys ? <p className={styles.abbysNote}>{abbys.label} is Abby&apos;s choice.</p> : null}
-    </fieldset>
-  );
-}
-
 /** Macros for the chosen portion, scaled from the catalogue's per-serving figures. */
 export function Nutrition({
   dish,
   choice,
-  options,
+  optionGroups,
 }: {
   dish: Dish;
-  choice: CartPersonalisation;
-  options: PersonalisationOptions;
+  choice: PersonalisationDraft;
+  optionGroups: MappedOptionGroup[];
 }) {
-  const chosen = findOption(options.portions, choice.portion);
-  const base = gramsOf(findOption(options.portions, abbysKey(options.portions)));
+  // `portion` only selects this presentation detail; it never gates rendering.
+  const portions = optionGroups.find((group) => group.key === 'portion');
+  const chosen = portions?.choices.find((option) => choice.portion?.includes(option.key));
+  const base = gramsOf(
+    portions?.choices.find((option) => option.key === portions.defaultChoiceKey),
+  );
   const grams = gramsOf(chosen);
   const factor = base > 0 && grams > 0 ? grams / base : 1;
 
