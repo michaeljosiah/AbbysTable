@@ -19,7 +19,7 @@
 
 import { cookies } from 'next/headers';
 
-export const CART_COOKIE = 'abbys-table:cart';
+export const CART_COOKIE = 'abbys-table-cart';
 
 export interface CartCookie {
   cartId: string;

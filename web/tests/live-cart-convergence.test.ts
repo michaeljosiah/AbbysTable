@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { DATA_MODE_COOKIE } from '../src/lib/aonik/dataMode';
 import { AonikError } from '../src/lib/aonik/errors';
 import { mapBoxQuote, type BoxCart, type BoxLine, type MappedOptionGroup } from '../src/lib/aonik/map';
+import { SESSION_COOKIE } from '../src/lib/auth/session';
+import { CART_COOKIE } from '../src/lib/cart/cartCookie';
 import { CartMissingError, mapCartMissingError } from '../src/lib/cart/cartMissing';
 import {
   afterCartMutation,
@@ -18,6 +21,7 @@ import {
   postExtra,
   type CartMutationRequest,
 } from '../src/lib/cart/mutations';
+import { ORDER_COOKIE } from '../src/lib/cart/orderCookie';
 import {
   admitCartRequest,
   adoptCartResponse,
@@ -28,6 +32,14 @@ import {
 
 const cart = { cartId: 'cart-confirmed' } as BoxCart;
 const repaired = { cartId: 'cart-repaired' } as BoxCart;
+
+test('server cookie names are valid HTTP tokens', () => {
+  const token = /^[!#$%&'*+\-.^_`|~A-Za-z0-9]+$/;
+
+  for (const name of [CART_COOKIE, ORDER_COOKIE, SESSION_COOKIE, DATA_MODE_COOKIE]) {
+    assert.match(name, token);
+  }
+});
 
 function runResponse(
   current: BoxCart | null,

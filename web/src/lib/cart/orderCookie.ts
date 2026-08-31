@@ -25,7 +25,7 @@
 
 import { cookies } from 'next/headers';
 
-export const ORDER_COOKIE = 'abbys-table:order';
+export const ORDER_COOKIE = 'abbys-table-order';
 
 /** One line as it was placed. Titles and quantities only — no images, no ids. */
 export interface PlacedOrderLine {

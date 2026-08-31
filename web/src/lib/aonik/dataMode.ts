@@ -18,7 +18,7 @@ import { cookies } from 'next/headers';
 export type DataMode = 'demo' | 'live';
 
 /** Dev-only override cookie. Ignored outside development. */
-export const DATA_MODE_COOKIE = 'abbys-table:data-mode';
+export const DATA_MODE_COOKIE = 'abbys-table-data-mode';
 
 export interface DataModeResolution {
   mode: DataMode;

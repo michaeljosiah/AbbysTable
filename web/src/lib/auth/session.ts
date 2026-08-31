@@ -15,7 +15,7 @@
 
 import { cookies } from 'next/headers';
 
-export const SESSION_COOKIE = 'abbys-table:session';
+export const SESSION_COOKIE = 'abbys-table-session';
 
 export interface CustomerSession {
   accessToken: string;
