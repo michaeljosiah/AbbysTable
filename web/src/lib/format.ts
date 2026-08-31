@@ -34,6 +34,12 @@ export function formatPriceExact(pence: number): string {
   return GBP_EXACT.format(pence / 100);
 }
 
+/** Formats a signed delta without ever producing a "+-£" prefix. */
+export function formatSignedPrice(pence: number, exact = false): string {
+  const amount = (exact ? formatPriceExact : formatPrice)(Math.abs(pence));
+  return `${pence < 0 ? '-' : '+'}${amount}`;
+}
+
 const MONTHS = [
   'January',
   'February',

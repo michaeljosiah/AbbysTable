@@ -30,7 +30,6 @@ import {
   DELIVERY_FIXTURE,
   DISH_FIXTURES,
   HEATING_FIXTURE,
-  PERSONALISATION_FIXTURE,
   STOREFRONT_CONFIG_FIXTURE,
 } from './fixtures';
 import { aonikFetch } from './http';
@@ -55,7 +54,6 @@ import type {
   Extra,
   HeatingInstruction,
   HomepageData,
-  PersonalisationOptions,
   StorefrontConfig,
 } from './types';
 
@@ -71,8 +69,6 @@ export interface AonikClient {
   getBoxPricing(): Promise<BoxPricing>;
   /** Null when the tenant has no fulfilment calendar — a state, not an error. */
   getDeliveryWindow(): Promise<DeliveryWindow | null>;
-  /** Selectable portions, proteins, sides and heat for the dish personaliser. */
-  getPersonalisationOptions(): Promise<PersonalisationOptions>;
   getHeatingInstructions(): Promise<HeatingInstruction[]>;
   /** À-la-carte extras sold alongside the box (Step 3). */
   getExtras(): Promise<Extra[]>;
@@ -129,10 +125,6 @@ export class MockAonikClient implements AonikClient {
 
   async getDeliveryWindow(): Promise<DeliveryWindow | null> {
     return DELIVERY_FIXTURE;
-  }
-
-  async getPersonalisationOptions(): Promise<PersonalisationOptions> {
-    return PERSONALISATION_FIXTURE;
   }
 
   async getHeatingInstructions(): Promise<HeatingInstruction[]> {
@@ -411,20 +403,6 @@ export class HttpAonikClient implements AonikClient {
   }
 
   /**
-   * Empty, because catalogue-wide personalisation does not exist in Aonik.
-   *
-   * Option groups are per-product: `getDishOptionGroups(slug)` is the real
-   * read, and `Dish.personalisation` says which groups a dish offers. This is
-   * NOT a missing mapper — there is no endpoint to map, so the honest answer is
-   * "no global options", which every caller already reads as "not
-   * personalisable from here". Throwing instead would take four pages down over
-   * a concept that was retired by design.
-   */
-  getPersonalisationOptions(): Promise<PersonalisationOptions> {
-    return Promise.resolve({ portions: [], proteins: [], sides: [], heatLevels: [] });
-  }
-
-  /**
    * Empty for the same reason: reheating guidance rides each dish's resolved
    * content (`Dish.contentState.heating`), which the dish read already carries.
    * `DishInfoPanels` falls back to its framed generic note when a dish has
@@ -568,37 +546,6 @@ export async function getHomepageData(): Promise<HomepageData> {
 const RELATED_COUNT = 4;
 
 /**
- * Per-product option groups → the shape the audited personaliser renders.
- *
- * The source of truth is now per-product (`effectiveOptionGroups`), which is
- * what SPEC-2026-07-22-catalog-browse asks for; this adapter keeps the
- * template-verified components unchanged while that source changes underneath.
- *
- * KNOWN LIMITATION: `PersonalisationOptions` has no way to express a group's
- * `One`/`Multi` mode, so a widened protein group still renders single-select
- * here. Encoding a multi-select selection is SPEC-2026-07-22-server-box-cart's
- * job (it owns `CartPersonalisation` and the cart write); this adapter is
- * deliberately not the place to half-solve it.
- */
-function adaptOptionGroups(groups: MappedOptionGroup[]): PersonalisationOptions {
-  const find = (...keys: string[]) =>
-    groups.find((group) => keys.includes(group.key))?.choices ?? [];
-
-  const heatGroup = groups.find((group) => group.key === 'heat');
-
-  return {
-    portions: find('portion', 'portions'),
-    proteins: find('protein', 'proteins'),
-    sides: find('side', 'sides'),
-    heatLevels:
-      heatGroup?.choices.map((choice) => ({
-        label: choice.label,
-        step: Number.parseInt(choice.key, 10) || 0,
-      })) ?? [],
-  };
-}
-
-/**
  * Resolves a dish page. Returns null when the slug does not exist so the route
  * can render a 404 rather than an empty shell.
  */
@@ -616,8 +563,6 @@ export async function getDishPageData(slug: string) {
   ]);
 
   if (!dish) return null;
-
-  const personalisation = adaptOptionGroups(optionGroups);
 
   /*
    * Authored heating wins. The generic steps are a framed fallback for dishes
@@ -637,7 +582,7 @@ export async function getDishPageData(slug: string) {
     RELATED_COUNT,
   );
 
-  return { dish, related, boxes, delivery, personalisation, heating };
+  return { dish, related, boxes, delivery, optionGroups, heating };
 }
 
 /**

@@ -14,7 +14,7 @@ import {
   DISH_FIXTURES,
   BOX_PRICING_FIXTURE,
   HEATING_FIXTURE,
-  PERSONALISATION_FIXTURE,
+  PERSONALISATION_GROUP_SOURCE,
 } from '@/lib/aonik/fixtures';
 import { EXTRA_FIXTURES } from '@/lib/aonik/extras';
 import { HEAT_STEPS } from '@/lib/aonik/types';
@@ -57,7 +57,7 @@ console.log(
       extras: EXTRA_FIXTURES,
       box: BOX_PRICING_FIXTURE,
       heating: HEATING_FIXTURE,
-      personalisation: PERSONALISATION_FIXTURE,
+      optionGroups: PERSONALISATION_GROUP_SOURCE,
     },
     null,
     2,

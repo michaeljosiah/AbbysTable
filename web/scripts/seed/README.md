@@ -37,15 +37,20 @@ export ADMIN_TOKEN=$(curl -s -X POST http://localhost:5050/auth/token \
 node scripts/seed/seed.mjs            /tmp/fixtures.json    # products, box, collections, facets, config
 node scripts/seed/menu-collection.mjs /tmp/fixtures.json    # the curated `menu` collection
 node scripts/seed/stock.mjs                                 # inventory for every variant
-node scripts/seed/option-groups.mjs   /tmp/fixtures.json    # portion / protein / side / heat
+node scripts/seed/option-groups.mjs   /tmp/fixtures.json    # dish and extra option groups + attachments
 node scripts/seed/content.mjs         /tmp/fixtures.json    # extras: nutrition + declarations
 node scripts/seed/dish-content.mjs    /tmp/fixtures.json    # dishes: nutrition, declarations where published
 node scripts/seed/images.mjs          /tmp/fixtures.json    # attach catalog photography
 ```
 
-Without `option-groups.mjs` every dish returns `effectiveOptionGroups: []` and
-the personaliser has nothing to offer — the storefront now hides the affordance
-rather than showing empty groups, so personalisation simply disappears.
+Without `option-groups.mjs` every dish and optioned extra returns
+`effectiveOptionGroups: []`, so personalisation simply disappears. Extra group
+keys are namespaced by fixture id because Aonik groups are tenant-global: Puff
+Puff's `size/lg`, another extra's differently-priced `size/lg`, and dish `heat`
+must remain separate authored groups. Each extra attachment allows only its own
+fixture choices and default, in fixture order. The seeder replaces attachments
+for every fixture extra; optionless extras receive `groups: []` so stale tenant
+attachments are cleared.
 
 `export-fixtures.ts` emits both shapes the seeders need: the raw fixture fields
 the content seeders read, plus the derived `name` / `attributes` /

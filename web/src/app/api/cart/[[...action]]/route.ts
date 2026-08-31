@@ -5,9 +5,9 @@
  * calls them same-origin; the token never crosses into client JavaScript, and
  * Aonik never sees a request that did not come from this server.
  *
- * Every response is the whole `{ cart }` — Aonik returns the full box on every
- * mutation, and the provider replaces its state wholesale rather than
- * reconciling deltas. That is what makes concurrent tabs self-correct.
+ * Every successful cart operation returns the whole `{ cart }`. A mutation
+ * against a missing cart returns a non-2xx `{ cart: null, error, code }`, so the
+ * provider can clear stale state before rejecting the caller.
  */
 
 import { NextResponse } from 'next/server';
@@ -15,6 +15,7 @@ import { NextResponse } from 'next/server';
 import type { BoxCartDto } from '@/lib/aonik/dto';
 import { AonikError } from '@/lib/aonik/errors';
 import { mapBoxCart, type PersonalisationSelection } from '@/lib/aonik/map';
+import { CartMissingError, mapCartMissingError } from '@/lib/cart/cartMissing';
 import {
   CartUnavailableError,
   addBoxExtra,
@@ -37,7 +38,7 @@ interface Body {
   /** Dish lines are named by product slug; extras already know their variant. */
   slug?: string;
   /** Chosen option key per group key, pre-encoding. See `addBoxLine`. */
-  choices?: Record<string, string>;
+  choices?: PersonalisationSelection;
   productVariantId?: string;
   quantity?: number;
   personalisation?: PersonalisationSelection;
@@ -57,6 +58,11 @@ interface Body {
  * cart is unknown or simply not ours.
  */
 function errorResponse(error: unknown) {
+  if (error instanceof CartMissingError) {
+    const mapped = mapCartMissingError(error);
+    return NextResponse.json(mapped.payload, { status: mapped.status });
+  }
+
   // Demo mode: these routes are not the path in use. Say so plainly rather
   // than logging it as a fault.
   if (error instanceof CartUnavailableError) {
@@ -168,10 +174,6 @@ export async function POST(request: Request, context: { params: Promise<{ action
       // refreshed box for the review page to re-render from.
       case 'checkout': {
         const result = await checkoutBoxCart({ discountCode: body.discountCode });
-        if (!result) {
-          // The cart is gone or was never ours; there is nothing to check out.
-          return NextResponse.json({ error: 'There is no box to check out.' }, { status: 404 });
-        }
         /*
          * `cart: null` is not decoration — checkout has just deleted the cart
          * cookie, so it is the literal truth, and it is what resets the

@@ -22,10 +22,9 @@ export const metadata: Metadata = {
 export default async function BoxExtrasPage() {
   const client = await getAonikClient();
 
-  const [extras, pricing, personalisation, delivery] = await Promise.all([
+  const [extras, pricing, delivery] = await Promise.all([
     client.getExtras(),
     client.getBoxPricing(),
-    client.getPersonalisationOptions(),
     client.getDeliveryWindow(),
   ]);
 
@@ -51,7 +50,6 @@ export default async function BoxExtrasPage() {
       <ExtrasStep
         extras={extras}
         pricing={pricing}
-        personalisation={personalisation}
         earliestDeliveryLabel={formatDeliveryDate(delivery?.earliestDeliveryDate)}
         heading={
           <>

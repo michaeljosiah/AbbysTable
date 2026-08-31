@@ -3,7 +3,6 @@ import Link from 'next/link';
 
 import { ReviewStep } from '@/components/checkout/ReviewStep';
 import { getAonikClient } from '@/lib/aonik/client';
-import { optionGroupsToPersonalisation } from '@/lib/aonik/map';
 import { formatDeliveryDate } from '@/lib/format';
 
 import styles from './page.module.css';
@@ -19,11 +18,10 @@ export default async function BoxReviewPage() {
 
   // `heating` feeds the shared info panels inside the edit-personalisation
   // modal, exactly as on Step 2.
-  const [dishes, extras, pricing, personalisation, delivery, heating] = await Promise.all([
+  const [dishes, extras, pricing, delivery, heating] = await Promise.all([
     client.getDishes(),
     client.getExtras(),
     client.getBoxPricing(),
-    client.getPersonalisationOptions(),
     client.getDeliveryWindow(),
     client.getHeatingInstructions(),
   ]);
@@ -31,11 +29,11 @@ export default async function BoxReviewPage() {
   // Per-dish option groups, for the same reason as Step 2: Aonik attaches them
   // per product, so the edit-personalisation modal has nothing to offer without
   // them. See the note on `/box/dishes`.
-  const optionsBySlug = Object.fromEntries(
+  const optionGroupsBySlug = Object.fromEntries(
     await Promise.all(
       dishes.map(async (dish) => {
         const groups = await client.getDishOptionGroups(dish.slug).catch(() => []);
-        return [dish.slug, optionGroupsToPersonalisation(groups)] as const;
+        return [dish.slug, groups] as const;
       }),
     ),
   );
@@ -63,8 +61,7 @@ export default async function BoxReviewPage() {
         dishes={dishes}
         extras={extras}
         pricing={pricing}
-        personalisation={personalisation}
-        optionsBySlug={optionsBySlug}
+        optionGroupsBySlug={optionGroupsBySlug}
         heating={heating}
         earliestDeliveryLabel={formatDeliveryDate(delivery?.earliestDeliveryDate)}
         heading={

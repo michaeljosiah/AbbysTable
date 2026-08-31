@@ -28,6 +28,8 @@ import { readAonikConfig } from '@/lib/aonik/dataMode';
 import { isExpired, readSession } from '@/lib/auth/session';
 
 import { clearCartCookie, readCartCookie, writeCartCookie } from './cartCookie';
+import { CartMissingError } from './cartMissing';
+import { cartExistsAfterProbe } from './convergence';
 import {
   clearPlacedOrder,
   writePlacedOrder,
@@ -128,8 +130,9 @@ export async function createBoxCart(input: {
  *
  * A 404 about the CART means it is unknown OR not ours — Aonik makes those two
  * deliberately indistinguishable, so the only safe response is to drop the
- * cookie and let the customer start again. No copy may speculate about which it
- * was.
+ * cookie and reject with authoritative `cart: null`. It must not look like an
+ * absent-cookie start: replacing a projected box inside the failed activation
+ * would announce success for a mutation that never reached that box.
  *
  * But a cart route can 404 about something that is not the cart: a variant that
  * does not exist, a line already removed. Treating those the same way threw
@@ -159,18 +162,22 @@ async function withCart<T>(
     }
 
     await clearCartCookie();
-    return null;
+    throw new CartMissingError();
   }
 }
 
-/** Whether the cart still resolves for us. Any failure is read as "gone". */
+/** Requires the cart rather than turning a missing/stale cart into a 200 no-op. */
+async function withRequiredCart<T>(
+  run: (cartId: string, auth: CartFetchOptions) => Promise<T>,
+): Promise<T> {
+  const result = await withCart(run);
+  if (result === null) throw new CartMissingError();
+  return result;
+}
+
+/** Whether the cart still resolves for us; only Aonik not-found means gone. */
 async function cartStillExists(cartId: string, auth: CartFetchOptions): Promise<boolean> {
-  try {
-    await cartFetch<BoxCartDto>(`/commerce/carts/${cartId}`, auth);
-    return true;
-  } catch {
-    return false;
-  }
+  return cartExistsAfterProbe(() => cartFetch<BoxCartDto>(`/commerce/carts/${cartId}`, auth));
 }
 
 /**
@@ -203,7 +210,7 @@ async function cartAuth(cartToken: string | undefined): Promise<CartFetchOptions
   return auth;
 }
 
-/** The current cart, or null when there is none (or it is no longer ours). */
+/** The current cart, or null without a cookie. Confirmed stale carts reject. */
 export async function getBoxCart(): Promise<BoxCart | null> {
   const dto = await withCart((cartId, auth) =>
     cartFetch<BoxCartDto>(`/commerce/carts/${cartId}`, auth),
@@ -258,10 +265,15 @@ export async function addBoxLine(input: {
    * and an all-defaults selection must become `undefined` — and this is the
    * only side of the seam that knows them.
    */
-  choices?: Record<string, string>;
+  choices?: PersonalisationSelection;
 }): Promise<BoxCart | null> {
   const { variantId, groups } = await resolveForCart(input.slug);
-  const personalisation = input.choices ? encodeSelection(groups, input.choices) : undefined;
+  // The UI has already applied add policy: an all-default add sends no choices.
+  // Once choices are present (custom add or edit), retain their complete canonical
+  // shape so an explicit reset edit is not collapsed back into absence.
+  const personalisation = input.choices
+    ? encodeSelection(groups, input.choices, false)
+    : undefined;
 
   const dto = await withCart((cartId, auth) =>
     cartFetch<BoxCartDto>(`/commerce/carts/${cartId}/lines`, {
@@ -277,7 +289,7 @@ export async function addBoxLine(input: {
   if (dto) return mapBoxCart(dto);
 
   /*
-   * No cart yet — and this call is one of the two ways a box can begin.
+   * No cookie yet — and this call is one of the two ways a box can begin.
    *
    * "Add this dish to your box" on a dish page adds BEFORE Step 1: the customer
    * picks a dish, then chooses a size, and Step 1 greets them with "<dish> will
@@ -308,25 +320,25 @@ export async function addBoxLine(input: {
 export async function updateBoxLine(
   lineId: string,
   input: { quantity?: number; personalisation?: PersonalisationSelection; applyToUnits?: number },
-): Promise<BoxCart | null> {
-  const dto = await withCart((cartId, auth) =>
+): Promise<BoxCart> {
+  const dto = await withRequiredCart((cartId, auth) =>
     cartFetch<BoxCartDto>(`/commerce/carts/${cartId}/lines/${lineId}`, {
       ...auth,
       method: 'PATCH',
       body: input,
     }),
   );
-  return dto ? mapBoxCart(dto) : null;
+  return mapBoxCart(dto);
 }
 
-export async function removeBoxLine(lineId: string): Promise<BoxCart | null> {
-  const dto = await withCart((cartId, auth) =>
+export async function removeBoxLine(lineId: string): Promise<BoxCart> {
+  const dto = await withRequiredCart((cartId, auth) =>
     cartFetch<BoxCartDto>(`/commerce/carts/${cartId}/lines/${lineId}`, {
       ...auth,
       method: 'DELETE',
     }),
   );
-  return dto ? mapBoxCart(dto) : null;
+  return mapBoxCart(dto);
 }
 
 /**
@@ -357,8 +369,8 @@ export async function setBoxSize(size: number): Promise<BoxCart | null> {
   );
   if (dto) return mapBoxCart(dto);
 
-  // No cart — either none was ever made, or `withCart` just dropped a stale
-  // cookie. Both mean the customer is starting a box, so start one.
+  // No cookie means the customer is starting a box. Confirmed stale carts throw
+  // above so this activation cannot silently replace a previously projected box.
   const plan = await defaultBoxPlan();
   return (await createBoxCart({ bundleProductId: plan.bundleProductId, size })).cart;
 }
@@ -391,23 +403,23 @@ export async function addBoxExtra(input: {
   productVariantId: string;
   quantity: number;
   personalisation?: PersonalisationSelection;
-}): Promise<BoxCart | null> {
-  const dto = await withCart((cartId, auth) =>
+}): Promise<BoxCart> {
+  const dto = await withRequiredCart((cartId, auth) =>
     cartFetch<BoxCartDto>(`/commerce/carts/${cartId}/extras`, {
       ...auth,
       method: 'POST',
       body: input,
     }),
   );
-  return dto ? mapBoxCart(dto) : null;
+  return mapBoxCart(dto);
 }
 
 /** Re-validates against the live catalogue before review (SPEC review-checkout). */
-export async function continueBoxCart(): Promise<BoxCart | null> {
-  const dto = await withCart((cartId, auth) =>
+export async function continueBoxCart(): Promise<BoxCart> {
+  const dto = await withRequiredCart((cartId, auth) =>
     cartFetch<BoxCartDto>(`/commerce/carts/${cartId}/continue`, { ...auth, method: 'POST' }),
   );
-  return dto ? mapBoxCart(dto) : null;
+  return mapBoxCart(dto);
 }
 
 /**
@@ -447,7 +459,7 @@ export async function checkoutBoxCart(input?: {
   cancelUrl?: string;
   customerAccountId?: string;
   discountCode?: string;
-}): Promise<CheckoutResult | null> {
+}): Promise<CheckoutResult> {
   // The box is read BEFORE placing, because the checkout response carries only
   // totals — no lines. Once the cart is checked out this is the last chance to
   // see what was in it, and the confirmation page has no other source: Aonik's
@@ -455,16 +467,15 @@ export async function checkoutBoxCart(input?: {
   // can never read the order back. A drift 409 throws before the snapshot is
   // written, which is correct — nothing was placed.
   const placed = await getBoxCart();
+  if (!placed) throw new CartMissingError('There is no box to check out.');
 
-  const dto = await withCart((cartId, auth) =>
+  const dto = await withRequiredCart((cartId, auth) =>
     cartFetch<CheckoutResultDto>(`/commerce/carts/${cartId}/checkout`, {
       ...auth,
       method: 'POST',
       body: { ...paymentLabels(), ...input },
     }),
   );
-
-  if (!dto) return null;
 
   const order = mapCheckoutResult(dto);
   await writePlacedOrder(snapshotOrder(order, placed, await earliestDeliveryDate()));

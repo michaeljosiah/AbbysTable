@@ -114,10 +114,8 @@ function NoticeIcon({ blocking }: { blocking: boolean }) {
 }
 
 export function DriftNotices() {
-  const { changes, hasUnavailableLine } = useCart();
+  const { changes, hasUnavailableLine, error } = useCart();
   const [dismissed, setDismissed] = useState<string[]>([]);
-
-  if (changes.length === 0) return null;
 
   /** Identity for dismissal: same line + reason + move is the same notice. */
   const keyFor = (change: BoxChange, index: number) =>
@@ -127,10 +125,21 @@ export function DriftNotices() {
     .map((change, index) => ({ change, key: keyFor(change, index) }))
     .filter(({ key }) => !dismissed.includes(key));
 
-  if (visible.length === 0) return null;
+  if (!error && visible.length === 0) return null;
 
   return (
     <ul className={styles.list} aria-live="polite">
+      {error ? (
+        <li className={styles.notice} data-blocking="true" role="alert">
+          <span className={styles.icon} aria-hidden="true">
+            <NoticeIcon blocking />
+          </span>
+          <span className={styles.body}>
+            <span className={styles.title}>{error.message}</span>
+            <span className={styles.detail}>Please try the action again.</span>
+          </span>
+        </li>
+      ) : null}
       {visible.map(({ change, key }) => {
         const { title, detail } = describe(change);
         const blocking = change.reason === 'unavailable' && hasUnavailableLine;

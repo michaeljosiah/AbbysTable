@@ -30,16 +30,18 @@ import styles from './PlaceOrderButton.module.css';
 export function PlaceOrderButton({
   className,
   children,
+  disabled = false,
 }: {
   className?: string;
   children: ReactNode;
+  disabled?: boolean;
 }) {
   const router = useRouter();
   const { hasUnavailableLine, pending, placeOrder, isServerCart } = useCart();
   const [placing, setPlacing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  const blocked = hasUnavailableLine || pending || placing;
+  const blocked = disabled || hasUnavailableLine || pending || placing;
 
   const confirm = async () => {
     if (blocked) return;
@@ -84,7 +86,7 @@ export function PlaceOrderButton({
         onClick={confirm}
         aria-disabled={blocked || undefined}
         data-blocked={blocked || undefined}
-        disabled={placing}
+        disabled={blocked}
       >
         {children}
       </button>

@@ -47,7 +47,7 @@ export default async function DishPage({ params }: DishPageProps) {
 
   if (!data) notFound();
 
-  const { dish, related, boxes, delivery, personalisation, heating } = data;
+  const { dish, related, boxes, delivery, optionGroups, heating } = data;
   const earliestDeliveryLabel = formatDeliveryDate(delivery?.earliestDeliveryDate);
 
   // "Boxes start at ..." is derived from the cheapest offer rather than hardcoded.
@@ -164,7 +164,7 @@ export default async function DishPage({ params }: DishPageProps) {
             </a>
           </nav>
 
-          <DishOrderPanel dish={dish} options={personalisation} />
+          <DishOrderPanel dish={dish} optionGroups={optionGroups} />
 
           <p className={styles.deliveryNote}>
             <svg
