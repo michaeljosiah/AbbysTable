@@ -67,20 +67,27 @@ input:focus-visible,
 /* ---- Shared layout container ----------------------------------------------
    The template's `.at-band`: centred content column with a responsive gutter. */
 
+/*
+ * `--content-max` is the width of the COLUMN, not of the element: the template
+ * sizes its bands content-box, so the gutter sits outside the 1280px measure
+ * rather than eating into it. Reproduced here by adding the gutter back to
+ * max-width, which keeps border-box sizing everywhere else in the app.
+ */
 .band {
+  --band-gutter: var(--space-7);
   width: 100%;
-  max-width: var(--content-max);
+  max-width: calc(var(--content-max) + 2 * var(--band-gutter));
   margin-inline: auto;
-  padding-inline: var(--space-7);
+  padding-inline: var(--band-gutter);
 }
 
 .band--frame {
-  max-width: var(--frame-max);
+  max-width: calc(var(--frame-max) + 2 * var(--band-gutter));
 }
 
-@media (max-width: 768px) {
+@media (max-width: 860px) {
   .band {
-    padding-inline: 22px;
+    --band-gutter: 22px;
   }
 }
 

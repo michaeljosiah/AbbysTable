@@ -8,11 +8,17 @@ import styles from './FloralMark.module.css';
  */
 interface FloralMarkProps {
   height?: number;
+  /**
+   * Hands sizing to the caller's stylesheet instead of setting it inline. Use
+   * this where the mark resizes across breakpoints — an inline height would
+   * outrank the media queries that need to shrink it.
+   */
+  cssSized?: boolean;
   alt?: string;
   className?: string;
 }
 
-export function FloralMark({ height = 66, alt = '', className }: FloralMarkProps) {
+export function FloralMark({ height = 66, cssSized = false, alt = '', className }: FloralMarkProps) {
   return (
     <Image
       src="/assets/floral-mark.png"
@@ -21,7 +27,7 @@ export function FloralMark({ height = 66, alt = '', className }: FloralMarkProps
       width={height}
       aria-hidden={alt === '' || undefined}
       className={[styles.mark, className].filter(Boolean).join(' ')}
-      style={{ height, width: 'auto' }}
+      style={cssSized ? undefined : { height, width: 'auto' }}
     />
   );
 }

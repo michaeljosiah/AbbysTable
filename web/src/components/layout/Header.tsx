@@ -14,8 +14,13 @@ import { MobileDrawer } from './MobileDrawer';
 import styles from './Header.module.css';
 
 /**
- * Sticky site header. Below 1040px the nav collapses into the burger-triggered
- * drawer and the Order CTA shrinks to a compact pill.
+ * Sticky site header.
+ *
+ * Below 1240px the nav collapses into the burger-triggered drawer and the row
+ * re-forms around a centred wordmark, with the burger and the Order button
+ * pinned to the edges. The threshold is set by the nav itself: seven links plus
+ * the wordmark and the Order button need roughly 1225px, so the drawer takes
+ * over before they can collide.
  *
  * The session arrives as a prop from the layout rather than being read here:
  * this is a Client Component, and the session cookie is httpOnly by design.
@@ -44,7 +49,17 @@ export function Header({ session }: { session: SessionView }) {
           </button>
 
           <Link href="/" aria-label="Abby's Table — home" className={styles.logoLink}>
-            <Logo width={186} height={32} />
+            {/* Sized from .logoLink, not inline: the mark steps down four
+                times on the way to 344px, and an inline value would outrank
+                every one of those media queries. */}
+            <Logo withRegistered={false} />
+            <span className={styles.strapline}>
+              Nigerian fusion food{' '}
+              <span className={styles.straplineDot} aria-hidden="true">
+                ·
+              </span>{' '}
+              Well made
+            </span>
           </Link>
 
           <nav className={styles.desktopNav} aria-label="Primary">
@@ -62,15 +77,13 @@ export function Header({ session }: { session: SessionView }) {
           </nav>
 
           <div className={styles.actions}>
-            <AccountMenu session={session} linkClassName={styles.navLink} />
-            <Button variant="primary" size="sm" href="/menu">
+            <span className={styles.identity}>
+              <AccountMenu session={session} linkClassName={styles.navLink} />
+            </span>
+            <Button variant="primary" size="sm" href="/menu" className={styles.order}>
               Order
             </Button>
           </div>
-
-          <Link href="/menu" className={styles.basket}>
-            Order
-          </Link>
         </div>
       </header>
 

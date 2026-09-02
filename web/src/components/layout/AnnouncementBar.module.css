@@ -6,7 +6,6 @@
   min-height: 34px;
   padding: 9px var(--space-5);
   background: var(--surface-dark);
-  border-top: var(--rule-brass-top) solid var(--brass);
 }
 
 .message {
@@ -35,8 +34,24 @@
   right: max(var(--space-7), calc((100% - var(--frame-max)) / 2 + var(--space-7)));
 }
 
-@media (max-width: 1040px) {
+@media (max-width: 1080px) {
   .social {
     display: none;
+  }
+}
+
+/*
+ * Below 860px the bar has to hold the delivery date on one line, so the
+ * lead-in is dropped and the date is given a break opportunity of its own
+ * rather than being left to wrap mid-phrase.
+ */
+@media (max-width: 860px) {
+  .prefix {
+    display: none;
+  }
+
+  .deliveryBreak {
+    display: block;
+    height: 0;
   }
 }

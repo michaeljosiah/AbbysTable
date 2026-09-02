@@ -6,17 +6,17 @@
  * — nothing here is imported outside `MockAonikClient`.
  *
  * The catalogue is the union of both templates' dish lists:
- *  - The menu template supplies eight dishes with full facet data.
- *  - The homepage template adds two more ("Suya ribeye", "Slow-braised egusi")
- *    that the menu design never listed, so they carry no protein/wellness/meal/
- *    dietary attributes and no full macros. Those were not invented; the dishes
- *    simply drop out when a facet filter is applied. Aonik should fill them in.
+ *  - The 2026 homepage template supplies the six dishes the rail is designed
+ *    around. It publishes a components line and two macros per dish but no
+ *    protein/meal/wellness/dietary facets and no declarations, so those are
+ *    left absent rather than invented — the dishes simply drop out when a menu
+ *    facet filter is applied. Aonik should fill them in.
+ *  - The menu template supplies four further dishes with full facet data.
  *
  * `isFeatured` marks the six dishes the homepage rail was designed to show.
  *
- * NOTE: "Wild rice, goat efo" carries an "Under 500 kcal" badge but 520 kcal.
- * That contradiction is in the source template and is preserved here rather than
- * silently corrected — worth confirming with the real catalogue.
+ * NOTE: two of the six are filed under "Mediterranean-inspired", which the
+ * homepage's own filter row does not offer — see the note in Menu.tsx.
  *
  * NOTE: the ten dishes share three photographs; that is how the templates ship.
  *
@@ -36,63 +36,118 @@ import type {
 } from './types';
 
 export const DISH_FIXTURES: Dish[] = [
+  // --- The six dishes the homepage rail is designed around.
+  //
+  // These carry only what the homepage template publishes: title, components,
+  // description, category, heat, badges and the two macros on the card. The
+  // template states no protein/meal/wellness/dietary facets for them, and no
+  // ingredient or allergen declaration, so none is written here — they simply
+  // drop out when a menu facet filter is applied. Aonik should fill them in.
   {
-    id: 'dish-wild-rice-goat-efo',
-    slug: 'wild-rice-goat-efo',
-    title: 'Wild rice, goat efo',
-    description: 'Slow-cooked goat in a rich spinach efo, over nutty wild rice.',
+    id: 'dish-yaji-crusted-wild-salmon',
+    slug: 'yaji-crusted-wild-salmon',
+    title: 'Yaji-Crusted Wild Salmon',
+    parts: 'Jollof Quinoa · Rainbow Salad',
+    description:
+      'Spiced and seared wild salmon with smoky jollof quinoa and a crisp, colourful rainbow salad.',
     imageUrl: '/assets/dish-goat-efo.png',
     heat: 'medium',
-    tags: ['New', 'Under 500 kcal'],
+    tags: ['New'],
     isSignature: false,
-    nutrition: { proteinGrams: 32, carbsGrams: 31, fatGrams: 11, calories: 520, fibreGrams: 9 },
+    nutrition: { proteinGrams: 34, fibreGrams: 7 },
     isFeatured: true,
     category: 'Protein-led',
-    proteinType: 'Beef',
-    mealType: 'Stew',
-    wellness: ['Protein-led'],
-    dietary: ['Gluten-free', 'High-fibre'],
+    wellness: [],
+    dietary: [],
   },
   {
-    id: 'dish-ata-dindin-lamb-shank',
-    slug: 'ata-dindin-lamb-shank',
-    title: 'Ata Dindin Lamb Shank',
+    id: 'dish-surf-and-turf-efo-riro-rice',
+    slug: 'surf-and-turf-efo-riro-rice',
+    title: 'Surf & Turf Efo Riro Rice',
+    parts: 'Goat · Garlic Butter Prawns · Brown Basmati · Curly Kale',
     description:
-      'Fall-off-the-bone lamb shank slow-cooked in a bold, peppery Ata Dindin sauce with native spices.',
+      'Slow-cooked goat in a rich spinach efo, paired with garlic butter prawns and nutty brown basmati rice.',
     imageUrl: '/assets/dish-lamb-shank.png',
     heat: 'high',
     tags: [],
     isSignature: true,
     upgradePence: 400,
-    nutrition: { proteinGrams: 38, carbsGrams: 20, fatGrams: 22, calories: 620, fibreGrams: 8 },
+    nutrition: { proteinGrams: 38, fibreGrams: 8 },
     isFeatured: true,
-    category: 'Protein-led',
-    proteinType: 'Lamb',
-    mealType: 'Stew',
-    wellness: ['Protein-led'],
-    dietary: ['Gluten-free'],
-    ingredients:
-      'Lamb shank, tomatoes, red peppers, onions, ata dindin spice blend, garlic, ginger, scotch bonnet, jollof rice, greens, herbs, olive oil, sea salt.',
-    allergens:
-      'Celery, sulphites. Made in a kitchen that also handles gluten, nuts, shellfish and dairy.',
+    category: 'Mediterranean-inspired',
+    wellness: [],
+    dietary: [],
   },
   {
-    id: 'dish-fish-peppersoup-bone-broth',
-    slug: 'fish-peppersoup-bone-broth',
-    title: 'Fish peppersoup bone broth',
-    description: 'A fragrant, deeply spiced bone broth with tender fish and native aromatics.',
+    id: 'dish-slow-braised-oxtail-pappardelle',
+    slug: 'slow-braised-oxtail-pappardelle',
+    title: 'Slow-Braised Oxtail Pappardelle',
+    parts: 'Sweet & Spicy Ata Dindin · Lime-Herb Purple Cabbage',
+    description:
+      'Fall-off-the-bone oxtail, slow-braised in a sweet and spicy ata dindin sauce, served over pappardelle.',
     imageUrl: '/assets/dish-fish-peppersoup.png',
     heat: 'high',
     tags: [],
     isSignature: false,
-    nutrition: { proteinGrams: 27, carbsGrams: 31, fatGrams: 11, calories: 520, fibreGrams: 9 },
+    nutrition: { proteinGrams: 36, fibreGrams: 7 },
+    isFeatured: true,
+    category: 'Carb-conscious',
+    wellness: [],
+    dietary: [],
+  },
+  {
+    id: 'dish-pepper-soup-seafood-stew',
+    slug: 'pepper-soup-seafood-stew',
+    title: 'Pepper Soup Seafood Stew',
+    parts: 'Monkfish · King Prawns · Mussels · Butter Beans · Fennel · Scent Leaf',
+    description:
+      'A fragrant, deeply spiced pepper soup with tender seafood, butter beans and aromatic greens.',
+    imageUrl: '/assets/dish-goat-efo.png',
+    heat: 'high',
+    tags: ['Under 500 kcal'],
+    isSignature: false,
+    nutrition: { proteinGrams: 32, fibreGrams: 9 },
+    isFeatured: true,
+    category: 'Mediterranean-inspired',
+    wellness: [],
+    dietary: [],
+  },
+  {
+    id: 'dish-suya-ribeye-jollof-asparagus',
+    slug: 'suya-ribeye-jollof-asparagus',
+    title: 'Suya Ribeye, Jollof, Asparagus',
+    parts: 'Ribeye · Smoky Jollof · Charred Asparagus',
+    description: 'Suya-rubbed ribeye with smoky jollof and charred asparagus.',
+    imageUrl: '/assets/dish-fish-peppersoup.png',
+    heat: 'high',
+    tags: ['New'],
+    isSignature: false,
+    // The template prints the card's defaults for this dish rather than stating
+    // macros of its own; kept identical so the rail matches the design.
+    nutrition: { proteinGrams: 32, fibreGrams: 9 },
+    isFeatured: true,
+    category: 'Protein-led',
+    wellness: [],
+    dietary: [],
+  },
+  {
+    id: 'dish-slow-braised-egusi',
+    slug: 'slow-braised-egusi',
+    title: 'Slow-Braised Egusi & Sweet Plantain',
+    parts: 'Egusi · Spinach · Wild Rice · Sweet Plantain',
+    description: 'Melon-seed egusi slow-braised with spinach, wild rice and sweet plantain.',
+    imageUrl: '/assets/dish-goat-efo.png',
+    heat: 'medium',
+    tags: [],
+    isSignature: false,
+    nutrition: { proteinGrams: 32, fibreGrams: 9 },
     isFeatured: true,
     category: 'Everyday balance',
-    proteinType: 'Fish',
-    mealType: 'Soup',
-    wellness: ['DASH'],
-    dietary: ['Gluten-free', 'Dairy-free'],
+    wellness: [],
+    dietary: [],
   },
+
+  // --- Menu-only dishes, carried over from the menu template with full facets.
   {
     id: 'dish-royal-seafood-okra',
     slug: 'royal-seafood-okra',
@@ -112,23 +167,6 @@ export const DISH_FIXTURES: Dish[] = [
     ingredients:
       'King prawns, crab, okra, tomatoes, red peppers, onions, native spices, garlic, herbs, chicken stock, olive oil, sea salt.',
     allergens: 'Shellfish (prawns, crab), mustard, nuts (peanuts, almonds, pistachio), gluten.',
-  },
-  {
-    id: 'dish-suya-salmon-kale-quinoa',
-    slug: 'suya-salmon-kale-quinoa',
-    title: 'Suya salmon, kale, quinoa',
-    description: 'Suya-spiced salmon with massaged kale and fluffy quinoa.',
-    imageUrl: '/assets/dish-goat-efo.png',
-    heat: 'low',
-    tags: ['Under 500 kcal', 'Protein-led'],
-    isSignature: false,
-    nutrition: { proteinGrams: 32, carbsGrams: 16, fatGrams: 18, calories: 520, fibreGrams: 9 },
-    isFeatured: true,
-    category: 'Plant-led',
-    proteinType: 'Fish',
-    mealType: 'Bowl',
-    wellness: ['Protein-led', 'Mediterranean-inspired'],
-    dietary: ['Gluten-free', 'Dairy-free', 'High-fibre'],
   },
   {
     id: 'dish-jollof-quinoa-bowl',
@@ -178,38 +216,6 @@ export const DISH_FIXTURES: Dish[] = [
     mealType: 'Bowl',
     wellness: ['Carb-conscious', 'Protein-led'],
     dietary: ['Gluten-free'],
-  },
-
-  // --- Homepage-only dishes: no facet data exists for these in either template.
-  {
-    id: 'dish-suya-ribeye-jollof-asparagus',
-    slug: 'suya-ribeye-jollof-asparagus',
-    title: 'Suya ribeye, jollof, asparagus',
-    description: 'Suya-rubbed ribeye with smoky jollof and charred asparagus.',
-    imageUrl: '/assets/dish-fish-peppersoup.png',
-    heat: 'high',
-    tags: ['New'],
-    isSignature: false,
-    nutrition: { proteinGrams: 32, fibreGrams: 9 },
-    isFeatured: true,
-    category: 'Protein-led',
-    wellness: [],
-    dietary: [],
-  },
-  {
-    id: 'dish-slow-braised-egusi',
-    slug: 'slow-braised-egusi',
-    title: 'Slow-braised egusi with spinach, wild rice and sweet plantain',
-    description: 'Melon-seed egusi slow-braised with spinach, wild rice and sweet plantain.',
-    imageUrl: '/assets/dish-goat-efo.png',
-    heat: 'medium',
-    tags: [],
-    isSignature: false,
-    nutrition: { proteinGrams: 32, fibreGrams: 9 },
-    isFeatured: true,
-    category: 'Everyday balance',
-    wellness: [],
-    dietary: [],
   },
 ];
 

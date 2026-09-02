@@ -424,6 +424,7 @@ interface DishAttributes {
   fibreGrams?: number;
   carbsGrams?: number;
   fatGrams?: number;
+  parts?: string;
 }
 
 function readAttributes(attributesJson: string): DishAttributes {
@@ -435,6 +436,7 @@ function readAttributes(attributesJson: string): DishAttributes {
 
   return {
     heatStep: num(raw.heatStep),
+    parts: str(raw.parts),
     protein: str(raw.protein),
     meal: str(raw.meal),
     wellness: strArray(raw.wellness),
@@ -472,6 +474,7 @@ export function mapSummaryToDish(dto: ProductSummaryDto): Dish {
     id: dto.id,
     slug: dto.slug,
     title: dto.name,
+    parts: attributes.parts,
     description: '',
     imageUrl: dto.heroImageUrl ?? '',
     heat: heatFromStep(attributes.heatStep),
@@ -511,6 +514,7 @@ export function mapProductToDish(dto: ProductDto): Dish {
     id: dto.id,
     slug: dto.slug,
     title: dto.name,
+    parts: attributes.parts,
     description: dto.description,
     imageUrl: [...dto.media].sort((a, b) => a.sortOrder - b.sortOrder)[0]?.url ?? '',
     heat: heatFromStep(attributes.heatStep),

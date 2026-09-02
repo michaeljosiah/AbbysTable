@@ -10,11 +10,18 @@
   padding-block: 72px;
 }
 
-@media (max-width: 1040px) {
+@media (max-width: 1080px) {
   .split {
     grid-template-columns: 1fr;
     gap: 26px;
     padding-block: 46px 52px;
+  }
+
+  /* The split sections pull their gutter in a band earlier than the rest of the
+     page, at 1080 rather than 860. Doubled class so it outranks the global
+     `.band` regardless of which stylesheet lands first. */
+  .split.split {
+    padding-inline: 22px;
   }
 }
 
@@ -28,7 +35,7 @@
   border-radius: var(--radius-lg);
 }
 
-@media (max-width: 1040px) {
+@media (max-width: 1080px) {
   .media {
     height: auto;
     width: 100%;
@@ -66,6 +73,21 @@
   font-size: var(--body-md);
   line-height: 1.7;
   color: var(--text-body);
+}
+
+/* Narrative copy sizes UP once stacked: the column is wider than the desktop
+   measure, so the desktop size reads small rather than comfortable. */
+@media (max-width: 1080px) {
+  .copy {
+    max-width: 560px;
+  }
+
+  .story,
+  .story p {
+    max-width: 100%;
+    font-size: 16.5px;
+    line-height: 1.65;
+  }
 }
 
 .story p + p {

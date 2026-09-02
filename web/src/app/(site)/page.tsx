@@ -5,7 +5,6 @@ import { Hero } from '@/components/sections/Hero';
 import { HowItWorks } from '@/components/sections/HowItWorks';
 import { Menu } from '@/components/sections/Menu';
 import { PrivateTable } from '@/components/sections/PrivateTable';
-import { Standards } from '@/components/sections/Standards';
 import { getHomepageData } from '@/lib/aonik/client';
 import { formatDeliveryDate } from '@/lib/format';
 
@@ -17,22 +16,17 @@ export default async function HomePage() {
   const { dishes, boxes, delivery } = await getHomepageData();
 
   const earliestDeliveryLabel = formatDeliveryDate(delivery?.earliestDeliveryDate);
-  // Lead with the most popular tier; point newcomers at the smallest.
-  const mainBox = boxes.find((box) => box.badge === 'Most popular') ?? boxes[0];
+  // The promo band leads with the smallest box: it is the minimum order, and
+  // its price is what the band quotes as a floor.
   const entryBox = [...boxes].sort((a, b) => a.pricePence - b.pricePence)[0];
 
   return (
     <>
       <Hero />
-      <Standards />
       <HowItWorks earliestDeliveryLabel={earliestDeliveryLabel} />
       <Menu dishes={dishes} />
       <Founder />
-      <BoxesPromo
-        mainBox={mainBox}
-        tasterBox={entryBox}
-        earliestDeliveryLabel={earliestDeliveryLabel}
-      />
+      <BoxesPromo entryBox={entryBox} />
       <Gifting />
       <PrivateTable />
     </>

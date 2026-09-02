@@ -19,16 +19,20 @@ export function AnnouncementBar({ earliestDeliveryLabel }: AnnouncementBarProps)
   return (
     <div className={styles.bar}>
       <p className={styles.message}>
-        Cooked to order in small batches
-        {earliestDeliveryLabel ? (
-          <>
+        <span className={styles.prefix}>
+          Cooked to order in small batches
+          {earliestDeliveryLabel ? (
             <span className={styles.dot} aria-hidden="true">
               •
             </span>
-            <strong className={styles.delivery}>
-              Earliest UK-wide delivery: {earliestDeliveryLabel}
-            </strong>
-          </>
+          ) : null}
+        </span>
+        {earliestDeliveryLabel ? (
+          <strong className={styles.delivery}>
+            Earliest mainland UK delivery:
+            <span className={styles.deliveryBreak}> </span>
+            {earliestDeliveryLabel}
+          </strong>
         ) : null}
       </p>
       <SocialIcons className={styles.social} />

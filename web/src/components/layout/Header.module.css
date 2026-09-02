@@ -11,14 +11,42 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  max-width: var(--frame-max);
+  /* Like `.band`, the template sizes this row content-box, so the 1440 frame is
+     the column width and the gutter sits outside it. */
+  max-width: calc(var(--frame-max) + 2 * var(--space-7));
   margin-inline: auto;
   padding: 18px var(--space-7);
 }
 
 .logoLink {
+  --logo-width: 186px;
+  --logo-height: 32px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
   color: var(--green-forest);
   text-decoration: none;
+}
+
+/*
+ * Sits under the wordmark and stays legible all the way down to 344px, so it
+ * shrinks rather than dropping out — it is the only place the proposition is
+ * stated in the chrome.
+ */
+.strapline {
+  display: block;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-medium);
+  font-size: 9.5px;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+  color: var(--brass-deep);
+  white-space: nowrap;
+}
+
+.straplineDot {
+  color: var(--brass);
 }
 
 .desktopNav {
@@ -60,46 +88,75 @@
   background: var(--green-forest);
 }
 
-.basket {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  padding: 10px 18px;
-  border-radius: var(--radius-pill);
-  background: var(--action-primary);
-  color: var(--white);
-  font-family: var(--font-sans);
-  font-weight: var(--weight-semibold);
-  font-size: var(--body-sm);
-  letter-spacing: 0.04em;
-  line-height: 1;
-  text-decoration: none;
-  transition: background 0.16s ease, transform 0.16s ease;
-}
+/*
+ * Below 1240px the row stops being a three-part flex layout and becomes a
+ * centred wordmark with the burger and Order button pinned to the edges. The
+ * Order button stays the real Button component rather than swapping to a
+ * separate pill — it only tightens its padding and drops the tracking.
+ */
+@media (max-width: 1240px) {
+  .row {
+    position: relative;
+    justify-content: center;
+    padding: 14px 28px;
+  }
 
-.basket:hover {
-  background: var(--action-primary-hover);
-  transform: translateY(-1px);
-}
-
-@media (max-width: 1040px) {
   .desktopNav,
-  .actions {
+  .identity {
     display: none;
   }
 
-  .burger,
-  .basket {
+  .burger {
     display: flex;
+    position: absolute;
+    left: 22px;
+    top: 50%;
+    transform: translateY(-50%);
   }
 
+  .actions {
+    position: absolute;
+    right: 28px;
+    top: 50%;
+    transform: translateY(-50%);
+    gap: 0;
+    margin-left: 0;
+  }
+
+  .logoLink {
+    align-items: center;
+    text-align: center;
+  }
+
+  .order {
+    padding: 7px 15px;
+    font-size: 12.5px;
+    letter-spacing: 0.04em;
+    text-transform: none;
+  }
+}
+
+@media (max-width: 1080px) {
   .row {
     padding: 12px 20px;
+  }
+
+  .burger {
+    left: 14px;
+  }
+
+  .actions {
+    right: 18px;
   }
 
   .logoLink {
     --logo-width: 150px;
     --logo-height: 26px;
+  }
+
+  .strapline {
+    font-size: 8.5px;
+    letter-spacing: 0.13em;
   }
 }
 
@@ -110,6 +167,16 @@
 
   .logoLink {
     --logo-width: 140px;
+  }
+
+  .strapline {
+    font-size: 7px;
+    letter-spacing: 0.1em;
+  }
+
+  .order {
+    padding: 6px 13px;
+    font-size: 12px;
   }
 }
 

@@ -2,7 +2,7 @@
 
 .section {
   background: var(--surface-dark);
-  padding-block: var(--space-8);
+  padding-block: 82px;
   text-align: center;
 }
 
@@ -12,50 +12,58 @@
 }
 
 .blurb {
-  margin: 14px 0 var(--space-3);
+  max-width: 470px;
+  margin: 22px auto 0;
   font-size: var(--body-md);
+  line-height: var(--line-body);
   color: var(--text-on-dark-soft);
 }
 
-.delivery {
-  margin: 0 0 28px;
-  font-size: var(--body-md);
-  color: var(--text-on-dark-soft);
+.terms {
+  margin: var(--space-5) 0 30px;
+  font-size: 14.5px;
+  color: var(--text-on-dark);
 }
 
-/* Brighter and heavier than the line around it — the date is the fact that matters. */
-.deliveryDate {
-  font-weight: 700;
-  color: var(--sand);
-}
-
-.ctaRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-5);
-}
-
-.taster {
-  font-size: var(--body-sm);
-  color: var(--cream-2);
-}
-
-.tasterLink {
-  padding-bottom: 3px;
-  color: inherit;
-  text-decoration: none;
-  border-bottom: var(--border-hairline) solid var(--brass);
-  transition: color 0.16s ease;
-}
-
-.tasterLink:hover {
+.dot {
   color: var(--brass);
+  padding: 0 9px;
 }
 
-@media (max-width: 768px) {
+.cta {
+  display: flex;
+  justify-content: center;
+}
+
+@media (max-width: 860px) {
   .section {
     padding-block: 46px 50px;
+  }
+
+  .cta {
+    display: block;
+  }
+}
+
+/* Full-width is a phone treatment; on tablets the CTA goes intrinsic again. */
+@media (min-width: 621px) and (max-width: 1080px) {
+  .cta {
+    display: flex;
+  }
+
+  .cta a[data-variant] {
+    width: auto;
+    min-width: 280px;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 620px) {
+  .cta a[data-variant] {
+    display: flex;
+    width: 100%;
+    max-width: 360px;
+    margin-inline: auto;
+    justify-content: center;
   }
 }

@@ -1,5 +1,3 @@
-import Link from 'next/link';
-
 import { Button, SectionHeading } from '@/components/ui';
 import type { BoxOffer } from '@/lib/aonik/types';
 import { formatPrice } from '@/lib/format';
@@ -7,10 +5,10 @@ import { formatPrice } from '@/lib/format';
 import styles from './BoxesPromo.module.css';
 
 /**
- * The copy spells small box sizes out ("Eight chef-prepared dishes", "four
- * dishes") rather than printing digits, so the count from Aonik is worded here.
- * Twelve is the top of the range any box realistically reaches; past that the
- * numeral is a sane fallback.
+ * The copy spells small box sizes out ("Six chef-prepared dishes") rather than
+ * printing digits, so the count from Aonik is worded here. Twelve is the top of
+ * the range any box realistically reaches; past that the numeral is a sane
+ * fallback.
  */
 const NUMBER_WORDS: readonly string[] = [
   'zero',
@@ -32,61 +30,52 @@ function spellCount(count: number): string {
   return NUMBER_WORDS[count] ?? String(count);
 }
 
-/** "eight" -> "Eight", for the word that opens the heading. */
+/** "six" -> "Six", for the word that opens the heading. */
 function capitalise(word: string): string {
   return word.charAt(0).toUpperCase() + word.slice(1);
 }
 
 interface BoxesPromoProps {
-  mainBox: BoxOffer;
-  tasterBox: BoxOffer;
   /**
-   * Pre-formatted delivery date, e.g. "6 August", or null when the tenant
-   * publishes no promise — in which case the line is not rendered at all. A
-   * wrong date is worse than no date, so nothing is invented here.
+   * The box the band leads with — the smallest, which is also the minimum
+   * order. Its price is quoted as a floor ("from £…"), because larger boxes
+   * cost more in total.
    */
-  earliestDeliveryLabel: string | null;
+  entryBox: BoxOffer;
 }
 
 /**
- * Forest-green promo band: the headline box, the earliest delivery date and a
- * nudge towards the smaller taster box.
+ * Forest-green promo band: the entry box, what it costs and where it goes.
  *
- * Every number on screen — dish counts, prices, the delivery date — arrives as
+ * Every number on screen — the dish count, the price, the minimum — arrives as
  * a prop, so a change in Aonik lands without touching this file.
  */
-export function BoxesPromo({ mainBox, tasterBox, earliestDeliveryLabel }: BoxesPromoProps) {
+export function BoxesPromo({ entryBox }: BoxesPromoProps) {
   return (
     <section id="boxes" className={styles.section}>
       <div className="band">
         <SectionHeading level={2} tone="cream" align="center">
-          {capitalise(spellCount(mainBox.dishCount))} chef-prepared dishes.{' '}
-          <span className={styles.price}>{formatPrice(mainBox.pricePence)}</span>
+          {capitalise(spellCount(entryBox.dishCount))} chef-prepared dishes
+          <br />
+          from <span className={styles.price}>{formatPrice(entryBox.pricePence)}</span>
         </SectionHeading>
 
-        {mainBox.blurb ? <p className={styles.blurb}>{mainBox.blurb}</p> : null}
-
-        <p className={styles.delivery}>
-          {earliestDeliveryLabel ? (
-            <>
-              Earliest UK-wide delivery:{' '}
-              <strong className={styles.deliveryDate}>{earliestDeliveryLabel}</strong> ·{' '}
-            </>
-          ) : null}
-          Choose your date at checkout
+        <p className={styles.blurb}>
+          Nigerian fusion, made from scratch with quality ingredients and nutrition at the core.
         </p>
 
-        <div className={styles.ctaRow}>
-          <Button variant="outline-light" href="/menu">
-            Choose your meals
-          </Button>
-          <span className={styles.taster}>
-            New here?{' '}
-            <Link className={styles.tasterLink} href="/menu">
-              Try the {tasterBox.name} — {spellCount(tasterBox.dishCount)} dishes,{' '}
-              {formatPrice(tasterBox.pricePence)}
-            </Link>
+        <p className={styles.terms}>
+          {entryBox.dishCount}-dish minimum order
+          <span className={styles.dot} aria-hidden="true">
+            •
           </span>
+          Mainland UK delivery
+        </p>
+
+        <div className={styles.cta}>
+          <Button variant="outline-brass" href="/menu">
+            Choose your dishes
+          </Button>
         </div>
       </div>
     </section>

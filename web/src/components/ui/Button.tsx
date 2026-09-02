@@ -12,11 +12,18 @@ import styles from './Button.module.css';
  *  - outline        forest hairline, no fill ("Build a gift box")
  *  - outline-brass  brass hairline on dark grounds ("Request a consultation")
  *  - outline-light  cream hairline on dark grounds ("Choose your meals")
+ *  - cream          solid cream on dark grounds ("Find out more", Private Table)
  *
  * Renders an anchor when `href` is supplied so in-page CTAs stay navigable
  * without JavaScript, and a button otherwise.
  */
-export type ButtonVariant = 'primary' | 'dark' | 'outline' | 'outline-brass' | 'outline-light';
+export type ButtonVariant =
+  | 'primary'
+  | 'dark'
+  | 'outline'
+  | 'outline-brass'
+  | 'outline-light'
+  | 'cream';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface CommonProps {

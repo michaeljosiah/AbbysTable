@@ -1,17 +1,29 @@
+/* ===========================================================================
+   How it works (and the standards card above it)
+   ---------------------------------------------------------------------------
+   Ported from the template's `.at-sec-hiw` / `.at-hiw-grid` / `.at-hiw-card`.
+
+   Steps are horizontal cards — photograph left, copy right — laid out two-up.
+   The photo-to-copy ratio is re-cut at four widths because the card has to stay
+   readable as it narrows: the image gives ground back to the text on the way
+   down, then the grid drops to one column at 760px and the ratio resets.
+   =========================================================================== */
+
 .section {
-  background: var(--surface-page);
-  padding-block: 82px 64px;
+  background: var(--surface-bright);
+  padding-block: 34px 36px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 860px) {
   .section {
-    padding-block: 52px 54px;
+    padding-block: 52px 40px;
   }
 }
 
 /* ---- Intro ----------------------------------------------------------------- */
 
 .intro {
+  margin-top: 58px;
   text-align: center;
 }
 
@@ -29,6 +41,15 @@
   color: var(--text-body);
 }
 
+/* The heading is the widest single word-run in the section; below 860 it is
+   held on one line and stepped down rather than allowed to break. */
+@media (max-width: 860px) {
+  .section .intro .heading {
+    font-size: 27px;
+    white-space: nowrap;
+  }
+}
+
 @media (max-width: 620px) {
   .lede {
     margin-top: var(--space-2);
@@ -37,131 +58,240 @@
   }
 }
 
-/* ---- Step grid -------------------------------------------------------------
-   Four across, two at 960px, one at 620px — where it also narrows and centres. */
+@media (max-width: 400px) {
+  .section .intro .heading {
+    font-size: 23px;
+  }
+}
+
+@media (max-width: 344px) {
+  .section .intro .heading {
+    font-size: 21px;
+  }
+}
+
+/* ---- Step grid -------------------------------------------------------------- */
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 30px;
-  margin: 54px 0 0;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 26px;
+  margin: 40px 0 0;
   padding: 0;
   list-style: none;
 }
 
-@media (max-width: 960px) {
-  .grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 40px 26px;
-  }
-}
-
-@media (max-width: 620px) {
-  .grid {
-    grid-template-columns: 1fr;
-    gap: 46px;
-    max-width: 420px;
-    margin: 30px auto 0;
-  }
-}
-
 .card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: stretch;
+  overflow: hidden;
+  background: var(--surface-bright);
+  border: var(--border-hairline) solid var(--sand-2);
+  border-radius: 14px;
 }
 
 .media {
   position: relative;
-  aspect-ratio: 4 / 3;
-  overflow: hidden;
-  border: var(--border-hairline) solid var(--sand-2);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
+  min-height: 234px;
 }
 
 .image {
   object-fit: cover;
 }
 
-/* Step number, knocked out of the section ground and straddling the card edge. */
-.badge {
-  position: absolute;
-  top: -16px;
-  left: 50%;
-  transform: translateX(-50%);
+.copy {
   display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 26px 26px 26px 30px;
+}
+
+/* Step number. It sits inside the copy column now rather than straddling the
+   photograph, so it needs no knockout border. */
+.badge {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 34px;
   height: 34px;
-  border: var(--rule-thick) solid var(--surface-page);
   border-radius: 50%;
   background: var(--surface-dark);
-  box-shadow: var(--shadow-card);
+  font-family: var(--font-sans);
   font-weight: var(--weight-semibold);
   font-size: 14px;
   color: var(--text-on-dark);
 }
 
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.titleRule {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 1.5px;
+  background: var(--rule-brass);
+}
+
 .cardTitle {
-  margin-top: 22px;
+  margin: 0;
+  min-height: 0;
   font-family: var(--font-display);
   font-weight: var(--weight-medium);
-  font-size: var(--display-3);
-  line-height: 1.25;
-  text-align: center;
+  font-size: 23px;
+  line-height: 1.2;
+  text-align: left;
   color: var(--text-heading);
 }
 
-/* Two-up, titles wrap to two lines unevenly — reserve the second line. */
-@media (max-width: 960px) {
-  .cardTitle {
-    min-height: 2.5em;
-  }
+.cardBody {
+  margin: 12px 0 0 38px;
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-body);
 }
 
-@media (max-width: 620px) {
+/* ---- Card ratio bands -------------------------------------------------------
+   Below 1080 the brass rule drops beneath the heading (column-reverse) so the
+   heading gets the full width of a narrowing copy column. */
+
+@media (max-width: 1080px) {
+  .card {
+    grid-template-columns: 0.72fr 1fr;
+  }
+
+  .media {
+    min-height: 200px;
+  }
+
+  .copy {
+    padding: 22px 20px;
+  }
+
   .cardTitle {
-    min-height: 0;
     font-size: 21px;
   }
+
+  .cardBody {
+    margin-left: 0;
+    font-size: 14.5px;
+    line-height: 1.5;
+  }
+
+  .titleRow {
+    flex-direction: column-reverse;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .titleRule {
+    width: 44px;
+  }
 }
 
-/* Longer titles swap for their compact wording on one-column layouts. */
-.titleCompact {
-  display: none;
+@media (max-width: 860px) {
+  .card {
+    grid-template-columns: 0.62fr 1fr;
+  }
+
+  .media {
+    min-height: 178px;
+  }
+
+  .copy {
+    padding: 18px 16px;
+  }
+
+  .cardTitle {
+    font-size: 20px;
+  }
+
+  .cardBody {
+    font-size: 14px;
+  }
+
+  .titleRow {
+    gap: 9px;
+    margin-top: 12px;
+  }
+
+  .titleRule {
+    width: 40px;
+  }
+}
+
+/* One column from 760 down — the card gets its width back, so the photograph
+   can take a slightly larger share again. */
+@media (max-width: 760px) {
+  .grid {
+    grid-template-columns: 1fr;
+    max-width: 460px;
+    margin-inline: auto;
+  }
+
+  .card {
+    grid-template-columns: 0.78fr 1fr;
+  }
+
+  .media {
+    min-height: 168px;
+  }
+
+  .copy {
+    padding: 20px 18px;
+  }
+
+  .cardTitle {
+    font-size: 19px;
+  }
+
+  .titleRule {
+    width: 48px;
+  }
 }
 
 @media (max-width: 620px) {
-  .titleFull {
-    display: none;
-  }
-
-  .titleCompact {
-    display: inline;
+  .grid {
+    gap: 22px;
+    margin-top: 30px;
   }
 }
 
-.cardBody {
-  margin-top: var(--space-2);
-  font-size: 13.5px;
-  line-height: var(--line-snug);
-  text-align: center;
-  color: var(--text-muted);
-}
+/* ---- Delivery note and CTA ---------------------------------------------------
+   The date and the CTA share one raised panel rather than stacking as loose
+   lines under the grid. */
 
-/* ---- Delivery note and CTA -------------------------------------------------- */
-
-.delivery {
+.footer {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
-  margin-top: 50px;
-  font-weight: var(--weight-semibold);
-  font-size: 13.5px;
-  letter-spacing: 0.01em;
+  flex-wrap: wrap;
+  gap: 44px;
+  margin-top: 26px;
+  padding: 20px 30px;
+  border-radius: 14px;
+  background: var(--surface-inset);
+}
+
+.delivery {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--text-body);
+}
+
+.deliveryDate {
+  font-weight: var(--weight-bold);
   color: var(--text-heading);
 }
 
@@ -169,14 +299,40 @@
   flex: 0 0 auto;
   opacity: 0.85;
   fill: none;
-  stroke: currentColor;
+  stroke: var(--green-forest);
   stroke-width: 1.6;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-.cta {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
+@media (max-width: 860px) {
+  .footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 20px;
+  }
+
+  .footer a[data-variant] {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Full-width is a phone treatment; on tablets the CTA goes intrinsic again. */
+@media (min-width: 621px) and (max-width: 860px) {
+  .footer {
+    align-items: center;
+  }
+
+  .footer a[data-variant] {
+    width: auto;
+    min-width: 280px;
+  }
+}
+
+@media (max-width: 620px) {
+  .footer a[data-variant] {
+    max-width: 360px;
+    margin-inline: auto;
+  }
 }

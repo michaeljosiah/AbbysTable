@@ -3,8 +3,8 @@
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { Eyebrow, FilterPill, SectionHeading } from '@/components/ui';
-import { DISH_CATEGORIES, type Dish } from '@/lib/aonik/types';
+import { Button, Eyebrow, FilterPill, SectionHeading } from '@/components/ui';
+import type { Dish, DishCategory } from '@/lib/aonik/types';
 
 import { DishCard } from './DishCard';
 import styles from './Menu.module.css';
@@ -15,7 +15,23 @@ import styles from './Menu.module.css';
  */
 const FEATURED = 'Featured dishes';
 
-const FILTERS = [FEATURED, ...DISH_CATEGORIES] as const;
+/**
+ * The rail's filter row, exactly as the template sets it.
+ *
+ * Deliberately NOT derived from `DISH_CATEGORIES`: the template files two
+ * dishes under "Mediterranean-inspired" but does not offer it as a pill, so
+ * those two are reachable only from "Featured dishes". That looks like an
+ * oversight in the source rather than an intent, but it is Esther's call, so it
+ * is reproduced rather than quietly corrected — add the category here to offer
+ * it.
+ */
+const FILTERS = [
+  FEATURED,
+  'Carb-conscious',
+  'Protein-led',
+  'Plant-led',
+  'Everyday balance',
+] as const satisfies readonly [typeof FEATURED, ...DishCategory[]];
 
 /** Smallest the scroll thumb is allowed to get, in px. */
 const MIN_THUMB = 28;
@@ -144,6 +160,12 @@ export function Menu({ dishes }: MenuProps) {
           aria-hidden="true"
         >
           <span ref={thumbRef} className={styles.progressThumb} />
+        </div>
+
+        <div className={styles.cta}>
+          <Button variant="outline" href="/menu">
+            View the full menu
+          </Button>
         </div>
       </div>
     </section>

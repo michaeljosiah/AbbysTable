@@ -21,18 +21,20 @@ export function Gifting() {
           </Eyebrow>
 
           <SectionHeading level={1} align="center" className={styles.heading}>
-            Send a box that says everything.
+            Send a gift that says everything.
           </SectionHeading>
 
           <p className={styles.body}>
-            New parents. A season of recovery. A busy stretch. Just because. A box that arrives
-            beautifully, keeps in the fridge or freezer, and tastes like someone cooked for them,
-            because someone did.
+            For new parents, recovery, busy seasons or just because.
+            <br />
+            <br />
+            Send a carefully chosen Abby&apos;s Table order, or give them a gift card and let them
+            choose what suits them best.
           </p>
 
           <div className={styles.actions}>
             <Button variant="outline" href="/menu">
-              Build a gift box
+              Find out more
             </Button>
           </div>
         </div>

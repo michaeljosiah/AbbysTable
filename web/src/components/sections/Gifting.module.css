@@ -1,6 +1,6 @@
 /* Gifting split — copy left, film right. Mirrors the founder band, which puts
-   its media first. Collapses to a single column at 1040px, where the copy sits
-   above the film in DOM order. */
+   its media first. Collapses to a single column at 1080px, where the copy sits
+   above the film in DOM order and the film becomes a centred square. */
 
 .section {
   background: var(--surface-page);
@@ -56,14 +56,39 @@
   object-fit: cover;
 }
 
-@media (max-width: 1040px) {
+@media (max-width: 1080px) {
   .split {
     grid-template-columns: 1fr;
     gap: 26px;
     padding-block: 46px 52px;
   }
 
+  /* The split sections pull their gutter in a band earlier than the rest of the
+     page, at 1080 rather than 860. Doubled class so it outranks the global
+     `.band` regardless of which stylesheet lands first. */
+  .split.split {
+    padding-inline: 22px;
+  }
+
+
+  /* Square and centred, matching the founder portrait, rather than a letterbox
+     that would crop the film differently from every other stacked medium. */
   .media {
-    height: 320px;
+    height: auto;
+    width: 100%;
+    max-width: 460px;
+    aspect-ratio: 1 / 1;
+    justify-self: center;
+    margin-inline: auto;
+  }
+
+  .copy {
+    max-width: 560px;
+  }
+
+  .body {
+    max-width: 100%;
+    font-size: 16.5px;
+    line-height: 1.65;
   }
 }

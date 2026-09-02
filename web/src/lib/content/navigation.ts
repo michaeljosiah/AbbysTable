@@ -27,10 +27,14 @@ export interface NavItem {
   href: string;
 }
 
+/**
+ * Seven links, not eight: the template drops "Abby's Boxes". That removal is
+ * load-bearing — eight links plus the wordmark and the Order button need about
+ * 1225px, which is why the header falls back to the drawer below 1240px.
+ */
 export const NAV_ITEMS: NavItem[] = [
   { label: 'Menu', href: '/menu' },
   { label: 'How it works', href: '/#howitworks' },
-  { label: "Abby's Boxes", href: '/#boxes' },
   { label: 'Gifting', href: '/#gifting' },
   { label: 'Private Table', href: '/#private' },
   { label: 'Our Standards', href: '/#standards' },

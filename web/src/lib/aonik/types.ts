@@ -45,6 +45,10 @@ export const DISH_CATEGORIES = [
   'Protein-led',
   'Plant-led',
   'Everyday balance',
+  // Added by the 2026 homepage template, which files two dishes under it. Note
+  // it is also a WellnessGoal below — the two vocabularies now overlap by one
+  // value, which is the reconciliation this file already flags.
+  'Mediterranean-inspired',
 ] as const;
 
 export type DishCategory = (typeof DISH_CATEGORIES)[number];
@@ -128,6 +132,16 @@ export interface Dish {
   id: string;
   slug: string;
   title: string;
+  /**
+   * The dish's components, as a single authored line —
+   * "Goat · Garlic Butter Prawns · Brown Basmati · Curly Kale".
+   *
+   * Merchandising copy the tenant publishes per product, NOT an ingredient
+   * declaration and never assembled from one: see `ingredients` below, which
+   * stays the only source for that and is never inferred. Absent when the
+   * tenant has not authored it.
+   */
+  parts?: string;
   description: string;
   imageUrl: string;
   heat: HeatLevel;

@@ -198,7 +198,7 @@
 
 /* ---- Small viewports: columns become accordions ---------------------------- */
 
-@media (max-width: 768px) {
+@media (max-width: 860px) {
   .grid {
     grid-template-columns: 1fr;
     gap: 0;

@@ -29,6 +29,7 @@
   --cream: #f7f1e8; /* page ground */
   --cream-2: #f7f2e8; /* header / standards band */
   --cream-3: #fbf8f1; /* dishes band — lightest cream */
+  --cream-4: #f4efe7; /* inset panel on a cream ground — the how-it-works footer */
   --white: #ffffff;
   --blush: #e9cdb8; /* peach — founder band, light-on-dark text */
   --sand: #e0d8c8; /* card surface, hairline borders on light */
@@ -46,6 +47,7 @@
   --surface-page: var(--cream);
   --surface-raised: var(--cream-2);
   --surface-bright: var(--cream-3);
+  --surface-inset: var(--cream-4);
   --surface-card: var(--sand);
   --surface-blush: var(--blush);
   --surface-dark: var(--green-forest);
@@ -92,6 +94,7 @@
   --weight-regular: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
+  --weight-bold: 700;
 
   /* Display scale (Playfair) */
   --display-hero: 55px;

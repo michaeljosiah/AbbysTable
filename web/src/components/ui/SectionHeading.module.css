@@ -43,7 +43,7 @@
   color: var(--brown);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 860px) {
   .heading[data-level='hero'],
   .heading[data-level='1'],
   .heading[data-level='2'] {

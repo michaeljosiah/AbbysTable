@@ -5,6 +5,12 @@
    The background is split in two: the photograph is a real <img> so next/image
    can serve it, and the gradient the template layered on top of it in the same
    `background` shorthand becomes the section's ::after.
+
+   Four art-directed bands, not two:
+     >=1081   wide letterbox, copy pinned top-left
+     861-1080 same crop, tighter scrim, copy pulled in
+     621-860  same crop again — the portrait re-frame misreads at tablet width
+     <=620    portrait crop, copy joins the flow over a two-part scrim
    =========================================================================== */
 
 .hero {
@@ -56,6 +62,7 @@
   left: var(--space-7);
   z-index: 1;
   max-width: 520px;
+  box-sizing: border-box;
 }
 
 .title {
@@ -69,18 +76,55 @@
   text-wrap: pretty;
 }
 
-/* The headline turns after "Nigerian food," only on narrow screens. */
-.lineBreak {
+/* Each break is revealed in its own band; all three are off on desktop. */
+.break1,
+.break2,
+.break3 {
   display: none;
 }
 
-.lede {
-  margin: 20px 0 30px;
-  max-width: 380px;
+/* ---- Proof points ----------------------------------------------------------
+   Three claims in brass rings, separated by a half-width hairline. Replaces the
+   single supporting paragraph the earlier design used. */
+
+.proof {
+  margin: 22px 0 30px;
+  padding: 0;
+  max-width: 400px;
+  list-style: none;
+}
+
+.proofItem {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 0;
+}
+
+.proofIcon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: var(--border-hairline) solid var(--brass);
+  border-radius: 50%;
+  color: var(--brass);
+}
+
+.proofText {
   font-family: var(--font-sans);
-  font-size: var(--body-md);
-  line-height: var(--line-body);
+  font-size: 14.5px;
+  line-height: 1.45;
   color: var(--text-on-dark);
+}
+
+.proofRule {
+  display: block;
+  width: 52%;
+  height: 1px;
+  background: color-mix(in srgb, var(--brass) 42%, transparent);
 }
 
 .actions {
@@ -105,53 +149,125 @@
   color: var(--brass);
 }
 
-/* ---- Below 768px -----------------------------------------------------------
-   The photograph swaps to the portrait crop and the content unpins from the top
-   to sit on the floor of the hero, over a vertical scrim. */
+/* ---- 861-1080 --------------------------------------------------------------
+   Same photograph, a heavier scrim to hold the copy at a narrower measure. */
 
-@media (max-width: 768px) {
+@media (max-width: 1080px) {
   .hero {
-    height: min(132vw, 600px);
+    height: 592px;
+  }
+
+  .hero::after {
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--green-forest) 68%, transparent) 0%,
+      color-mix(in srgb, var(--green-forest) 26%, transparent) 50%,
+      transparent 74%
+    );
+  }
+
+  .content {
+    top: 76px;
+    left: 32px;
+    max-width: 440px;
+  }
+
+  .title {
+    font-size: 40px;
+  }
+}
+
+/* ---- 621-860 ---------------------------------------------------------------
+   Still the landscape crop: the portrait re-frame misreads at this width. The
+   copy stays a pinned overlay and the section grows with the viewport. */
+
+@media (max-width: 860px) {
+  .hero {
+    height: auto;
+    min-height: min(72vw, 560px);
+  }
+
+  .hero::after {
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--green-forest) 80%, transparent) 0%,
+      color-mix(in srgb, var(--green-forest) 36%, transparent) 52%,
+      transparent 80%
+    );
+  }
+
+  .content {
+    top: 48px;
+    left: 26px;
+    right: auto;
+    bottom: auto;
+    max-width: 400px;
+    padding: 0;
+  }
+
+  .title {
+    font-size: 36px;
+  }
+
+  .break1 {
+    display: inline;
+  }
+
+  .actions {
+    align-items: center;
+  }
+}
+
+/* ---- 620 and below ---------------------------------------------------------
+   The copy leaves the overlay and joins the flow, so the section is sized by
+   its content and the photograph sits behind it under a two-part scrim: a
+   vertical wash that darkens the floor for the text, and a soft diagonal that
+   keeps the top-left legible. */
+
+@media (max-width: 620px) {
+  .hero {
+    height: auto;
+    min-height: 0;
   }
 
   .media {
     display: none;
   }
 
-  /* Template mobile: `url(hero-mobile.png) 50% 31% / 130% no-repeat`.
-     `width: 130%` with `height: auto` is background-size: 130%; the paired
-     offset/translate percentages reproduce background-position's anchoring
-     exactly — left/top place the container's 50%/31% point, the negative
-     translate pulls back by the same fraction of the image. `max-width: none`
-     defeats the global `img { max-width: 100% }`, which would otherwise clamp
-     the crop back to 100% and undo the zoom. */
   .mediaMobile {
     display: block;
     position: absolute;
-    top: 31%;
-    left: 50%;
-    width: 130%;
-    height: auto;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     max-width: none;
-    transform: translate(-50%, -31%);
+    object-fit: cover;
+    object-position: 66% top;
   }
 
   .hero::after {
-    background: linear-gradient(
-      180deg,
-      transparent 40%,
-      color-mix(in srgb, var(--green-forest) 30%, transparent) 66%,
-      color-mix(in srgb, var(--green-forest) 84%, transparent) 100%
-    );
+    background:
+      linear-gradient(
+        180deg,
+        transparent 0%,
+        transparent 34%,
+        color-mix(in srgb, var(--green-forest) 40%, transparent) 58%,
+        color-mix(in srgb, var(--green-forest) 86%, transparent) 80%,
+        color-mix(in srgb, var(--green-forest) 94%, transparent) 100%
+      ),
+      linear-gradient(
+        100deg,
+        color-mix(in srgb, var(--green-forest) 66%, transparent) 0%,
+        color-mix(in srgb, var(--green-forest) 30%, transparent) 34%,
+        transparent 58%
+      );
   }
 
   .content {
-    top: auto;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    max-width: 620px;
-    padding: 0 22px 34px;
+    position: relative;
+    inset: auto;
+    max-width: none;
+    padding: 36px 22px 40px;
   }
 
   .eyebrow {
@@ -159,10 +275,41 @@
   }
 
   .title {
-    font-size: 38px;
+    font-size: 40px;
   }
 
-  .lineBreak {
+  .break2,
+  .break3 {
     display: inline;
+  }
+
+  /* Stacked, full-width CTAs — capped so they do not stretch on a wide phone. */
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 18px;
+  }
+
+  .actions a[data-variant] {
+    width: 100%;
+    max-width: 360px;
+    margin-inline: auto;
+    justify-content: center;
+  }
+
+  .textLink {
+    align-self: center;
+  }
+}
+
+/* ---- Tablet CTA sizing -----------------------------------------------------
+   Full-width buttons are a phone treatment. Between 621 and 1080 the CTA goes
+   intrinsic again, with a floor so it still reads as the primary action. */
+
+@media (min-width: 621px) and (max-width: 1080px) {
+  .actions a[data-variant] {
+    width: auto;
+    min-width: 280px;
+    justify-content: center;
   }
 }

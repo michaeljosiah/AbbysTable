@@ -1,17 +1,41 @@
 /* ===========================================================================
    Standards
    ---------------------------------------------------------------------------
-   Ported from the template's `.at-standards-list` / `.at-std-sep` /
-   `.at-standards-tag`. The template put the horizontal gutter on the section
-   itself; here the section keeps the ground and the vertical rhythm while the
-   global `.band` supplies the centred column and its responsive gutter.
+   Ported from the template's `.at-std-card` / `.at-standards-list` /
+   `.at-std-sep` / `.at-standards-tag`. No longer a band of its own: it is a
+   raised card sitting at the top of the how-it-works section, which supplies
+   the ground and the centred column.
+
+   The horizontal padding is doing real work — it reserves the space the corner
+   leaves occupy, which is why it shrinks in step with them.
    =========================================================================== */
 
-.section {
+.card {
+  position: relative;
+  overflow: hidden;
   background: var(--surface-raised);
-  border-bottom: var(--border-hairline) solid var(--border-light);
-  padding-block: 30px;
+  border-radius: 16px;
+  padding: 30px 130px 26px;
   text-align: center;
+}
+
+.leaf {
+  position: absolute;
+  height: auto;
+}
+
+.leafLeft {
+  left: 46px;
+  top: 26px;
+  width: 50px;
+  transform: rotate(-10deg);
+}
+
+.leafRight {
+  right: 48px;
+  top: 18px;
+  width: 78px;
+  transform: rotate(9deg);
 }
 
 .list {
@@ -41,8 +65,16 @@
   color: var(--rule-brass);
 }
 
+.rule {
+  display: block;
+  width: min(660px, 100%);
+  height: 1px;
+  margin: 15px auto 0;
+  background: var(--border-light);
+}
+
 .tagline {
-  margin: var(--space-3) auto 0;
+  margin: 13px auto 0;
   max-width: 620px;
   font-family: var(--font-accent);
   font-weight: var(--weight-medium);
@@ -53,29 +85,70 @@
 }
 
 /* ---- Responsive steps ------------------------------------------------------
-   The list tightens twice on the way down; the tagline steps once. */
+   Four uppercase claims on one line is the tightest thing on the page, so the
+   card steps its padding, its leaves and its type together the whole way down. */
 
-@media (max-width: 620px) {
-  .list {
-    row-gap: 5px;
-    font-size: 13px;
-    letter-spacing: 0.05em;
+@media (max-width: 1080px) {
+  .card {
+    padding: 26px 100px 24px;
   }
 
-  .separator {
-    margin: 0 10px;
+  .leafLeft {
+    left: 26px;
+    width: 42px;
+  }
+
+  .leafRight {
+    right: 30px;
+    width: 62px;
   }
 
   /* The middle lozenge collapses to a zero-height, full-width flex item so the
      claims break 2 + 2 rather than wrapping unevenly. Scoped through both class
-     names so it outranks the tighter `.separator` margin set at 400px below —
-     in the template the later rule won and quietly reinstated the margins. */
+     names so it outranks the tighter `.separator` margins set further down — in
+     the template the later rule won and quietly reinstated the margins. */
   .separator.separatorBreak {
     flex-basis: 100%;
     width: 100%;
     height: 0;
     margin: 0;
     font-size: 0;
+  }
+}
+
+/* The leaves stay on phones — they are the card's only brand cue — but move to
+   the outer corners and shrink so the claims keep the middle. */
+@media (max-width: 860px) {
+  .card {
+    padding: 24px 16px;
+  }
+
+  .leafLeft {
+    left: 8px;
+    top: 16px;
+    width: 30px;
+  }
+
+  .leafRight {
+    right: 2px;
+    top: auto;
+    bottom: 6px;
+    width: 44px;
+  }
+
+  .list {
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    row-gap: 6px;
+  }
+
+  .separator {
+    margin: 0 8px;
+  }
+
+  /* Clears the bottom-right leaf. */
+  .tagline {
+    padding-right: 38px;
   }
 }
 
@@ -86,12 +159,31 @@
 }
 
 @media (max-width: 400px) {
+  .card {
+    padding: 22px 12px;
+  }
+
   .list {
-    font-size: 11.5px;
+    font-size: 10px;
     letter-spacing: 0.04em;
   }
 
   .separator {
-    margin: 0 8px;
+    margin: 0 6px;
+  }
+
+  .tagline {
+    padding-right: 32px;
+  }
+}
+
+@media (max-width: 344px) {
+  .list {
+    font-size: 9.5px;
+    letter-spacing: 0.03em;
+  }
+
+  .separator {
+    margin: 0 5px;
   }
 }

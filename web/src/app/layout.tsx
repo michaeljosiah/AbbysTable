@@ -39,13 +39,13 @@ const figtree = Figtree({
 });
 
 export const metadata: Metadata = {
-  title: "Abby's Table — Nigerian food, the way it deserves to be made",
+  title: "Abby's Table — Nigerian fusion food, rooted in tradition",
   description:
-    'Chef-prepared Nigerian meals, personalised and delivered chilled UK-wide. No seed oils, no bouillon or cubes, no MSG, no refined sugars.',
+    'Nigerian fusion food, made from scratch and delivered chilled UK-wide. No seed oils, no ultra-processed foods, no added MSG, no refined sugars.',
   openGraph: {
     title: "Abby's Table",
     description:
-      'Chef-prepared Nigerian meals, personalised and delivered chilled UK-wide. Heat, eat, live well.',
+      'Nigerian fusion food, made from scratch and delivered chilled UK-wide. Heat, eat, live well.',
     type: 'website',
     locale: 'en_GB',
   },
