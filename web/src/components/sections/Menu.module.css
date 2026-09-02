@@ -43,24 +43,19 @@
   color: var(--text-body);
 }
 
-/* ---- Filters ---------------------------------------------------------------- */
-
-.filters {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--space-3);
-  margin: 40px 0 44px;
-}
-
 /* ---- Carousel --------------------------------------------------------------- */
 
+/*
+ * The 44px below the intro is the template's, minus the 12px the scroller
+ * pads itself by so a lifted card's shadow is not clipped — the template gets
+ * the same number by letting a negative margin collapse into its wrapper.
+ */
 .scroller {
   display: flex;
   gap: var(--space-6);
   overflow-x: auto;
+  margin-top: 32px;
   padding-top: var(--space-3);
-  margin-top: calc(var(--space-3) * -1);
   padding-bottom: 14px;
   scroll-snap-type: x proximity;
 }
@@ -139,10 +134,3 @@
   }
 }
 
-@media (max-width: 560px) {
-  .filters {
-    flex-wrap: nowrap;
-    justify-content: flex-start;
-    overflow-x: auto;
-  }
-}

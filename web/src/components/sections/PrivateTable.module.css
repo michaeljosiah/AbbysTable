@@ -30,11 +30,6 @@
   margin-top: var(--space-3);
 }
 
-.eyebrowDivider {
-  max-width: 290px;
-  margin: 16px auto 0;
-}
-
 .standfirst {
   max-width: 540px;
   margin: var(--space-3) auto 0;
@@ -134,6 +129,13 @@
   color: var(--brass);
   font-size: 9px;
   line-height: 1;
+}
+
+/* Both classes, so it outranks `.divider`'s own margin above — otherwise the
+   full-width rule wins on source order and the rule sits flush left. */
+.divider.eyebrowDivider {
+  max-width: 290px;
+  margin: 16px auto 0;
 }
 
 /* ---- Stacked ---------------------------------------------------------------- */

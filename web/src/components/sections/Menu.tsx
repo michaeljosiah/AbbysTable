@@ -1,37 +1,13 @@
 'use client';
 
 import Image from 'next/image';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
-import { Button, Eyebrow, FilterPill, SectionHeading } from '@/components/ui';
-import type { Dish, DishCategory } from '@/lib/aonik/types';
+import { Button, Eyebrow, SectionHeading } from '@/components/ui';
+import type { Dish } from '@/lib/aonik/types';
 
 import { DishCard } from './DishCard';
 import styles from './Menu.module.css';
-
-/**
- * The dishes rail. Filtering is client state; the dishes themselves are
- * resolved on the server and handed down, so the list is in the initial HTML.
- */
-const FEATURED = 'Featured dishes';
-
-/**
- * The rail's filter row, exactly as the template sets it.
- *
- * Deliberately NOT derived from `DISH_CATEGORIES`: the template files two
- * dishes under "Mediterranean-inspired" but does not offer it as a pill, so
- * those two are reachable only from "Featured dishes". That looks like an
- * oversight in the source rather than an intent, but it is Esther's call, so it
- * is reproduced rather than quietly corrected — add the category here to offer
- * it.
- */
-const FILTERS = [
-  FEATURED,
-  'Carb-conscious',
-  'Protein-led',
-  'Plant-led',
-  'Everyday balance',
-] as const satisfies readonly [typeof FEATURED, ...DishCategory[]];
 
 /** Smallest the scroll thumb is allowed to get, in px. */
 const MIN_THUMB = 28;
@@ -40,14 +16,19 @@ interface MenuProps {
   dishes: Dish[];
 }
 
+/**
+ * The dishes rail. The dishes are resolved on the server and handed down, so
+ * the list is in the initial HTML.
+ *
+ * There is no filter row: the 2026 template dropped it, showing one curated
+ * rail and sending anyone who wants to browse to /menu. (The template still
+ * carries `.at-filters` styles and builds a `pills` array in its script, but
+ * never renders either — dead code, like its unused basket button.)
+ */
 export function Menu({ dishes }: MenuProps) {
-  const [filter, setFilter] = useState<string>(FEATURED);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const thumbRef = useRef<HTMLSpanElement>(null);
-
-  const visibleDishes =
-    filter === FEATURED ? dishes : dishes.filter((dish) => dish.category === filter);
 
   /**
    * Sizes and positions the thumb to mirror the scroller, the way the design
@@ -72,12 +53,12 @@ export function Menu({ dishes }: MenuProps) {
     thumb.style.transform = `translateX(${progress * (trackWidth - thumbWidth)}px)`;
   }, []);
 
-  // Re-sync on resize, and whenever filtering changes how much there is to scroll.
+  // Re-sync on resize, and whenever the number of dishes changes.
   useEffect(() => {
     syncThumb();
     window.addEventListener('resize', syncThumb);
     return () => window.removeEventListener('resize', syncThumb);
-  }, [syncThumb, visibleDishes.length]);
+  }, [syncThumb, dishes.length]);
 
   /** Clicking the track jumps the rail to that position. */
   const handleTrackClick = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -89,11 +70,6 @@ export function Menu({ dishes }: MenuProps) {
     const fraction = Math.min(1, Math.max(0, (event.clientX - bounds.left) / bounds.width));
     const maxScroll = scroller.scrollWidth - scroller.clientWidth;
     scroller.scrollTo({ left: fraction * maxScroll, behavior: 'smooth' });
-  };
-
-  const handleFilter = (option: string) => {
-    setFilter(option);
-    scrollerRef.current?.scrollTo({ left: 0 });
   };
 
   return (
@@ -124,18 +100,6 @@ export function Menu({ dishes }: MenuProps) {
           </p>
         </div>
 
-        <div className={`${styles.filters} noScrollbar`} role="group" aria-label="Filter dishes">
-          {FILTERS.map((option) => (
-            <FilterPill
-              key={option}
-              active={option === filter}
-              onClick={() => handleFilter(option)}
-            >
-              {option}
-            </FilterPill>
-          ))}
-        </div>
-
         <div
           ref={scrollerRef}
           onScroll={syncThumb}
@@ -144,7 +108,7 @@ export function Menu({ dishes }: MenuProps) {
           aria-label="Dishes"
           tabIndex={0}
         >
-          {visibleDishes.map((dish) => (
+          {dishes.map((dish) => (
             <div key={dish.id} className={styles.slide}>
               <DishCard dish={dish} href={`/menu/${dish.slug}`} />
             </div>

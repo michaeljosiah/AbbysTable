@@ -21,8 +21,8 @@
   /* ----- Accents ----- */
   --brass: #c28e3c; /* gold accent — eyebrows, rules, join button */
   --brass-deep: #a9762c; /* pressed / hover brass */
-  --terracotta: #b8431c; /* rust — primary buttons, accent display text */
-  --terracotta-deep: #9a3614; /* pressed terracotta */
+  --terracotta: #b45f5a; /* clay rose — primary buttons, accent display text */
+  --terracotta-deep: #96474a; /* pressed terracotta */
   --navy: #28365c; /* private-table ground, signature badges */
 
   /* ----- Toasted neutrals (surfaces) ----- */
@@ -32,7 +32,8 @@
   --cream-4: #f4efe7; /* inset panel on a cream ground — the how-it-works footer */
   --white: #ffffff;
   --blush: #e9cdb8; /* peach — founder band, light-on-dark text */
-  --sand: #e0d8c8; /* card surface, hairline borders on light */
+  --sand: #e0d8c8; /* hairline borders on light */
+  --sand-light: #ede5d9; /* dish-card surface — lighter than the hairline sand */
   --sand-2: #d6d0c6; /* faint cream text on dark */
 
   /* ----- Text ----- */
@@ -49,6 +50,7 @@
   --surface-bright: var(--cream-3);
   --surface-inset: var(--cream-4);
   --surface-card: var(--sand);
+  --surface-dish: var(--sand-light);
   --surface-blush: var(--blush);
   --surface-dark: var(--green-forest);
   --surface-darker: var(--green-deep);

@@ -4,7 +4,7 @@
   width: min(360px, 82vw);
   height: 100%;
   border-radius: var(--radius-card);
-  background: var(--surface-card);
+  background: var(--surface-dish);
   overflow: hidden;
   box-shadow: var(--shadow-card);
   /* Applies to both roots: the card is an <article> or, when linked, an <a>. */
@@ -288,16 +288,14 @@
   overflow: hidden;
   font-size: 13.5px;
   line-height: var(--line-snug);
-  color: var(--text-muted);
+  color: var(--text-body);
 }
 
-/* Below 1080 the supporting copy moves to body brown and sizes up: the muted
-   taupe loses too much contrast once the card is the width of the screen. */
+/* The supporting copy sizes up once the card is the width of the screen. */
 @media (max-width: 1080px) {
   .description {
     font-size: 14.5px;
     line-height: 1.5;
-    color: var(--text-body);
   }
 }
 

@@ -56,10 +56,19 @@
 /* ---- Content ---------------------------------------------------------------
    Sits above the scrim, which is painted last as the section's ::after. */
 
+/*
+ * Anchored to the header's frame, not the viewport edge, so the headline starts
+ * on the same vertical as the wordmark above it. Below the frame width the two
+ * expressions collapse to the same 48px gutter, so this only does work on wide
+ * screens — where the template let the copy drift left of the logo.
+ */
 .content {
   position: absolute;
   top: 116px;
-  left: var(--space-7);
+  left: max(
+    var(--space-7),
+    calc((100% - (var(--frame-max) + 2 * var(--space-7))) / 2 + var(--space-7))
+  );
   z-index: 1;
   max-width: 520px;
   box-sizing: border-box;
