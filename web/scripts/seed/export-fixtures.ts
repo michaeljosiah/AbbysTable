@@ -33,6 +33,10 @@ import { HEAT_STEPS } from '@/lib/aonik/types';
  */
 const attributesOf = (dish: (typeof DISH_FIXTURES)[number]) => ({
   heatStep: HEAT_STEPS[dish.heat],
+  // The homepage card's components line. Published as an attribute because the
+  // rail renders from data the browse row carries, and Aonik's product model
+  // has no first-class subtitle — `attributesJson` is the tenant's own bag.
+  parts: dish.parts,
   protein: dish.proteinType,
   meal: dish.mealType,
   wellness: dish.wellness,
