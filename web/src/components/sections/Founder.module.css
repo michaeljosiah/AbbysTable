@@ -99,3 +99,39 @@
   justify-content: center;
   margin-top: 26px;
 }
+
+/* ---- CTA width -------------------------------------------------------------
+   Matches every other section: full width on a phone (capped so it does not
+   stretch), intrinsic with a floor on tablets. This block was missed when the
+   rest of the page got it, leaving this button short of the design on mobile. */
+
+@media (max-width: 860px) {
+  .cta {
+    display: block;
+  }
+
+  .cta [data-variant] {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (min-width: 621px) and (max-width: 1080px) {
+  .cta {
+    display: flex;
+    justify-content: center;
+  }
+
+  .cta [data-variant] {
+    width: auto;
+    min-width: 280px;
+  }
+}
+
+@media (max-width: 620px) {
+  .cta [data-variant] {
+    max-width: 360px;
+    margin-inline: auto;
+  }
+}
