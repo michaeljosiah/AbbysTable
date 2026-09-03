@@ -136,8 +136,9 @@
   .actions .order.order {
     padding: 7px 15px;
     font-size: 12.5px;
+    /* Kept uppercase at Esther's request. The template drops to sentence case
+       here; the tighter 0.04em track is what keeps it from growing much. */
     letter-spacing: 0.04em;
-    text-transform: none;
   }
 }
 
