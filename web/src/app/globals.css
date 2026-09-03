@@ -24,8 +24,13 @@ body {
   font-size: 16px;
   line-height: normal;
   color: var(--text-body);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /*
+   * No font-smoothing override. `-webkit-font-smoothing: antialiased` paints
+   * glyphs thinner than the browser's default subpixel rendering — the metrics
+   * are identical, so it measures the same and simply looks lighter. It is most
+   * obvious on pale text over a dark ground, which is the whole hero. The design
+   * template sets neither property, so neither do we.
+   */
 }
 
 h1,
