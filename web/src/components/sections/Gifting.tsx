@@ -8,6 +8,10 @@ import styles from './Gifting.module.css';
  * The film is a plain `<video>` rather than `next/image`: `autoplay + muted +
  * loop + playsinline` is enough on its own, so the section stays a server
  * component with no JavaScript shipped for it.
+ *
+ * The poster is the film's own first frame, so the handover to playback is
+ * invisible. Keep it that way if the film is ever recut — a still of anything
+ * else reads as a jump cut the moment the video starts.
  */
 export function Gifting() {
   return (
@@ -43,7 +47,7 @@ export function Gifting() {
           <video
             className={styles.video}
             src="/assets/gifting.mp4"
-            poster="/assets/dish-fish-peppersoup.png"
+            poster="/assets/gifting-poster.jpg"
             aria-label="Silent looping film of Abby's Table dishes"
             autoPlay
             muted
