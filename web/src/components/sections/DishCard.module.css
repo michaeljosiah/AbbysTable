@@ -322,6 +322,22 @@
   border-top: var(--border-hairline) solid var(--sand-2);
 }
 
+/* Groups the pips with their trailing rule so the pair stays together when the
+   row wraps, and so the rule sits 14px from the pips rather than at the row's
+   own 16px column gap. */
+.heat {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.heatRule {
+  flex: 0 0 auto;
+  width: 1px;
+  height: 17px;
+  background: var(--sand);
+}
+
 .personalise {
   margin-top: 14px;
   padding-top: 13px;

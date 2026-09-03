@@ -348,15 +348,42 @@ export class HttpAonikClient implements AonikClient {
    * gap, while throwing takes down the whole page over a collection the
    * operator simply has not created yet.
    */
+  /**
+   * The homepage rail.
+   *
+   * The collection endpoint answers with browse rows, and `ProductSummaryDto`
+   * carries no description field at all — so the summaries alone can never
+   * populate the card's description, however the catalogue is authored. Each
+   * dish is therefore hydrated from its own detail read.
+   *
+   * The reads run in parallel and the rail is six dishes, so this is one round
+   * trip's worth of latency rather than six. A dish whose detail read fails
+   * falls back to its summary: a card missing a line is much better than a
+   * homepage that will not render.
+   */
   async getFeaturedDishes(): Promise<Dish[]> {
     try {
       const collection = await this.get<PublicCollectionDto>(
         `/commerce/catalog/collections/${encodeURIComponent(FEATURED_COLLECTION_SLUG)}`,
       );
-      return collection.products.map((product) => ({
+
+      const summaries = collection.products.map((product) => ({
         ...mapSummaryToDish(product),
         isFeatured: true,
       }));
+
+      return await Promise.all(
+        summaries.map(async (summary) => {
+          try {
+            const detail = await this.getDishBySlug(summary.slug);
+            // Curation lives on the collection, not the product, so `isFeatured`
+            // is re-applied over the detail read.
+            return detail ? { ...detail, isFeatured: true } : summary;
+          } catch {
+            return summary;
+          }
+        }),
+      );
     } catch (error) {
       if (error instanceof AonikError && error.isNotFound) return [];
       throw error;

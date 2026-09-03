@@ -122,7 +122,12 @@ export function DishCard({ dish, variant = 'rail', href }: DishCardProps) {
         {dish.description ? <p className={styles.description}>{dish.description}</p> : null}
 
         <div className={styles.facts}>
-          <HeatPips heat={dish.heat} />
+          <span className={styles.heat}>
+            <HeatPips heat={dish.heat} />
+            {/* Hairline between the heat and the macros. Homepage only: the
+                menu grid's card sets these side by side with no rule. */}
+            {variant === 'rail' ? <span className={styles.heatRule} aria-hidden="true" /> : null}
+          </span>
           {dish.nutrition.proteinGrams !== undefined ? (
             <NutritionTag dot="protein">Protein {dish.nutrition.proteinGrams}g</NutritionTag>
           ) : null}
