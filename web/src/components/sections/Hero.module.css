@@ -115,13 +115,18 @@
   padding: 11px 0;
 }
 
+/*
+ * 40px, not 38: the template sizes these content-box, so its 38px square sits
+ * inside a 1px ring and lands at 40px overall. Stated as the finished size,
+ * since this app is border-box.
+ */
 .proofIcon {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border: var(--border-hairline) solid var(--brass);
   border-radius: 50%;
   color: var(--brass);
