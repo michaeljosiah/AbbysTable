@@ -3,7 +3,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 34px;
+  /* The template sizes this content-box, so its 34px min-height sits INSIDE
+     the 9px padding and the strip renders 52px tall. Stated as the finished
+     height here, since everything in this app is border-box. */
+  min-height: 52px;
   padding: 9px var(--space-5);
   background: var(--surface-dark);
 }

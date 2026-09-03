@@ -55,8 +55,10 @@
   gap: var(--space-5);
 }
 
-/* The header runs its nav one step larger than the default NavLink size. */
-.navLink {
+/* The header runs its nav one step larger than the default NavLink size.
+   Doubled class so it outranks NavLink's own `font-size` — both are single
+   class selectors, so otherwise it comes down to which stylesheet lands last. */
+.navLink.navLink {
   font-size: var(--btn-size);
 }
 
@@ -128,7 +130,10 @@
     text-align: center;
   }
 
-  .order {
+  /* Scoped AND doubled to reach (0,3,0). `.button[data-size='sm']` is (0,2,0) —
+     a class plus an attribute selector — so a doubled class alone only ties it,
+     and the winner then depends on which stylesheet the bundler emits last. */
+  .actions .order.order {
     padding: 7px 15px;
     font-size: 12.5px;
     letter-spacing: 0.04em;
@@ -174,7 +179,7 @@
     letter-spacing: 0.1em;
   }
 
-  .order {
+  .actions .order.order {
     padding: 6px 13px;
     font-size: 12px;
   }

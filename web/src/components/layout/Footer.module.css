@@ -74,7 +74,8 @@
   font-family: var(--font-sans);
   font-weight: var(--weight-semibold);
   font-size: var(--body-sm);
-  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
   transition: background 0.16s ease;
 }
 

@@ -17,6 +17,11 @@
   position: relative;
   height: 590px;
   overflow: hidden;
+  /* The template's `background` shorthand ends in a solid --green-forest, so
+     the hero is dark from the first paint and the photograph resolves onto it.
+     Without this the section starts page-cream and flashes pale before the
+     image arrives. */
+  background: var(--green-forest);
 }
 
 /* ---- Background art --------------------------------------------------------
@@ -146,7 +151,8 @@
 .textLink {
   font-family: var(--font-sans);
   font-size: var(--body-sm);
-  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
   color: var(--text-on-dark);
   text-decoration: none;
   border-bottom: var(--border-hairline) solid var(--rule-brass);

@@ -101,7 +101,9 @@ export function Footer() {
 
         <div className={styles.bottom}>
           <Link href="/" aria-label="Abby's Table — home" className={styles.footLogo}>
-            <Logo width={220} height={38} />
+            {/* No ® here: Esther asked for it dropped, a deliberate departure
+                from the template, which does show one. */}
+            <Logo width={220} height={38} withRegistered={false} />
           </Link>
 
           <div className={styles.centre}>

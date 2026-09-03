@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 
+import { NavLink } from '@/components/ui';
 import { signOutAction } from '@/lib/auth/actions';
 import type { SessionView } from '@/lib/auth/session';
 
@@ -54,10 +55,13 @@ export function AccountMenu({
   }, [open]);
 
   if (!session.isSignedIn) {
+    // A NavLink, not a bare anchor: the signed-out state sits in the header's
+    // nav row and has to match the links beside it. A plain <Link> inherits the
+    // user agent's blue underline.
     return (
-      <Link href="/login" className={linkClassName}>
+      <NavLink href="/login" className={linkClassName}>
         Login
-      </Link>
+      </NavLink>
     );
   }
 
