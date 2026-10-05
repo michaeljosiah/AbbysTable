@@ -1,15 +1,22 @@
 ---
 spec_id: SPEC-2026-07-22-aonik-transport
 title: Aonik transport & tenancy seam — the real HttpAonikClient
-status: draft
+status: implemented
 branch: feat/aonik-transport
 owner: michaeljosiah
 capabilities: [aonik-transport]
 created: 2026-07-22
-updated: 2026-07-22
+updated: 2026-10-05
 ---
 
 # Aonik transport & tenancy seam — the real HttpAonikClient
+
+> **Status 2026-10-05: implemented** (8245528). Two loose ends are tracked in #39:
+> - Config validation runs per request (`dataMode.ts`), not at boot.
+> - The transport tests listed under Testing were never written.
+>
+> The £95 figures in the money examples are illustration only. The v2 design prices from
+> "6 dishes from £158" (`design/frontend-backend-contract.md` §2, #28).
 
 > **Verified 2026-07-22** against Aonik specs 066–072 and the shipped implementation in
 > `Aonik.Commerce` / `Aonik.Api`. Where the two disagreed, the code won. Corrections from
@@ -246,15 +253,19 @@ property names.
 ---
 
 ## Tasks
-- [ ] Add `lib/aonik/http.ts`: `aonikFetch` (base URL, `X-Tenant-Id`, cache policy knobs,
+- [x] Add `lib/aonik/http.ts`: `aonikFetch` (base URL, `X-Tenant-Id`, cache policy knobs,
       `AonikError` with drift-payload capture)
-- [ ] Add `lib/aonik/map.ts`: `toPence` / `toMajor` + per-DTO mappers (filled in by the
+- [x] Add `lib/aonik/map.ts`: `toPence` / `toMajor` + per-DTO mappers (filled in by the
       sibling specs as each surface lands)
-- [ ] Rewrite `HttpAonikClient` methods onto real routes via `aonikFetch` + `map.ts`
-- [ ] Add `getStorefrontConfig()` to `AonikClient` (fixture: sensible mock document)
+- [x] Rewrite `HttpAonikClient` methods onto real routes via `aonikFetch` + `map.ts`
+- [x] Add `getStorefrontConfig()` to `AonikClient` (fixture: sensible mock document)
 - [ ] Remove `AONIK_API_KEY` usage; add `AONIK_TENANT_ID`; boot-time config validation
-- [ ] Add `web/.env.example`
-- [ ] Remove/deprecate fixture paths as sibling specs land (tracked there, not here)
+      *(partial: the key has been removed and the tenant id added, but validation still
+      runs per request rather than at boot — #39)*
+- [x] Add `web/.env.example`
+- [x] ~~Remove/deprecate fixture paths as sibling specs land (tracked there, not here)~~
+      *(retired: fixtures stay on purpose for demo mode — `live-cart-convergence.md`
+      Constraints)*
 
 ### Testing
 - Unit: `toPence`/`toMajor` rounding (including negatives and `.005` cases);

@@ -1,15 +1,24 @@
 ---
 spec_id: SPEC-2026-07-22-catalog-browse
 title: Menu, homepage rails & dish detail on the live Aonik catalog
-status: draft
+status: implemented
 branch: feat/catalog-browse
 owner: michaeljosiah
 capabilities: [catalog-browse, dish-detail]
 created: 2026-07-22
-updated: 2026-07-22
+updated: 2026-10-05
 ---
 
 # Menu, homepage rails & dish detail on the live Aonik catalog
+
+> **Status 2026-10-05: implemented; several requirements superseded by the v2 design.**
+> Built in 02d14e3 and f4dd12e. The v2 Menu (`Menu Landing v3.dc.html`) and dish page
+> (`Dish Landing v2.dc.html`) change four things:
+> - **Filters:** a new vocabulary, plus sort (#21, michaeljosiah/aonik#359).
+> - **Personaliser:** replaced by a Light Table / Full Table portion card (#22).
+> - **Pricing:** "6 dishes from £158" from an editable starting price (#28, #37).
+> - **Allergens:** controlled values for the 14 regulated allergens
+>   (michaeljosiah/aonik#351).
 
 > **Verified 2026-07-22** against Aonik specs 066/067/070 and the shipped
 > `Aonik.Commerce` implementation. Where the two disagreed, the code won. Two corrections
@@ -54,6 +63,8 @@ Depends on: `SPEC-2026-07-22-aonik-transport`.
 ### Requirement: Catalogue list and paging
 `capability: catalog-browse` · `delta: MODIFIED (feat/catalog-browse)`
 
+> **Note (2026-10-05):** page size is an open design decision (#37).
+
 The system SHALL read the menu from `GET /commerce/catalog/products` (anonymous). The
 response is a paged envelope `{ items, totalCount, page, pageSize }` of product summary
 rows: `{ id, slug, name, status, kind, categoryId?, variantCount, heroImageUrl?, tags[],
@@ -78,6 +89,17 @@ one price-like field (an on-top-of-the-box delta) and maps to `Dish.upgradePence
 ### Requirement: Facet-driven filtering
 `capability: catalog-browse` · `delta: ADDED (feat/catalog-browse)`
 
+> **Superseded in part (2026-10-05):** Menu v3 (`design/frontend-backend-contract.md` §4d)
+> changes the filter vocabulary and adds a sort:
+> - **Protein source:** Chicken, Beef, Lamb, Fish, Turkey, Plant-based.
+> - **Eating style.**
+> - **Heat:** None / Mild / Medium / Hot.
+> - **Dietary & other.**
+> - **Sort:** Recommended / Highest protein / Lowest calories.
+>
+> Aonik sort supports only `name|newest|rank`, and live dishes carry no category (#21,
+> michaeljosiah/aonik#359).
+
 The system SHALL translate the menu's filter UI into browse query parameters:
 `facet.<key>=value1,value2` (repeatable; values are option tokens, never labels), combined
 by Aonik as OR-within-a-group, AND-across-groups. Available groups and their options SHALL
@@ -97,6 +119,9 @@ rejected loudly by Aonik (400) — the UI must only send what the facets read ad
 ### Requirement: Homepage rails from collections
 `capability: catalog-browse` · `delta: MODIFIED (feat/catalog-browse)`
 
+> **Note (2026-10-05):** the v2 homepage has a single "A taste of the table" rail and no
+> category rails (#15). The featured collection still feeds it.
+
 The system SHALL read curated rails from collections: `getFeaturedDishes()` becomes
 `GET /commerce/catalog/products?collection=featured&sort=rank` (or
 `GET /commerce/catalog/collections/{slug}` for collection metadata + members). Rank order is
@@ -112,6 +137,11 @@ reconcile it.
 
 ### Requirement: Dish detail with safety-correct content
 `capability: dish-detail` · `delta: MODIFIED (feat/catalog-browse)`
+
+> **Extended (2026-10-05):** the fail-closed rules stand. The contract now asks for
+> `allergens_present[]` (the 14 regulated allergens) plus a `precautionary_statement`,
+> not a single string (`design/frontend-backend-contract.md` §3;
+> michaeljosiah/aonik#351). Nutrition becomes per portion and includes saturates (#22).
 
 The system SHALL read `GET /commerce/catalog/products/{slug}` for the dish page. The
 response embeds: variants, media, `effectiveOptionGroups` (the personaliser — see next
@@ -187,6 +217,9 @@ panel.**
 ### Requirement: Personaliser from effective option groups
 `capability: dish-detail` · `delta: MODIFIED (feat/catalog-browse)`
 
+> **Superseded (2026-10-05):** `design/CLAUDE.md` says "Personalisation is removed for
+> good". The dish page shows a Light Table / Full Table portion card instead (#22).
+
 The system SHALL build the dish personaliser from the product's `effectiveOptionGroups`:
 `{ key, label, helpText?, selectionMode, currency, sortOrder, defaultChoiceKey,
 choices[{key, label, note?, price, sortOrder}] }`. `defaultChoiceKey` is non-nullable —
@@ -229,6 +262,11 @@ are for chip labels; the server figure is the one that must agree with the cart.
 ### Requirement: Box offers and pricing from the box plan
 `capability: catalog-browse` · `delta: MODIFIED (feat/catalog-browse)`
 
+> **Superseded in part (2026-10-05):** the canonical wording is "6 dishes from
+> {starting_price}" from an editable price source (`design/frontend-backend-contract.md`
+> §2). The £95 / 6–12–18 ladder is obsolete. The 12- and 18-dish prices are a business
+> decision (#28, #37).
+
 The system SHALL price Step 1 from the default bundle's size plan — either the storefront
 config document's embedded `box` section, or
 `GET /commerce/catalog/products/{defaultBoxSlug}/box-plan` (keyed on the product **slug**)
@@ -266,6 +304,9 @@ list price in Aonik, which is a platform change and out of scope here.
 
 ### Requirement: Heating instructions from content
 `capability: dish-detail` · `delta: MODIFIED (feat/catalog-browse)`
+
+> **Open (2026-10-05):** in live mode, a dish with no authored heating that isn't withheld
+> shows an empty panel with no framing note (#22).
 
 The system SHALL render reheating guidance from the dish's resolved content `heating` steps
 (`[{method, body}]`) when authored, honouring `heatingWithheld` the same way as
@@ -331,19 +372,23 @@ The tenant must author, and this spec treats as an external dependency:
 ---
 
 ## Tasks
-- [ ] `map.ts`: `mapSummaryToDish`, `mapProductToDish` (incl. content + option groups),
+- [x] `map.ts`: `mapSummaryToDish`, `mapProductToDish` (incl. content + option groups),
       `mapBoxPlan`, facet-response types
-- [ ] `HttpAonikClient`: products browse (+ facet/collection/sort params), product by slug,
+- [x] `HttpAonikClient`: products browse (+ facet/collection/sort params), product by slug,
       facets read, box plan read
-- [ ] Menu filter rail reads facet groups; filter state → `facet.*` params; drop
+- [x] Menu filter rail reads facet groups; filter state → `facet.*` params; drop
       client-side filtering
-- [ ] Homepage rails from collections; retire `isFeatured` derivation
+- [x] Homepage rails from collections; retire `isFeatured` derivation
 - [ ] Dish page: content display rules 1–6 (withheld/standard-preparation/stale states)
-- [ ] Personaliser from `effectiveOptionGroups` with delta pricing + config label;
-      `One`/`Multi` mode read per product
+      *(partial: rules 1–5 are done; rule 6, re-resolving content per selection, is not
+      — it is a MAY)*
+- [x] ~~Personaliser from `effectiveOptionGroups` with delta pricing + config label;
+      `One`/`Multi` mode read per product~~ *(built; superseded by the portion card — #22)*
 - [ ] Step 1 pricing from box plan; retire `extraDishPence` from display copy; remove
-      `listPerDishPence` and the custom-size strikethrough from `BoxChooser`
-- [ ] Heating from content with framed generic fallback
+      `listPerDishPence` and the custom-size strikethrough from `BoxChooser` *(partial: the
+      Step 2 "Expand to N dishes" prompt still uses the flat `extraDishPence` — #29)*
+- [ ] Heating from content with framed generic fallback *(partial: authored heating
+      wins, but there is no framed fallback in live mode — #22)*
 
 ### Testing
 - Unit: every mapper (fixture DTO JSON → frontend type), heat reverse-map bounds, delta

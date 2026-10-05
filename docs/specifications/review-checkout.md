@@ -1,15 +1,31 @@
 ---
 spec_id: SPEC-2026-07-22-review-checkout
 title: Review, delivery promise & checkout
-status: draft
+status: superseded
 branch: feat/review-checkout
 owner: michaeljosiah
 capabilities: [checkout, delivery-promise]
 created: 2026-07-22
-updated: 2026-07-22
+updated: 2026-10-05
 ---
 
 # Review, delivery promise & checkout
+
+> **Status 2026-10-05: superseded by the v2 design.** The Review page, the continue gate and
+> the delivery promise shipped (382f5b3). The checkout model does not survive the v2 design:
+> - **Checkout:** "Review is the checkout trigger; there is no separate /checkout page" and
+>   "order-first, capture-later" are replaced by a separate Checkout step. It takes
+>   payment **before** the order exists (`design/SHOPPING-STATE.md` §21, §42, §43; `Checkout v2.dc.html`).
+> - **Review:** its CTA becomes CONTINUE TO CHECKOUT (§7).
+> - **Confirmation:** shown only after payment succeeds, in three variants (§44–47).
+> - **Delivery:** the promise becomes date selection with reservations (§16–20).
+>
+> A replacement checkout-and-payment spec is still to be written. Meanwhile:
+> - **Storefront:** #31, #32 and #30.
+> - **Aonik:** michaeljosiah/aonik#344, michaeljosiah/aonik#345,
+>   michaeljosiah/aonik#346 and michaeljosiah/aonik#347.
+> - **Live ordering today:** creates an unpaid order with no address, date or email
+>   (#5).
 
 > **Verified 2026-07-22** against Aonik specs 068/069 and the shipped `Aonik.Commerce`
 > implementation. Where the two disagreed, the code won. Correction: the checkout request
@@ -45,6 +61,13 @@ Depends on: `SPEC-2026-07-22-aonik-transport`, `SPEC-2026-07-22-server-box-cart`
 ### Requirement: Delivery promise with an honest empty state
 `capability: delivery-promise` · `delta: MODIFIED (feat/review-checkout)`
 
+> **Extended (2026-10-05):** the honest empty state stands. The design adds:
+> - date selection against capacity, with 15-minute holds and expiry (`design/SHOPPING-STATE.md` §16–22);
+> - an earliest date that is the next cooking run with capacity
+>   (`design/frontend-backend-contract.md` §4).
+>
+> See #31 and michaeljosiah/aonik#346.
+
 The system SHALL read the promise from `GET /commerce/config/delivery`, which returns
 `{ earliestDeliveryDate: 'YYYY-MM-DD', timezone: '<IANA id>' }` — or **404 when the tenant
 has no resolvable fulfilment calendar**, which means "no promise", not an error. The
@@ -76,6 +99,9 @@ moves at cutoff or midnight" and names no TTL.
 ### Requirement: Review renders the continue gate's truth
 `capability: checkout` · `delta: MODIFIED (feat/review-checkout)`
 
+> **Superseded in part (2026-10-05):** the continue gate stands, but Review no longer places
+> the order; its CTA is CONTINUE TO CHECKOUT (#30).
+
 The system SHALL call `POST /commerce/carts/{cartId}/continue` when `/box/review` loads
 (via the `/api/cart` handlers). The response is the standard `{ box, quote, changes[] }` —
 re-validated against the live catalogue. The review page renders: every line (dishes with
@@ -92,6 +118,10 @@ action until resolved.
 
 ### Requirement: Checkout and the drift stop
 `capability: checkout` · `delta: ADDED (feat/review-checkout)`
+
+> **Superseded (2026-10-05):** this treats a created, unpaid order as success. The design
+> creates the order exactly once, on successful payment (`design/SHOPPING-STATE.md` §42–43). The drift-stop
+> handling carries over to the new Checkout step (#31, #5, michaeljosiah/aonik#344).
 
 The system SHALL place the order with `POST /commerce/carts/{cartId}/checkout` on the review
 page's confirm action. The request body is
@@ -141,6 +171,10 @@ the resubmit is against saved state.
 ### Requirement: Confirmation page
 `capability: checkout` · `delta: ADDED (feat/review-checkout)`
 
+> **Superseded (2026-10-05):** Order Confirmation v2 shows only after payment succeeds and
+> has guest, logged-in and account-created variants (`design/SHOPPING-STATE.md` §44–47). It uses site
+> chrome, not the checkout stepper (#32, michaeljosiah/aonik#354).
+
 The system SHALL add `/box/confirmation`, rendered from the checkout response: order
 reference, the placed box (size, dish lines, add-ons), the charged totals, the delivery
 promise as known at placement, and — when the customer is signed in
@@ -160,7 +194,8 @@ adoption path in `customer-identity` is the account-linking story).
 
 ### Architectural decision
 
-**Review is the checkout trigger; there is no separate /checkout page.** The journey stays
+*(Superseded 2026-10-05 — see the status note at the top.)* **Review is the checkout trigger;
+there is no separate /checkout page.** The journey stays
 four steps + review, as designed. What changes is that review's data comes from the
 continue gate and its confirm action is the checkout POST with first-class 409 handling.
 The drift stop is Aonik's guarantee; the frontend's whole job is to *re-render the refreshed
@@ -193,10 +228,11 @@ GET /commerce/config/delivery — everywhere the date shows; 404 ⇒ omit
 - [x] `/api/cart/continue` + `/api/cart/checkout` route handlers (drift body passthrough,
       cookie clear on success)
 - [x] Review page over the continue response (lines incl. add-ons, component list, delivery
-      line, notices, blocked state)
+      line, notices, blocked state) *(`quote.deliveryListPence` is not rendered — #30)*
 - [x] Confirm server action with the three outcome branches
 - [x] `/box/confirmation` page (+ signed-in link-through when identity lands)
-- [ ] Remove the last fixture pricing surfaces review still touches
+- [x] Remove the last fixture pricing surfaces review still touches *(done for live in
+      f0bfc05; demo fixtures stay by design)*
 
 ### Implementation notes (2026-07-22)
 

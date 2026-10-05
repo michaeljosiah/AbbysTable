@@ -1,15 +1,29 @@
 ---
 spec_id: SPEC-2026-07-22-customer-identity
 title: Accounts — register, sign in, adopt the box, my orders
-status: draft
+status: implemented
 branch: feat/customer-identity
 owner: michaeljosiah
 capabilities: [identity, orders]
 created: 2026-07-22
-updated: 2026-07-22
+updated: 2026-10-05
 ---
 
 # Accounts — register, sign in, adopt the box, my orders
+
+> **Status 2026-10-05: implemented; registration superseded by the v2 design.** Sessions,
+> sign-in, guest-cart adoption and order history shipped (af74758).
+>
+> The v2 design has **no create-account page and no password before payment** (`design/SHOPPING-STATE.md`
+> §23–25). An account comes from an optional checkout checkbox, and the customer sets up
+> access through a single-use emailed link after payment. That supersedes the registration
+> half of "Registration and login on platform endpoints" (#33, #34,
+> michaeljosiah/aonik#350).
+>
+> Two further changes:
+> - **Box conflict on sign-in (§54):** a keep-or-use-saved choice that "Guest-cart
+>   adoption on sign-in" doesn't cover (#35, michaeljosiah/aonik#348).
+> - **Order history:** moves into My Account v2 (#35).
 
 > **Verified 2026-07-22** against Aonik spec 072, ADR-007 and the shipped `Aonik.Commerce`
 > implementation. Where the two disagreed, the code won. Corrections: there is no `Z4` error
@@ -71,6 +85,12 @@ Depends on: `SPEC-2026-07-22-aonik-transport`, `SPEC-2026-07-22-server-box-cart`
 
 ### Requirement: Registration and login on platform endpoints
 `capability: identity` · `delta: MODIFIED (feat/customer-identity)`
+
+> **Superseded in part (2026-10-05):**
+> - **Registration:** the `/register` form and the "Registration provisions and signs
+>   in" scenario conflict with `design/SHOPPING-STATE.md` §23–25. `/register` should redirect to `/login`, and
+>   accounts are created after payment (#33, #34).
+> - **Login:** stands, rebuilt to `Log in.dc.html` (#33).
 
 The system SHALL submit the registration form to Aonik's
 `POST /v1/registrations/individual` (anonymous; tenant sent in the request body as
@@ -145,6 +165,10 @@ party-bound, so sign-out simply ends access until the next sign-in).
 ### Requirement: Guest-cart adoption on sign-in
 `capability: identity` · `delta: ADDED (feat/customer-identity)`
 
+> **Extended (2026-10-05):** when both the guest box and the account's saved box have
+> contents, the design asks KEEP THIS BOX / USE SAVED BOX (`design/SHOPPING-STATE.md` §54). Today adoption
+> is unconditional (#35, michaeljosiah/aonik#348).
+
 The system SHALL, immediately after any successful sign-in or registration **while a guest
 cart cookie exists**, call `POST /commerce/carts/{cartId}/adopt` with the stored
 `X-Cart-Token` and the new session's bearer. Semantics (Aonik-enforced; the frontend's job
@@ -179,6 +203,12 @@ principal), so adoption is only ever needed for carts that predate the session.
 
 ### Requirement: Order history and detail
 `capability: orders` · `delta: ADDED (feat/customer-identity)`
+
+> **Redesigned (2026-10-05):** My Account v2 shows:
+> - order numbers, dish names and delivery details;
+> - real fulfilment statuses and Order again.
+>
+> No self-service change or cancel (`design/SHOPPING-STATE.md` §48–50; #35, michaeljosiah/aonik#360).
 
 The system SHALL add `/account/orders` reading
 `GET /commerce/storefront/orders?page={n}&pageSize={m}` (authenticated; paged envelope
@@ -269,7 +299,7 @@ if Aonik reshapes them without a spec change, this is where it will break first.
 - [x] Cart handlers: bearer-first authorization (token only when the cookie still holds one)
 - [x] `/account/orders` + `/account/orders/[orderId]` pages + header account menu
 - [x] Confirmation page link-through (from `review-checkout`) once signed in
-- [ ] Follow-up (deferred): reset-password page; social federation redirect flow
+- [ ] Follow-up (deferred): reset-password page; social federation redirect flow (#33)
 
 ### Implementation notes (2026-07-22)
 

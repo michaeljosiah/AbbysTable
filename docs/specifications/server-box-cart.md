@@ -1,15 +1,26 @@
 ---
 spec_id: SPEC-2026-07-22-server-box-cart
 title: Server cart — the box session moves to Aonik
-status: draft
+status: implemented
 branch: feat/server-box-cart
 owner: michaeljosiah
 capabilities: [box-builder, extras]
 created: 2026-07-22
-updated: 2026-07-22
+updated: 2026-10-05
 ---
 
 # Server cart — the box session moves to Aonik
+
+> **Status 2026-10-05: implemented, with personalisation superseded by the v2 design.**
+> The server cart shipped (4cac735, 53368e7, 6bbe345) and `live-cart-convergence.md` later
+> hardened it.
+>
+> `design/CLAUDE.md` says **"Personalisation is removed for good"**: only the Light Table /
+> Full Table portion choice remains. That supersedes:
+> - the protein, side and heat encoding in "Line operations map onto box routes" (#29);
+> - the option pickers in "Extras (Step 3)" (#30).
+>
+> "LocalStorage migration" was retired by `live-cart-convergence.md`.
 
 > **Verified 2026-07-22** against Aonik specs 066/068/071 and the shipped `Aonik.Commerce`
 > implementation. Where the two disagreed, the code won — note that 068's rule R13 ("LineKind
@@ -79,6 +90,11 @@ losing the cookie means the guest cart is simply gone — render the empty-box s
 
 ### Requirement: Line operations map onto box routes
 `capability: box-builder` · `delta: MODIFIED (feat/server-box-cart)`
+
+> **Superseded in part (2026-10-05):** the v2 design removes personalisation. The
+> `CartPersonalisation { portion, protein, side, heatStep }` encoding and the
+> multi-protein "Splitting a line" scenario narrow to the portion choice only
+> (`design/CLAUDE.md`; #29). The line routes themselves stand.
 
 The system SHALL implement the `useCart()` operations against the box routes, all of which
 return the full `{ box, quote, changes[] }` payload that becomes the new provider state:
@@ -199,6 +215,11 @@ unstyled one.
 ### Requirement: Extras (Step 3) on the live catalogue
 `capability: extras` · `delta: MODIFIED (feat/server-box-cart)`
 
+> **Superseded in part (2026-10-05):** under `Extras v2.dc.html` the option pickers
+> become Light Table / Full Table portion rows (#30). The category chips should come
+> from the values actually present; today `EXTRA_CATEGORIES` forces unknown values to
+> "Sides".
+
 The system SHALL read Step 3 from `GET /commerce/catalog/extras`:
 `{ rows[{ productId, productVariantId, slug, name, description?, imageUrl?, tags[],
 attributesJson?, unitPrice, unitSurcharge?, currency, content?, optionGroups[] }],
@@ -248,6 +269,9 @@ category is reachable under "All" and by search, never hidden.
 
 ### Requirement: LocalStorage migration
 `capability: box-builder` · `delta: ADDED (feat/server-box-cart)`
+
+> **Retired** by `live-cart-convergence.md` ("Unsupported legacy migration is removed").
+> The migration was added in 6bbe345 and deleted in f0bfc05.
 
 The system SHALL migrate a pre-existing `abbys-table:box:v1` localStorage box ONCE on first
 load under the server-cart build: create a server cart of the stored size, replay lines
@@ -302,19 +326,25 @@ in pence-mapped form; `dishCount` = `quote.unitsSelected`; `boxSize` = `quote.bo
 ---
 
 ## Tasks
-- [ ] `/api/cart` route handlers: create/get/add-line/patch-line/delete-line/size/extras
+- [x] `/api/cart` route handlers: create/get/add-line/patch-line/delete-line/size/extras
       (+ cookie management, error passthrough)
-- [ ] `map.ts`: box payload mappers (BoxDto/BoxLineDto/BoxQuoteDto/BoxChangeDto → pence)
-- [ ] `CartProvider` rewrite over the handlers; delete client pricing helpers
-- [ ] Personalisation encoder: UI state ↔ 066 selection object via effective groups,
-      emitting `string | string[]` per the group's `One`/`Multi` mode
-- [ ] Widen `CartPersonalisation` to multi-value groups (protein first)
+- [x] `map.ts`: box payload mappers (BoxDto/BoxLineDto/BoxQuoteDto/BoxChangeDto → pence)
+- [x] `CartProvider` rewrite over the handlers; delete client pricing helpers
+      *(the client pricing helpers remain, gated to demo mode — `live-cart-convergence.md`)*
+- [x] Personalisation encoder: UI state ↔ 066 selection object via effective groups,
+      emitting `string | string[]` per the group's `One`/`Multi` mode *(narrows to portion
+      only under the v2 design — #29)*
+- [x] Widen `CartPersonalisation` to multi-value groups (protein first) *(superseded by
+      the portion-only model — #29)*
 - [ ] Drift-notice component (all seven reasons + unknown fallback) + unavailable line
-      states + blocked continue
-- [ ] Decide and record the Step 3 category-chip outcome (tag grouping vs removal)
-- [ ] Step 3 on `/commerce/catalog/extras` + add-on line UI (shared line routes)
-- [ ] localStorage one-shot migration
-- [ ] Remove `extras.ts`, `EXTRA_FIXTURES`, `BOX_FIXTURES` pricing fields as superseded
+      states + blocked continue *(partial: notices and blocked continue are done; no line
+      renders its own unavailable state — `isUnavailable` is never read — #14)*
+- [x] Decide and record the Step 3 category-chip outcome (tag grouping vs removal)
+      *(decided; the implementation diverges — chips come from a compile-time list, #30)*
+- [x] Step 3 on `/commerce/catalog/extras` + add-on line UI (shared line routes)
+- [x] ~~localStorage one-shot migration~~ *(retired by `live-cart-convergence.md`)*
+- [x] ~~Remove `extras.ts`, `EXTRA_FIXTURES`, `BOX_FIXTURES` pricing fields as superseded~~
+      *(retired: kept on purpose for demo mode)*
 
 ### Testing
 - Unit: personalisation encoder round-trips, including a `Multi` group emitting an array and
