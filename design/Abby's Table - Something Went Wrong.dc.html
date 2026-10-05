@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>html, body { background-color: #F7F1E8; color-scheme: light; }</style>
+<!-- ↑ First-paint ground: FIRST in the head so it is in the first bytes the parser sees.
+     Dependency-free literal of --cream (no tokens, no runtime); see CLAUDE.md head standard. -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Focus standard. In the real <head>, before the runtime, so it is parser-inserted and
+     render-blocking: it exists before first paint and before any script can move focus. A
+     <helmet> link is injected by the runtime AFTER render, which is what let the browser's blue
+     outline flash first. -->
+<!-- Shared stylesheets: ONE authoritative load path, in the real head. In <helmet> they were
+     applied from the raw template, torn down when the runtime consumed it, then re-added —
+     the transparent gap on every full load and on back navigation. -->
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/colors.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/typography.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/styles.css">
+<link rel="stylesheet" href="at-focus.css">
+<script src="at-logo.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <script src="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/_ds_bundle.js"></script>
+  <!-- Error pages are never indexed; production also returns HTTP 500. Unpack splash: brass triangle, cream bar. -->
+  <meta name="robots" content="noindex">
+  <template id="__bundler_thumbnail" data-bg-color="#1E3A2F">
+    <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+      <rect width="1200" height="800" fill="#1E3A2F"></rect>
+      <path d="M600 250l120 210H480z" fill="none" stroke="#C28E3C" stroke-width="8" stroke-linejoin="round"></path>
+      <path d="M600 330v60M600 425h.01" stroke="#F7F1E8" stroke-width="10" stroke-linecap="round"></path>
+      <rect x="500" y="520" width="200" height="40" rx="20" fill="#F7F1E8"></rect>
+    </svg>
+  </template>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background: var(--cream); }
+    a { color: var(--green-forest); }
+    a:hover { color: var(--terracotta-deep); }
+    :root { --terracotta: #B7554E; --terracotta-deep: #9C433D; --gold: #F6C33B; --brass-ink: #8A5F1F; }
+    /* Something went wrong (500). Served as a STATIC file when the application has failed, so the
+       page carries only what is true and works at that moment (user, option 2, 1 Oct 2026):
+       no account label, no ordering CTA, no purchase bar, no newsletter, no consent trigger, no
+       nav drawer, and no JavaScript of its own. Mobile is the base; 640 and 1024 add, min-width only. */
+    .se-hdr { border-bottom: 1px solid var(--sand); background: var(--cream); }
+    .se-hdr-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; max-width: 1280px; margin: 0 auto; padding: 13px 22px; min-height: 70px; }
+    .se-logo { display: inline-flex; align-items: center; min-height: 44px; text-decoration: none; transition: opacity .16s ease; }
+    .se-logo:hover { opacity: .78; }
+    .se-logo span { display: block; width: clamp(108px, 36vw, 168px); aspect-ratio: 186 / 32; color: var(--green-forest); }
+    /* Header utility link, the payment-status header's "Questions?" treatment. An in-page jump to
+       the direct-contact panel, so it works with no JS and no server. */
+    .se-q { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--green-forest); text-decoration: none; transition: color .16s ease; }
+    .se-q span { border-bottom: 1px solid var(--brass); padding-bottom: 1px; transition: border-color .16s ease; }
+    .se-q:hover { color: var(--terracotta-deep); }
+    .se-q:hover span { border-bottom-color: var(--terracotta-deep); }
+
+    .se-sec { padding: 56px 0 64px; min-height: calc(100dvh - 260px); display: flex; align-items: center; background: var(--cream); }
+    .se-in { width: 100%; max-width: 1280px; margin: 0 auto; padding: 0 22px; }
+    .se-body { max-width: 640px; margin: 0 auto; text-align: center; }
+    /* Status mark, from the mockup: blush disc, thin brass-ink line glyph, decorative only. */
+    .se-mark { display: flex; align-items: center; justify-content: center; width: 72px; height: 72px; margin: 0 auto 20px; border-radius: 50%; background: var(--blush); }
+    .se-eyebrow { margin: 0 0 16px; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .24em; text-transform: uppercase; color: var(--brass-ink); }
+    .se-h1 { margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(38px, 11.6vw, 56px); line-height: 1.06; letter-spacing: -0.015em; color: var(--green-forest); text-wrap: balance; }
+    .se-lede { margin: 18px auto 0; max-width: 36ch; font-family: var(--font-sans); font-size: 18px; line-height: 1.55; color: var(--brown); text-wrap: pretty; }
+    .se-acts { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-top: 32px; }
+    .se-cta { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; padding: 0 32px; border-radius: var(--radius-pill); background: var(--green-forest); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; text-decoration: none; transition: background .16s ease; }
+    .se-cta:hover { background: var(--green-deep); color: #fff; }
+    .se-cta:active { filter: brightness(.94); }
+    .se-link { display: inline-flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-weight: 600; font-size: 16px; color: var(--green-forest); text-decoration: none; }
+    .se-link > span { display: inline-flex; align-items: center; gap: 8px; border-bottom: 1.5px solid var(--brass); padding-bottom: 3px; transition: border-color .16s ease; }
+    .se-link:hover { color: var(--terracotta-deep); }
+    .se-link:hover > span { border-bottom-color: var(--terracotta-deep); }
+    /* Direct contact: the one route that works in a full outage. Address and number are the
+       Contact page's own, verbatim. */
+    .se-help { max-width: 520px; margin: 40px auto 0; padding: 20px 20px 18px; border-radius: 18px; background: var(--cream-2); border: 1px solid var(--sand); text-align: center; scroll-margin-top: 24px; }
+    .se-help-h { margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.25; color: var(--green-forest); }
+    .se-help-p { margin: 6px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); }
+    .se-help-ways { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: 10px; }
+    .se-way { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; font-family: var(--font-sans); font-weight: 600; font-size: 16px; color: var(--green-forest); text-decoration: none; overflow-wrap: anywhere; transition: color .16s ease; }
+    .se-way > span:last-child { border-bottom: 1px solid var(--brass); padding-bottom: 1px; }
+    .se-way:hover { color: var(--terracotta-deep); }
+    .se-way svg { flex: 0 0 auto; }
+
+    @media (min-width: 640px) {
+      .se-hdr-row { padding: 15px 34px; }
+      .se-in { padding: 0 34px; }
+      .se-sec { padding: 80px 0 88px; }
+      .se-cta { width: auto; }
+      .se-help { padding: 22px 28px 20px; }
+      .se-help-ways { flex-direction: row; justify-content: center; flex-wrap: wrap; gap: 4px 28px; }
+    }
+    @media (min-width: 1024px) {
+      .se-hdr-row { padding: 17px 48px; }
+      .se-in { padding: 0 48px; }
+      .se-sec { padding: 104px 0 112px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .se-logo, .se-q, .se-q span, .se-cta, .se-link > span, .se-way { transition: none !important; }
+    }
+    /* Simplified footer — the checkout footer's treatment, with the social row added and the
+       consent trigger removed (no consent manager runs here; the page sets no non-essential
+       cookies). */
+    .se-foot { border-top: 2px solid var(--brass); background: var(--green-deep); }
+    .se-foot-in { max-width: 1280px; margin: 0 auto; padding: 30px 22px 34px; display: grid; gap: 14px; justify-items: center; text-align: center; }
+    .se-foot-logo { display: inline-flex; align-items: center; min-height: 44px; }
+    .se-foot-logo span { display: block; width: 156px; aspect-ratio: 186 / 32; color: var(--blush); }
+    .se-foot-nav { display: grid; grid-template-columns: 1fr 1fr; justify-items: center; column-gap: 18px; }
+    .se-foot-link { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none; transition: color .16s ease; }
+    .se-foot-link:hover { color: var(--brass); }
+    .se-socs { display: flex; gap: 20px; align-items: center; padding: 10px; }
+    .se-soc { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px; }
+    .se-soc svg { transition: fill .16s ease; }
+    .se-soc:hover svg { fill: var(--brass); }
+    .se-foot-base { display: grid; gap: 6px; justify-items: center; }
+    .se-foot-legal { margin: 0; font-family: var(--font-sans); font-size: 14px; color: var(--sand-2); }
+    .se-foot-sign { margin: 0; font-family: var(--font-display); font-style: italic; font-size: 20px; color: var(--terracotta); }
+    .se-foot a:focus-visible { outline: 2px solid #FBF8F1; outline-offset: 0; box-shadow: 0 0 0 3px var(--gold); }
+    @media (min-width: 640px) {
+      .se-foot-in { padding: 32px 34px 36px; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; justify-items: start; text-align: left; gap: 14px 28px; }
+      .se-foot-nav { display: flex; flex-wrap: wrap; gap: 4px 26px; justify-self: end; }
+      .se-socs { justify-self: end; }
+      .se-foot-base { grid-column: 1 / -1; grid-template-columns: 1fr auto; width: 100%; align-items: center; justify-items: start; }
+      .se-foot-sign { justify-self: end; }
+    }
+    @media (min-width: 1024px) { .se-foot-in { padding: 36px 48px 40px; } }
+    @media (prefers-reduced-motion: reduce) { .se-foot-link, .se-soc svg { transition: none !important; } }
+</style>
+<style>
+  /* Sterling sign, site-wide. Playfair Display's £ has a double crossbar that reads as a euro, so
+     U+00A3 alone is drawn from a Figtree subset (1 KB, 400–700) prepended to the display and
+     accent stacks. Every other character is untouched. html:root outranks the token sheet. */
+  @font-face { font-family: "AT Sterling"; src: url("assets/fonts/at-sterling.woff2") format("woff2"); font-weight: 400 700; font-style: normal; font-display: block; unicode-range: U+00A3; }
+  html:root {
+    --font-display: "AT Sterling", "Playfair Display", ui-serif, Georgia, "Times New Roman", serif;
+    --font-accent: "AT Sterling", "Cormorant Garamond", ui-serif, Georgia, serif;
+  }
+</style>
+</helmet>
+
+<header class="se-hdr">
+  <div class="se-hdr-row">
+    <a class="se-logo" href="Abby's Table - Homepage v2.dc.html" aria-label="Abby&#8217;s Table &#8212; home"><span aria-hidden="true"><at-wordmark></at-wordmark></span></a>
+    <a class="se-q" href="#se-help"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><rect x="3" y="5.5" width="18" height="13" rx="2"></rect><path d="m3.5 7 8.5 6 8.5-6"></path></svg><span>Contact us</span></a>
+  </div>
+</header>
+
+<!-- Something went wrong (500), from the user's mockup (1 Oct 2026), rebuilt as option 2: only what
+     works when the application is down. TRY AGAIN reloads the current URL with no JS. "Back to
+     homepage →" replaces the mockup's "Back to Abby's Table" (user). The direct-contact panel is
+     the outage route: mailto and tel links need nothing from our servers. Production serves this
+     pre-rendered with HTTP 500. -->
+<main>
+  <section class="se-sec" data-screen-label="Something went wrong">
+    <div class="se-in">
+      <div class="se-body">
+        <div class="se-mark" aria-hidden="true"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6 21.2 19.5H2.8z"></path><path d="M12 9.6v4.6M12 16.9h.01" stroke-width="1.8"></path></svg></div>
+        <p class="se-eyebrow">Error 500</p>
+        <h1 class="se-h1">Something didn&#8217;t go to plan.</h1>
+        <p class="se-lede">We&#8217;re having trouble loading this page right now. Please try again in a moment.</p>
+        <div class="se-acts">
+          <a class="se-cta" href="">Try again</a>
+          <a class="se-link" href="Abby's Table - Homepage v2.dc.html"><span>Back to homepage<span aria-hidden="true">&#8594;</span></span></a>
+        </div>
+        <section class="se-help" id="se-help" aria-labelledby="se-help-h">
+          <h2 class="se-help-h" id="se-help-h">Need help with an order?</h2>
+          <p class="se-help-p">Contact us directly and we&#8217;ll help.</p>
+          <div class="se-help-ways">
+            <a class="se-way" href="mailto:hello@FromAbbysTable.co.uk"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="2"></rect><path d="m3.5 7 8.5 6 8.5-6"></path></svg><span>hello@FromAbbysTable.co.uk</span></a>
+            <a class="se-way" href="tel:+442038751234"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h3.5l1.6 4.2-2.1 1.4a11 11 0 0 0 6.4 6.4l1.4-2.1L20 15.5V19a1.5 1.5 0 0 1-1.6 1.5A16.5 16.5 0 0 1 3.5 5.6 1.5 1.5 0 0 1 5 4z"></path></svg><span>020 3875 1234</span></a>
+          </div>
+        </section>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="se-foot">
+  <div class="se-foot-in">
+    <a class="se-foot-logo" href="Abby's Table - Homepage v2.dc.html" aria-label="Abby&#8217;s Table &#8212; home"><span aria-hidden="true"><at-wordmark></at-wordmark></span></a>
+    <nav class="se-foot-nav" aria-label="Help and legal">
+      <a class="se-foot-link" href="Abby's Table - Delivery and FAQs.dc.html">Delivery &amp; FAQs</a>
+      <a class="se-foot-link" href="Abby's Table - Contact Us.dc.html">Contact us</a>
+      <a class="se-foot-link" href="Abby's Table - Privacy Policy.dc.html">Privacy Policy</a>
+      <a class="se-foot-link" href="Abby's Table - Terms of Sale.dc.html">Terms</a>
+    </nav>
+    <div class="se-socs">
+      <a href="https://www.instagram.com/fromabbystable" target="_blank" rel="noopener" aria-label="Instagram" class="se-soc"><svg width="20" height="20" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07zM12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.31-1.46.72-2.12 1.38A5.86 5.86 0 0 0 .63 4.13c-.3.76-.5 1.64-.56 2.91C.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.31.79.72 1.46 1.38 2.12.66.66 1.33 1.07 2.12 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.86 5.86 0 0 0 2.12-1.38 5.86 5.86 0 0 0 1.38-2.12c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.86 5.86 0 0 0-1.38-2.12A5.86 5.86 0 0 0 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84A6.16 6.16 0 1 0 12 18.16 6.16 6.16 0 0 0 12 5.84zm0 10.16A4 4 0 1 1 12 8a4 4 0 0 1 0 8zm6.41-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z"></path></svg></a>
+      <a href="https://www.tiktok.com/@fromabbystable" target="_blank" rel="noopener" aria-label="TikTok" class="se-soc"><svg width="20" height="20" viewBox="0 0 11.5 11.4" fill="var(--blush)" style="display: block;"><path d="M6.95 0v6.9A2.66 2.66 0 1 1 4.3 4.85c.35 0 .7.07 1 .21V3.15a4.5 4.5 0 0 0-1-.1A4.2 4.2 0 1 0 8.75 6.9V3.3a4.55 4.55 0 0 0 2.75 1.1V2.55A2.73 2.73 0 0 1 8.75 0Z"></path></svg></a>
+      <a href="https://www.facebook.com/fromabbystable/" target="_blank" rel="noopener" aria-label="Facebook" class="se-soc"><svg width="20" height="20" viewBox="0 0 6.15 11.15" fill="var(--blush)" style="display: block;"><path d="M4.05 11.15V6h1.7l.3-1.95h-2V2.8c0-.55.25-.95 1-.95h1.1V.1A14.6 14.6 0 0 0 4.55 0C2.85 0 1.75 1.05 1.75 2.6v1.45H0V6h1.75v5.15Z"></path></svg></a>
+      <a href="https://x.com/fromabbystable" target="_blank" rel="noopener" aria-label="X" class="se-soc"><svg width="20" height="20" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></svg></a>
+    </div>
+    <div class="se-foot-base">
+      <p class="se-foot-legal">&#169; 2026 Abby&#8217;s Table</p>
+      <p class="se-foot-sign">Abby x</p>
+    </div>
+  </div>
+</footer>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:900}}">
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>html, body { background-color: #F7F1E8; color-scheme: light; }</style>
+<!-- ↑ First-paint ground: FIRST in the head so it is in the first bytes the parser sees.
+     Dependency-free literal of --cream (no tokens, no runtime); see CLAUDE.md head standard. -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Focus standard. In the real <head>, before the runtime, so it is parser-inserted and
+     render-blocking: it exists before first paint and before any script can move focus. A
+     <helmet> link is injected by the runtime AFTER render, which is what let the browser's blue
+     outline flash first. -->
+<!-- Shared stylesheets: ONE authoritative load path, in the real head. In <helmet> they were
+     applied from the raw template, torn down when the runtime consumed it, then re-added —
+     the transparent gap on every full load and on back navigation. -->
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/colors.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/typography.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/styles.css">
+<link rel="stylesheet" href="at-focus.css">
+<script src="at-logo.js"></script>
+<script src="at-desktop-header.js"></script>
+<script src="./support.js"></script>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#E9CDB8"/><circle cx="50" cy="40" r="16" fill="#1E3A2F"/><path d="M22 82c4-16 14-24 28-24s24 8 28 24z" fill="#1E3A2F"/></svg></template>
+</head>
+<body>
+<x-dc>
+<helmet>
+<!-- Order in progress: swaps "Get started" for VIEW BOX and the purchase bar for a box
+     summary once step 1 has been started. Self-initialising; no page-local code. -->
+<script src="at-order-state.js"></script>
+<!-- Signed in: "Log in" reads "My Account" in the header and drawer. Self-initialising. -->
+<script src="at-account-state.js"></script>
+  <script src="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/_ds_bundle.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background: var(--cream); }
+    a { color: var(--green-forest); }
+    a:hover { color: var(--terracotta-deep); }
+    :focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; border-radius: 3px; }
+    /* Brass is only 1.9:1 on green-deep, so dark grounds get a cream ring with a gold outer edge.
+       This rule was missing on this page — the comment was here but the declaration was not, so
+       every drawer control fell back to the global brass ring at 1.9:1. Copied from Homepage v2;
+       `.at-hero` is not included because this page's hero is blush, a light ground. */
+    .at-drawer-panel :focus-visible { outline-color: #FBF8F1; outline-offset: 0; box-shadow: 0 0 0 3px var(--gold); }
+    @keyframes at-drawer-in { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+    @keyframes at-fade-in { from { opacity: 0; } to { opacity: 1; } }
+    /* Closed with display: none rather than unmounted, so aria-controls always resolves. It also
+       keeps the drawer out of the accessibility tree and the tab order, and the animation replays
+       on each open because the element goes from display: none to displayed. */
+    .at-drawer-wrap { display: none; }
+    .at-drawer-wrap.is-open { display: block; }
+    .at-drawer-panel { animation: at-drawer-in .2s ease; }
+    .at-drawer-scrim { animation: at-fade-in .2s ease; }
+    /* Pending token refinement: --terracotta sampled from the approved mockup (#B7554E — the
+       shipped token #B45F5A carries more blue, which reads dull). Scoped to this page until
+       the header/CTA is approved, then it moves into the design system and this block goes. */
+    /* --gold is the bright accent sampled from the approved mockup (#F6C33B). DARK GROUNDS ONLY:
+       9.3:1 on green-deep, but 1.45:1 on cream and 1.63:1 under white text. --brass (#C28E3C)
+       stays the accent for light grounds until those sections are redesigned. */
+    /* --brass-ink is brass for SMALL TEXT on cream. --brass-deep (#A9762C) measures only 3.47:1
+       there, under the 4.5:1 small-text minimum; #8A5F1F measures 4.96:1 and still reads brass.
+       Use --brass for rules, hairlines and large marks; --brass-ink whenever brass is type. */
+    /* The pending overrides this page uses, same values as the homepage. --chilli (dish-card heat
+       pips) belongs to a component this page does not have, so it is not declared. --sage IS
+       declared: the "Abby's Table today" band now uses the Our standards ground at the user's
+       request. Light ground — green-forest 9.4:1 on it and brown 10.2:1, so all the type in that
+       band is safe; brass is 2.2:1 there, so only brass-INK may carry a mark (4.28:1) and nothing
+       small may be brass. */
+    :root { --terracotta: #B7554E; --terracotta-deep: #9C433D; --gold: #F6C33B; --brass-ink: #8A5F1F; --sage: #E1E2D2;
+            /* Terracotta for TYPE on light grounds. --terracotta is 3.14:1 on blush and 3.55:1 on
+               cream — headline-scale only; this measures 4.63:1 and 6.23:1, so it is safe at any
+               size. Light grounds only: on green-deep it drops to 2.2:1, where the lighter
+               --terracotta is correct. Pending, same status as --brass-ink. */
+            --terracotta-ink: #943E38;
+            /* The diagnosis band's near-black, restored from the original page at the user's
+               request. NOT a design-system colour — green-deep is the system's dark ground — so it
+               is page-local until the band is reviewed. Type on it: blush 15.6:1, sand-2 13.9:1,
+               brass 7.2:1, all well clear. */
+            --story-ink: #101410; }
+
+    .at-nav-link:hover { color: var(--terracotta-deep) !important; border-bottom-color: var(--brass) !important; }
+    /* Current page. aria-current was already on the right link in every header but nothing styled
+       it, so on desktop there was no way to tell where you were. Three signals, not colour alone:
+       green-forest ink, semibold, and the brass underline made persistent — the same underline the
+       hover uses, so the language is one. Hover still wins over it, which is correct: the pointer
+       is reporting what it is over, not where you are. */
+    .at-nav-link[aria-current="page"] { color: var(--green-forest) !important; font-weight: 600; border-bottom-color: var(--brass) !important; }
+    .at-login:hover { color: var(--terracotta-deep) !important; }
+    .at-login:hover span { border-bottom-color: var(--brass) !important; }
+    .at-drawer-link:hover { color: var(--brass) !important; }
+    /* No hover lift. The design system specifies fades and colour shifts, "no bounces, no large
+       motion", with press feedback as a slight colour deepen — the translateY(-1px) these three
+       carried came across from the old homepage and made them the only buttons on the page that
+       moved. Press is a deepen, per the system. */
+    .at-cta, .at-drawer-cta { transition: background .16s ease; }
+    .at-cta:hover, .at-drawer-cta:hover { background: var(--terracotta-deep) !important; }
+    .at-cta:active, .at-drawer-cta:active { background: var(--terracotta-deep) !important; filter: brightness(.94); }
+    @media (prefers-reduced-motion: reduce) {
+      .at-cta, .at-drawer-cta { transition: none !important; }
+    }
+    .at-logo { transition: opacity .16s ease; }
+    .at-logo:hover { opacity: .78; }
+    .at-burger span, .at-burger span span { transition: background .16s ease, border-color .16s ease; }
+    .at-burger:hover span { border-color: var(--terracotta-deep) !important; }
+    .at-burger:hover span span { background: var(--terracotta-deep) !important; }
+    .at-hdr { transition: transform .22s ease; }
+    .at-hdr[data-hidden="true"] { transform: translateY(-100%); }
+    /* No mobile purchase bar on this page — Abby's Story is the founder narrative, and a fixed
+       "Build a Box" alongside it turns the story into a sales page. The header CTA is the route to
+       the box builder at every width, and the chapters carry their own CTAs. */
+    @media (prefers-reduced-motion: reduce) {
+      .at-hdr { transition: none !important; }
+    }
+    /* Footer. Mobile-first: the accordion IS the mobile design, and it is switched off at 1024
+       rather than built there and overridden down. All type on --green-deep clears AA: brass
+       5.2:1, green-sage 5.4:1, sand-2 9.9:1, blush ~12:1. */
+    /* Mobile footer is centred throughout. Input TEXT stays left-aligned — centred text in a
+       field jumps around as you type an email. */
+    .at-foot-news { text-align: center; }
+    .at-foot-head { justify-content: center; }
+    .at-foot-link { justify-content: center; }
+    .at-foot-links { align-items: stretch; }
+    html { scroll-behavior: smooth; }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+    .at-foot-link { transition: color .16s ease; }
+    .at-foot-link:hover { color: var(--brass) !important; }
+    /* Anchor only: the legal strip has no buttons since Cookie preferences became a link.
+       Leaving the button selectors in place would be dead CSS, and their presence is what hid the
+       missing-hover bug the first time this control changed type. */
+    .at-foot-legal a:hover { color: var(--brass) !important; }
+    .at-foot-head { cursor: pointer; }
+    /* Collapsed state lives HERE, not inline: these links carry inline styles, and an inline
+       display would beat this rule (the accordion silently never closed). */
+    .at-foot-links { display: none; flex-direction: column; }
+    .at-foot-col.is-open .at-foot-links { display: flex; }
+    .at-foot-col.is-open .at-foot-chevron { transform: rotate(180deg); }
+    .at-foot-chevron { transition: transform .18s ease; }
+    /* Icon links shift fill like any other link — no fade. The presentation attribute fill on the
+       svg loses to CSS, so this wins without !important. */
+    .at-social svg { transition: fill .16s ease; }
+    .at-social:hover svg { fill: var(--brass); }
+    .at-foot-join { transition: background .16s ease; }
+    .at-foot-join:hover { background: var(--brass-deep) !important; }
+    .at-foot-join:active { filter: brightness(.94); }
+    .at-foot-input::placeholder { color: var(--green-sage); opacity: 1; }
+    /* Cream ring with a gold outer edge: brass is only 1.9:1 on green-deep, so a brass ring is
+       invisible here. Two crisp bands, not a glow — offset 0 so the cream sits flush against the
+       control and the gold reads as a hairline edge outside it rather than a halo. The outline
+       paints OVER the shadow, so the gold band is (spread - outline width) = 1px; a literal 2px
+       spread would hide the gold behind the cream entirely. Same values on hero, drawer, footer
+       and Private Table — one focus language, no per-control exceptions. */
+    .at-foot-inner a:focus-visible, .at-foot-inner button:focus-visible, .at-foot-input:focus-visible {
+      outline: 2px solid var(--cream); outline-offset: 0; box-shadow: 0 0 0 3px var(--gold);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .at-foot-chevron, .at-foot-link, .at-foot-join, .at-social svg { transition: none !important; }
+    }
+
+    /* --- 640px: more measure, so the buttons sit side by side and copy widens --- */
+    @media (min-width: 640px) {
+      .at-hdr-row { padding: 14px 34px !important; gap: 14px !important; }
+      /* The combined pill only appears once the column is wide enough for it. At 320 it left the
+         input about 150px, which cannot show "Enter your email address". */
+      /* `text-align: center` on the column does NOT centre this — it is a block-level flex
+         container with a fixed width, so it needs auto margins or it sits hard left while the
+         eyebrow, intro and consent line above and below it are centred. Reset to 0 at 1024,
+         where the column goes left-aligned. */
+      .at-foot-form { flex-direction: row !important; align-items: stretch !important; gap: 0 !important; height: 52px !important; width: 340px; max-width: 100%; margin-left: auto !important; margin-right: auto !important; border: 1px solid var(--green-mid); border-radius: var(--radius-pill); overflow: hidden; }
+      .at-foot-input { flex: 1 1 auto !important; min-width: 0 !important; border: none !important; border-radius: 0 !important; height: auto !important; }
+      .at-foot-join { border-radius: 0 !important; height: auto !important; width: auto !important; padding: 0 26px !important; }
+      .at-foot-inner { padding: 48px 34px 0 !important; }
+      .at-page-inner { padding: 0 34px !important; }
+      .at-cta { font-size: 13px !important; letter-spacing: .1em !important; padding: 0 20px !important; }
+    }
+
+    /* --- 1024px: desktop composition — nav in the header, two columns where the content earns it --- */
+    @media (min-width: 1024px) {
+      .at-burger { display: none !important; }
+      .at-nav, .at-login { display: flex !important; }
+      .at-hdr-row { padding: 18px 48px !important; }
+      .at-logo { justify-self: start !important; }
+      .at-hdr-row { grid-template-columns: auto 1fr auto auto !important; gap: 34px !important; }
+      .at-login { margin-left: 12px !important; }
+
+      .at-foot-inner { padding: 56px 48px 0 !important; }
+      .at-page-inner { padding: 0 48px !important; }
+      .at-h1 { font-size: 56px !important; }
+      .at-foot-grid { grid-template-columns: 1.4fr 3fr !important; gap: 48px !important; }
+      .at-foot-cols { grid-template-columns: repeat(3, 1fr) !important; gap: 48px !important; }
+      /* Accordion off: every column open, heads are labels rather than controls. */
+      .at-foot-col { border-top: none !important; }
+      .at-foot-head { min-height: 0 !important; padding: 0 !important; cursor: default !important; }
+      .at-foot-chevron { display: none !important; }
+      .at-foot-links { display: flex !important; margin-top: 16px !important; padding-bottom: 0 !important; }
+      .at-foot-bottom { grid-template-columns: 1fr auto 1fr !important; align-items: center !important; }
+      /* DOM order IS the visual order at every width — logo → signature → follow — so keyboard
+         focus never runs backwards across the four social links and the logo link (WCAG 2.4.3).
+         Only ALIGNMENT changes at this breakpoint; placement never does. The three blocks used to
+         carry order: 1/2/3 with the follow row first in the DOM, which reversed the row here. */
+      .at-foot-logo { justify-self: start !important; }
+      .at-foot-follow { justify-self: end !important; align-items: flex-end !important; }
+      .at-foot-follow-row { flex-direction: row !important; align-items: center !important; gap: 12px !important; }
+      .at-foot-dash { display: inline !important; }
+      .at-foot-mark { width: 220px !important; height: 38px !important; }
+      .at-foot-legal { flex-direction: row !important; gap: 4px 24px !important; }
+      .at-foot-news { text-align: left !important; }
+      .at-foot-form { margin-left: 0 !important; margin-right: 0 !important; }
+      .at-foot-news p { max-width: 300px; }
+      .at-foot-consent { max-width: 340px; }
+      .at-foot-head { justify-content: space-between !important; }
+      .at-foot-link { justify-content: flex-start !important; }
+      .at-foot-legal-row { gap: 24px !important; }
+      .at-foot-legal-sep { display: none !important; }
+      .at-foot-rule { display: block !important; }
+      .at-foot-cols { border-bottom: none !important; }
+      .at-foot-bottom { margin-top: 0 !important; }
+      .at-hdr[data-hidden="true"] { transform: none !important; }
+    }
+
+    /* Breakpoint exception — min-width 1280. The method cards go 4-up only here, not at 1024:
+       four across at 1024 leaves 164px of text column, and the email address needs 208px at its
+       smallest sensible size. At 1280 the column is 228px. A content reason, not a device size. */
+
+    /* --- Abby's Story. Mobile is the base; 640 and 1024 add compositions, never overrides. --- */
+    /* Canonical full-bleed band padding, copied from the homepage's sage / blush / navy bands
+       (44-48 → 56-60 → 72-76). This page had picked its own 34-48 / 52-56 / 60-64. */
+    .ab-sec { padding: 44px 0 48px; }
+    /* Section titles on the recorded scale. 40px is the mobile ceiling; 48 arrives at 1024. */
+    .ab-h2 { margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(30px, 8.6vw, 40px); line-height: 1.08; letter-spacing: -0.01em; color: var(--green-forest); text-wrap: pretty; }
+    .ab-lede { margin: 14px 0 0; font-family: var(--font-sans); font-size: 18px; line-height: 1.55; color: var(--brown); text-wrap: pretty; }
+    /* Title, lede and signature centred on the phone composition, at the user's request. Released
+       at 1024, where the hero becomes a two-column split and a centred column would be adrift. */
+    .ab-hero-copy { text-align: center; }
+    .ab-body { margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty; }
+    /* MOBILE now carries the desktop composition: the marks and prints sit ON the photograph,
+       per the approved mockup (uploads/story1.png). The earlier stacked treatment was dropped
+       at the user's request. Positioned against the FIGURE, never in viewport percentages, so it
+       reflows: at 320 the collage is 252px across and still reads. */
+    .ab-hero-fig { position: relative; }
+    .ab-hero-fig .ab-media img { object-position: 50% 12%; }
+    .ab-past { position: absolute; left: 12px; right: 12px; bottom: 12px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+    /* Pulled up over the foot of the portrait. Cleaner paper than the original collage: a flat
+       bright ground with a sand hairline, and only enough shadow to lift it off the photograph —
+       the heavy 20px drop read as a pasted cut-out against the rest of the site. */
+    .ab-logos { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; }
+    .ab-logo-card { display: flex; align-items: center; justify-content: center; min-height: 52px; padding: 8px 12px; background: var(--surface-bright, #FFFCF6); border: 1px solid var(--sand); border-radius: 14px; box-shadow: 0 2px 10px rgba(30, 58, 47, .08); }
+    .ab-logo-card img { display: block; width: auto; max-width: 100%; max-height: 30px; height: auto; mix-blend-mode: multiply; }
+    .ab-shots { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 0; align-items: end; }
+    /* No crop box: the white polaroid frame is part of each image, so object-fit: cover sliced the
+       signature wide bottom edge off all four — and unevenly, because polaroid-bf-boxes has a
+       different native ratio (0.862 vs 0.800). Height auto shows each frame intact. */
+    .ab-shots img { display: block; width: 100%; height: auto; border-radius: 8px; }
+    .ab-media { border-radius: 24px; overflow: hidden; background: var(--cream-3); border: 1px solid var(--sand); }
+    .ab-media img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    /* The signature line is the one Cormorant flourish the design system sanctions. */
+    /* The founder's name, exactly as the homepage's founder band writes it: display face, upright,
+       26px rising to 32px at desktop, upright, with a leading em dash. Terracotta rather than the
+       homepage's green-forest — the user's call, so the name reads as her line, not a caption.
+       --terracotta-ink, not --terracotta: on blush the accent measures 3.14:1, which only passes
+       as headline-scale type and would fail the moment anyone reduced the size. This is the same
+       terracotta deepened to 4.63:1 there, so the name is AA at any size. It does NOT replace
+       --terracotta on dark grounds — "Abby x" on green-deep needs the LIGHTER value (darkening it
+       would make that one worse), which is why this is a separate ink token rather than a change
+       to the accent. Same split as --brass / --brass-ink. */
+    .ab-sig { margin: 10px 0 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 26px; line-height: 1.15; color: var(--terracotta-ink); }
+    /* Hero CTA: green-forest at 54 — the user's call, taken knowingly against fill-by-role, which
+       reserves terracotta for the persistent primaries. On this page terracotta is therefore the
+       header pill, the drawer CTA and the founder's name only. Width is 100% of the content column
+       on every phone — no intermediate cap, per the CTA rule. */
+    /* Both buttons carry the homepage's exact values — 14px labels, .12em, 32/34px side padding,
+       no glyph. Copied, not re-derived. */
+    .ab-cta { display: inline-flex; align-items: center; justify-content: center; width: 100%; min-height: 54px; padding: 0 32px; border-radius: var(--radius-pill); background: var(--green-forest); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; text-decoration: none; transition: background .16s ease; }
+    .ab-cta:hover { background: var(--green-deep); }
+    .ab-cta:active { filter: brightness(.94); }
+    /* --brass-ink, not --brass: this button sits on blush, and the homepage's founder-band CTA
+       (the same ground) rings in brass-ink for exactly that reason. */
+    .ab-cta:focus-visible { outline: 2px solid var(--brass-ink); outline-offset: 3px; }
+    /* In-page section CTA: green-forest at 52, per fill-by-role. */
+    .ab-cta2 { display: inline-flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; padding: 0 34px; border-radius: var(--radius-pill); background: var(--green-forest); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; text-decoration: none; transition: background .16s ease; }
+    .ab-cta2:hover { background: var(--green-deep); }
+    .ab-cta2:active { filter: brightness(.94); }
+    /* On sage, same reasoning as the hero CTA on blush. */
+    .ab-cta2:focus-visible { outline: 2px solid var(--brass-ink); outline-offset: 3px; }
+    .ab-chapters { display: grid; gap: 30px; margin-top: 24px; }
+    .ab-chapter { display: grid; gap: 8px; }
+    .ab-chapter-media { margin-bottom: 8px; aspect-ratio: 4 / 3; border-radius: 18px; overflow: hidden; background: var(--cream-3); border: 1px solid var(--sand); }
+    .ab-chapter-media img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    /* The ringed numeral from How It Works v2 (`.hw-num`), same values: a 1px brass ring with a
+       green-forest figure, 34px here and 42px from 1024. It replaces a bare 13px brass-ink label,
+       so every numeral across the rebuilt pages is now one device. brass carries the ring as a
+       mark; the figure is green-forest, which is 12:1 on cream. */
+    .ab-num { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--brass); font-family: var(--font-sans); font-weight: 600; font-size: 14px; line-height: 1; letter-spacing: 0; color: var(--green-forest); }
+    .ab-chapter .ab-body, .ab-chapter .ab-ch-h { margin: 0; }
+    .ab-ch-h { margin: 8px 0 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest); text-wrap: pretty; }
+    .ab-dark { background: var(--story-ink); }
+    .ab-dark .ab-h2 { color: var(--blush); }
+    .ab-dark .ab-body, .ab-dark .ab-lede { color: var(--sand-2); }
+    /* --cream-3 (--surface-bright), not cream-2: on a cream ground, cream-2 differs by one value
+       of green and reads as an unexplained tint rather than a panel. cream-3 is the system's
+       bright card surface and genuinely lifts. */
+    .ab-quote { background: var(--cream-3); border: 1px solid var(--sand); border-radius: 18px; padding: 26px 22px 28px; }
+    .ab-quote p { margin: 14px 0 0; font-family: var(--font-display); font-style: italic; font-weight: var(--weight-medium); font-size: 22px; line-height: 1.4; color: var(--green-forest); text-wrap: pretty; }
+    /* Certificates sit on --sand (the dish card's text-panel ground), FLAT: the design system
+       forbids gradients on UI surfaces, and the old warm gradient made this panel read as a
+       different visual language. The certificates themselves are tilted (restored from the
+       original) — the flat ground is what the rule is about, not the paper on it. */
+    .ab-certs { background: var(--sand); border-radius: 18px; padding: 22px; }
+    /* Inside the panel, on sand, at the user's request — which is why this is --brass-ink and not
+       --brass. The diagnosis band's brass reads at 2.0:1 on sand (it is an accent for DARK grounds
+       there) and would effectively vanish; brass-ink is the same brass deepened, 3.97:1.
+       THE SIZE IS SET BY THAT NUMBER, not by taste: 3.97 clears the 3:1 headline-scale minimum
+       but not the 4.5:1 small-text one, so this has to be headline scale — 24px mobile (WCAG
+       large text at normal weight) rising to the 26px panel tier at 1024. At 22px it would fail.
+       No brass token clears 4.5:1 on sand, so size is the only variable. See build-handoff § 3u. */
+    .ab-certs-head { margin: 0 0 18px; text-align: center; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 24px; line-height: 1.25; letter-spacing: .12em; text-transform: uppercase; color: var(--brass-ink); }
+    .ab-badges { display: grid; gap: 16px; margin-top: 22px; }
+    .ab-badge { display: flex; align-items: center; gap: 12px; }
+    .ab-badge span:last-child { font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest); }
+    /* Slanted as the original. Width is held under 100% so the rotated corners stay inside the
+       panel, and the gap absorbs the extra height a rotated box takes (w × sinθ). Shadow is the
+       hero collage's paper value (10px / 8%), not the original's 20px / 16%. */
+    .ab-marks { display: grid; gap: 20px; }
+    .ab-marks img { display: block; width: 90%; margin: 0 auto; height: auto; border: 1px solid var(--sand-2); border-radius: 4px; background: var(--white); box-shadow: 0 10px 20px rgba(30, 58, 47, .08); }
+    .ab-marks img:first-child { transform: rotate(-3.2deg); }
+    .ab-marks img:last-child { transform: rotate(2.4deg); }
+    .ab-list { display: grid; gap: 10px; margin: 14px 0 0; padding: 0; list-style: none; }
+    .ab-list li { display: flex; gap: 12px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty; }
+    .ab-list span { flex: 0 0 auto; color: var(--brass-ink); }
+
+    @media (min-width: 640px) {
+      .ab-sec { padding: 56px 0 60px !important; }
+      .ab-cta, .ab-cta2 { width: auto; }
+      .ab-ctarow { display: flex; }
+      /* The HERO's CTA row only, and only in this band: from 640 the button becomes intrinsic
+         (`width: auto` above), so without this it sat hard left under centred copy. The other
+         .ab-ctarow instances sit in left-aligned columns and must stay left. Returns to
+         column-aligned at 1024, where the hero copy goes back to text-align: left. */
+      .ab-hero > .ab-ctarow { justify-content: center; }
+      /* Photograph left, text right at this measure. Two flexible spacer tracks, so the TEXT GROUP
+         is centred against the photograph as a unit rather than pinned to its top: the three text
+         cells sit in rows 2-4 and the 1fr tracks above and below equalise, while the photograph
+         spans all five rows and centres itself in that span. Whichever column is taller, the
+         shorter one now reads as centred against it — at the top it looked aligned on chapter 01
+         and adrift on 02, where the copy runs to six lines.
+         Every cell is placed explicitly because the DOM is title → image → description (the mobile
+         order): a row-definite media item in DOM position 3 would otherwise look for a column where
+         its rows are free, find the first two taken, and open an implicit third column. */
+      .ab-chapter { grid-template-columns: minmax(0, 260px) minmax(0, 1fr); grid-template-rows: 1fr auto auto auto 1fr; column-gap: 24px; row-gap: 8px; align-items: start; }
+      .ab-chapter > .ab-num { grid-column: 2; grid-row: 2; }
+      .ab-chapter > .ab-ch-h { grid-column: 2; grid-row: 3; }
+      .ab-chapter > .ab-body { grid-column: 2; grid-row: 4; }
+      .ab-chapter-media { grid-column: 1; grid-row: 1 / span 5; align-self: center; margin-bottom: 0; }
+
+      /* Only the insets and paper sizes change here — the overlay itself is the base design now,
+         so the position/aspect/object-position rules are not repeated. */
+      .ab-past { left: 16px; right: 16px; bottom: 16px; gap: 10px; }
+      .ab-logos { gap: 10px; }
+      .ab-logo-card { min-height: 66px; padding: 12px 16px; }
+      .ab-logo-card img { max-height: 40px; }
+      .ab-shots { gap: 10px; }
+      .ab-badges { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; }
+      /* Single-column band: stacked full-width certificates would render each one ~950px wide.
+         Two-up keeps them at a readable document size. Back to stacked at 1024, where they sit
+         in a ~350px column of the three-up composition. */
+      .ab-marks { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+      .ab-badge { flex-direction: column; align-items: flex-start; gap: 10px; }
+    }
+
+    @media (min-width: 1024px) {
+      .ab-sec { padding: 72px 0 76px !important; }
+      .ab-h2 { font-size: 48px !important; }
+      .ab-ch-h { font-size: 26px !important; }
+      /* Hero: copy beside the portrait, the composition the desktop mockup uses. Same spacer-row
+         structure as the diagnosis band, because the CTA is a grid sibling now rather than a
+         child of the copy column. */
+      .ab-hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); grid-template-rows: 1fr auto auto 1fr; column-gap: 56px; row-gap: 0; align-items: center; }
+      .ab-hero-copy { text-align: left; }
+      .ab-hero-copy { max-width: 520px; grid-column: 1; grid-row: 2; }
+      .ab-hero > .ab-ctarow { grid-column: 1; grid-row: 3; justify-content: flex-start; }
+      .ab-hero-fig { grid-column: 2; grid-row: 1 / -1; }
+      /* The collage is inside the hero figure, so it stays in the media column by construction —
+         no span rule needed. A little more inset at this size. */
+      .ab-past { left: 20px; right: 20px; bottom: 20px; }
+      /* Shared row tracks: numeral, title, photograph and body each get their own row across all
+         three columns, so they line up however long the copy runs. Without this every chapter was
+         centred inside its own stretched cell and the three drifted apart vertically. Degrades to
+         ragged (not broken) where subgrid is unsupported. */
+      .ab-chapters { grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 40px; row-gap: 0; grid-template-rows: repeat(4, auto); }
+      .ab-chapter { grid-template-columns: none !important; grid-row: span 4; grid-template-rows: subgrid; row-gap: 10px !important; align-items: start; }
+      /* The 640 band places every cell explicitly; back to auto placement here, which with the
+         title-first DOM gives rows numeral / title / photograph / body. */
+      .ab-chapter > .ab-num, .ab-chapter > .ab-ch-h, .ab-chapter > .ab-body { grid-column: auto; grid-row: auto; }
+      .ab-chapter-media { grid-column: auto; grid-row: auto !important; margin-bottom: 6px; }
+      .ab-num { width: 42px; height: 42px; font-size: 17px; }
+      .ab-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.86fr); gap: 56px; align-items: center; }
+      /* The italic line sits under the copy again, and the photograph spans the whole column.
+         Rows are `1fr auto auto 1fr` — the spanning figure pours its extra height into the two
+         flexible tracks instead of inflating the gap between copy and italic line, which is what
+         centres the text block against the photograph. */
+      .ab-split-diag { grid-template-rows: 1fr auto auto 1fr; column-gap: 56px; row-gap: 0; align-items: center; }
+      .ab-split-diag > div:first-child { grid-column: 1; grid-row: 2; }
+      .ab-remission { grid-column: 1; grid-row: 3; }
+      .ab-split-diag > .ab-media { grid-column: 2; grid-row: 1 / -1; }
+      /* Original three-up composition: copy | certificates | quote. */
+      .ab-learn { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 0.92fr); gap: 44px; align-items: center; }
+      .ab-marks { grid-template-columns: minmax(0, 1fr); }
+      /* The 26px top margins are the MOBILE stacking gap. Beside the copy they push the media
+         down out of alignment, so they are cleared where the composition changes. !important
+         because the value is inline — it is the base design, not an override to fight. */
+      /* .ab-hero-fig > .ab-media is here because the portrait is now inside that wrapper, so
+         `.ab-hero > .ab-media` no longer matches it. Re-check this list whenever the hero is
+         restructured: the inline margin-top wins without it, and nothing reports the miss. */
+      .ab-hero > .ab-media, .ab-hero-fig > .ab-media, .ab-split > .ab-media, .ab-split > figure, .ab-learn > div + div { margin-top: 0 !important; }
+      .ab-sig { font-size: 32px !important; }
+      .ab-quote p { font-size: 26px !important; }
+      .ab-quote { padding: 34px 32px 36px !important; }
+      .ab-certs { padding: 26px !important; }
+      .ab-certs-head { margin-bottom: 16px !important; font-size: 26px !important; }
+      /* Stacked, not 3-up. The copy column here is only ~323px at 1024 and ~421px at 1280, so
+         three across gives each badge ~97–132px — "College of Naturopathic Medicine" breaks to
+         four or five lines. The 3-up at 640 is right because the column is the full page there. */
+      .ab-badges { grid-template-columns: minmax(0, 1fr) !important; gap: 14px !important; }
+      .ab-badge { flex-direction: row !important; align-items: center !important; gap: 12px !important; }
+      .ab-filmtitle { font-size: 26px !important; }
+    }
+  </style>
+<style>
+  /* Sterling sign, site-wide. Playfair Display's £ has a double crossbar that reads as a euro, so
+     U+00A3 alone is drawn from a Figtree subset (1 KB, 400–700) prepended to the display and
+     accent stacks. Every other character is untouched. html:root outranks the token sheet. */
+  @font-face { font-family: "AT Sterling"; src: url("assets/fonts/at-sterling.woff2") format("woff2"); font-weight: 400 700; font-style: normal; font-display: block; unicode-range: U+00A3; }
+  html:root {
+    --font-display: "AT Sterling", "Playfair Display", ui-serif, Georgia, "Times New Roman", serif;
+    --font-accent: "AT Sterling", "Cormorant Garamond", ui-serif, Georgia, serif;
+  }
+</style>
+</helmet>
+
+<header class="at-hdr" data-at-desk-hdr="marketing" ref="{{ hdrRef }}" data-hidden="{{ hdrHidden }}" style="position: sticky; top: 0; z-index: 60; background: var(--cream-2); border-bottom: 1px solid var(--sand);">
+  <div class="at-hdr-row" style="display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 8px; max-width: 1280px; margin: 0 auto; padding: 10px 14px;">
+
+    <button class="at-burger" type="button" ref="{{ burgerRef }}" onClick="{{ openDrawer }}" aria-label="Open menu" aria-controls="at-drawer" aria-expanded="{{ burgerExpanded }}" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-left: -10px; border: none; background: transparent; cursor: pointer;">
+      <span aria-hidden="true" style="display: block; width: 22px; height: 14px; border-top: 1.6px solid var(--green-forest); border-bottom: 1.6px solid var(--green-forest); position: relative;"><span style="position: absolute; left: 0; right: 0; top: 50%; margin-top: -0.8px; height: 1.6px; background: var(--green-forest);"></span></span>
+    </button>
+
+    <a class="at-logo" href="Abby's Table - Homepage v2.dc.html" aria-label="Abby's Table — home" style="justify-self: center; display: block; text-decoration: none; min-width: 0;">
+      <span aria-hidden="true" style="display: block; width: clamp(108px, 36vw, 168px); aspect-ratio: 186 / 32; color: var(--green-forest);"><at-wordmark></at-wordmark></span>
+    </a>
+
+    <nav class="at-nav" aria-label="Main" style="display: none; justify-self: center; align-items: center; gap: 30px;">
+      <a class="at-nav-link" href="Abby's Table - Menu Landing v3.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Menu</a>
+      <a class="at-nav-link" href="Abby's Table - How It Works v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">How it works</a>
+      <a class="at-nav-link" href="Abby's Table - Abby's Story v2.dc.html" aria-current="page" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Abby&#8217;s Story</a>
+      <a class="at-nav-link" href="Abby's Table - Gifting v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Gifting</a>
+      <a class="at-nav-link" href="Abby's Table - Private Table v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Private Table</a>
+    </nav>
+
+    <a class="at-login" href="Abby's Table - Log in.dc.html" style="display: none; align-items: center; height: 44px; font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; transition: color .16s ease;"><span style="display: inline-block; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: border-color .16s ease;">Log in</span></a>
+
+    <a class="at-cta" href="Abby's Table - Choose Box v2.dc.html" style="display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 13px; border-radius: var(--radius-pill); background: var(--terracotta); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; text-decoration: none; white-space: nowrap;">Get started</a>
+  </div>
+</header>
+
+<!-- Abby's Story. A narrative page: hero, three chapters, the diagnosis band, the return to
+     study, and what Abby's Table is now. Header, drawer and footer are copied verbatim from the
+     canonical homepage v2. All food and portrait imagery is AI placeholder
+     (photography-shot-list.md); the "Five questions" film has not been shot. -->
+<main>
+  <!-- Hero. Mobile and desktop now share one composition, per the approved mockup: the two brand
+       marks and the four prints sit ON the portrait, inset against the FIGURE rather than in
+       viewport percentages (which is what stopped the original from reflowing). Mobile order is
+       copy → photograph → CTA. -->
+  <section class="ab-sec" data-screen-label="Story hero" style="background: var(--blush);">
+    <div class="at-page-inner" style="max-width: 1280px; margin: 0 auto; padding: 0 22px;">
+      <div class="ab-hero">
+        <div class="ab-hero-copy">
+          <h1 class="at-h1" ref="{{ h1Ref }}" tabindex="-1" style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(38px, 11.6vw, 56px); line-height: 1.04; letter-spacing: -0.015em; color: var(--green-forest); text-wrap: pretty;">The story behind Abby&#8217;s Table</h1>
+          <p class="ab-lede">Before Abby&#8217;s Table, there was a career in marketing, over 10 years in the food business, two brands of my own, and a diagnosis that changed everything.</p>
+          <p class="ab-sig">&#8212; Esther Abby Josiah</p>
+        </div>
+        <!-- Portrait and collage are one figure at every width: the cards and prints are
+             positioned ON the photograph, which is the original desktop composition and now the
+             mobile one too (uploads/story1.png). -->
+        <div class="ab-hero-fig">
+        <div class="ab-media" style="margin-top: 26px; aspect-ratio: 1 / 1;">
+          <img src="assets/story-hero.jpg" decoding="async" fetchpriority="high" alt="Abby at her marble kitchen counter in a forest-green dress" />
+        </div>
+      <div class="ab-past">
+        <div class="ab-logos">
+          <div class="ab-logo-card"><img src="assets/mrsj-logo.png" alt="Mrs J — luxury Nigerian catering" /></div>
+          <div class="ab-logo-card"><img src="assets/bellefull-logo-sm.png" loading="lazy" decoding="async" alt="B&#233;ll&#233;-Full — freshly cooked Nigerian meals delivered UK-wide" /></div>
+        </div>
+        <div class="ab-shots">
+          <img src="assets/polaroid-mrsj-menu.jpg" loading="lazy" decoding="async" alt="A Mrs J Foods wedding menu on a place setting" />
+          <img src="assets/polaroid-jollof-bowls.jpg" loading="lazy" decoding="async" alt="Bowls of jollof rice served at a catering event" />
+          <img src="assets/polaroid-bf-pouches.jpg" loading="lazy" decoding="async" alt="B&#233;ll&#233;-Full jollof rice pouches" />
+          <img src="assets/polaroid-bf-boxes.jpg" loading="lazy" decoding="async" alt="B&#233;ll&#233;-Full delivery boxes stacked in the warehouse" />
+        </div>
+      </div>
+        </div>
+        <!-- CTA follows the figure in the DOM because that is its position on mobile, per the
+             mockup. At 1024 grid placement returns it to the copy column; the only thing it moves
+             past is the photograph, which holds no controls — the one case CLAUDE.md allows. -->
+        <div class="ab-ctarow" style="margin-top: 24px;">
+          <a class="ab-cta" href="#chapter-01">Start at the beginning</a>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- scroll-margin-top clears the sticky header: without it "Start at the beginning" landed the
+       section top at viewport top and the h2 sat under the header. 72px covers the tallest header
+       row (18px + 44px + 18px + hairline). -->
+  <section class="ab-sec" id="chapter-01" data-screen-label="Chapters — before the diagnosis" style="background: var(--cream); scroll-margin-top: 72px;">
+    <div class="at-page-inner" style="max-width: 1280px; margin: 0 auto; padding: 0 22px;">
+      <h2 class="ab-h2">More than a decade in food. Two brands.</h2>
+      <div class="ab-chapters">
+        <div class="ab-chapter">
+          <span class="ab-num" aria-hidden="true">01</span>
+          <h3 class="ab-ch-h">From marketing to food</h3>
+          <div class="ab-chapter-media"><img src="assets/story-chapter-01.jpg" loading="lazy" decoding="async" alt="A desk with a laptop and notebooks, from the marketing years" /></div>
+          <p class="ab-body">Food wasn&#8217;t the original plan. Tech marketing came first, until I chose to build something around the food I loved.</p>
+        </div>
+        <div class="ab-chapter">
+          <span class="ab-num" aria-hidden="true">02</span>
+          <h3 class="ab-ch-h">Mrs J Foods</h3>
+          <div class="ab-chapter-media"><img src="assets/story-chapter-02.jpg" loading="lazy" decoding="async" alt="A plated Nigerian dish from the Mrs J Foods catering years" /></div>
+          <p class="ab-body">I founded Mrs J Foods and spent several years working professionally in food, from catering at the Houses of Parliament and venues including The Lanesborough, to consulting on the wedding menu for His Majesty Ogiame Atuwatse III, the Olu of Warri, and Her Majesty Olori Atuwatse III.</p>
+        </div>
+        <div class="ab-chapter">
+          <span class="ab-num" aria-hidden="true">03</span>
+          <h3 class="ab-ch-h">B&#233;ll&#233;-Full</h3>
+          <div class="ab-chapter-media"><img src="assets/story-chapter-03.jpg" loading="lazy" decoding="async" alt="B&#233;ll&#233;-Full meal boxes packed for delivery" /></div>
+          <p class="ab-body">I went on to launch B&#233;ll&#233;-Full, the UK&#8217;s first direct-to-consumer Nigerian prepared-meal brand, which grew into a nationwide business serving customers across the UK.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- The one dark band on the page, and the reason the page exists. Near-black rather than the
+       system's green-deep, and a brass accent line rather than gold — both the user's call, so the
+       band reads as its own moment. -->
+  <section class="ab-sec ab-dark" data-screen-label="The diagnosis">
+    <div class="at-page-inner" style="max-width: 1280px; margin: 0 auto; padding: 0 22px;">
+      <div class="ab-split ab-split-diag">
+        <div>
+          <h2 class="ab-h2">3 days after my 33rd birthday, I was diagnosed with breast cancer.</h2>
+          <p class="ab-body">That changed everything. After treatment and recovery, I began to think more deeply about the relationship between food and health, and how the choices we make around food can shape our overall wellbeing. That change in perspective eventually led me to close the businesses I had spent years building and step away from food professionally.</p>
+        </div>
+        <div class="ab-media" style="margin-top: 24px; aspect-ratio: 5 / 4; border-color: var(--brass);">
+          <img src="assets/story-diagnosis.jpg" loading="lazy" decoding="async" alt="Abby, photographed in 2017" />
+        </div>
+        <!-- Below the photograph on mobile, per the user's direction; returned to the copy column
+             at 1024. Non-interactive text moving past a non-interactive image — no tab-order
+             consequence. -->
+        <p class="ab-remission" style="margin: 18px 0 0; font-family: var(--font-display); font-style: italic; font-weight: var(--weight-medium); font-size: 22px; line-height: 1.35; color: var(--brass);">Treatment. Recovery. Remission.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Ground is --cream, the same as the chapters band above the dark section: cream bands stay on
+       one cream, and the transition comes from the heading and the spacing. The cream-2 ground and
+       the two sand hairlines this carried were a third-of-a-shade difference plus a divider — and
+       the bottom rule was invisible anyway, sitting sand-on-sand against the next band. -->
+  <section class="ab-sec" data-screen-label="Learning again" style="background: var(--cream);">
+    <div class="at-page-inner" style="max-width: 1280px; margin: 0 auto; padding: 0 22px;">
+      <div class="ab-learn">
+        <div>
+          <h2 class="ab-h2">Remission became more than recovery. It became a mission.</h2>
+          <p class="ab-body">A mission to understand more about the food we eat, the choices we make and the role nutrition can play in our health. That curiosity took me back to study health, wellness and nutrition, and changed the way I thought about food entirely.</p>
+          <div class="ab-badges">
+            <span class="ab-badge">
+              <span aria-hidden="true" style="flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--brass); display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="display: block;"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg></span>
+              <span>Health &amp; wellness study</span>
+            </span>
+            <span class="ab-badge">
+              <span aria-hidden="true" style="flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--brass); display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="display: block;"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M6 10.5V15c0 1.5 2.7 3 6 3s6-1.5 6-3v-4.5"/><path d="M21 9v5"/></svg></span>
+              <span>Harvard Medical School</span>
+            </span>
+            <span class="ab-badge">
+              <span aria-hidden="true" style="flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--brass); display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="display: block;"><path d="M12 21a8.5 8.5 0 0 0 8.5-8.5C20.5 8 17 4.5 12 3 7 4.5 3.5 8 3.5 12.5A8.5 8.5 0 0 0 12 21Z"/><path d="M12 7v8"/><path d="M8.8 10.2c1 1.4 2.1 2 3.2 1.8 1.1.2 2.2-.4 3.2-1.8"/></svg></span>
+              <span>College of Naturopathic Medicine</span>
+            </span>
+          </div>
+        </div>
+        <div style="margin-top: 26px;">
+          <div class="ab-certs">
+            <h3 class="ab-certs-head">What I studied</h3>
+            <div class="ab-marks">
+              <img src="assets/cert-harvard.jpg" loading="lazy" decoding="async" alt="Harvard Medical School Executive Education certificate: Health and Wellness — Designing a Sustainable Nutrition Plan, June 2025" />
+              <img src="assets/cert-cnm.jpg" loading="lazy" decoding="async" alt="CNM Diploma as a Health Coach, awarded to Esther Josiah, July 2026" />
+            </div>
+          </div>
+        </div>
+        <div style="margin-top: 26px;">
+          <div class="ab-quote">
+            <span aria-hidden="true" style="display: block; font-family: var(--font-display); font-size: 26px; line-height: 1; color: var(--brass-ink);">&#8220;</span>
+            <p>It was no longer only, &#8216;Does this taste good?&#8217; It was also, &#8216;What is this doing to the body?&#8217;</p>
+            <span aria-hidden="true" style="display: block; width: 48px; height: 2px; background: var(--brass); margin-top: 22px;"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ab-sec" data-screen-label="Abby's Table today" style="background: var(--sage);">
+    <div class="at-page-inner" style="max-width: 1280px; margin: 0 auto; padding: 0 22px;">
+      <div class="ab-split">
+        <div>
+          <h2 class="ab-h2">Nigerian food, from a different perspective.</h2>
+          <p class="ab-body">Abby&#8217;s Table takes everything I know about Nigerian food and combines it with everything I went back to learn about ingredients, nutrition and health.</p>
+          <ul class="ab-list">
+            <li><span aria-hidden="true">&#11045;</span>Better ingredients.</li>
+            <li><span aria-hidden="true">&#11045;</span>Nutrition taken seriously.</li>
+            <li><span aria-hidden="true">&#11045;</span>No unnecessary shortcuts.</li>
+            <li><span aria-hidden="true">&#11045;</span>Nigerian flavour at the centre.</li>
+          </ul>
+          <div class="ab-ctarow" style="margin-top: 24px;">
+            <a class="ab-cta2" href="Abby's Table - Menu Landing v3.dc.html">See what&#8217;s on the table</a>
+          </div>
+        </div>
+        <!-- No play control: the "5 things about Abby" film does not exist yet, and a play button
+             over a still is a live-looking control that does nothing. It is a captioned still until
+             the footage arrives (photography-shot-list.md). -->
+        <figure style="margin: 26px 0 0;">
+          <div class="ab-media" style="aspect-ratio: 1 / 1;">
+            <img src="assets/story-video-still.jpg" loading="lazy" decoding="async" alt="Abby in her kitchen, talking to camera" />
+          </div>
+          <!-- Title + subline, per the approved mockup. The mockup's COMING SOON eyebrow and its
+               brass rule are deliberately dropped at the user's request. Title is the panel
+               heading tier (22 → 26), not a new display size. -->
+          <figcaption style="margin-top: 16px;">
+            <span class="ab-filmtitle" style="display: block; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest);">Five questions, five answers</span>
+            <span style="display: block; margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; color: var(--brown);">A short film with Abby.</span>
+          </figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Footer. Becomes the canonical shared footer on approval.
+     Dropped from the old version: "Journal" and "Discovery Box" (no such pages), and the 1440
+     shell (this is on the 1280 grid like every other band). Added: legal links, and a consent
+     line on the signup, which previously collected an email with no lawful basis stated.
+     FOUR DESTINATIONS DO NOT EXIST YET — Contact us, Allergens, Privacy Policy, Terms. They stay
+     on #contact rather than pointing at files that would 404. Delivery & FAQs is now wired. -->
+<footer id="contact" ref="{{ footRef }}" style="background: var(--green-deep);">
+  <div aria-hidden="true" style="height: 2px; background: var(--brass);"></div>
+  <div class="at-foot-inner" style="max-width: 1280px; margin: 0 auto; padding: 40px 22px 0;">
+
+    <div class="at-foot-grid" style="display: grid; gap: 36px;">
+      <div class="at-foot-news">
+        <p style="margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">Join the table</p>
+        <p style="margin: 12px 0 18px; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; color: var(--blush);">Kitchen notes and offers from Abby, monthly.</p>
+
+        <sc-if value="{{ subscribed }}" hint-placeholder-val="{{ false }}">
+          <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.3; color: var(--blush);">Thank you for joining the table.</p>
+        </sc-if>
+
+        <sc-if value="{{ notSubscribed }}" hint-placeholder-val="{{ true }}">
+          <!-- Stacked on a phone, one pill from 640. The input is 52px for comfortable typing and
+               the button 48px; the field is not a CTA, so it is not on the ladder. -->
+          <form class="at-foot-form" onSubmit="{{ onJoin }}" style="display: flex; flex-direction: column; gap: 10px;">
+            <label for="at-foot-email" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);">Email address</label>
+            <input class="at-foot-input" id="at-foot-email" name="email" type="email" required autocomplete="email" placeholder="Enter your email address" style="height: 52px; box-sizing: border-box; min-width: 0; border: 1px solid var(--green-mid); border-radius: var(--radius-pill); background: transparent; padding: 0 20px; font-family: var(--font-sans); font-size: 16px; color: var(--blush);" />
+            <button type="submit" class="at-foot-join" style="height: 48px; width: 100%; border: none; cursor: pointer; border-radius: var(--radius-pill); background: var(--brass); color: var(--green-deep); font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase;">Join</button>
+          </form>
+          <!-- 13px, not 14: the intro above is 16px and our floor forbids two body sizes within
+               2px of each other. -->
+          <p class="at-foot-consent" style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 13px; line-height: 1.5; color: var(--sand-2);">We use your email for kitchen notes and offers only. Unsubscribe any time. See our <a href="Abby's Table - Privacy Policy.dc.html" class="at-foot-link" style="color: var(--sand-2); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-skip-ink: none;">Privacy Policy</a>.</p>
+        </sc-if>
+      </div>
+
+      <div class="at-foot-cols" style="display: grid; border-bottom: 1px solid var(--green-mid);">
+        <div class="at-foot-col {{ shopCls }}" style="border-top: 1px solid var(--green-mid);">
+          <button class="at-foot-head" type="button" onClick="{{ toggleShop }}" aria-expanded="{{ shopExp }}" aria-controls="at-foot-shop" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 0; background: transparent; border: none; text-align: left; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">
+            <span>Shop</span>
+            <svg class="at-foot-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          <div class="at-foot-links" id="at-foot-shop" style="padding-bottom: 8px;">
+            <a class="at-foot-link" href="Abby's Table - Menu Landing v3.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Menu</a>
+            <a class="at-foot-link" href="Abby's Table - Gifting v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Gifting</a>
+            <a class="at-foot-link" href="Abby's Table - Private Table v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Private Table</a>
+          </div>
+        </div>
+
+        <div class="at-foot-col {{ learnCls }}" style="border-top: 1px solid var(--green-mid);">
+          <button class="at-foot-head" type="button" onClick="{{ toggleLearn }}" aria-expanded="{{ learnExp }}" aria-controls="at-foot-learn" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 0; background: transparent; border: none; text-align: left; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">
+            <span>Learn</span>
+            <svg class="at-foot-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          <div class="at-foot-links" id="at-foot-learn" style="padding-bottom: 8px;">
+            <a class="at-foot-link" href="Abby's Table - Abby's Story v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Abby&#8217;s Story</a>
+            <a class="at-foot-link" href="Abby's Table - How It Works v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">How it works</a>
+            <a class="at-foot-link" href="Abby's Table - Standards v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Our standards</a>
+          </div>
+        </div>
+
+        <div class="at-foot-col {{ infoCls }}" style="border-top: 1px solid var(--green-mid);">
+          <button class="at-foot-head" type="button" onClick="{{ toggleInfo }}" aria-expanded="{{ infoExp }}" aria-controls="at-foot-info" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 0; background: transparent; border: none; text-align: left; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">
+            <span>Information</span>
+            <svg class="at-foot-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          <div class="at-foot-links" id="at-foot-info" style="padding-bottom: 8px;">
+            <a class="at-foot-link" href="Abby's Table - Delivery and FAQs.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Delivery &amp; FAQs</a>
+            <a class="at-foot-link" href="Abby's Table - Allergens.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Allergens</a>
+            <a class="at-foot-link" href="Abby's Table - Contact Us.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Contact us</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Desktop-only. On mobile the accordion group's own bottom border closes the block, so a
+         second rule 32px below it read as a stray line. -->
+    <div class="at-foot-rule" aria-hidden="true" style="display: none; height: 1px; background: var(--green-mid); margin: 32px 0 26px;"></div>
+
+    <div class="at-foot-bottom" style="display: grid; gap: 26px; justify-items: center; margin-top: 30px;">
+      <a class="at-foot-logo" href="Abby's Table - Homepage v2.dc.html" aria-label="Abby&#8217;s Table &#8212; home" style="display: block; text-decoration: none;">
+        <span class="at-foot-mark" aria-hidden="true" style="display: block; width: 176px; height: 30px; color: var(--blush);"><at-wordmark></at-wordmark></span>
+      </a>
+
+      <!-- 25px, not the old 22: terracotta is 3.2:1 on green-deep, which only clears the 3:1
+           large-text threshold at 24px and above. -->
+      <span class="at-foot-sig" style="font-family: var(--font-display); font-style: italic; font-size: 25px; line-height: 1; color: var(--terracotta);">Abby x</span>
+
+      <div class="at-foot-follow" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+        <span style="font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--green-sage);">Follow the table</span>
+        <div class="at-foot-follow-row" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <a href="https://www.instagram.com/fromabbystable" target="_blank" rel="noopener" aria-label="Instagram" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07zM12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.31-1.46.72-2.12 1.38A5.86 5.86 0 0 0 .63 4.13c-.3.76-.5 1.64-.56 2.91C.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.31.79.72 1.46 1.38 2.12.66.66 1.33 1.07 2.12 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.86 5.86 0 0 0 2.12-1.38 5.86 5.86 0 0 0 1.38-2.12c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.86 5.86 0 0 0-1.38-2.12A5.86 5.86 0 0 0 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84A6.16 6.16 0 1 0 12 18.16 6.16 6.16 0 0 0 12 5.84zm0 10.16A4 4 0 1 1 12 8a4 4 0 0 1 0 8zm6.41-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z" /></svg></a>
+            <a href="https://www.tiktok.com/@fromabbystable" target="_blank" rel="noopener" aria-label="TikTok" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 11.5 11.4" fill="var(--blush)" style="display: block;"><path d="M6.95 0v6.9A2.66 2.66 0 1 1 4.3 4.85c.35 0 .7.07 1 .21V3.15a4.5 4.5 0 0 0-1-.1A4.2 4.2 0 1 0 8.75 6.9V3.3a4.55 4.55 0 0 0 2.75 1.1V2.55A2.73 2.73 0 0 1 8.75 0Z" /></svg></a>
+            <a href="https://www.facebook.com/fromabbystable/" target="_blank" rel="noopener" aria-label="Facebook" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 6.15 11.15" fill="var(--blush)" style="display: block;"><path d="M4.05 11.15V6h1.7l.3-1.95h-2V2.8c0-.55.25-.95 1-.95h1.1V.1A14.6 14.6 0 0 0 4.55 0C2.85 0 1.75 1.05 1.75 2.6v1.45H0V6h1.75v5.15Z" /></svg></a>
+            <a href="https://x.com/fromabbystable" target="_blank" rel="noopener" aria-label="X" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg></a>
+          </div>
+          <span class="at-foot-dash" aria-hidden="true" style="display: none; color: var(--green-sage); font-size: 13px; line-height: 1;">&#8211;</span>
+          <!-- Plain text, not a link: the four icons above already go to the accounts, so a fifth
+               route to the same place is redundant. No hit area or hover needed. -->
+          <span style="display: flex; align-items: center; padding: 4px 0; font-family: var(--font-sans); font-size: 16px; color: var(--blush);">@FromAbbysTable</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="at-foot-legal" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0 24px; margin-top: 20px; padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));">
+      <span style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--green-sage);">&#169; 2026 Abby&#8217;s Table</span>
+      <div class="at-foot-legal-row" style="display: flex; align-items: center; gap: 12px;">
+        <a href="Abby's Table - Privacy Policy.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--sand-2); text-decoration: none; transition: color .16s ease;">Privacy Policy</a>
+        <span class="at-foot-legal-sep" aria-hidden="true" style="color: var(--green-mid); font-size: 13px; line-height: 1;">|</span>
+        <a href="Abby's Table - Terms of Sale.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--sand-2); text-decoration: none; transition: color .16s ease;">Terms</a>
+      </div>
+      <!-- Progressive enhancement, and the canonical pattern for every off-page consent trigger:
+           a REAL link to the Privacy Policy's cookie section, which is what a customer gets with no
+           JS or if the consent manager fails to initialise. Where the manager is available it binds
+           one delegated listener on [data-consent-open], suppresses navigation only after a
+           genuinely successful open, and adds aria-haspopup="dialog" itself.
+           PRODUCTION: this href becomes /privacy#cookies — a named routing requirement, see
+           build-handoff.md "Cookie consent — production contract". -->
+      <a href="Abby's Table - Privacy Policy.dc.html#cookies" data-consent-open style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--sand-2); text-decoration: none; transition: color .16s ease;">Cookie preferences</a>
+    </div>
+  </div>
+</footer>
+
+<div class="at-drawer-wrap {{ drawerCls }}">
+  <div class="at-drawer-scrim" onClick="{{ closeDrawer }}" style="position: fixed; inset: 0; z-index: 90; background: rgba(21,41,31,.5);"></div>
+  <aside id="at-drawer" class="at-drawer-panel" ref="{{ panelRef }}" role="dialog" aria-modal="true" aria-label="Main menu" style="position: fixed; top: 0; left: 0; bottom: 0; z-index: 95; display: flex; flex-direction: column; width: min(300px, 84vw); background: var(--green-forest); padding: 18px 22px 26px; overflow-y: auto;">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+      <a class="at-logo" href="Abby's Table - Homepage v2.dc.html" aria-label="Abby&#8217;s Table &#8212; home" style="display: flex; align-items: center; min-height: 44px; text-decoration: none;">
+        <span aria-hidden="true" style="display: block; width: 142px; aspect-ratio: 186 / 32; color: var(--blush);"><at-wordmark></at-wordmark></span>
+      </a>
+      <button type="button" onClick="{{ closeDrawer }}" aria-label="Close menu" style="flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-right: -10px; border: none; background: transparent; color: var(--blush); font-size: 24px; line-height: 1; cursor: pointer;">&#215;</button>
+    </div>
+
+    <a class="at-drawer-link" href="Abby's Table - Log in.dc.html" style="display: flex; align-items: center; min-height: 48px; margin-top: 20px; font-family: var(--font-sans); font-weight: 600; font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Log in</a>
+    <span aria-hidden="true" style="display: block; height: 1px; background: var(--green-mid); margin: 4px 0 6px;"></span>
+
+    <nav aria-label="Main" style="display: flex; flex-direction: column;">
+      <a class="at-drawer-link" href="Abby's Table - Menu Landing v3.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Menu</a>
+      <a class="at-drawer-link" href="Abby's Table - How It Works v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">How it works</a>
+      <a class="at-drawer-link" href="Abby's Table - Abby's Story v2.dc.html" aria-current="page" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Abby&#8217;s Story</a>
+      <a class="at-drawer-link" href="Abby's Table - Gifting v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Gifting</a>
+      <a class="at-drawer-link" href="Abby's Table - Private Table v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Private Table</a>
+    </nav>
+
+    <a class="at-drawer-cta" href="Abby's Table - Choose Box v2.dc.html" style="display: flex; align-items: center; justify-content: center; min-height: 54px; margin-top: 26px; border-radius: var(--radius-pill); background: var(--terracotta); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; text-decoration: none;">Build a Box</a>
+
+    <div style="margin-top: auto; border-top: 1px solid var(--green-mid); padding-top: 22px; display: flex; gap: 20px; align-items: center;">
+      <a class="at-social" href="https://www.instagram.com/fromabbystable" target="_blank" rel="noopener" aria-label="Instagram" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px; transition: opacity .16s ease;"><svg width="20" height="20" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07zM12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.31-1.46.72-2.12 1.38A5.86 5.86 0 0 0 .63 4.13c-.3.76-.5 1.64-.56 2.91C.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.31.79.72 1.46 1.38 2.12.66.66 1.33 1.07 2.12 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.86 5.86 0 0 0 2.12-1.38 5.86 5.86 0 0 0 1.38-2.12c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.86 5.86 0 0 0-1.38-2.12A5.86 5.86 0 0 0 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84A6.16 6.16 0 1 0 12 18.16 6.16 6.16 0 0 0 12 5.84zm0 10.16A4 4 0 1 1 12 8a4 4 0 0 1 0 8zm6.41-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z" /></svg></a>
+      <a class="at-social" href="https://www.tiktok.com/@fromabbystable" target="_blank" rel="noopener" aria-label="TikTok" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px; transition: opacity .16s ease;"><svg width="20" height="20" viewBox="0 0 11.5 11.4" fill="var(--blush)" style="display: block;"><path d="M6.95 0v6.9A2.66 2.66 0 1 1 4.3 4.85c.35 0 .7.07 1 .21V3.15a4.5 4.5 0 0 0-1-.1A4.2 4.2 0 1 0 8.75 6.9V3.3a4.55 4.55 0 0 0 2.75 1.1V2.55A2.73 2.73 0 0 1 8.75 0Z" /></svg></a>
+      <a class="at-social" href="https://www.facebook.com/fromabbystable/" target="_blank" rel="noopener" aria-label="Facebook" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px; transition: opacity .16s ease;"><svg width="20" height="20" viewBox="0 0 6.15 11.15" fill="var(--blush)" style="display: block;"><path d="M4.05 11.15V6h1.7l.3-1.95h-2V2.8c0-.55.25-.95 1-.95h1.1V.1A14.6 14.6 0 0 0 4.55 0C2.85 0 1.75 1.05 1.75 2.6v1.45H0V6h1.75v5.15Z" /></svg></a>
+      <a class="at-social" href="https://x.com/fromabbystable" target="_blank" rel="noopener" aria-label="X" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px; transition: opacity .16s ease;"><svg width="20" height="20" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg></a>
+    </div>
+  </aside>
+</div>
+
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  // No purchase-bar state: this page carries no mobile purchase bar, so there is no hero-CTA
+  // observer, no footer-suppression flag and no measured --at-bar-h. dirDown remains, because the
+  // header still auto-hides on downward scroll.
+  state = { drawer: false, dirDown: false, footOpen: {}, subscribed: false };
+
+  // ---- footer (canonical) ----
+  // Canonical: the footer column heads are accordion BUTTONS on mobile and non-interactive
+  // LABELS from 1024, where the toggle is inert and the chevron is hidden. Without this they stay
+  // focusable buttons announcing aria-expanded at desktop — three collapsible controls that do
+  // nothing. Attributes cannot be swapped in CSS, so the semantics are set here. One element, so
+  // no duplicated markup, and the visual design is untouched.
+  footRef = (el) => {
+    this._foot = el;
+    if (el) this._footSemantics();
+  };
+
+  _footSemantics = () => {
+    if (!this._foot) return;
+    const label = window.innerWidth >= 1024;
+    Array.prototype.forEach.call(this._foot.querySelectorAll(".at-foot-head"), (b) => {
+      if (label) {
+        // Captured before the first desktop pass strips them: React only rewrites an attribute
+        // when its value changes, so it will not restore these on the way back to mobile.
+        if (!b.dataset.ctrl) b.dataset.ctrl = b.getAttribute("aria-controls") || "";
+        if (!b.dataset.exp) b.dataset.exp = b.getAttribute("aria-expanded") || "false";
+        b.removeAttribute("aria-expanded");
+        b.removeAttribute("aria-controls");
+        b.setAttribute("role", "heading");
+        b.setAttribute("aria-level", "3");
+        b.setAttribute("tabindex", "-1");
+      } else {
+        b.removeAttribute("role");
+        b.removeAttribute("aria-level");
+        b.removeAttribute("tabindex");
+        if (b.dataset.ctrl) b.setAttribute("aria-controls", b.dataset.ctrl);
+        if (!b.hasAttribute("aria-expanded")) b.setAttribute("aria-expanded", b.dataset.exp || "false");
+      }
+    });
+  };
+
+  _footToggle = (k) => {
+    // Inert at desktop: the columns are already open there and the head is a label, not a control.
+    if (window.innerWidth >= 1024) return;
+    this._footToggleState(k);
+  };
+
+  _footToggleState = (k) => this.setState((s) => {
+    const o = Object.assign({}, s.footOpen);
+    o[k] = !o[k];
+    return { footOpen: o };
+  });
+  toggleShop = () => this._footToggle("shop");
+  toggleLearn = () => this._footToggle("learn");
+  toggleInfo = () => this._footToggle("info");
+  onJoin = (e) => { e.preventDefault(); this.setState({ subscribed: true }); };
+
+  // ---- header ----
+  hdrRef = (el) => { this._hdr = el; };
+
+  _onScroll = () => {
+    const y = window.scrollY;
+    const last = this._lastY || 0;
+    if (Math.abs(y - last) < 8) return;
+    const down = y > last && y > 120;
+    this._lastY = y;
+    if (down && this._hdr && this._hdr.contains(document.activeElement)) return;
+    if (down !== this.state.dirDown) this.setState({ dirDown: down });
+  };
+
+  componentDidMount() {
+    window.addEventListener("scroll", this._onScroll, { passive: true });
+    this._onResize = () => { this._footSemantics(); };
+    window.addEventListener("resize", this._onResize);
+    this._onKey = (ev) => {
+      if (!this.state.drawer) return;
+      if (ev.key === "Escape") { ev.preventDefault(); this.close(); return; }
+      if (ev.key === "Tab") this.trap(ev);
+    };
+    document.addEventListener("keydown", this._onKey);
+  }
+
+  componentWillUnmount() {
+    document.removeEventListener("keydown", this._onKey);
+    window.removeEventListener("scroll", this._onScroll);
+    window.removeEventListener("resize", this._onResize);
+    cancelAnimationFrame(this._drawerRaf);
+    clearTimeout(this._drawerTo);
+    document.body.style.overflow = "";
+  }
+
+  // ---- drawer (canonical) ----
+  // The panel is always mounted under a known id, so it is read from the document rather than
+  // through a ref: ref attach timing was the unreliable part.
+  _drawerPanel = () => this._panel || document.getElementById("at-drawer");
+
+  // Stable class fields, NOT arrows created inside renderVals(): a ref rebuilt on every render is
+  // detached with null each time, and renderVals() runs on scroll here (header auto-hide), so the
+  // handles were unreliable exactly when open()/close() read them.
+  panelRef = (el) => { this._panel = el; };
+  burgerRef = (el) => { this._burger = el; };
+  h1Ref = (el) => { this._h1 = el; };
+
+  focusables = () => {
+    const panel = this._drawerPanel();
+    if (!panel) return [];
+    return Array.from(panel.querySelectorAll("a[href], button")).filter((el) => el.offsetParent !== null);
+  };
+
+  // Canonical, from Homepage v2 (build-handoff.md § 3x). Focus moves here rather than in a
+  // lifecycle hook or a setState callback: this runtime calls neither, so a callback-based move
+  // never ran at all. Poll for the panel becoming focusable on BOTH a frame and a timer (a frame
+  // can be throttled, a timer cannot), bounded by 1s of wall clock rather than a frame count — the
+  // old 20-frame budget could expire before the display: none -> flex flip had landed, leaving
+  // focus on the burger with no error. Target is the Close button, a fixed position in the panel.
+  _takeDrawerFocus = () => {
+    cancelAnimationFrame(this._drawerRaf);
+    clearTimeout(this._drawerTo);
+    const start = Date.now();
+    const take = () => {
+      const panel = this._drawerPanel();
+      const btn = panel && panel.querySelector('button[aria-label="Close menu"]');
+      const t = this._canFocus(btn) ? btn : this.focusables()[0];
+      if (t) { t.focus(); return; }
+      if (Date.now() - start < 3000) {
+        this._drawerRaf = requestAnimationFrame(take);
+        this._drawerTo = setTimeout(take, 50);
+      }
+    };
+    take();
+  };
+
+  trap = (e) => {
+    const els = this.focusables();
+    if (!els.length) return;
+    const first = els[0], last = els[els.length - 1];
+    if (this._panel && !this._panel.contains(document.activeElement)) {
+      e.preventDefault();
+      (e.shiftKey ? last : first).focus();
+      return;
+    }
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  };
+
+  open = () => {
+    this.setState({ drawer: true });
+    document.body.style.overflow = "hidden";
+    // The panel is always mounted, so focus is taken here rather than in a ref callback. ONE frame
+    // is not enough: the display: none → flex flip has not landed, so focusables() (which filters
+    // on offsetParent) is still empty and no focus is taken. Re-assert each frame until the panel
+    // is laid out, bounded so it cannot spin.
+    this._takeDrawerFocus();
+  };
+
+  // The burger is display: none from 1024. Open the drawer at 900, widen to 1100, press Escape and
+  // the return target no longer exists — focus silently drops to <body>, the exact failure
+  // CLAUDE.md records. Check the element is actually rendered, and fall back to the page h1.
+  _canFocus = (el) => !!el && el.offsetParent !== null && getComputedStyle(el).visibility !== "hidden";
+
+  close = () => {
+    this.setState({ drawer: false });
+    document.body.style.overflow = "";
+    cancelAnimationFrame(this._drawerRaf);
+    clearTimeout(this._drawerTo);
+    const target = this._canFocus(this._burger) ? this._burger
+                 : this._canFocus(this._h1) ? this._h1 : null;
+    if (target) target.focus();
+  };
+
+  renderVals() {
+    return {
+      hdrRef: this.hdrRef,
+      hdrHidden: (this.state.dirDown && !this.state.drawer) ? "true" : "false",
+
+      drawerCls: this.state.drawer ? "is-open" : "",
+      burgerExpanded: this.state.drawer ? "true" : "false",
+      openDrawer: this.open,
+      closeDrawer: this.close,
+      panelRef: this.panelRef,
+      h1Ref: this.h1Ref,
+      burgerRef: this.burgerRef,
+      subscribed: !!this.state.subscribed,
+      notSubscribed: !this.state.subscribed,
+      onJoin: this.onJoin,
+      footRef: this.footRef,
+      toggleShop: this.toggleShop,
+      toggleLearn: this.toggleLearn,
+      toggleInfo: this.toggleInfo,
+      shopCls: this.state.footOpen.shop ? "is-open" : "",
+      learnCls: this.state.footOpen.learn ? "is-open" : "",
+      infoCls: this.state.footOpen.info ? "is-open" : "",
+      shopExp: this.state.footOpen.shop ? "true" : "false",
+      learnExp: this.state.footOpen.learn ? "true" : "false",
+      infoExp: this.state.footOpen.info ? "true" : "false",
+    };
+  }
+}
+
+</script>
+</body>
+</html>

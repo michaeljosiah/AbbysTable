@@ -21,3 +21,7 @@ node_modules/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Design working files — raw uploads and superseded standalone exports, kept local only.
+design/uploads/
+design/_archive/

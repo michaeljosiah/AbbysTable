@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<style>html, body { background-color: #F7F1E8; color-scheme: light; }</style>
+<!-- ↑ First-paint ground: FIRST in the head so it is in the first bytes the parser sees.
+     Dependency-free literal of --cream (no tokens, no runtime); see CLAUDE.md head standard. -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- PRINT COPY — plumbing for PDF export, not a page of the site. Generated from the source named
+     below; regenerate it (never hand-edit) whenever the source changes, or the PDF ships stale
+     legal text. doc-page owns all print geometry: no @page rule and no print reset here. -->
+<meta name="omelette-print-source" content="v1789563816971696 Abby's Table - Terms of Sale.dc.html">
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#1E3A2F"/><rect x="30" y="30" width="40" height="44" rx="3" fill="#F7F1E8"/><rect x="36" y="40" width="28" height="3" fill="#C28E3C"/><rect x="36" y="48" width="28" height="2" fill="#86755F"/><rect x="36" y="54" width="28" height="2" fill="#86755F"/><rect x="36" y="60" width="18" height="2" fill="#86755F"/></svg></template>
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/colors.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/typography.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/styles.css">
+<!-- Shared stylesheets: ONE authoritative load path, in the real head. In <helmet> they were
+     applied from the raw template, torn down when the runtime consumed it, then re-added —
+     the transparent gap on every full load and on back navigation. -->
+<link rel="stylesheet" href="at-focus.css">
+<style>doc-page:not(:defined) { visibility: hidden; }</style>
+<style>
+
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background: var(--cream); }
+    a { color: var(--green-forest); }
+    a:hover { color: var(--terracotta-deep); }
+    :focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; border-radius: 3px; }
+    /* Brass is only 1.9:1 on green-deep, so dark grounds get a cream ring with a gold outer edge. */
+    @keyframes at-drawer-in { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+    @keyframes at-fade-in { from { opacity: 0; } to { opacity: 1; } }
+    /* Closed with display: none rather than unmounted, so aria-controls always resolves. It also
+       keeps the drawer out of the accessibility tree and the tab order, and the animation replays
+       on each open because the element goes from display: none to displayed. */
+    .at-drawer-wrap { display: none; }
+    .at-drawer-wrap.is-open { display: block; }
+    .at-drawer-panel { animation: at-drawer-in .2s ease; }
+    .at-drawer-scrim { animation: at-fade-in .2s ease; }
+    /* --sage is a new band ground, sampled from the approved Our standards mockup. Full-bleed
+       coloured bands are now sanctioned for specific sections (this one, Abby's Story, Private
+       Table) — they are NOT an invitation to alternate bands page-wide. Light ground: green-forest
+       reads 9.4:1 on it and brown 10.2:1, so all type is safe; brass is only 2.2:1, which is why
+       the icons use brass-ink (4.3:1) rather than brass or the hero's gold. */
+    :root { --terracotta: #B7554E; --terracotta-deep: #9C433D; --gold: #F6C33B; --brass-ink: #8A5F1F; --chilli: #B8431C; --sage: #E1E2D2; }
+
+    .at-nav-link:hover { color: var(--terracotta-deep) !important; border-bottom-color: var(--brass) !important; }
+    .at-login:hover { color: var(--terracotta-deep) !important; }
+    .at-login:hover span { border-bottom-color: var(--brass) !important; }
+    .at-drawer-link:hover { color: var(--brass) !important; }
+    /* No hover lift. The design system specifies fades and colour shifts, "no bounces, no large
+       motion", with press feedback as a slight colour deepen — the translateY(-1px) these three
+       carried came across from the old homepage and made them the only buttons on the page that
+       moved. Press is a deepen, per the system. */
+    .at-cta, .at-drawer-cta { transition: background .16s ease; }
+    .at-cta:hover, .at-drawer-cta:hover { background: var(--terracotta-deep) !important; }
+    .at-cta:active, .at-drawer-cta:active { background: var(--terracotta-deep) !important; filter: brightness(.94); }
+    @media (prefers-reduced-motion: reduce) {
+      .at-cta, .at-drawer-cta { transition: none !important; }
+    }
+    .at-logo { transition: opacity .16s ease; }
+    .at-logo:hover { opacity: .78; }
+    .at-burger span, .at-burger span span { transition: background .16s ease, border-color .16s ease; }
+    .at-burger:hover span { border-color: var(--terracotta-deep) !important; }
+    .at-burger:hover span span { background: var(--terracotta-deep) !important; }
+    .at-hdr { transition: transform .22s ease; }
+    .at-hdr[data-hidden="true"] { transform: translateY(-100%); }
+    /* Mobile footer is centred throughout. Input TEXT stays left-aligned — centred text in a
+       field jumps around as you type an email. */
+    .at-foot-news { text-align: center; }
+    .at-foot-head { justify-content: center; }
+    .at-foot-link { justify-content: center; }
+    .at-foot-links { align-items: stretch; }
+    /* Smooth for the in-page jump to Opening hours, off for reduced motion. */
+    html { scroll-behavior: smooth; }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+    /* Contact. One hover language, same as every rebuilt page: colour shift, never a fade, plus a
+       3px arrow nudge on links that carry one. Borders darken on hover, go green on focus. */
+    /* One order at every width: Our approach, Need more help, Useful links. The mockup leads with
+       Need more help, but a flex `order` swap put visual and DOM order in disagreement below 1024
+       and both panels hold links — tab focus jumped 152px back up the page (WCAG 2.4.3). The three
+       panels are independent self-labelled peers, so DOM order is the order everywhere and the
+       sequence still reads as an escalation after the caveat: how we handle allergens, then a
+       person, then links. */
+    /* Terms of Sale. 56 numbered clauses with a grouped index; the index is the only interactive
+       part of the page besides the shared chrome. */
+    .at-t-grid { display: grid; gap: 26px; }
+    /* Clause titles are 22px -> 26px, the recorded card/panel heading tier. The mockup draws them
+       nearer 30px, but a repeated titled block is exactly what that tier is for, and the section
+       size (40/48px) belongs to page sections, not to 56 clauses. */
+    /* The page head is centred as one unit; the clause column stays left-aligned, since 56
+       clauses of centred legal copy would be hard to read. */
+    .at-t-hd { text-align: center; }
+    .at-t-h2 { font-size: 22px; }
+    /* Pinned so every title starts on the same left edge. Without it the double-digit sections
+       began ~13px right of the rest and the ragged edge read as accidental. The index rows already
+       do this with a 20px min-width on their number spans; 34px is what a three-character "10."
+       needs at the desktop title size. */
+    .at-t-num { min-width: 34px; font-family: var(--font-display); font-weight: var(--weight-medium); color: var(--brass-ink); }
+    /* Print. A documented Terms-only exception: this is the one page customers actually print or
+       save as PDF, so the interactive chrome comes off and the whole document goes on. No other
+       page has print CSS — do not infer that every page needs it. */
+    /* The runtime's host chain, reset for print. The document lays out inside
+       #dc-root > .sc-host; a preview height (or any inherited height on html/body) makes that a
+       fixed box, and print then stops at the bottom of it — one page, whatever the rules below
+       do. Height auto and overflow visible on the whole chain, or the document is truncated.
+       The $preview height was removed for the same reason: width only on these two pages. */
+    
+
+    
+    /* One nav element, three presentations: collapsed on mobile, a fixed sheet when opened from
+       the floating control, and a sticky column from 1024. Never a second copy. */
+    .at-t-nav { display: none; }
+    .at-t-nav[data-open="true"] { display: block; }
+    .at-t-nav[data-sheet="true"] { position: fixed; z-index: 60; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); max-height: 72vh; overflow-y: auto; box-shadow: 0 -6px 28px rgba(30, 58, 47, .18); }
+    .at-t-backdrop { position: fixed; inset: 0; z-index: 55; background: rgba(30, 41, 31, .38); border: none; }
+    /* One per clause, at the end of its copy — on a 56-clause document the top of the page is a
+       long way back from anywhere. Hidden in print, where there is no "top" to return to.
+       The label is 17px Playfair, which optically matches the 16px Figtree body: Playfair's
+       x-height is smaller at the same nominal size. An optical adjustment, not a new type tier. */
+    .at-t-bttw, .at-t-btt { display: none; }
+    .at-t-btt { transition: color .16s ease; }
+    .at-t-btt:hover { color: var(--terracotta-deep); }
+    .at-t-btt:hover .at-t-bttl { border-bottom-color: var(--terracotta-deep); }
+    .at-t-btt:focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
+    /* The link colour lives HERE, not inline: an inline colour beats any non-important class
+       rule, which silently disabled both the hover shift and the current-row colour below. */
+    .at-t-jump { transition: color .16s ease; color: var(--brown); }
+    /* Matches any aria-current value — _markActive writes "location", which is the correct token
+       for a link to the clause being read. A [aria-current="true"] selector never matched it. */
+    .at-t-jump[aria-current] { background: var(--sand); color: var(--green-forest); font-weight: 600; }
+    /* After the current-row rule, so the active row still shifts colour on hover rather than
+       being the one row that gives no feedback. */
+    .at-t-jump:hover { color: var(--terracotta-deep); }
+    .at-t-jump:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+    .at-t-gbtn { transition: color .16s ease; }
+    .at-t-gbtn:hover { color: var(--terracotta-deep); }
+    .at-t-gbtn:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+    .at-t-chev { flex: 0 0 auto; width: 8px; height: 8px; border-right: 1.8px solid var(--brass-ink); border-bottom: 1.8px solid var(--brass-ink); transform: rotate(-45deg); transition: transform .18s ease; }
+    .at-t-gbtn[aria-expanded="true"] .at-t-chev { transform: rotate(45deg); }
+    .at-t-glist { display: none; }
+    .at-t-group[data-open="true"] .at-t-glist { display: block; }
+    /* Floating pair, mobile only. Appears once the first clause has been passed, so it is not
+       sitting over the introduction. */
+    .at-t-float { position: fixed; z-index: 50; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; gap: 10px; padding: 0 16px calc(14px + env(safe-area-inset-bottom, 0px)); pointer-events: none; transition: opacity .2s ease, transform .2s ease; }
+    .at-t-float[data-on="false"] { opacity: 0; transform: translateY(10px); pointer-events: none; visibility: hidden; }
+    .at-t-float > * { pointer-events: auto; }
+    .at-t-fbtn { transition: background-color .16s ease; }
+    .at-t-fbtn:active { filter: brightness(.94); }
+    .at-t-sections:hover { background-color: var(--green-deep); }
+    .at-t-sections:focus-visible { outline: 2px solid var(--cream); outline-offset: 0; box-shadow: 0 0 0 3px var(--gold); }
+    .at-t-top:hover { background-color: var(--sand); }
+    .at-t-top:focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
+    .at-t-std { display: grid; grid-template-columns: 1fr; gap: 12px; max-width: 660px; }
+    /* The clause column shows ONE group at a time — 1-12, then 13-18, and so on — selected from
+       the index. Eight static rules against a single hole on the wrapper, rather than a hole per
+       section, so nothing waits on a value to paint. */
+    /* All 56 clauses are always in the page. The index is navigation over ONE continuous
+       document, not a controller that swaps what the document shows. That gives browser Find,
+       printing, indexing, deep links and a document that survives JS failing — and it is what
+       removes the whole class of bugs where opening a group moved the page. */
+    .at-t-gsec + .at-t-gsec { margin-top: 34px; }
+    /* Measure: legal copy should not run the full column width. The selector reaches direct p/ul
+       children only, so anything else inside a clause has to state the cap itself — which is why
+       the info panels and the standards row each carry their own 660px below. A panel wider than
+       the copy it sits in reads as a different layout system. */
+    .at-t-gsec > div > p, .at-t-gsec > div > ul { max-width: 660px; }
+    .at-t-info { display: grid; gap: 0; max-width: 660px; }
+    .at-t-info > div + div { border-top: 1px solid var(--sand-2); margin-top: 14px; padding-top: 14px; }
+    @media (prefers-reduced-motion: reduce) {
+      .at-t-chev, .at-t-jump, .at-t-gbtn, .at-t-float, .at-t-fbtn, .at-t-btt { transition: none !important; }
+    }
+    .at-tlink { transition: color .16s ease; }
+    .at-tlink:hover { color: var(--terracotta-deep) !important; }
+    .at-tlink:focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
+    @media (prefers-reduced-motion: reduce) {
+      .at-tlink { transition: none !important; }
+    }
+    .at-foot-link { transition: color .16s ease; }
+    .at-foot-link:hover { color: var(--brass) !important; }
+    /* Anchor only: the legal strip has no buttons since Cookie preferences became a link.
+       Leaving the button selectors in place would be dead CSS, and their presence is what hid the
+       missing-hover bug the first time this control changed type. */
+    .at-foot-legal a:hover { color: var(--brass) !important; }
+    .at-foot-head { cursor: pointer; }
+    /* Collapsed state lives HERE, not inline: these links carry inline styles, and an inline
+       display would beat this rule (the accordion silently never closed). */
+    .at-foot-links { display: none; flex-direction: column; }
+    .at-foot-col.is-open .at-foot-links { display: flex; }
+    .at-foot-col.is-open .at-foot-chevron { transform: rotate(180deg); }
+    .at-foot-chevron { transition: transform .18s ease; }
+    /* Icon links shift fill like any other link — no fade. The presentation attribute fill on the
+       svg loses to CSS, so this wins without !important. */
+    .at-social svg { transition: fill .16s ease; }
+    .at-social:hover svg { fill: var(--brass); }
+    .at-foot-join { transition: background .16s ease; }
+    .at-foot-join:hover { background: var(--brass-deep) !important; }
+    .at-foot-join:active { filter: brightness(.94); }
+    .at-foot-input::placeholder { color: var(--green-sage); opacity: 1; }
+    /* Cream ring with a gold outer edge: brass is only 1.9:1 on green-deep, so a brass ring is
+       invisible here. Two crisp bands, not a glow — offset 0 so the cream sits flush against the
+       control and the gold reads as a hairline edge outside it rather than a halo. The outline
+       paints OVER the shadow, so the gold band is (spread - outline width) = 1px; a literal 2px
+       spread would hide the gold behind the cream entirely. Same values on hero, drawer, footer
+       and Private Table — one focus language, no per-control exceptions. */
+    .at-foot-inner a:focus-visible, .at-foot-inner button:focus-visible, .at-foot-input:focus-visible {
+      outline: 2px solid var(--cream); outline-offset: 0; box-shadow: 0 0 0 3px var(--gold);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .at-foot-chevron, .at-foot-link, .at-foot-join, .at-social svg { transition: none !important; }
+    }
+
+    /* --- 640px: more measure, so the buttons sit side by side and copy widens --- */
+    @media (min-width: 640px) {
+      .at-hdr-row { padding: 14px 34px !important; gap: 14px !important; }
+      /* The combined pill only appears once the column is wide enough for it. At 320 it left the
+         input about 150px, which cannot show "Enter your email address". */
+      .at-foot-form { flex-direction: row !important; align-items: stretch !important; gap: 0 !important; height: 52px !important; width: 340px; max-width: 100%; border: 1px solid var(--green-mid); border-radius: var(--radius-pill); overflow: hidden; }
+      .at-foot-input { flex: 1 1 auto !important; min-width: 0 !important; border: none !important; border-radius: 0 !important; height: auto !important; }
+      .at-foot-join { border-radius: 0 !important; height: auto !important; width: auto !important; padding: 0 26px !important; }
+      .at-foot-inner { padding: 48px 34px 0 !important; }
+      .at-page-inner { padding: 0 34px !important; }
+      .at-t-sec { padding: 52px 0 56px !important; }
+      .at-t-std { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px 26px !important; }
+      /* TWO columns at EVERY width. The panel is capped at 660px, so a third column is ~200px
+         once the rules and padding come out and the email domain alone measures 161px — three can
+         never fit, whatever the viewport. A 1211px three-column rule existed while the panel ran
+         the full column width; it was removed with the cap. */
+      .at-t-info { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; }
+      .at-t-info > div { padding-right: 26px; }
+      .at-t-info > div + div { border-top: none; margin-top: 0; padding: 0 0 0 26px; }
+      .at-t-info > div:nth-child(2) { border-left: 1px solid var(--sand-2); }
+      /* Third cell starts a new row at two columns, so its rule is on top, not on the left. */
+      .at-t-info > div:nth-child(3) { grid-column: 1 / -1; border-left: none; border-top: 1px solid var(--sand-2); margin-top: 18px; padding: 18px 26px 0 0; }
+      .at-cta { font-size: 13px !important; letter-spacing: .1em !important; padding: 0 20px !important; }
+    }
+
+    /* --- 1024px: desktop composition — nav in the header, sidebar beside the main column --- */
+    @media (min-width: 1024px) {
+      .at-burger { display: none !important; }
+      .at-nav, .at-login { display: flex !important; }
+      .at-hdr-row { padding: 18px 48px !important; }
+      .at-logo { justify-self: start !important; }
+      .at-hdr-row { grid-template-columns: auto 1fr auto auto !important; gap: 34px !important; }
+      .at-login { margin-left: 12px !important; }
+
+      .at-foot-inner { padding: 56px 48px 0 !important; }
+      .at-page-inner { padding: 0 48px !important; }
+      .at-t-sec { padding: 60px 0 64px !important; }
+      .at-h1 { font-size: 56px !important; }
+      /* Index left, clauses right — the mockup composition. The index is FIRST in the DOM at every
+         width, so nothing is reordered and focus order matches what is on screen. */
+      .at-t-grid { grid-template-columns: 300px minmax(0, 1fr) !important; gap: 56px !important; align-items: start !important; }
+      /* Matches the sheet rule's specificity (class + attribute), so an open sheet cannot survive
+         a resize past this breakpoint as a bottom-fixed panel — media queries add no specificity
+         of their own. _syncSheet also clears the state on resize, because at desktop both the
+         backdrop and the only control that dismisses it are hidden. */
+      .at-t-nav[data-sheet="true"] { position: sticky; inset: auto; width: auto; max-height: none; overflow: visible; border-radius: 0; box-shadow: none; background: transparent; padding: 0; }
+      /* No internal scroller on desktop: the index scrolls with the page and sticks. One group is
+         expanded at a time, so the list stays short — a nested scrollbar inside a sticky column
+         reads as a widget rather than a table of contents. */
+      .at-t-nav { display: block !important; position: sticky; top: 96px; }
+      .at-t-navhead { display: none !important; }
+      .at-t-navtitle { display: block !important; }
+      .at-t-nav { padding-top: 14px !important; }
+      .at-t-h2 { font-size: 26px !important; }
+      .at-t-std { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 14px 34px !important; }
+      .at-t-float { display: none !important; }
+      /* Desktop has no floating Top control, so the per-clause link is the only return affordance. */
+      .at-t-bttw { display: block; }
+      .at-t-btt { display: inline-flex; }
+      /* Matching selector specificity at the wider breakpoint — a media query adds none. */
+      .at-h1 { font-size: 56px !important; }
+      /* Two columns, both starting at the top: the h1 leads the left column rather than spanning
+         the page, so the sidebar sits level with it as in the mockup. */
+      .at-foot-grid { grid-template-columns: 1.4fr 3fr !important; gap: 48px !important; }
+      .at-foot-cols { grid-template-columns: repeat(3, 1fr) !important; gap: 48px !important; }
+      /* Accordion off: every column open, heads are labels rather than controls. */
+      .at-foot-col { border-top: none !important; }
+      .at-foot-head { min-height: 0 !important; padding: 0 !important; cursor: default !important; }
+      .at-foot-chevron { display: none !important; }
+      .at-foot-links { display: flex !important; margin-top: 16px !important; padding-bottom: 0 !important; }
+      .at-foot-bottom { grid-template-columns: 1fr auto 1fr !important; align-items: center !important; }
+      /* DOM order IS the visual order at every width — logo → signature → follow — so keyboard
+         focus never runs backwards across the four social links and the logo link (WCAG 2.4.3).
+         Only ALIGNMENT changes at this breakpoint; placement never does. The three blocks used to
+         carry order: 1/2/3 with the follow row first in the DOM, which reversed the row here. */
+      .at-foot-logo { justify-self: start !important; }
+      .at-foot-follow { justify-self: end !important; align-items: flex-end !important; }
+      .at-foot-follow-row { flex-direction: row !important; align-items: center !important; gap: 12px !important; }
+      .at-foot-dash { display: inline !important; }
+      .at-foot-mark { width: 220px !important; height: 38px !important; }
+      .at-foot-legal { flex-direction: row !important; gap: 4px 24px !important; }
+      .at-foot-news { text-align: left !important; }
+      .at-foot-news p { max-width: 300px; }
+      .at-foot-consent { max-width: 340px; }
+      .at-foot-head { justify-content: space-between !important; }
+      .at-foot-link { justify-content: flex-start !important; }
+      .at-foot-legal-row { gap: 24px !important; }
+      .at-foot-legal-sep { display: none !important; }
+      .at-foot-rule { display: block !important; }
+      .at-foot-cols { border-bottom: none !important; }
+      .at-foot-bottom { margin-top: 0 !important; }
+    }
+
+    /* Breakpoint exception — min-width 1280. The method cards go 4-up only here, not at 1024:
+       four across at 1024 leaves 164px of text column, and the email address needs 208px at its
+       smallest sensible size. At 1280 the column is 228px. A content reason, not a device size. */
+  
+  *, *::before, *::after { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  *, *::before, *::after { animation-delay: -99s !important; animation-duration: .001s !important;
+    animation-iteration-count: 1 !important; animation-fill-mode: both !important;
+    animation-play-state: running !important; transition-duration: 0s !important; }
+  .at-t-sec { padding: 0 !important; }
+  .at-page-inner { max-width: none !important; padding: 0 !important; margin: 0 !important; }
+  .at-t-h2, .at-t-gh { break-after: avoid; break-inside: avoid; }
+  .at-t-info, .at-t-note, .at-t-row, .at-t-std { break-inside: avoid; }
+</style>
+</head>
+<body>
+<doc-page margin="0.75in">
+<main>
+  <section class="at-t-sec" style="padding: 34px 0 48px;">
+    <div class="at-page-inner" style="max-width: 1280px; margin: 0 auto; padding: 0 22px;">
+      <h1 class="at-h1 at-t-hd" id="at-t-top" tabindex="-1" style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(38px, 11.6vw, 56px); line-height: 1.06; letter-spacing: -0.015em; color: var(--green-forest);">Terms of Sale</h1>
+      <p class="at-t-hd" style="margin: 12px auto 0; max-width: 620px; font-family: var(--font-sans); font-size: 18px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">These Terms of Sale explain how orders work at Abby’s Table, what you can expect from us and what we ask of you when you place an order.</p>
+      <p class="at-t-hd" style="margin: 14px auto 0; max-width: 620px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown);"><strong style="font-weight: 600; color: var(--green-forest);">Nothing in these terms affects your statutory rights as a consumer.</strong></p>
+      <p class="at-t-hd" style="margin: 16px 0 0; font-family: var(--font-sans); font-size: 14px; line-height: 1.5; color: var(--brown);">Last updated: 6 September 2026</p>
+
+      <div class="at-t-grid" style="margin-top: 30px;">
+
+        <!-- The index is first in the DOM at every width, so nothing is reordered and focus order
+             matches the visual order. -->
+        <div>
+          
+
+          
+        </div>
+
+        <div>
+            <div class="at-t-gsec" data-g="0">
+            <h2 class="at-t-gh" style="margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.3; text-transform: uppercase; letter-spacing: .06em; color: var(--brass-ink);">Ordering</h2>
+            <div id="about-abbys-table" data-n="1" style="padding-top: 12px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">1.</span><span>About Abby's Table</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Abby's Table is a trading name of <strong style="font-weight: 600; color: var(--green-forest);">Abby's Table Foods Ltd</strong>, a company registered in England and Wales.</p>
+              <!-- PLACEHOLDER registration details — user's call, taken knowingly. Logged for
+                   sign-off in build-handoff.md; none of these can ship.
+                   Three columns with vertical rules, per the mockup: address, then the registration
+                   number, then how to reach us. Labels are sentence case rather than 13px uppercase
+                   eyebrows, matching the page's no-eyebrow direction, and --brown because brass-ink
+                   measures 3.97:1 on --sand.
+                   The mockup still shows a VAT number; it is omitted because Abby's Table will not
+                   be VAT registered at launch. -->
+              <div class="at-t-info" style="margin-top: 18px; background: var(--sand); border-radius: 14px; padding: 22px 24px;">
+                <div>
+                  <p style="margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--brown);">Registered office</p>
+                  <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; color: var(--green-forest);">1 Example Street<br>London<br>AB1 2CD</p>
+                </div>
+                <div>
+                  <p style="margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--brown);">Company number</p>
+                  <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; color: var(--green-forest);">12345678</p>
+                </div>
+                <div>
+                  <p style="margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--brown);">Get in touch</p>
+                  <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; color: var(--green-forest);"><a class="at-tlink" href="mailto:hello@FromAbbysTable.co.uk" style="color: var(--green-forest); text-decoration: underline; text-underline-offset: 3px;">hello@​<span style="white-space: nowrap;">FromAbbysTable.co.uk</span></a></p>
+                  <p style="margin: 2px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; color: var(--green-forest);"><a class="at-tlink" href="tel:+442038751234" style="color: var(--green-forest); text-decoration: underline; text-underline-offset: 3px;">020 3875 1234</a></p>
+                </div>
+              </div>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">In these Terms of Sale, <strong style="font-weight: 600; color: var(--green-forest);">“Abby's Table”, “we”, “us” and “our”</strong> mean the business identified above.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;"><strong style="font-weight: 600; color: var(--green-forest);">“You” and “your”</strong> mean the person placing an order with us.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="what-these-terms-cover" data-n="2" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">2.</span><span>What these terms cover</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">These terms apply when you buy food products directly from Abby's Table through our website, including:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">prepared meals;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">meal boxes;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">sides and extras;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">food ordered as a gift; and</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">any other products expressly stated to be covered by these terms.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">These terms do not cover:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Abby's Private Table services;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">catering supplied under a separate agreement;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">wholesale or corporate supply arrangements;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">products purchased from an independent third-party retailer; or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">any other service for which separate terms are provided.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Orders placed through our consumer website are intended for personal and domestic use unless we agree otherwise.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Products must not be purchased for commercial resale without our prior agreement.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="our-food" data-n="3" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">3.</span><span>Our food</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Abby's Table prepares Nigerian fusion food in small cooking runs against confirmed orders.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Our dishes are prepared using the ingredients and recipes described on our website, then chilled and packaged for delivery.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Because our food is cooked by hand using natural ingredients, reasonable variations can occur between batches. These may include differences in:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">appearance;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">colour;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">size;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">texture;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">placement of ingredients; and</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">presentation.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">These reasonable natural variations do not mean that a product is defective or not as described.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">However, the food we supply must still correspond with the material description under which it was sold and meet the quality standards required by law.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="food-standards" data-n="4" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">4.</span><span>Our food standards</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Where we state that Abby's Table food is prepared to particular standards, we intend those statements to be accurate.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Our standards may include, where stated for the relevant products:</p>
+              <!-- Icon beside label, on the same 660px measure as the clause copy. Five centred
+                   columns forced two-line wraps on three of the five and left the row wider than
+                   the paragraphs above it, so it read as a different layout system. The nowrap
+                   spans went with it: at this column width the labels no longer need them. -->
+              <div class="at-t-std" style="margin-top: 18px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M9 4.5h6l.6 3H8.4z"></path><path d="M7.6 7.5h8.8l.9 12H6.7z"></path><path d="M10.6 11.5h2.8M10.6 14.5h2.8"></path></svg>
+                  <p style="margin: 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.4; color: var(--green-forest); text-wrap: pretty;">No commercial seasoning blends</p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M12 3.2l7 3.9v7.8l-7 3.9-7-3.9V7.1z"></path><path d="M5 7.1l7 3.9 7-3.9M12 11v7.8"></path></svg>
+                  <p style="margin: 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.4; color: var(--green-forest); text-wrap: pretty;">No bouillon or seasoning cubes</p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M9.6 3.5h4.8v4.2l3.4 10.3a1.6 1.6 0 0 1-1.5 2.1H7.7a1.6 1.6 0 0 1-1.5-2.1L9.6 7.7z"></path><path d="M8.6 3.5h6.8"></path></svg>
+                  <p style="margin: 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.4; color: var(--green-forest); text-wrap: pretty;">No added MSG</p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M12 3.4c2.6 3.2 4.4 5.7 4.4 8.1a4.4 4.4 0 1 1-8.8 0c0-2.4 1.8-4.9 4.4-8.1z"></path></svg>
+                  <p style="margin: 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.4; color: var(--green-forest); text-wrap: pretty;">No seed oils</p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M12 3.4l6.1 3.5v7l-6.1 3.5-6.1-3.5v-7z"></path><circle cx="12" cy="10.4" r="2.4"></circle></svg>
+                  <p style="margin: 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.4; color: var(--green-forest); text-wrap: pretty;">No refined sugars</p>
+                </div>
+              </div>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Individual dish descriptions, ingredients and labels should always be read alongside these general standards.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If a standard applies only to certain dishes or products, we will make that clear.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We may develop recipes and food standards over time. Changes will apply to future orders and will not retrospectively change the material description of an order we have already accepted.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="choosing-your-order" data-n="5" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">5.</span><span>Choosing your order</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">The website will show the dishes, sizes, portion choices and extras currently available.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Not every option will be available for every dish.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Before placing your order, please check your:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">dishes;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">quantities;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">portion selections;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">extras;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">delivery address;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">delivery date;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">contact details;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">allergen information; and</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">total price.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">You will have an opportunity to review your order before you commit to payment.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="minimum-orders-boxes" data-n="6" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">6.</span><span>Minimum orders and boxes</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Some orders may be subject to:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">a minimum number of dishes;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">a minimum box size;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">a minimum order value; or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">another ordering requirement shown on the website.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Any applicable minimum will be displayed before you complete checkout.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We may change minimum quantities, box formats or minimum values for future orders.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Those changes will not alter an order we have already accepted.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="cooking-runs-availability" data-n="7" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">7.</span><span>Cooking runs and availability</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We take a limited number of orders for each cooking run so that we can prepare each order properly.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">The delivery dates shown on our website therefore reflect our <strong style="font-weight: 600; color: var(--green-forest);">next available cooking and delivery capacity</strong>.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">A cooking run may become fully booked while you are browsing.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Adding products to your basket does not reserve a cooking-run place or delivery date.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Your order is secured only when it has been accepted by us in accordance with section 8.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="how-a-contract-is-formed" data-n="8" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">8.</span><span>How a contract is formed</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">When you submit your order and payment information, you are making an offer to buy the products shown in your checkout.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We may send an automatic email confirming that we have received your order.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">A receipt or acknowledgement of your order does not necessarily mean that we have accepted it.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">A binding contract between you and Abby's Table is formed when we send you an <strong style="font-weight: 600; color: var(--green-forest);">Order Confirmation</strong> confirming that your order has been accepted.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Your confirmation will normally include or identify:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">your order number;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">the products ordered;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">quantities and selected options;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">the total price;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">your delivery information;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">the expected delivery date;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">any applicable change or cancellation deadline; and</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">the Terms of Sale applying to the order.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Please retain your Order Confirmation until your order has been completed.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="when-we-may-decline-an-order" data-n="9" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">9.</span><span>When we may decline an order</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We may decline an order before acceptance where there is a reasonable reason to do so.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Examples include where:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">the relevant cooking run has reached capacity;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">an important ingredient or product is unexpectedly unavailable;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">we cannot deliver to the address supplied;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">payment cannot be authorised;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">we identify an obvious pricing or description error;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">we reasonably suspect fraud or misuse;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">fulfilling the order would create a food-safety concern; or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">an unexpected operational problem means we cannot safely produce the order.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If we cannot accept an order, we will tell you.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If payment has already been taken, it will be returned to the original payment method as soon as reasonably possible.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="prices" data-n="10" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">10.</span><span>Prices</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">All prices on the Abby's Table website are shown in pounds sterling (£).</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Abby’s Table is not currently VAT registered, so no VAT is added to our prices.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Any compulsory delivery charge or other mandatory fee will be shown before you place your order.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">The total price payable will be displayed at checkout.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We may change prices for future orders.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">A later price change will not alter the price of an order we have already accepted.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="obvious-pricing-errors" data-n="11" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">11.</span><span>Obvious pricing errors</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We take reasonable care to ensure that our prices are accurate.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Occasionally, an obvious pricing error may occur.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If we identify an obvious error before accepting your order, we may correct it and ask whether you still wish to proceed at the correct price.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We will not charge you a higher amount than you authorised without your agreement.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If an error is identified after an order has been accepted, we will deal with it reasonably and in accordance with applicable consumer law.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="payment" data-n="12" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">12.</span><span>Payment</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Payment must be made using one of the payment methods offered during checkout.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Payments may be processed on our behalf by a third-party payment provider such as <strong style="font-weight: 600; color: var(--green-forest);">Stripe</strong>.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Payment may be authorised or collected when your order is placed.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If your order is subsequently not accepted, any payment collected will be returned.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We will never ask you to send full payment-card details to us through:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">email;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">WhatsApp;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">the Contact form; or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">social media.</li>
+              </ul>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            </div>
+
+            <div class="at-t-gsec" data-g="1">
+            <h2 class="at-t-gh" style="margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.3; text-transform: uppercase; letter-spacing: .06em; color: var(--brass-ink);">Delivery</h2>
+            <div id="where-we-deliver" data-n="13" style="padding-top: 12px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">13.</span><span>Where we deliver</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We deliver to the areas currently shown as eligible on our website.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Delivery availability may depend on your postcode.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Entering a postcode does not itself guarantee delivery unless the order has subsequently been accepted.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We may change our delivery areas for future orders.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">This will not remove our obligation to deal appropriately with an order that we have already accepted.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="delivery-dates-time-windows" data-n="14" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">14.</span><span>Delivery dates and time windows</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Your Order Confirmation will state the delivery date associated with your order.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Unless we expressly promise an exact delivery time, any courier time window is an estimate rather than a guaranteed minute-by-minute appointment.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We will take reasonable steps to keep you informed of a material change to your expected delivery.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If delivery timing is essential for a particular purpose, you should tell us before ordering so that we can confirm whether we can accommodate it.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="delivery-information-you-provide" data-n="15" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">15.</span><span>Delivery information you provide</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">You are responsible for providing complete and accurate delivery information.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">This includes, where relevant:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">recipient name;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">building number;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">street;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">postcode;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">flat or apartment number;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">access instructions;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">gate or concierge information; and</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">contact details required for delivery.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Please check this information carefully before placing your order.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If you notice an error after ordering, contact us as soon as possible.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We will try to update the details where reasonably possible, but changes may not be possible once fulfilment is underway.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="receiving-chilled-deliveries" data-n="16" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">16.</span><span>Receiving chilled deliveries</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Our meals are delivered chilled.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Please make appropriate arrangements for the delivery to be received on the agreed date.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Where the service requires somebody to accept the parcel, you should ensure that either you or another appropriate person is available.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If we offer a nominated neighbour, safe-location or other alternative delivery arrangement, any special conditions will be shown when that option is selected.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Where Abby's Table chooses the carrier, goods generally remain at the trader's risk until they come into the physical possession of the customer or another person identified by the customer to take possession of them.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="failed-delivery" data-n="17" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">17.</span><span>Failed delivery</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If a reasonable delivery attempt cannot be completed because of circumstances within your control — for example:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">an incorrect address;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">incomplete access information;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">an inaccessible building; or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">nobody being available where attendance was required —</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">we will try to contact you.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Because the order contains perishable chilled food, it may not always be safe or practical to redeliver the same products.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Where a further delivery or replacement is reasonably required because of information or circumstances for which you were responsible, we may ask you to pay reasonable additional costs actually incurred.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">This does not affect your statutory rights.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Any refund due will be handled in accordance with <a class="at-tlink" href="#refunds" style="color: var(--brass-ink); text-decoration: underline; text-underline-offset: 3px;">section 30 — Refunds</a>.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="delays-and-events-outside-our-control" data-n="18" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">18.</span><span>Delays and events outside our reasonable control</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Occasionally an order may be affected by an event outside our reasonable control.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Examples may include:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">severe weather;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">major transport disruption;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">widespread courier disruption;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">significant utility failure;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">emergency restrictions;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">an unexpected food-safety event; or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">another exceptional event that could not reasonably have been avoided.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If an event materially affects an accepted order, we will take reasonable steps to:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">minimise disruption;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">keep you informed; and</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">offer an appropriate solution.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We will not use an event outside our control as a reason to retain payment indefinitely for products that we ultimately cannot supply.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Where a refund becomes due, <a class="at-tlink" href="#refunds" style="color: var(--brass-ink); text-decoration: underline; text-underline-offset: 3px;">section 30</a> applies.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            </div>
+
+            <div class="at-t-gsec" data-g="2">
+            <h2 class="at-t-gh" style="margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.3; text-transform: uppercase; letter-spacing: .06em; color: var(--brass-ink);">Food &amp; allergens</h2>
+            <div id="ingredients-recipe-changes" data-n="19" style="padding-top: 12px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">19.</span><span>Ingredients and recipe changes</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Fresh ingredient availability and suppliers may occasionally change.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We may make minor changes that do not materially alter:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">the nature of the dish;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">its declared allergens;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">an important dietary characteristic;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">the quantity ordered; or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">another material product description.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We will not knowingly make a substitution that materially changes a declared allergen or important characteristic without taking appropriate action.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Where a material change becomes necessary after an order has been accepted, we may contact you to discuss available alternatives.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="allergen-information" data-n="20" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">20.</span><span>Allergen information</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Allergens contained in each dish are identified through the allergen information available on our website before you order and provided again with your food when it is delivered.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Recipes, ingredients and suppliers can change, so you should:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">check the current allergen information for every dish when ordering; and</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">check the information supplied with the delivered product again before eating it.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">This is particularly important if you are ordering food for another person.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">For food sold at a distance, mandatory allergen information must be available before the purchase is concluded and again when the food is delivered.</p>
+              <p style="margin: 16px 0 0; background: var(--blush); border-radius: 12px; padding: 14px 16px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If the allergen information supplied with your delivery differs from information you previously viewed online, or if a label is missing, damaged or unclear, <strong style="font-weight: 600; color: var(--green-forest);">do not eat the dish until you have contacted us and we have confirmed the information</strong>.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="cross-contact-severe-allergies" data-n="21" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">21.</span><span>Cross-contact and severe allergies</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We maintain procedures designed to manage allergens and reduce unintended cross-contact.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Different allergens are nevertheless handled within our production environment.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Where our allergen risk assessment identifies an unavoidable cross-contact risk that cannot adequately be controlled, we will identify the relevant allergen using appropriate precautionary wording such as <strong style="font-weight: 600; color: var(--green-forest);">“may contain [allergen]”</strong>.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Precautionary allergen warnings will be based on assessed risk and are not used as a substitute for appropriate food-safety controls.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Unless a product is expressly described as <strong style="font-weight: 600; color: var(--green-forest);">free from</strong> a particular allergen, you should not assume that it is suitable for someone who must completely avoid that allergen.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If you have:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">a severe allergy;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">a food intolerance;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">a specific allergen concern; or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">any uncertainty about the information provided,</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">please <a class="at-tlink" href="Abby's Table - Contact Us.dc.html" style="color: var(--brass-ink); text-decoration: underline; text-underline-offset: 3px;">contact us</a> <strong style="font-weight: 600; color: var(--green-forest);">before placing your order</strong>.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Nothing in this section limits Abby's Table's responsibilities under food-safety or consumer law.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="dietary-descriptions" data-n="22" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">22.</span><span>Dietary descriptions</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Descriptions such as:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">vegan;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">vegetarian;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">plant-led;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">balanced;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">carb-conscious; or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Mediterranean-inspired</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">describe the recipe or menu category.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">They do not automatically mean that the dish is free from a particular allergen.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">For example, vegan labelling does not itself guarantee that food is free from allergens such as milk or egg resulting from cross-contact.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Always check the specific allergen information for the dish.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="nutrition-information" data-n="23" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">23.</span><span>Nutrition information</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Where we provide nutritional values such as:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">energy;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">protein;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">fibre;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">carbohydrate;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">fat; or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">other nutritional information,</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">the figures may be calculated from recipe data, supplier information and standard ingredient values.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Natural ingredients and cooking processes can create reasonable variation between portions.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We take reasonable care to ensure published nutrition information is accurate.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Unless expressly stated otherwise, general nutrition information on the Abby's Table website is provided to help customers understand our food.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">It is not personalised medical or dietetic advice.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Abby's Table meals are not intended to diagnose, treat, cure or prevent disease.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If you require food to meet a medically prescribed diet, seek appropriate professional advice where necessary.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="portion-choices" data-n="24" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">24.</span><span>Portion choices</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Some dishes may be offered in different portion sizes.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">The portion option you select will form part of your order.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Portion descriptions distinguish between available product sizes.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">They are not a medical recommendation or prescription about how much any individual should eat.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            </div>
+
+            <div class="at-t-gsec" data-g="3">
+            <h2 class="at-t-gh" style="margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.3; text-transform: uppercase; letter-spacing: .06em; color: var(--brass-ink);">Changes, cancellations &amp; refunds</h2>
+            <div id="changing-an-order" data-n="25" style="padding-top: 12px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">25.</span><span>Changing an order</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">You may request changes to an order until the <strong style="font-weight: 600; color: var(--green-forest);">change deadline shown for that order</strong>.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Changes are subject to:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">ingredient availability;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">cooking-run capacity;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">delivery availability; and</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">whether fulfilment has already begun.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We cannot guarantee that every requested amendment can be made.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If a change alters the price, we will tell you before completing it.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="cancelling-before-cutoff" data-n="26" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">26.</span><span>Cancelling before the cutoff</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Although our food is made against confirmed orders, we may provide a voluntary cancellation period before production is committed.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">The applicable cancellation deadline will be shown:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">during checkout;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">in your Order Confirmation; and/or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">in your account where applicable.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If you cancel an eligible order before that deadline, any refund due will be handled under <a class="at-tlink" href="#refunds" style="color: var(--brass-ink); text-decoration: underline; text-underline-offset: 3px;">section 30</a>.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="perishable-food-and-cancellation-rights" data-n="27" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">27.</span><span>Perishable food and your cancellation rights</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Different cancellation rules apply to perishable food.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">The usual statutory 14-day change-of-mind cancellation right does not apply to goods that are liable to deteriorate or expire rapidly.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Our chilled prepared meals fall within the type of perishable products for which this exception may apply.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">This does <strong style="font-weight: 600; color: var(--green-forest);">not</strong> remove your rights if food is:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">faulty;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">unsafe;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">not as described; or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">otherwise not supplied in accordance with your statutory rights.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Any voluntary cancellation period offered by Abby's Table is additional to your statutory rights.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Different rules may apply to non-perishable products, and where relevant these will be made clear before purchase.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="requests-after-cutoff" data-n="28" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">28.</span><span>Requests after the cutoff</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">After the change or cancellation deadline has passed, we may already have:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">committed ingredients;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">allocated production capacity;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">begun preparation;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">begun cooking;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">packed your products; or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">committed delivery resources.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">For that reason, we may be unable to accept a change-of-mind cancellation or amendment after the deadline.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">You may still contact us and we will consider what is reasonably possible.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Agreeing to an exception on one occasion does not require us to offer the same exception for future orders.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="if-we-cancel-an-accepted-order" data-n="29" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">29.</span><span>If Abby's Table cancels an accepted order</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Very occasionally we may need to cancel an order after acceptance for a legitimate reason.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Examples may include:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">a serious food-safety issue;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">critical equipment failure;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">unexpected loss of a key ingredient;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">an emergency affecting production;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">inability to fulfil the delivery safely; or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">another serious event preventing fulfilment.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We will contact you as soon as reasonably possible.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Where appropriate we may offer options such as:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">moving the order to another available cooking run; or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">cancelling the affected order.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">You do not have to accept an alternative cooking run.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Any refund due is governed by <a class="at-tlink" href="#refunds" style="color: var(--brass-ink); text-decoration: underline; text-underline-offset: 3px;">section 30</a>.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="refunds" data-n="30" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">30.</span><span>Refunds</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">This section explains when and how refunds are handled.</p>
+              <h4 style="margin: 22px 0 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brown);">When a refund may be due</h4>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Depending on the circumstances and your legal rights, a refund may be appropriate where:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">an accepted order is not supplied;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">an item is missing;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">the wrong product is delivered;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">food arrives materially damaged;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">food arrives in a condition that means it is not safe to consume;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">the product is materially not as described;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">the product does not meet the legal standard of satisfactory quality;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">we cancel an accepted order and you do not choose an alternative; or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">another right to a refund arises under applicable consumer law.</li>
+              </ul>
+              <h4 style="margin: 22px 0 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brown);">Full and partial refunds</h4>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Where only part of an order is affected, the appropriate refund may relate only to the affected product or part of the order.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Where the problem affects the entire order, a full refund may be appropriate.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Your statutory rights determine the remedy available in each case.</p>
+              <h4 style="margin: 22px 0 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brown);">Change-of-mind cancellations</h4>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Change-of-mind cancellation requests are governed by sections 26–28.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">The absence of a statutory cooling-off right for applicable perishable food does not affect rights arising because something has gone wrong with the product.</p>
+              <h4 style="margin: 22px 0 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brown);">How refunds are paid</h4>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Where you are entitled to a monetary refund, we will normally refund the payment to the <strong style="font-weight: 600; color: var(--green-forest);">same payment method used for the purchase</strong>, unless you expressly agree otherwise.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We will not charge a fee for providing a statutory refund.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Your bank or payment provider may require additional time before the payment appears in your account.</p>
+              <h4 style="margin: 22px 0 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brown);">Delivery charges</h4>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Whether a delivery charge is refunded will depend on:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">what part of the order is affected;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">what has been supplied; and</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">your rights under applicable consumer law.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Where the whole transaction must legally be refunded, we will refund any delivery amount required by law.</p>
+              <h4 style="margin: 22px 0 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brown);">Store credit</h4>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We may occasionally offer:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">account credit;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">replacement food;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">another cooking date; or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">another resolution</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">as an option.</p>
+              <p style="margin: 16px 0 0; background: var(--blush); border-radius: 12px; padding: 14px 16px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">You will <strong style="font-weight: 600; color: var(--green-forest);">not</strong> be required to accept store credit instead of a monetary refund where you are legally entitled to receive money back.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            </div>
+
+            <div class="at-t-gsec" data-g="4">
+            <h2 class="at-t-gh" style="margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.3; text-transform: uppercase; letter-spacing: .06em; color: var(--brass-ink);">After delivery</h2>
+            <div id="checking-your-order" data-n="31" style="padding-top: 12px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">31.</span><span>Checking your order</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Please inspect your delivery reasonably promptly after it arrives.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Check that:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">the parcel appears intact;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">the products ordered are present;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">the correct dishes have been supplied;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">chilled food appears appropriately chilled; and</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">there is no obvious indication that a product may be unsafe.</li>
+              </ul>
+              <p style="margin: 16px 0 0; background: var(--blush); border-radius: 12px; padding: 14px 16px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If you reasonably believe food may be unsafe, <strong style="font-weight: 600; color: var(--green-forest);">do not eat it to test whether it is safe</strong>. <a class="at-tlink" href="Abby's Table - Contact Us.dc.html" style="color: var(--green-forest); text-decoration: underline; text-underline-offset: 3px;">Contact us</a>.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="storage-use-by-information" data-n="32" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">32.</span><span>Storage and use-by information</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Please follow the storage instructions supplied with each dish.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">The product label provided with your food takes precedence over general website guidance where the two differ.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Chilled products should be placed into appropriate refrigeration promptly after receipt.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Follow the use-by date shown on the product.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Do not eat food after its use-by date.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="freezing-defrosting" data-n="33" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">33.</span><span>Freezing and defrosting</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Where a dish is described as suitable for freezing, follow the freezing and defrosting instructions provided.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Our general website guidance may state that suitable dishes can be frozen on arrival for a specified period, but the instructions on the individual dish remain the authoritative instructions for that product.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Not every dish will necessarily have the same freezing characteristics.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Food should not be refrozen where the supplied instructions tell you not to do so.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="reheating" data-n="34" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">34.</span><span>Reheating</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Follow the reheating instructions supplied for the particular dish.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Food should be reheated in accordance with those instructions before consumption.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Repeated reheating, improper defrosting or failure to store food correctly can affect both safety and quality.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Subject to your statutory rights, we are not responsible for deterioration caused after delivery by a failure to follow reasonable:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">storage;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">use-by;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">freezing;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">defrosting; or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">reheating instructions,</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">to the extent that the customer's handling caused the problem.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="product-recalls-food-safety-notices" data-n="35" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">35.</span><span>Product recalls and food-safety notices</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If we identify a food-safety issue affecting a product you have purchased, we may contact you using the details associated with your order.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">A recall or safety notice may instruct you:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">not to consume a product;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">to retain it;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">to dispose of it;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">to return it through an agreed process; or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">to take another food-safety action.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Please follow any safety instructions promptly.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Any refund or other remedy arising from a recall will be dealt with in accordance with <a class="at-tlink" href="#refunds" style="color: var(--brass-ink); text-decoration: underline; text-underline-offset: 3px;">section 30</a> and applicable law.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            </div>
+
+            <div class="at-t-gsec" data-g="5">
+            <h2 class="at-t-gh" style="margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.3; text-transform: uppercase; letter-spacing: .06em; color: var(--brass-ink);">Problems &amp; complaints</h2>
+            <div id="reporting-a-problem" data-n="36" style="padding-top: 12px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">36.</span><span>Reporting a problem</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If there is a problem with an order, please contact us through our <a class="at-tlink" href="Abby's Table - Contact Us.dc.html" style="color: var(--brass-ink); text-decoration: underline; text-underline-offset: 3px;">Contact page</a>.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Providing your order number helps us identify your order and respond more efficiently.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Where relevant, it can also help if you provide photographs of:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">the product;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">its label;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">packaging;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">the delivery box; or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">visible damage.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Our Contact form allows you to upload images for this purpose.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Photographs can help us investigate, but we will not automatically refuse a valid statutory claim merely because you could not provide a photograph.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We may ask for reasonable proof of purchase where necessary.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="perishable-food-complaints" data-n="37" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">37.</span><span>Perishable-food complaints</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Because our products are perishable, some issues are easier to investigate when reported quickly.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Please contact us as soon as reasonably possible about concerns involving:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">delivery temperature;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">damaged packaging;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">food condition;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">missing products; or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">another issue apparent on delivery.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">For these types of issues, contacting us <strong style="font-weight: 600; color: var(--green-forest);">ideally within 24 hours</strong> can help us investigate what happened.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">This is not an absolute legal deadline and does not remove or reduce your statutory consumer rights.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="returns-food" data-n="38" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">38.</span><span>Returns of food</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Please do not send chilled or perishable food back to us through the post unless we specifically ask you to.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Depending on the issue, we may instead ask you to:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">retain the product temporarily;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">keep the label or packaging;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">photograph it;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">make it available for collection; or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">safely dispose of it.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We will tell you what is appropriate.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Where the law requires Abby's Table to bear reasonable return costs for rejected goods, we will do so.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="complaints-procedure" data-n="39" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">39.</span><span>Complaints procedure</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We want to resolve concerns fairly and promptly.</p>
+              <div class="at-t-info" style="margin-top: 18px; background: var(--cream-2); border: 1px solid var(--sand); border-radius: 14px; padding: 20px 22px;">
+                <div>
+                  <p style="margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brown);">Email</p>
+                  <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--green-forest);"><a class="at-tlink" href="mailto:hello@FromAbbysTable.co.uk" style="color: var(--brass-ink); text-decoration: underline; text-underline-offset: 3px;">hello@​<span style="white-space: nowrap;">FromAbbysTable.co.uk</span></a></p>
+                </div>
+                <div>
+                  <p style="margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brown);">Telephone</p>
+                  <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--green-forest);"><a class="at-tlink" href="tel:+442038751234" style="color: var(--brass-ink); text-decoration: underline; text-underline-offset: 3px;">020 3875 1234</a></p>
+                </div>
+                <div>
+                  <p style="margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass-ink);">Online</p>
+                  <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--green-forest);"><a class="at-tlink" href="Abby's Table - Contact Us.dc.html" style="color: var(--brass-ink); text-decoration: underline; text-underline-offset: 3px;">Contact us</a></p>
+                </div>
+              </div>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Please include your order number where possible.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We will:</p>
+              <ol style="margin: 12px 0 0; padding-left: 22px; ">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">acknowledge your complaint;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">review the relevant order and information;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">investigate what happened where necessary; and</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">respond with our proposed resolution.</li>
+              </ol>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If a dispute remains unresolved and a legally applicable or recognised alternative dispute-resolution process is available or required, we will provide the relevant information where appropriate.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            </div>
+
+            <div class="at-t-gsec" data-g="6">
+            <h2 class="at-t-gh" style="margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.3; text-transform: uppercase; letter-spacing: .06em; color: var(--brass-ink);">Gifting &amp; accounts</h2>
+            <div id="gifting-food" data-n="40" style="padding-top: 12px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">40.</span><span>Gifting food</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">You may order Abby's Table food for another person where gifting is available.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">You are responsible for providing accurate recipient and delivery information.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If you are selecting food for someone else, you should consider whether the recipient has:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">food allergies;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">intolerances;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">dietary restrictions; or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">another relevant food requirement.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Allergen information will remain available before purchase and appropriate information will be supplied with the delivered food.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Sending food to somebody does not automatically subscribe that recipient to Abby's Table marketing communications.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="gift-cards-vouchers" data-n="41" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">41.</span><span>Gift cards and vouchers</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If Abby's Table offers monetary gift cards or vouchers, any additional conditions applying to them will be provided before purchase.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">These may cover:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">value;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">redemption;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">validity period;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">exclusions;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">lost or stolen codes;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">combination with promotions; and</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">refund arrangements.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Gift-card terms will not override statutory consumer rights.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="promotions-discount-codes" data-n="42" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">42.</span><span>Promotions and discount codes</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">From time to time we may offer promotions or discount codes.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Individual promotions may have specific conditions relating to:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">eligible products;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">minimum spend;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">qualifying customers;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">promotional period;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">number of uses;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">combination with other offers; and</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">geographical or delivery restrictions.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Unless stated otherwise, promotional codes:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">cannot be exchanged for cash;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">cannot be applied retrospectively to completed orders; and</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">must be used before the stated expiry.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We may refuse use of a promotion where we reasonably identify fraud, manipulation or use contrary to clearly stated promotional conditions.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="account-credits" data-n="43" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">43.</span><span>Account credits</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Where we issue Abby's Table account credit, we will tell you the material conditions applying to that credit when it is issued.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">This may include:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">the value;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">how it can be redeemed;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">any applicable expiry;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">eligible products; and</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">whether it can be combined with other credit or promotions.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We will distinguish where appropriate between:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">promotional credit; and</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">value that a customer has purchased or is otherwise legally entitled to.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We will not introduce a previously undisclosed expiry retrospectively merely by changing these Terms of Sale.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="customer-accounts" data-n="44" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">44.</span><span>Customer accounts</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If you create an Abby's Table account, you are responsible for:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">providing accurate information;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">keeping your login credentials reasonably secure; and</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">contacting us if you believe somebody has gained unauthorised access.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We may temporarily suspend or restrict an account where reasonably necessary because of:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">security concerns;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">suspected fraud;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">abusive behaviour;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">material misuse of our website; or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">another legitimate reason.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Account suspension does not remove your statutory rights relating to orders already placed.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="private-table-waitlist" data-n="45" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">45.</span><span>Private Table waitlist</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">At launch, <strong style="font-weight: 600; color: var(--green-forest);">Abby's Private Table is coming soon</strong>.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Joining the <a class="at-tlink" href="Abby's Table - Private Table v2.dc.html" style="color: var(--brass-ink); text-decoration: underline; text-underline-offset: 3px;">Private Table</a> waitlist means that you are asking us to let you know when consultations or the service become available.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Joining the waitlist:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">does not constitute the purchase of Private Table;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">does not create a Private Table service contract;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">does not guarantee acceptance into the service;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">does not reserve a consultation;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">does not guarantee a particular launch date;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">does not require you to purchase anything later; and</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">is free unless we expressly state otherwise.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Private Table will be subject to separate service terms when it launches.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            </div>
+
+            <div class="at-t-gsec" data-g="7">
+            <h2 class="at-t-gh" style="margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.3; text-transform: uppercase; letter-spacing: .06em; color: var(--brass-ink);">Legal</h2>
+            <div id="our-responsibility-to-you" data-n="46" style="padding-top: 12px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">46.</span><span>Our responsibility to you</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We are responsible for foreseeable loss or damage caused by our failure to comply with our contractual obligations or by our negligence where applicable.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Loss or damage is foreseeable if either:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">it was obvious that it would happen; or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">both you and we knew that it might happen when the contract was formed.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Subject to your statutory rights, we are not responsible for loss caused solely by:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">inaccurate information you supplied;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">failure to follow reasonable storage or reheating instructions;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">mishandling of the food after delivery;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">another action or omission for which we were not responsible.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Where an order is purchased as a consumer order, we supply it for personal and domestic use.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We are not responsible under this consumer contract for business losses such as:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">loss of profit;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">loss of business;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">business interruption; or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">loss of commercial opportunity.</li>
+              </ul>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="liability-we-cannot-exclude" data-n="47" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">47.</span><span>Liability we cannot exclude</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Nothing in these terms excludes or limits liability where doing so would be unlawful.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">In particular, nothing excludes or restricts:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">your statutory rights as a consumer;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">liability for death or personal injury caused by negligence;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">liability for fraud or fraudulent misrepresentation;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">responsibility for goods that are faulty or materially not as described where liability cannot lawfully be excluded; or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">another liability that the law does not permit us to exclude.</li>
+              </ul>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="personal-information" data-n="48" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">48.</span><span>Personal information</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We use personal information in accordance with our Privacy Policy.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Information used to fulfil an order may include:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">your name;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">email address;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">telephone number;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">delivery address;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">order history;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">payment-related transaction information; and</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">information you choose to provide when contacting us.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Agreeing to these Terms of Sale does not constitute consent to unrelated marketing.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Where consent is required for marketing, it will be requested separately.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="images-you-upload" data-n="49" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">49.</span><span>Images uploaded through Contact Us</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If you upload photographs or other images when contacting us, please only provide material:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">relevant to your enquiry; and</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">that you have the right to provide.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We may use those images where reasonably necessary to:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">investigate your enquiry;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">resolve a complaint;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">assess product condition;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">review packaging or delivery performance;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">investigate a food-safety issue;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">maintain appropriate records; or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">comply with a legal obligation.</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Submitting a complaint image does not give Abby's Table an unrestricted right to use it in advertising or marketing.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="changes-to-these-terms" data-n="50" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">50.</span><span>Changes to these Terms of Sale</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We may update these terms from time to time.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">The updated version will apply to future orders from the date it takes effect.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">The Terms of Sale applying to an existing accepted order will generally be the version in effect when the relevant contract was formed.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We will not rely on a later website update to retrospectively remove contractual or statutory rights relating to an existing order.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">The <strong style="font-weight: 600; color: var(--green-forest);">Last updated</strong> date at the top of this page identifies the current version.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="severability" data-n="51" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">51.</span><span>Severability</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Each section of these Terms of Sale operates separately.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If a court or competent authority determines that a particular provision is unlawful or unenforceable, the remaining provisions will continue to apply so far as legally possible.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="delay-in-enforcing-a-right" data-n="52" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">52.</span><span>Delay in enforcing a right</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If we do not immediately enforce a provision of these terms, this does not necessarily mean that we have permanently waived the relevant right.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Likewise, allowing an exception on one occasion does not automatically change these terms for future orders.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Nothing in this section limits a consumer right that cannot legally be waived.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="transferring-rights-obligations" data-n="53" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">53.</span><span>Transferring rights or obligations</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We will not transfer our rights or obligations under your contract in a way that materially reduces your consumer protections without complying with applicable law.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">You may not transfer an order to another person where doing so would materially interfere with our ability to fulfil it unless we agree to the change.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">This does not prevent you from ordering food as a gift in accordance with <a class="at-tlink" href="#gifting-food" style="color: var(--brass-ink); text-decoration: underline; text-underline-offset: 3px;">section 40</a>.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="third-party-rights" data-n="54" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">54.</span><span>Third-party rights</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Unless these terms expressly state otherwise, the contract is between you and Abby's Table.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">A person who is not a party to the contract does not have a contractual right to enforce these terms merely because they benefit from the order, except where applicable law provides otherwise.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="governing-law-jurisdiction" data-n="55" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">55.</span><span>Governing law and jurisdiction</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">These Terms of Sale are governed by the law of <strong style="font-weight: 600; color: var(--green-forest);">England and Wales</strong>.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If you are a consumer who lives in Scotland, Northern Ireland or another jurisdiction where mandatory consumer protections apply, you retain any protections that cannot lawfully be excluded.</p>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Nothing in these terms is intended to prevent a consumer from bringing proceedings in a court available to them under applicable consumer law.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            <div id="how-to-contact-us" data-n="56" style="padding-top: 30px; scroll-margin-top: 96px;">
+              <h3 class="at-t-h2" style="display: flex; gap: 12px; margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); line-height: 1.2; letter-spacing: -0.005em; color: var(--green-forest); text-wrap: pretty;"><span class="at-t-num" aria-hidden="true">56.</span><span>How to contact us</span></h3>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If you have a question about:</p>
+              <ul style="margin: 12px 0 0; padding-left: 22px; list-style: disc;">
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">these Terms of Sale;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">an order;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">delivery;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">allergens;</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">a refund; or</li>
+                <li style="margin-top: 6px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">another Abby's Table matter,</li>
+              </ul>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">please <a class="at-tlink" href="Abby's Table - Contact Us.dc.html" style="color: var(--brass-ink); text-decoration: underline; text-underline-offset: 3px;">contact us</a>.</p>
+              <div style="margin-top: 18px; background: var(--sand); border-radius: 14px; padding: 20px 22px;">
+                <p style="margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brown);">Abby’s Table Foods Ltd</p>
+                <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--green-forest);">1 Example Street<br>London<br>AB1 2CD</p>
+              </div>
+              <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Our current opening hours are available on our <a class="at-tlink" href="Abby's Table - Contact Us.dc.html" style="color: var(--brass-ink); text-decoration: underline; text-underline-offset: 3px;">Contact Us</a> page and are stated in UK time.</p>
+              <p class="at-t-bttw" style="margin: 10px 0 0; text-align: right;"></p>
+            </div>
+
+            </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+</doc-page>
+<script src="./doc-page.js"></script>
+</body>
+</html>

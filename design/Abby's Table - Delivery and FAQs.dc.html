@@ -1,0 +1,1932 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>html, body { background-color: #F7F1E8; color-scheme: light; }</style>
+<!-- ↑ First-paint ground: FIRST in the head so it is in the first bytes the parser sees.
+     Dependency-free literal of --cream (no tokens, no runtime); see CLAUDE.md head standard. -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Focus standard. In the real <head>, before the runtime, so it is parser-inserted and
+     render-blocking: it exists before first paint and before any script can move focus. A
+     <helmet> link is injected by the runtime AFTER render, which is what let the browser's blue
+     outline flash first. -->
+<!-- Shared stylesheets: ONE authoritative load path, in the real head. In <helmet> they were
+     applied from the raw template, torn down when the runtime consumed it, then re-added —
+     the transparent gap on every full load and on back navigation. -->
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/colors.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/typography.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/styles.css">
+<link rel="stylesheet" href="at-focus.css">
+<script src="at-logo.js"></script>
+<script src="at-desktop-header.js"></script>
+<script src="./support.js"></script>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#1E3A2F"/><circle cx="50" cy="50" r="22" fill="none" stroke="#C28E3C" stroke-width="2.6"/><path d="M43 43a7 7 0 1 1 10 6.4c-2.2 1.1-3.4 2.8-3.4 5.1" fill="none" stroke="#C28E3C" stroke-width="2.6" stroke-linecap="round"/><circle cx="49.6" cy="62" r="1.9" fill="#C28E3C"/></svg></template>
+</head>
+<body>
+<x-dc>
+<helmet>
+<!-- Order in progress: swaps "Get started" for VIEW BOX and the purchase bar for a box
+     summary once step 1 has been started. Self-initialising; no page-local code. -->
+<script src="at-order-state.js"></script>
+<!-- Signed in: "Log in" reads "My Account" in the header and drawer. Self-initialising. -->
+<script src="at-account-state.js"></script>
+  <script src="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/_ds_bundle.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background: var(--cream); }
+    a { color: var(--green-forest); }
+    a:hover { color: var(--terracotta-deep); }
+    :focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; border-radius: 3px; }
+    /* Brass is only 1.9:1 on green-deep, so dark grounds get a cream ring with a gold outer edge. */
+    @keyframes at-drawer-in { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+    @keyframes at-fade-in { from { opacity: 0; } to { opacity: 1; } }
+    /* Closed with display: none rather than unmounted, so aria-controls always resolves. It also
+       keeps the drawer out of the accessibility tree and the tab order, and the animation replays
+       on each open because the element goes from display: none to displayed. */
+    .at-drawer-wrap { display: none; }
+    .at-drawer-wrap.is-open { display: block; }
+    .at-drawer-panel { animation: at-drawer-in .2s ease; }
+    .at-drawer-scrim { animation: at-fade-in .2s ease; }
+    /* Pending token refinement: --terracotta sampled from the approved mockup (#B7554E — the
+       shipped token #B45F5A carries more blue, which reads dull). Scoped to this page until
+       the header/CTA is approved, then it moves into the design system and this block goes. */
+    /* --gold is the bright accent sampled from the approved mockup (#F6C33B). DARK GROUNDS ONLY:
+       9.3:1 on green-deep, but 1.45:1 on cream and 1.63:1 under white text. --brass (#C28E3C)
+       stays the accent for light grounds until those sections are redesigned. */
+    /* --brass-ink is brass for SMALL TEXT on cream. --brass-deep (#A9762C) measures only 3.47:1
+       there, under the 4.5:1 small-text minimum; #8A5F1F measures 4.96:1 and still reads brass.
+       Use --brass for rules, hairlines and large marks; --brass-ink whenever brass is type. */
+    /* --chilli is the terracotta value quoted in the design system's own guide (#B8431C); the
+       shipped token has since drifted to a pinker #B45F5A, which at 15px pip size reads as rose
+       rather than heat. Graphic only, never type. 6.4:1 on the #EDE5D9 card panel. */
+    /* --sage is a new band ground, sampled from the approved Our standards mockup. Full-bleed
+       coloured bands are now sanctioned for specific sections (this one, Abby's Story, Private
+       Table) — they are NOT an invitation to alternate bands page-wide. Light ground: green-forest
+       reads 9.4:1 on it and brown 10.2:1, so all type is safe; brass is only 2.2:1, which is why
+       the icons use brass-ink (4.3:1) rather than brass or the hero's gold. */
+    :root { --terracotta: #B7554E; --terracotta-deep: #9C433D; --gold: #F6C33B; --brass-ink: #8A5F1F; --chilli: #B8431C; --sage: #E1E2D2; }
+
+    .at-nav-link:hover { color: var(--terracotta-deep) !important; border-bottom-color: var(--brass) !important; }
+    /* Current page. aria-current was already on the right link in every header but nothing styled
+       it, so on desktop there was no way to tell where you were. Three signals, not colour alone:
+       green-forest ink, semibold, and the brass underline made persistent — the same underline the
+       hover uses, so the language is one. Hover still wins over it, which is correct: the pointer
+       is reporting what it is over, not where you are. */
+    .at-nav-link[aria-current="page"] { color: var(--green-forest) !important; font-weight: 600; border-bottom-color: var(--brass) !important; }
+    .at-login:hover { color: var(--terracotta-deep) !important; }
+    .at-login:hover span { border-bottom-color: var(--brass) !important; }
+    .at-drawer-link:hover { color: var(--brass) !important; }
+    /* No hover lift. The design system specifies fades and colour shifts, "no bounces, no large
+       motion", with press feedback as a slight colour deepen — the translateY(-1px) these three
+       carried came across from the old homepage and made them the only buttons on the page that
+       moved. Press is a deepen, per the system. */
+    .at-primary, .at-cta, .at-drawer-cta { transition: background .16s ease; }
+    .at-primary:hover, .at-cta:hover, .at-drawer-cta:hover { background: var(--terracotta-deep) !important; }
+    .at-primary:active, .at-cta:active, .at-drawer-cta:active { background: var(--terracotta-deep) !important; filter: brightness(.94); }
+    @media (prefers-reduced-motion: reduce) {
+      .at-primary, .at-cta, .at-drawer-cta { transition: none !important; }
+    }
+    .at-logo { transition: opacity .16s ease; }
+    .at-logo:hover { opacity: .78; }
+    .at-burger span, .at-burger span span { transition: background .16s ease, border-color .16s ease; }
+    .at-burger:hover span { border-color: var(--terracotta-deep) !important; }
+    .at-burger:hover span span { background: var(--terracotta-deep) !important; }
+    .at-hdr { transition: transform .22s ease; }
+    .at-hdr[data-hidden="true"] { transform: translateY(-100%); }
+    /* Hidden on mobile as content prioritisation: the description materially increases card
+       height while browsing, and display:none takes it out of the accessibility tree too, so no
+       sighted/assistive mismatch is created. Revealed from 1024 below. */
+    /* The footer rule is pinned by margin-top:auto, and with equal-height cards there is no slack
+       left for auto to absorb — so the gap above the rule is an explicit margin on whichever
+       element sits last: the components line on mobile (set inline, because an inline `margin`
+       shorthand outranks any non-important class rule), the description from 1024 up. Slightly
+       more space above the rule than below, so it closes the text block rather than reading as
+       part of the nutrition row. */
+    /* MOBILE: opens BELOW the pill, aligned to its left edge, tail pointing up. A card is only
+       min(360px, 82vw) wide, so the mockup's right-hand placement would run off a phone screen —
+       that composition needs the room a desktop card has, so it is applied from 1024 up. */
+    /* --tail-x is measured from the "i" itself (see measureSigTail). The panel is anchored to the
+       whole tag stack, so a fixed offset would point at whichever pill happens to sit there. */
+    /* The DS nutrition tag ships .16em tracking, which is right for an eyebrow but loose for a
+       compact data row. Tightened here only, so the row reads as one unit. */
+    /* Driven by state, not :hover/:focus — a CSS-only tooltip cannot be closed by Esc or by
+       tapping the "i" a second time. Not a dialog: no focus trap, no aria-expanded. */
+    /* 17px disc, 45px target. Padding the button would inflate the navy pill, so the hit area is
+       an invisible ::before — same visible-disc/large-target split as the clip pause control.
+       It matters more here than usual: the button sits over the card link, so a missed tap would
+       navigate to the dish instead of opening the note. */
+    /* MOBILE: a stacked list — icon left spanning both text rows, text left-aligned, hairline
+       between rows. Icon, title and description are DIRECT children so the desktop state can put
+       them on shared row tracks. */
+    /* Mobile: the reach facts are two rows, so the bullet separator is not needed. It returns at
+       1024, where they sit on one line. */
+    /* Footer. Mobile-first: the accordion IS the mobile design, and it is switched off at 1024
+       rather than built there and overridden down. All type on --green-deep clears AA: brass
+       5.2:1, green-sage 5.4:1, sand-2 9.9:1, blush ~12:1. */
+    /* Mobile footer is centred throughout. Input TEXT stays left-aligned — centred text in a
+       field jumps around as you type an email. */
+    .at-foot-news { text-align: center; }
+    .at-foot-head { justify-content: center; }
+    .at-foot-link { justify-content: center; }
+    .at-foot-links { align-items: stretch; }
+    /* Delivery & FAQs. Native <details> so every question is literal, editable markup with no
+       per-item state — the copy is still under review, so editability matters more than cleverness. */
+    summary { list-style: none; }
+    summary::-webkit-details-marker { display: none; }
+    .at-faq-chev { flex: 0 0 auto; width: 9px; height: 9px; margin-bottom: 3px; border-right: 1.8px solid var(--brass-ink); border-bottom: 1.8px solid var(--brass-ink); transform: rotate(45deg); transition: transform .18s ease; }
+    details[open] > summary .at-faq-chev { transform: rotate(-135deg); margin-bottom: -3px; }
+    /* Mobile: heading then the control beneath it, right-aligned. Row from 640. */
+    .at-faq-head { display: flex; flex-direction: column; align-items: stretch; gap: 8px; margin-bottom: 6px; }
+    .at-faq-head .at-expand { align-self: flex-end; }
+    /* The page head is centred as one unit; everything below stays left-aligned. */
+    .at-pc-hd { text-align: center; }
+    .at-faq-q { border-bottom: 1px solid var(--sand); }
+    .at-faq-q > summary:hover { color: var(--terracotta-deep) !important; }
+    .at-faq-q > summary:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+    /* Grid, not wrapping flex: a 240px basis with wrap gave 3+1 between 640 and 1023, with the
+       lone item stretched full width and still carrying a left rule from a row it was no longer
+       in. Each breakpoint now states its own column count, and the vertical rules are row-aware
+       via nth-child rather than a source-order sibling selector. */
+    .at-hl { display: grid; }
+    .at-hl-item { padding: 18px 0; border-top: 1px solid var(--sand); }
+    .at-hl-item:last-child { border-bottom: 1px solid var(--sand); }
+    /* Smooth for the jump links and the return links, off for reduced motion. */
+    html { scroll-behavior: smooth; }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+    #faq-topics { scroll-margin-top: 88px; }
+    .at-faq-top { transition: color .16s ease; }
+    .at-faq-top:hover { color: var(--terracotta-deep) !important; }
+    .at-topic { transition: background .16s ease, border-color .16s ease; }
+    .at-topic:hover { background: var(--sand) !important; border-color: var(--taupe) !important; }
+    .at-topic:active { filter: brightness(.97); }
+    .at-topic:focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
+    .at-topics.is-hidden, .at-faq-groups.is-hidden, .at-help-sec.is-hidden { display: none; }
+    /* With no results the help section is hidden, and it was the only thing between the panel and
+       the footer. 48px matches the gap the help section leaves in the results state, so the page
+       ends the same distance above the green band whichever state it is in — the footer's own
+       48px padding sits INSIDE its ground and is not part of that visible gap.
+       The section's inline style deliberately sets padding-TOP only: an inline shorthand would
+       beat this rule outright. */
+    .at-res-sec { padding-bottom: 0; }
+    .at-res-sec.at-pad-end { padding-bottom: 48px; }
+    /* The search field and its results share one reading column, left-aligned with the heading.
+       At the full 1280 the bar read as a site-wide search control, and answers ran to ~1500px.
+       The topic grid keeps the full width — a 4-column card row wants it. */
+    /* Mobile order: postcode check, then search, then the delivery facts. Desktop keeps the
+       original order — see the 1024 rule. */
+    .at-hl-sec { display: none; }
+    .at-srch-col { max-width: 900px; }
+    .at-srch:focus-within { outline: 2px solid var(--brass); outline-offset: 3px; }
+    .at-srch-input:focus-visible { outline: none; }
+    .at-srch-clear:focus-visible { outline: 2px solid var(--brass); outline-offset: -6px; }
+    .at-srch-clear:hover span { background: var(--taupe) !important; color: var(--cream) !important; }
+    .at-res-ans p:last-child, .at-res-ans ul:last-child { margin-bottom: 0 !important; }
+    /* Press feedback is a slight colour deepen, per the design system. Only the terracotta
+       primaries had it; hover alone left every other button with no press response. */
+    .at-chk-btn:active, .at-dark-btn:active, .at-help-cta:active, .at-foot-join:active { filter: brightness(.94); }
+    .at-chk-btn, .at-dark-btn { transition: background .16s ease; }
+    .at-chk-btn:hover, .at-dark-btn:hover { background: var(--green-deep) !important; }
+    .at-chk-btn:disabled { opacity: .55; cursor: default; }
+    .at-loc-link { transition: color .16s ease; }
+    .at-loc-link:hover { color: var(--terracotta-deep) !important; }
+    .at-loc-link:hover svg { stroke: var(--terracotta-deep) !important; }
+    .at-help-cta { width: 100%; transition: background .16s ease, color .16s ease; }
+    .at-help-cta:hover { background: var(--green-forest) !important; color: var(--cream) !important; }
+    .at-help-cta:focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
+    .at-expand { transition: color .16s ease; }
+    .at-expand:hover { color: var(--terracotta-deep) !important; }
+    @keyframes at-spin { to { transform: rotate(360deg); } }
+    .at-spin { animation: at-spin .9s linear infinite; }
+    @media (prefers-reduced-motion: reduce) {
+      .at-faq-chev, .at-topic, .at-chk-btn, .at-dark-btn, .at-loc-link, .at-help-cta { transition: none !important; }
+      .at-spin { animation: none !important; }
+    }
+    .at-foot-link { transition: color .16s ease; }
+    .at-foot-link:hover { color: var(--brass) !important; }
+    /* Anchor only: the legal strip has no buttons since Cookie preferences became a link.
+       Leaving the button selectors in place would be dead CSS, and their presence is what hid the
+       missing-hover bug the first time this control changed type. */
+    .at-foot-legal a:hover { color: var(--brass) !important; }
+    .at-foot-head { cursor: pointer; }
+    /* Collapsed state lives HERE, not inline: these links carry inline styles, and an inline
+       display would beat this rule (the accordion silently never closed). */
+    .at-foot-links { display: none; flex-direction: column; }
+    .at-foot-col.is-open .at-foot-links { display: flex; }
+    .at-foot-col.is-open .at-foot-chevron { transform: rotate(180deg); }
+    .at-foot-chevron { transition: transform .18s ease; }
+    /* Icon links shift fill like any other link — no fade. The presentation attribute fill on the
+       svg loses to CSS, so this wins without !important. */
+    .at-social svg { transition: fill .16s ease; }
+    .at-social:hover svg { fill: var(--brass); }
+    .at-foot-join { transition: background .16s ease; }
+    .at-foot-join:hover { background: var(--brass-deep) !important; }
+    .at-foot-input::placeholder { color: var(--green-sage); opacity: 1; }
+    /* Cream ring with a gold outer edge: brass is only 1.9:1 on green-deep, so a brass ring is
+       invisible here. Two crisp bands, not a glow — offset 0 so the cream sits flush against the
+       control and the gold reads as a hairline edge outside it rather than a halo. The outline
+       paints OVER the shadow, so the gold band is (spread - outline width) = 1px; a literal 2px
+       spread would hide the gold behind the cream entirely. Same values on hero, drawer, footer
+       and Private Table — one focus language, no per-control exceptions. */
+    .at-foot-inner a:focus-visible, .at-foot-inner button:focus-visible, .at-foot-input:focus-visible {
+      outline: 2px solid var(--cream); outline-offset: 0; box-shadow: 0 0 0 3px var(--gold);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .at-foot-chevron, .at-foot-link, .at-foot-join, .at-social svg { transition: none !important; }
+    }
+
+    /* --- 640px: more measure, so the buttons sit side by side and copy widens --- */
+    @media (min-width: 640px) {
+      .at-primary { align-self: flex-start !important; width: auto !important; }
+      .at-hdr-row { padding: 14px 34px !important; gap: 14px !important; }
+      /* One content grid at every band: these two carry the gutter inline, so the 640 step has to
+         be repeated here or the heading box ends up 12px wider than the card track below it. */
+      /* Still stacked here — a 50/50 split at this measure would give two ~300px columns. The
+         media is capped instead so a square photo does not become 900px tall. */
+      /* The combined pill only appears once the column is wide enough for it. At 320 it left the
+         input about 150px, which cannot show "Enter your email address". */
+      .at-foot-form { flex-direction: row !important; align-items: stretch !important; gap: 0 !important; height: 52px !important; width: 340px; max-width: 100%; border: 1px solid var(--green-mid); border-radius: var(--radius-pill); overflow: hidden; }
+      .at-foot-input { flex: 1 1 auto !important; min-width: 0 !important; border: none !important; border-radius: 0 !important; height: auto !important; }
+      .at-foot-join { border-radius: 0 !important; height: auto !important; width: auto !important; padding: 0 26px !important; }
+      .at-foot-inner { padding: 48px 34px 0 !important; }
+      .at-page-inner { padding: 0 34px !important; }
+      .at-pchead { padding: 52px 0 0 !important; }
+      /* Field + button become one pill once the column can hold the placeholder. */
+      /* overflow: hidden is back. It was removed once because it clipped the input's focus ring into a
+         stray gold hairline, but every ring inside the pill is now drawn INSET, and an element's own
+         outline is not clipped by its overflow — so the clip is safe and it guarantees the button's
+         rounded end coincides exactly with the pill's, rather than leaving a white crescent. */
+      .at-chk-form { flex-direction: row !important; align-items: stretch !important; gap: 0 !important; height: 52px !important; width: 100%; border: 1px solid var(--taupe); border-radius: var(--radius-pill); overflow: hidden; background: var(--white); }
+      .at-chk-fieldwrap { flex: 1 1 auto !important; min-width: 0 !important; }
+      /* flex here as well as on .at-chk-fieldwrap: the postcode input sits inside that wrapper
+         (which grows), but the notify input is a direct flex child with nothing to grow it — so
+         the row left free space AFTER the button, showing as a white crescent inside the pill. */
+      .at-chk-input { flex: 1 1 auto !important; min-width: 0 !important; border: none !important; border-radius: var(--radius-pill) 0 0 var(--radius-pill) !important; height: 100% !important; }
+      .at-chk-btn { border-radius: 0 var(--radius-pill) var(--radius-pill) 0 !important; height: auto !important; width: auto !important; padding: 0 28px !important; }
+      /* Rings are drawn INSET so neither control's indicator lands on its neighbour, and they now
+         follow each control's own curve because nothing clips them. Cream on the green button,
+         where brass would only reach 2.6:1. */
+      .at-chk-input:focus-visible, .at-chk-clear:focus-visible { outline: 2px solid var(--brass) !important; outline-offset: -3px !important; }
+      .at-chk-btn:focus-visible { outline: 2px solid var(--cream) !important; outline-offset: -4px !important; }
+      /* 2x2 here. Four across needs ~960px and the content box is only 856px at 924, so
+         committing to two columns is the honest composition for this range. */
+      .at-faq-head { flex-direction: row; align-items: flex-end; justify-content: space-between; gap: 16px; }
+      .at-faq-head .at-expand { align-self: auto; }
+      .at-help-cta { width: auto !important; }
+      .at-retry { flex: 0 0 auto !important; }
+      .at-topic-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+      .at-empty-actions { flex-direction: row !important; }
+      .at-hl { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 26px; }
+      .at-hl-item { padding: 0 22px; border-top: none; }
+      .at-hl-item:last-child { border-bottom: none; }
+      .at-hl-item:nth-child(2n) { border-left: 1px solid var(--sand); }
+      .at-res-grid { grid-template-columns: minmax(0, 1fr) auto !important; gap: 34px !important; align-items: center !important; }
+      .at-res-side { border-top: none !important; border-left: 1px solid var(--sand) !important; padding: 6px 0 6px 34px !important; }
+      .at-help { flex-direction: row !important; align-items: center !important; text-align: left !important; }
+      .at-help-sec { padding-top: 68px !important; }
+      /* The mockup defines the phone list and the 4-column desktop only; this band needs the same
+         measure discipline as its neighbours (How it works 507px, dishes intro 520px) or the lines
+         run 30-plus characters long across the full width. */
+      .at-cta { font-size: 13px !important; letter-spacing: .1em !important; padding: 0 20px !important; }
+    }
+
+    /* --- 1024px: desktop composition — nav in the header, checker and FAQs side by side --- */
+    @media (min-width: 1024px) {
+      .at-burger { display: none !important; }
+      .at-nav, .at-login { display: flex !important; }
+      .at-hdr-row { padding: 18px 48px !important; }
+      .at-logo { justify-self: start !important; }
+      .at-hdr-row { grid-template-columns: auto 1fr auto auto !important; gap: 34px !important; }
+      .at-login { margin-left: 12px !important; }
+      .at-foot-inner { padding: 56px 48px 0 !important; }
+      .at-page-inner { padding: 0 48px !important; }
+      .at-pchead { padding: 60px 0 0 !important; }
+      .at-h1 { font-size: 56px !important; }
+      .at-chk { padding: 34px 40px !important; }
+      .at-chk-grid { grid-template-columns: minmax(0, 1fr) auto !important; gap: 40px !important; align-items: center !important; }
+      .at-chk-form { width: 380px !important; }
+      .at-chk-h2 { font-size: 26px !important; }
+      .at-res { padding: 30px 40px !important; }
+      .at-res-h3 { font-size: 26px !important; }
+      .at-hl { grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 0; }
+      .at-hl-item:nth-child(2n) { border-left: none; }
+      .at-hl-item:not(:nth-child(4n+1)) { border-left: 1px solid var(--sand); }
+      .at-hl-sec { display: block; }
+      .at-topic-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+      .at-faq-h2 { font-size: 48px !important; }
+      .at-faq-q > summary { font-size: 17px !important; }
+      .at-help { padding: 30px 40px !important; }
+      .at-help-sec { padding: 76px 0 64px !important; }
+      .at-foot-grid { grid-template-columns: 1.4fr 3fr !important; gap: 48px !important; }
+      .at-foot-cols { grid-template-columns: repeat(3, 1fr) !important; gap: 48px !important; }
+      /* Accordion off: every column open, heads are labels rather than controls. */
+      .at-foot-col { border-top: none !important; }
+      .at-foot-head { min-height: 0 !important; padding: 0 !important; cursor: default !important; }
+      .at-foot-chevron { display: none !important; }
+      .at-foot-links { display: flex !important; margin-top: 16px !important; padding-bottom: 0 !important; }
+      .at-foot-bottom { grid-template-columns: 1fr auto 1fr !important; align-items: center !important; }
+      /* DOM order IS the visual order at every width — logo → signature → follow — so keyboard
+         focus never runs backwards across the four social links and the logo link (WCAG 2.4.3).
+         Only ALIGNMENT changes at this breakpoint; placement never does. The three blocks used to
+         carry order: 1/2/3 with the follow row first in the DOM, which reversed the row here. */
+      .at-foot-logo { justify-self: start !important; }
+      .at-foot-follow { justify-self: end !important; align-items: flex-end !important; }
+      .at-foot-follow-row { flex-direction: row !important; align-items: center !important; gap: 12px !important; }
+      .at-foot-dash { display: inline !important; }
+      .at-foot-mark { width: 220px !important; height: 38px !important; }
+      .at-foot-legal { flex-direction: row !important; gap: 4px 24px !important; }
+      .at-foot-news { text-align: left !important; }
+      .at-foot-news p { max-width: 300px; }
+      .at-foot-consent { max-width: 340px; }
+      .at-foot-head { justify-content: space-between !important; }
+      .at-foot-link { justify-content: flex-start !important; }
+      .at-foot-legal-row { gap: 24px !important; }
+      .at-foot-legal-sep { display: none !important; }
+      .at-foot-rule { display: block !important; }
+      .at-foot-cols { border-bottom: none !important; }
+      .at-foot-bottom { margin-top: 0 !important; }
+      /* Shared row tracks via subgrid, so all four descriptions start on the same line at EVERY
+         width. The previous fix was a min-height tuned to the 1280 column, which left item 3's
+         title overflowing it everywhere from 1024 to 1279. Without subgrid support the titles
+         simply go back to being ragged — no layout breakage. */
+      /* Titles no longer carry a min-height — the subgrid row track aligns them. */
+      /* Cards, not buttons: the lift is a card affordance and stays. Guarded for reduced motion,
+         which it previously was not. */
+      /* desktop gets the 2.4:1 crop; the ratio here must match the matchMedia query that picks
+         the source file, or the poster and the clip would disagree about their shape */
+      /* one persistent purchase action on mobile only; desktop keeps the header CTA */
+      .at-hdr[data-hidden="true"] { transform: none !important; }
+    }
+
+    /* EXCEPTION — min-width 1280px. Three benefits across need ~590px; the hero's copy column
+       (56% of the viewport, less the 1280-cap gutter) gives 477px at 1024 and 621px at 1280.
+       Below 1280 they stay stacked, one line each. Content reason, not a device size. */
+  </style>
+<style>
+  /* Sterling sign, site-wide. Playfair Display's £ has a double crossbar that reads as a euro, so
+     U+00A3 alone is drawn from a Figtree subset (1 KB, 400–700) prepended to the display and
+     accent stacks. Every other character is untouched. html:root outranks the token sheet. */
+  @font-face { font-family: "AT Sterling"; src: url("assets/fonts/at-sterling.woff2") format("woff2"); font-weight: 400 700; font-style: normal; font-display: block; unicode-range: U+00A3; }
+  html:root {
+    --font-display: "AT Sterling", "Playfair Display", ui-serif, Georgia, "Times New Roman", serif;
+    --font-accent: "AT Sterling", "Cormorant Garamond", ui-serif, Georgia, serif;
+  }
+</style>
+</helmet>
+
+<header class="at-hdr" data-at-desk-hdr="marketing" ref="{{ hdrRef }}" data-hidden="{{ hdrHidden }}" style="position: sticky; top: 0; z-index: 60; background: var(--cream-2); border-bottom: 1px solid var(--sand);">
+  <div class="at-hdr-row" style="display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 8px; max-width: 1280px; margin: 0 auto; padding: 10px 14px;">
+
+    <button class="at-burger" type="button" ref="{{ burgerRef }}" onClick="{{ openDrawer }}" aria-label="Open menu" aria-controls="at-drawer" aria-expanded="{{ burgerExpanded }}" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-left: -10px; border: none; background: transparent; cursor: pointer;">
+      <span aria-hidden="true" style="display: block; width: 22px; height: 14px; border-top: 1.6px solid var(--green-forest); border-bottom: 1.6px solid var(--green-forest); position: relative;"><span style="position: absolute; left: 0; right: 0; top: 50%; margin-top: -0.8px; height: 1.6px; background: var(--green-forest);"></span></span>
+    </button>
+
+    <a class="at-logo" href="Abby's Table - Homepage v2.dc.html" aria-label="Abby's Table — home" style="justify-self: center; display: block; text-decoration: none; min-width: 0;">
+      <span aria-hidden="true" style="display: block; width: clamp(108px, 36vw, 168px); aspect-ratio: 186 / 32; color: var(--green-forest);"><at-wordmark></at-wordmark></span>
+    </a>
+
+    <nav class="at-nav" aria-label="Main" style="display: none; justify-self: center; align-items: center; gap: 30px;">
+      <a class="at-nav-link" href="Abby's Table - Menu Landing v3.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Menu</a>
+      <a class="at-nav-link" href="Abby's Table - How It Works v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">How it works</a>
+      <a class="at-nav-link" href="Abby's Table - Abby's Story v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Abby&#8217;s Story</a>
+      <a class="at-nav-link" href="Abby's Table - Gifting v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Gifting</a>
+      <a class="at-nav-link" href="Abby's Table - Private Table v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Private Table</a>
+    </nav>
+
+    <a class="at-login" href="Abby's Table - Log in.dc.html" style="display: none; align-items: center; height: 44px; font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; transition: color .16s ease;"><span style="display: inline-block; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: border-color .16s ease;">Log in</span></a>
+
+    <a class="at-cta" href="Abby's Table - Choose Box v2.dc.html" style="display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 13px; border-radius: var(--radius-pill); background: var(--terracotta); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; text-decoration: none; white-space: nowrap;">Get started</a>
+  </div>
+</header>
+
+<!-- Delivery & FAQs. An information page, not a sales page: no hero and no purchase bar. The
+     page's own conversion path is check-postcode-then-build, so a persistent Build a Box would
+     compete with the thing the page exists to do.
+     Header, drawer and footer are copied verbatim from the canonical homepage v2. -->
+<main>
+  <section class="at-pchead" style="padding: 34px 0 0;">
+    <div class="at-page-inner" style="max-width: 1280px; margin: 0 auto; padding: 0 22px;">
+      <h1 class="at-h1 at-pc-hd" style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(38px, 11.6vw, 56px); line-height: 1.04; letter-spacing: -0.015em; color: var(--green-forest);">Delivery &amp; FAQs</h1>
+      <p class="at-pc-hd" style="margin: 12px auto 0; max-width: 560px; font-family: var(--font-sans); font-size: 18px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">Answers to common questions about delivery, your food and your order, all in one place.</p>
+    </div>
+  </section>
+
+  <section style="padding: 26px 0 0;">
+    <div class="at-page-inner" style="max-width: 1280px; margin: 0 auto; padding: 0 22px;">
+      <div class="at-chk" style="background: var(--sand); border-radius: 18px; padding: 24px 22px;">
+        <div class="at-chk-grid" style="display: grid; gap: 20px;">
+          <div>
+            <h2 class="at-chk-h2" style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.15; color: var(--green-forest);">Check delivery to your postcode</h2>
+            <p style="margin: 10px 0 0; max-width: 420px; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; color: var(--brown); text-wrap: pretty;">Enter your postcode to see if we deliver to your area and view the next available delivery date. <strong style="font-weight: 600; color: var(--green-forest);">Meal delivery is currently available to mainland UK addresses only.</strong></p>
+          </div>
+          <div>
+            <!-- Stacked on a phone, one pill from 640 — same reason as the footer signup: at 320 a
+                 combined pill leaves too little room for the placeholder. -->
+            <form class="at-chk-form" onSubmit="{{ onCheck }}" style="display: flex; flex-direction: column; gap: 10px;">
+              <label for="at-pc" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);">Postcode</label>
+              <!-- The clear control sits inside the field, so the field needs its own positioned
+                   wrapper. Right padding is always reserved so the caret never runs under it. -->
+              <span class="at-chk-fieldwrap" style="position: relative; display: flex;">
+                <input class="at-chk-input" id="at-pc" ref="{{ pcRef }}" name="postcode" type="text" autocomplete="postal-code" placeholder="e.g. DA1 2AB" aria-describedby="at-pc-msg" onInput="{{ onPcInput }}" style="width: 100%; height: 52px; box-sizing: border-box; min-width: 0; border: 1px solid var(--taupe); border-radius: var(--radius-pill); background: var(--white); padding: 0 48px 0 20px; font-family: var(--font-sans); font-size: 16px; color: var(--brown);" />
+                <sc-if value="{{ hasPc }}" hint-placeholder-val="{{ false }}">
+                  <button class="at-chk-clear" type="button" onClick="{{ clearPc }}" aria-label="Clear postcode" style="position: absolute; right: 2px; top: 50%; transform: translateY(-50%); display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; background: transparent; border: none; cursor: pointer;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--brown)" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+                  </button>
+                </sc-if>
+              </span>
+              <button type="submit" class="at-chk-btn" style="height: 48px; width: 100%; border: none; cursor: pointer; border-radius: var(--radius-pill); background: var(--green-forest); color: var(--cream); font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase;">Check</button>
+            </form>
+
+            <!-- Field-level messages, never a result panel: an invalid or empty entry is a
+                 correction to make in place, not an outcome to announce. -->
+            <p id="at-pc-msg" role="status" aria-live="polite" style="margin: 0;">
+              <sc-if value="{{ hasFieldMsg }}" hint-placeholder-val="{{ false }}">
+                <span style="display: inline-flex; align-items: flex-start; gap: 7px; margin-top: 12px; font-family: var(--font-sans); font-size: 14px; line-height: 1.45; color: var(--chilli);">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--chilli)" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" style="flex: 0 0 auto; margin-top: 2px;"><path d="M12 3.5l8.5 16h-17z" /><path d="M12 10v4M12 16.8h.01" /></svg>
+                  <span>{{ fieldMsg }}</span>
+                </span>
+              </sc-if>
+            </p>
+
+            <sc-if value="{{ notLocating }}" hint-placeholder-val="{{ true }}">
+              <button class="at-loc-link" type="button" onClick="{{ useLocation }}" style="display: inline-flex; align-items: center; gap: 7px; min-height: 44px; margin-top: 4px; padding: 0; background: transparent; border: none; cursor: pointer; font-family: var(--font-sans); font-size: 14px; color: var(--brown);">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M12 21s7-6.5 7-11a7 7 0 1 0-14 0c0 4.5 7 11 7 11z" /><circle cx="12" cy="10" r="2.5" /></svg>
+                <span style="border-bottom: 1px solid var(--brass); padding-bottom: 1px;">Use my current location</span>
+              </button>
+            </sc-if>
+            <sc-if value="{{ locating }}" hint-placeholder-val="{{ false }}">
+              <span role="status" aria-live="polite" style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-family: var(--font-sans); font-size: 14px; color: var(--brown);">
+                <span class="at-spin" aria-hidden="true" style="flex: 0 0 auto; width: 14px; height: 14px; border: 2px solid var(--sand-2); border-top-color: var(--brass-ink); border-radius: 50%;"></span>
+                <span>Finding your location&#8230;</span>
+              </span>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- One result region, three outcomes, announced via aria-live. The panel is removed entirely
+       by Change postcode / Check another postcode. -->
+  <div role="region" aria-live="polite" aria-label="Delivery result">
+    <sc-if value="{{ resDeliver }}" hint-placeholder-val="{{ false }}">
+      <section ref="{{ pcResRef }}" style="padding: 14px 0 0;">
+        <div class="at-page-inner" style="max-width: 1280px; margin: 0 auto; padding: 0 22px;">
+          <div class="at-res" style="background: var(--sage); border-radius: 18px; padding: 24px 22px;">
+            <div class="at-res-grid" style="display: grid; gap: 20px;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 13px;">
+                  <span aria-hidden="true" style="flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 50%; background: var(--green-forest);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7" /></svg></span>
+                  <h3 class="at-res-h3" style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.15; color: var(--green-forest); text-wrap: pretty;">Great &#8212; we deliver to {{ pcEcho }}</h3>
+                </div>
+                <p style="margin: 18px 0 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass-ink);">Earliest delivery</p>
+                <p style="margin: 4px 0 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 26px; line-height: 1.15; color: var(--green-forest);">{{ earliest }}</p>
+                <p style="margin: 10px 0 0; max-width: 480px; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; color: var(--brown); text-wrap: pretty;">We take a limited number of orders for each cooking run, so we can give every dish the care it deserves. The delivery date shown reflects our next available cooking run.</p>
+              </div>
+              <!-- Build a Box carries the checked postcode forward so the customer is not asked again. -->
+              <div class="at-res-side" style="border-top: 1px solid var(--sand); padding-top: 20px; display: flex; flex-direction: column; align-items: center; gap: 14px;">
+                <a class="at-primary" href="{{ buildHref }}" style="display: flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; padding: 0 30px; border-radius: var(--radius-pill); background: var(--terracotta); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; text-decoration: none; white-space: nowrap;">Build a Box</a>
+                <button type="button" onClick="{{ changePostcode }}" style="display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0; background: transparent; border: none; cursor: pointer; font-family: var(--font-sans); font-size: 15px; color: var(--green-forest);"><span style="border-bottom: 1px solid var(--brass); padding-bottom: 1px;">Change postcode</span></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{ resNotArea }}" hint-placeholder-val="{{ false }}">
+      <section ref="{{ pcResRef }}" style="padding: 14px 0 0;">
+        <div class="at-page-inner" style="max-width: 1280px; margin: 0 auto; padding: 0 22px;">
+          <div class="at-res" style="background: var(--sand); border-radius: 18px; padding: 24px 22px;">
+            <div class="at-res-grid" style="display: grid; gap: 20px;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 13px;">
+                  <span aria-hidden="true" style="flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 50%; background: var(--blush);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.5 7-11a7 7 0 1 0-14 0c0 4.5 7 11 7 11z" /><circle cx="12" cy="10" r="2.5" /></svg></span>
+                  <h3 class="at-res-h3" style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.15; color: var(--green-forest);">We&#8217;re not in your area yet</h3>
+                </div>
+                <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; color: var(--brown);">We don&#8217;t currently deliver to <strong style="color: var(--green-forest);">{{ pcEcho }}</strong>.</p>
+                <p style="margin: 10px 0 0; max-width: 480px; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; color: var(--brown); text-wrap: pretty;">We&#8217;re gradually expanding our delivery area. You can try another postcode.</p>
+              </div>
+              <!-- No Build a Box here, deliberately: there is nothing to order into. -->
+              <div class="at-res-side" style="border-top: 1px solid var(--sand-2); padding-top: 20px; display: flex; align-items: center;">
+                <button class="at-dark-btn" type="button" onClick="{{ changePostcode }}" style="display: flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; padding: 0 26px; border: none; cursor: pointer; border-radius: var(--radius-pill); background: var(--green-forest); color: var(--cream); font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase;">Check another postcode</button>
+              </div>
+            </div>
+
+            <div style="border-top: 1px solid var(--sand-2); margin-top: 22px; padding-top: 22px; display: grid; gap: 16px;">
+              <div style="display: flex; align-items: flex-start; gap: 13px;">
+                <span aria-hidden="true" style="flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 50%; background: var(--blush);"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 8l9 6 9-6" /></svg></span>
+                <div>
+                  <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest);">Want to know when we reach your area?</p>
+                  <p style="margin: 6px 0 0; max-width: 420px; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; color: var(--brown); text-wrap: pretty;">Leave your email and we&#8217;ll let you know when delivery becomes available.</p>
+                </div>
+              </div>
+              <sc-if value="{{ notifyNotSent }}" hint-placeholder-val="{{ true }}">
+                <div>
+                  <form class="at-chk-form" onSubmit="{{ onNotify }}" style="display: flex; flex-direction: column; gap: 10px;">
+                    <label for="at-notify" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);">Email address</label>
+                    <input class="at-chk-input" id="at-notify" name="email" type="email" required autocomplete="email" placeholder="Your email address" style="height: 52px; box-sizing: border-box; min-width: 0; border: 1px solid var(--taupe); border-radius: var(--radius-pill); background: var(--white); padding: 0 20px; font-family: var(--font-sans); font-size: 16px; color: var(--brown);" />
+                    <button type="submit" class="at-chk-btn" style="height: 48px; width: 100%; border: none; cursor: pointer; border-radius: var(--radius-pill); background: var(--green-forest); color: var(--cream); font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase;">Let me know</button>
+                  </form>
+                  <p style="margin: 12px 0 0; max-width: 420px; font-family: var(--font-sans); font-size: 13px; line-height: 1.5; color: var(--brown);">We&#8217;ll only use your email to tell you when we reach your area. See our <a href="Abby's Table - Privacy Policy.dc.html" style="color: var(--brown); text-decoration: underline; text-underline-offset: 2px;">Privacy Policy</a>.</p>
+                </div>
+              </sc-if>
+              <sc-if value="{{ notifySent }}" hint-placeholder-val="{{ false }}">
+                <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.3; color: var(--green-forest);">Thank you &#8212; we&#8217;ll be in touch when we reach you.</p>
+              </sc-if>
+            </div>
+          </div>
+        </div>
+      </section>
+    </sc-if>
+
+    <!-- A genuine technical-failure state, not a delivery outcome: neutral wording, the entry is
+         preserved, and the only action is to retry. -->
+    <sc-if value="{{ resError }}" hint-placeholder-val="{{ false }}">
+      <section style="padding: 14px 0 0;">
+        <div class="at-page-inner" style="max-width: 1280px; margin: 0 auto; padding: 0 22px;">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px; background: var(--cream-2); border: 1px solid var(--sand); border-radius: 18px; padding: 18px 20px;">
+            <span aria-hidden="true" style="flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; background: var(--sand);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brown)" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9" /><path d="M12 7.5v5.5M12 16.5h.01" /></svg></span>
+            <div style="flex: 1 1 200px; min-width: 0;">
+              <p style="margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.45; color: var(--green-forest);">We couldn&#8217;t check that postcode just now.</p>
+              <p style="margin: 3px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.45; color: var(--brown);">Please try again in a moment.</p>
+            </div>
+            <button class="at-dark-btn at-retry" type="button" onClick="{{ tryAgain }}" style="flex: 1 1 100%; display: flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 26px; border: none; cursor: pointer; border-radius: var(--radius-pill); background: var(--green-forest); color: var(--cream); font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase;">Try again</button>
+          </div>
+        </div>
+      </section>
+    </sc-if>
+  </div>
+
+  <div style="display: flex; flex-direction: column;">
+  <!-- Four facts, stacked on a phone and four across with vertical rules from 640. Icons are
+       decorative and aria-hidden — each fact is stated in words beside it — in the same
+       thin-stroke brass-ink language as the Our standards glyphs. -->
+  <section class="at-hl-sec" style="padding: 30px 0 0;">
+    <div class="at-page-inner" style="max-width: 1280px; margin: 0 auto; padding: 0 22px;">
+      <!-- No inline display here: the column count belongs to the breakpoints, and an inline
+           display would beat every one of those class rules. -->
+      <div class="at-hl">
+        <div class="at-hl-item" style="display: flex; align-items: flex-start; gap: 14px;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M3 7h11v9H3z" /><path d="M14 10.5h3.6l2.9 3v2.5H14z" /><circle cx="7" cy="18" r="1.7" /><circle cx="17.2" cy="18" r="1.7" /></svg>
+          <div>
+            <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest);">Delivered chilled</p>
+            <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">Your meals arrive fresh and ready to heat.</p>
+          </div>
+        </div>
+        <div class="at-hl-item" style="display: flex; align-items: flex-start; gap: 14px;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><rect x="3.5" y="5" width="17" height="15" rx="2" /><path d="M8 3v4M16 3v4M3.5 10h17" /></svg>
+          <div>
+            <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest);">Choose your delivery date</p>
+            <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">Pick any available date from our earliest delivery slot.</p>
+          </div>
+        </div>
+        <div class="at-hl-item" style="display: flex; align-items: flex-start; gap: 14px;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" /><path d="M4 7.5l8 4.5 8-4.5M12 12v9" /></svg>
+          <div>
+            <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest);">Insulated packaging</p>
+            <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">Carefully packed to keep your food at the right temperature.</p>
+          </div>
+        </div>
+        <div class="at-hl-item" style="display: flex; align-items: flex-start; gap: 14px;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M20 4c0 8.5-5.2 13-12 13H5.5C5.5 8.5 10.7 4 17.5 4H20z" /><path d="M5 20.5c1.8-6 5.6-9.4 10.5-11.5" /></svg>
+          <div>
+            <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest);">Store chilled or freeze on arrival</p>
+            <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">Refrigerate your meals when they arrive, or freeze those suitable for freezing for later.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Jump links, not a filter: all four groups stay on the page. Plain anchors plus
+       scroll-margin, so navigation works before any JS runs; the observer only lights the
+       active one. -->
+  <!-- Search + topic grid. This REPLACED a horizontal jump-link row with scroll-spy: eight topics
+       could not fit without side-scrolling, and the row had no room to grow. A wrapping grid takes
+       any number of topics.
+       No eyebrows here — the homepage's section headings carry none, and Private Table's was
+       dropped for the same reason. No icons on the cards: the design system is deliberately
+       near-iconless and eight more glyphs would make the grid noisy.
+       Question counts are MEASURED from the groups, never written in — a literal would drift the
+       moment a question is added. -->
+  <section id="faq-search" style="padding: 34px 0 0;">
+    <div class="at-page-inner" style="max-width: 1280px; margin: 0 auto; padding: 0 22px;">
+      <h2 class="at-faq-h2" style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(30px, 8.6vw, 40px); line-height: 1.08; letter-spacing: -0.01em; color: var(--green-forest);">Search our FAQs</h2>
+      <form class="at-srch-col" onSubmit="{{ onSearch }}" style="margin-top: 14px;">
+        <label for="at-q" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);">Search the FAQs</label>
+        <div class="at-srch" style="display: flex; align-items: center; gap: 10px; height: 52px; background: var(--white); border: 1px solid var(--taupe); border-radius: var(--radius-pill); padding: 0 8px 0 18px;">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" style="flex: 0 0 auto;"><circle cx="10.5" cy="10.5" r="6.5" /><path d="M15.4 15.4L21 21" /></svg>
+          <input class="at-srch-input" id="at-q" ref="{{ qRef }}" type="text" autocomplete="off" placeholder="Search FAQs&#8230;" onInput="{{ onQInput }}" style="flex: 1 1 auto; min-width: 0; height: 100%; border: none; background: transparent; font-family: var(--font-sans); font-size: 16px; color: var(--brown);" />
+          <sc-if value="{{ hasQuery }}" hint-placeholder-val="{{ false }}">
+            <button class="at-srch-clear" type="button" onClick="{{ clearSearch }}" aria-label="Clear search" style="flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; background: transparent; border: none; cursor: pointer;">
+              <span aria-hidden="true" style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: var(--sand); color: var(--brown); font-family: var(--font-sans); font-size: 14px; line-height: 1;">&#215;</span>
+            </button>
+          </sc-if>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- Results sit immediately under the field, so there is never any doubt about where they went.
+       Each result is a question, not a category, and opens in place. -->
+  <sc-if value="{{ searching }}" hint-placeholder-val="{{ false }}">
+    <section class="at-res-sec {{ emptyPadCls }}" ref="{{ resRef }}" style="padding-top: 24px;">
+      <div class="at-page-inner" style="max-width: 1280px; margin: 0 auto; padding: 0 22px;">
+        <p class="at-srch-col" role="status" aria-live="polite" style="margin: 0; min-height: 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass-ink);">{{ resultLine }}</p>
+
+        <sc-if value="{{ hasResults }}" hint-placeholder-val="{{ true }}">
+          <div class="at-srch-col" style="margin-top: 12px;">
+            <sc-for list="{{ results }}" as="r" hint-placeholder-count="3">
+              <details class="at-faq-q">
+                <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);">
+                  <span>{{ r.q }}</span>
+                  <span class="at-faq-chev" aria-hidden="true"></span>
+                </summary>
+                <div class="at-res-ans" ref="{{ r.setAns }}" style="padding-bottom: 4px;"></div>
+              </details>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ tooShort }}" hint-placeholder-val="{{ false }}">
+          <p style="margin: 12px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown);">Keep typing to search.</p>
+        </sc-if>
+
+        <sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}">
+          <div class="at-srch-col" style="margin-top: 12px; background: var(--cream-2); border: 1px solid var(--sand); border-radius: 18px; padding: 24px 22px;">
+            <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.25; color: var(--green-forest); text-wrap: pretty;">{{ emptyLine }}</p>
+            <p style="margin: 8px 0 0; max-width: 460px; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; color: var(--brown); text-wrap: pretty;">Try another search, or browse the FAQ topics.</p>
+            <div class="at-empty-actions" style="display: flex; flex-direction: column; gap: 12px; margin-top: 20px;">
+              <button class="at-dark-btn" type="button" onClick="{{ clearSearch }}" style="display: flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 28px; border: none; cursor: pointer; border-radius: var(--radius-pill); background: var(--green-forest); color: var(--cream); font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase;">Browse all topics</button>
+              <a class="at-help-cta" href="#contact" style="display: flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 28px; border-radius: var(--radius-pill); border: 1px solid var(--green-forest); color: var(--green-forest); font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; text-decoration: none;">Contact us</a>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </section>
+  </sc-if>
+
+  </div>
+
+  <!-- Hidden with CSS rather than unmounted: the search index reads the questions from the live
+       DOM, so removing them would take the index with it. -->
+  <section id="faq-topics" class="at-topics {{ browseCls }}" style="padding: 28px 0 0;">
+    <div class="at-page-inner" style="max-width: 1280px; margin: 0 auto; padding: 0 22px;">
+      <h2 class="at-faq-h2" style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(30px, 8.6vw, 40px); line-height: 1.08; letter-spacing: -0.01em; color: var(--green-forest);">Choose a topic</h2>
+      <p style="margin: 10px 0 0; max-width: 560px; font-family: var(--font-sans); font-size: 18px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">Jump to a section below to find the information you need.</p>
+      <div class="at-topic-grid" style="display: grid; gap: 12px; margin-top: 20px;">
+        <a class="at-topic" href="#faq-delivery" style="display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 64px; background: var(--cream-2); border: 1px solid var(--sand); border-radius: 14px; padding: 12px 18px; text-decoration: none;">
+          <span>
+            <span style="display: block; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 19px; line-height: 1.2; color: var(--green-forest);">Delivery</span>
+            <span style="display: block; margin-top: 2px; font-family: var(--font-sans); font-size: 14px; line-height: 1.3; color: var(--brown);">{{ nDelivery }}</span>
+          </span>
+          <span aria-hidden="true" style="flex: 0 0 auto; width: 8px; height: 8px; border-top: 1.8px solid var(--brass-ink); border-right: 1.8px solid var(--brass-ink); transform: rotate(45deg);"></span>
+        </a>
+        <a class="at-topic" href="#faq-food" style="display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 64px; background: var(--cream-2); border: 1px solid var(--sand); border-radius: 14px; padding: 12px 18px; text-decoration: none;">
+          <span>
+            <span style="display: block; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 19px; line-height: 1.2; color: var(--green-forest);">Your food</span>
+            <span style="display: block; margin-top: 2px; font-family: var(--font-sans); font-size: 14px; line-height: 1.3; color: var(--brown);">{{ nFood }}</span>
+          </span>
+          <span aria-hidden="true" style="flex: 0 0 auto; width: 8px; height: 8px; border-top: 1.8px solid var(--brass-ink); border-right: 1.8px solid var(--brass-ink); transform: rotate(45deg);"></span>
+        </a>
+        <a class="at-topic" href="#faq-orders" style="display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 64px; background: var(--cream-2); border: 1px solid var(--sand); border-radius: 14px; padding: 12px 18px; text-decoration: none;">
+          <span>
+            <span style="display: block; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 19px; line-height: 1.2; color: var(--green-forest);">Orders &amp; changes</span>
+            <span style="display: block; margin-top: 2px; font-family: var(--font-sans); font-size: 14px; line-height: 1.3; color: var(--brown);">{{ nOrders }}</span>
+          </span>
+          <span aria-hidden="true" style="flex: 0 0 auto; width: 8px; height: 8px; border-top: 1.8px solid var(--brass-ink); border-right: 1.8px solid var(--brass-ink); transform: rotate(45deg);"></span>
+        </a>
+        <a class="at-topic" href="#faq-storage" style="display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 64px; background: var(--cream-2); border: 1px solid var(--sand); border-radius: 14px; padding: 12px 18px; text-decoration: none;">
+          <span>
+            <span style="display: block; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 19px; line-height: 1.2; color: var(--green-forest);">Storage &amp; reheating</span>
+            <span style="display: block; margin-top: 2px; font-family: var(--font-sans); font-size: 14px; line-height: 1.3; color: var(--brown);">{{ nStorage }}</span>
+          </span>
+          <span aria-hidden="true" style="flex: 0 0 auto; width: 8px; height: 8px; border-top: 1.8px solid var(--brass-ink); border-right: 1.8px solid var(--brass-ink); transform: rotate(45deg);"></span>
+        </a>
+        <a class="at-topic" href="#faq-payment" style="display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 64px; background: var(--cream-2); border: 1px solid var(--sand); border-radius: 14px; padding: 12px 18px; text-decoration: none;">
+          <span>
+            <span style="display: block; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 19px; line-height: 1.2; color: var(--green-forest);">Payment</span>
+            <span style="display: block; margin-top: 2px; font-family: var(--font-sans); font-size: 14px; line-height: 1.3; color: var(--brown);">{{ nPayment }}</span>
+          </span>
+          <span aria-hidden="true" style="flex: 0 0 auto; width: 8px; height: 8px; border-top: 1.8px solid var(--brass-ink); border-right: 1.8px solid var(--brass-ink); transform: rotate(45deg);"></span>
+        </a>
+        <a class="at-topic" href="#faq-gifting" style="display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 64px; background: var(--cream-2); border: 1px solid var(--sand); border-radius: 14px; padding: 12px 18px; text-decoration: none;">
+          <span>
+            <span style="display: block; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 19px; line-height: 1.2; color: var(--green-forest);">Gifting</span>
+            <span style="display: block; margin-top: 2px; font-family: var(--font-sans); font-size: 14px; line-height: 1.3; color: var(--brown);">{{ nGifting }}</span>
+          </span>
+          <span aria-hidden="true" style="flex: 0 0 auto; width: 8px; height: 8px; border-top: 1.8px solid var(--brass-ink); border-right: 1.8px solid var(--brass-ink); transform: rotate(45deg);"></span>
+        </a>
+        <a class="at-topic" href="#faq-private" style="display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 64px; background: var(--cream-2); border: 1px solid var(--sand); border-radius: 14px; padding: 12px 18px; text-decoration: none;">
+          <span>
+            <span style="display: block; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 19px; line-height: 1.2; color: var(--green-forest);">Private Table</span>
+            <span style="display: block; margin-top: 2px; font-family: var(--font-sans); font-size: 14px; line-height: 1.3; color: var(--brown);">{{ nPrivate }}</span>
+          </span>
+          <span aria-hidden="true" style="flex: 0 0 auto; width: 8px; height: 8px; border-top: 1.8px solid var(--brass-ink); border-right: 1.8px solid var(--brass-ink); transform: rotate(45deg);"></span>
+        </a>
+        <a class="at-topic" href="#faq-about" style="display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 64px; background: var(--cream-2); border: 1px solid var(--sand); border-radius: 14px; padding: 12px 18px; text-decoration: none;">
+          <span>
+            <span style="display: block; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 19px; line-height: 1.2; color: var(--green-forest);">About Abby&#8217;s Table</span>
+            <span style="display: block; margin-top: 2px; font-family: var(--font-sans); font-size: 14px; line-height: 1.3; color: var(--brown);">{{ nAbout }}</span>
+          </span>
+          <span aria-hidden="true" style="flex: 0 0 auto; width: 8px; height: 8px; border-top: 1.8px solid var(--brass-ink); border-right: 1.8px solid var(--brass-ink); transform: rotate(45deg);"></span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="at-faq-groups {{ browseCls }}" style="padding: 6px 0 0;">
+    <div class="at-page-inner" style="max-width: 1280px; margin: 0 auto; padding: 0 22px;">
+      <div id="faq-delivery" ref="{{ grpDelivery }}" style="padding: 30px 0 0; scroll-margin-top: 96px;">
+      <div class="at-faq-head">
+        <h2 class="at-faq-h2" style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(30px, 8.6vw, 40px); line-height: 1.08; letter-spacing: -0.01em; color: var(--green-forest);">Delivery</h2>
+        <button class="at-expand" type="button" onClick="{{ expDelivery }}" style="flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0; background: transparent; border: none; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--brass-ink);"><span>{{ expDeliveryLabel }}</span><span aria-hidden="true" style="font-size: 15px; line-height: 1;">{{ expDeliverySign }}</span></button>
+      </div>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>Where do you deliver?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We deliver across supported mainland UK postcodes. Enter your postcode above to check whether we currently deliver to your area and see your earliest available delivery date.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>When will my order arrive?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Available delivery dates are shown after you enter your postcode and again when you order. We take a limited number of orders for each cooking run, so we can give every dish the care it deserves. The delivery date shown reflects our next available cooking run.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>How will my food arrive?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Your meals are freshly prepared, chilled and packed in insulated packaging designed to keep them at the right temperature during delivery.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>Do I need to be home for my delivery?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Not necessarily. Where the delivery service allows it, you&#8217;ll be able to leave suitable delivery instructions. We recommend bringing your meals inside and refrigerating them as soon as possible after delivery.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>Can I choose my delivery date?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Yes. Once we know your delivery postcode, you&#8217;ll be able to choose from the available delivery dates for your area.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>What happens if my delivery is delayed?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Occasionally circumstances outside our control can affect a delivery. If we become aware of a significant delay, we&#8217;ll keep you informed using the contact details on your order. If you have any concerns about your food when it arrives, please contact us before eating it.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>How much is delivery?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Delivery is <strong style="color: var(--green-forest);">&#163;5.95 per order</strong>. The delivery charge will be shown clearly before you complete your order.</p>
+        </details>
+        <a class="at-faq-top" href="#faq-topics" style="display: flex; width: fit-content; align-items: center; gap: 9px; min-height: 44px; margin: 8px 0 0 auto; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass-ink); text-decoration: none;"><span>Back to FAQ topics</span><span aria-hidden="true" style="font-size: 15px; line-height: 1;">&#8593;</span></a>
+      </div>
+
+      <div id="faq-food" ref="{{ grpFood }}" style="padding: 34px 0 0; scroll-margin-top: 96px;">
+      <div class="at-faq-head">
+        <h2 class="at-faq-h2" style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(30px, 8.6vw, 40px); line-height: 1.08; letter-spacing: -0.01em; color: var(--green-forest);">Your food</h2>
+        <button class="at-expand" type="button" onClick="{{ expFood }}" style="flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0; background: transparent; border: none; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--brass-ink);"><span>{{ expFoodLabel }}</span><span aria-hidden="true" style="font-size: 15px; line-height: 1;">{{ expFoodSign }}</span></button>
+      </div>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>How long will my dishes keep?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Most dishes are designed to be enjoyed within 5 days of delivery. Always follow the storage and use-by information supplied with your individual dish.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>Can I freeze my meals?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Some dishes can be frozen and some are best enjoyed fresh. Each dish will clearly tell you whether it is suitable for freezing. Freeze suitable dishes on arrival and follow the storage guidance provided.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>Do the meals arrive ready to eat?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Your meals arrive fully prepared and chilled, ready for you to heat and enjoy at home. Heating instructions are provided for each dish.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>Where can I find ingredients and allergen information?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Ingredients and allergen information is available on each individual dish page before you order and is also provided with your food when it arrives.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>Do you provide nutritional information?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Yes. Full nutritional information is provided for our dishes so you can make informed choices about what you eat. You&#8217;ll find it on the individual dish page.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>Are your meals freshly cooked or frozen?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Our meals are freshly cooked in small batches and delivered chilled. They are not sent to you frozen. Dishes that are suitable for home freezing will be clearly marked.</p>
+        </details>
+        <a class="at-faq-top" href="#faq-topics" style="display: flex; width: fit-content; align-items: center; gap: 9px; min-height: 44px; margin: 8px 0 0 auto; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass-ink); text-decoration: none;"><span>Back to FAQ topics</span><span aria-hidden="true" style="font-size: 15px; line-height: 1;">&#8593;</span></a>
+      </div>
+
+      <div id="faq-orders" ref="{{ grpOrders }}" style="padding: 34px 0 0; scroll-margin-top: 96px;">
+      <div class="at-faq-head">
+        <h2 class="at-faq-h2" style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(30px, 8.6vw, 40px); line-height: 1.08; letter-spacing: -0.01em; color: var(--green-forest);">Orders &amp; changes</h2>
+        <button class="at-expand" type="button" onClick="{{ expOrders }}" style="flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0; background: transparent; border: none; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--brass-ink);"><span>{{ expOrdersLabel }}</span><span aria-hidden="true" style="font-size: 15px; line-height: 1;">{{ expOrdersSign }}</span></button>
+      </div>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>Is there a minimum order?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Yes. Abby&#8217;s Table orders start from a minimum of <strong style="color: var(--green-forest);">6 dishes</strong>. Six-dish boxes currently start from <strong style="color: var(--green-forest);">{{ startPrice }}</strong>, with the final price depending on the dishes and portions you choose.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>Can I change my order after placing it?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Please contact us as soon as possible if you need to make a change. Because we take a limited number of orders for each cooking run, we may not be able to alter an order once preparation has begun.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>Can I change my delivery date after ordering?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Contact us as soon as possible and we&#8217;ll let you know whether your delivery date can still be changed. Once your order has entered preparation or dispatch, changes may no longer be possible.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>What if there is a problem with one of my dishes?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Please contact us with your order details and tell us what went wrong. If relevant, we may ask for a photograph so we can understand the issue and resolve it appropriately.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>Can I order for someone else?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Yes. You can order an Abby&#8217;s Table box for someone else by entering their delivery details when you place the order.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>Can I order as a one-off, or do I need a subscription?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Abby&#8217;s Table will launch with <strong style="color: var(--green-forest);">one-off ordering only</strong>. No subscription is required. A subscription option may be introduced later, but it is not part of the launch journey.</p>
+        </details>
+        <a class="at-faq-top" href="#faq-topics" style="display: flex; width: fit-content; align-items: center; gap: 9px; min-height: 44px; margin: 8px 0 0 auto; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass-ink); text-decoration: none;"><span>Back to FAQ topics</span><span aria-hidden="true" style="font-size: 15px; line-height: 1;">&#8593;</span></a>
+      </div>
+
+      <div id="faq-storage" ref="{{ grpStorage }}" style="padding: 34px 0 0; scroll-margin-top: 96px;">
+      <div class="at-faq-head">
+        <h2 class="at-faq-h2" style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(30px, 8.6vw, 40px); line-height: 1.08; letter-spacing: -0.01em; color: var(--green-forest);">Storage &amp; reheating</h2>
+        <button class="at-expand" type="button" onClick="{{ expStorage }}" style="flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0; background: transparent; border: none; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--brass-ink);"><span>{{ expStorageLabel }}</span><span aria-hidden="true" style="font-size: 15px; line-height: 1;">{{ expStorageSign }}</span></button>
+      </div>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>How should I store my meals when they arrive?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 12px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Refrigerate your meals as soon as they arrive.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If a dish is suitable for freezing and you want to keep it for later, freeze it on arrival and follow the storage guidance provided with that dish.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>How long will my meals keep in the fridge?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 12px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Most dishes are designed to be enjoyed within <strong style="font-weight: 600; color: var(--green-forest);">5 days of delivery</strong>.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Always follow the individual use-by and storage information supplied with your dish, as some meals may have different guidance.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>Can I freeze my meals?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 12px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Some dishes can be frozen and some are best enjoyed fresh.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Each dish will clearly state whether it is suitable for freezing. Freeze suitable dishes on arrival and follow the storage instructions provided.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>How should I reheat my meals?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 12px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Heating instructions are provided for each individual dish.</p>
+          <p style="margin: 0 0 12px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Follow the method and timings shown with your meal, as reheating instructions can vary depending on the dish and portion.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Heat food thoroughly before eating.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>Are reheating instructions provided with every dish?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 12px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Yes. Each dish comes with its own reheating guidance so you know the recommended way to heat and enjoy it.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">The same information is also available with the dish details where applicable.</p>
+        </details>
+      <a class="at-faq-top" href="#faq-topics" style="display: flex; width: fit-content; align-items: center; gap: 9px; min-height: 44px; margin: 8px 0 0 auto; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--brass-ink); text-decoration: none;"><span style="border-bottom: 1px solid var(--brass); padding-bottom: 1px;">Back to FAQ topics</span><span aria-hidden="true" style="font-size: 14px; line-height: 1;">&#8593;</span></a>
+      </div>
+
+      <!-- Private Table. Ten questions, copy verbatim from the working copy. £1,500 is a
+           configured value, not literal copy. -->
+      <div id="faq-payment" ref="{{ grpPayment }}" style="padding: 34px 0 0; scroll-margin-top: 96px;">
+      <div class="at-faq-head">
+        <h2 class="at-faq-h2" style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(30px, 8.6vw, 40px); line-height: 1.08; letter-spacing: -0.01em; color: var(--green-forest);">Payment</h2>
+        <button class="at-expand" type="button" onClick="{{ expPayment }}" style="flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0; background: transparent; border: none; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--brass-ink);"><span>{{ expPaymentLabel }}</span><span aria-hidden="true" style="font-size: 15px; line-height: 1;">{{ expPaymentSign }}</span></button>
+      </div>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>What payment methods do you accept?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 12px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We accept secure online payment at checkout using the payment methods made available there, including major debit and credit cards.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Any additional payment options enabled at launch will be shown clearly during checkout.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>When will I be charged for my order?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 12px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Payment is taken when you place and confirm your order.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Because we take a limited number of orders for each cooking run, your order is only secured once payment has been successfully completed.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>Is delivery included in the price?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 12px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Delivery is charged separately at <strong style="font-weight: 600; color: var(--green-forest);">&#163;5.95 per order</strong>.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">The delivery charge will be shown clearly before you complete your order.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>What happens if my payment is declined?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 12px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If your payment is not successful, your order will not be confirmed.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">You can check your payment details and try again, or use another available payment method. If you continue to have difficulty, please contact us for help.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>How are refunds processed?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 12px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Where a refund is agreed, it will be returned to the original payment method used for the order.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">The time it takes to appear in your account can vary depending on your bank or payment provider.</p>
+        </details>
+      <a class="at-faq-top" href="#faq-topics" style="display: flex; width: fit-content; align-items: center; gap: 9px; min-height: 44px; margin: 8px 0 0 auto; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--brass-ink); text-decoration: none;"><span style="border-bottom: 1px solid var(--brass); padding-bottom: 1px;">Back to FAQ topics</span><span aria-hidden="true" style="font-size: 14px; line-height: 1;">&#8593;</span></a>
+      </div>
+
+      <div id="faq-gifting" ref="{{ grpGifting }}" style="padding: 34px 0 0; scroll-margin-top: 96px;">
+      <div class="at-faq-head">
+        <h2 class="at-faq-h2" style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(30px, 8.6vw, 40px); line-height: 1.08; letter-spacing: -0.01em; color: var(--green-forest);">Gifting</h2>
+        <button class="at-expand" type="button" onClick="{{ expGifting }}" style="flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0; background: transparent; border: none; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--brass-ink);"><span>{{ expGiftingLabel }}</span><span aria-hidden="true" style="font-size: 15px; line-height: 1;">{{ expGiftingSign }}</span></button>
+      </div>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>Can I send an Abby&#8217;s Table order as a gift?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 12px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Yes. You can send an Abby&#8217;s Table box as a gift by placing the order using the recipient&#8217;s delivery details.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">You can choose the dishes and delivery date as part of the order.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>Can I send the gift directly to the recipient?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 12px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Yes. Enter the recipient&#8217;s delivery address at checkout and we&#8217;ll send the order directly to them.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Please make sure the delivery details are correct and that the recipient will be able to store the meals appropriately when they arrive.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>Can I include a gift message?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 12px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Yes. Where the gifting option is selected, you can add a personal message for the recipient during the order process.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">The message will be included with the gift without showing your payment details.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>Can the recipient choose their own dishes?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 12px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If you would prefer the recipient to choose for themselves, use the gifting option designed for recipient choice rather than selecting the dishes on their behalf.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">The exact gifting journey will be shown clearly when you order.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>Do you offer gift cards?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Gift cards are intended to be available through the Abby&#8217;s Table gifting service so the recipient can choose what they would like to order.</p>
+        </details>
+      <a class="at-faq-top" href="#faq-topics" style="display: flex; width: fit-content; align-items: center; gap: 9px; min-height: 44px; margin: 8px 0 0 auto; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--brass-ink); text-decoration: none;"><span style="border-bottom: 1px solid var(--brass); padding-bottom: 1px;">Back to FAQ topics</span><span aria-hidden="true" style="font-size: 14px; line-height: 1;">&#8593;</span></a>
+      </div>
+
+      <div id="faq-private" ref="{{ grpPrivate }}" style="padding: 34px 0 0; scroll-margin-top: 96px;">
+      <div class="at-faq-head">
+        <h2 class="at-faq-h2" style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(30px, 8.6vw, 40px); line-height: 1.08; letter-spacing: -0.01em; color: var(--green-forest);">Private Table</h2>
+        <button class="at-expand" type="button" onClick="{{ expPrivate }}" style="flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0; background: transparent; border: none; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--brass-ink);"><span>{{ expPrivateLabel }}</span><span aria-hidden="true" style="font-size: 15px; line-height: 1;">{{ expPrivateSign }}</span></button>
+      </div>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>What makes Abby&#8217;s Private Table different from a standard recipe-planning or meal-planning service?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Abby&#8217;s Private Table is not a recipe pack, meal-plan template or adapted version of a standard menu.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Every engagement begins with the individual. Your food preferences, lifestyle, goals, dietary requirements and any relevant professional guidance are considered before your menu is developed.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">The service is <strong style="font-weight: 600; color: var(--green-forest);">guided by a UK-certified health coach, with oversight from a registered dietitian and, where appropriate, in collaboration with your clinical team</strong>.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">The result is a private, highly personalised Nigerian fusion food service created specifically around you.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>How bespoke is the service?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Completely bespoke.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Private Table does not begin with a fixed menu that is then adjusted. Your recipes and menus are developed specifically for your requirements, while preserving the flavours, ingredients and style of food you genuinely want to eat.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">The scope can include your preferences, dislikes, dietary restrictions, lifestyle, health or recovery considerations, performance goals, household requirements and any relevant guidance from your professional team.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">No two Private Table engagements need to look the same.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>Who is involved in creating my Private Table service?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Private Table brings together food, nutrition and &#8212; where relevant &#8212; clinical guidance.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">The service is:</p>
+          <ul style="margin: 0 0 16px; padding-left: 20px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown);">
+            <li style="margin: 0 0 6px;"><strong style="font-weight: 600; color: var(--green-forest);">Guided by a UK-certified health coach</strong></li>
+            <li style="margin: 0 0 6px;"><strong style="font-weight: 600; color: var(--green-forest);">Overseen by a registered dietitian</strong></li>
+            <li style="margin: 0 0 6px;"><strong style="font-weight: 600; color: var(--green-forest);">Able to work in collaboration with your clinical team, where appropriate and with your permission</strong></li>
+          </ul>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">This structure allows the food itself to remain personal, enjoyable and rooted in the flavours you love, while relevant professional guidance can be reflected in the service.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Private Table is designed to complement professional healthcare, not replace diagnosis, treatment or medical advice.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>Can you work directly with my doctor, dietitian or clinical team?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Yes, where appropriate and with your permission.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If your requirements are connected to medical treatment, recovery, a diagnosed condition or another area where your clinical team has provided guidance, Private Table can work from that information when developing your menu.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">The purpose is not to reinterpret clinical advice, but to translate relevant guidance into food that is practical, personal and enjoyable for you.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Any collaboration is agreed as part of the scope of your service.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>Is Private Table confidential?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Yes. Private Table is confidential by nature.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We understand that clients may be sharing personal information about their health, lifestyle, family circumstances or professional life in order for us to create an appropriate service.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Information is handled discreetly and only used as necessary to deliver the agreed Private Table service.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Where additional confidentiality is required, <strong style="font-weight: 600; color: var(--green-forest);">we can sign a non-disclosure agreement (NDA)</strong> before detailed information is shared.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>What is the difference between the worldwide and UK-wide Private Table services?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;"><strong style="font-weight: 600; color: var(--green-forest);">Worldwide</strong> clients can commission a completely bespoke recipe and menu-development service, created around their individual requirements.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;"><strong style="font-weight: 600; color: var(--green-forest);">UK-wide</strong> clients can also choose to have those bespoke recipes prepared as meals by Abby&#8217;s Table, subject to the agreed service scope.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">This means Private Table can support an international client who wants a highly personalised menu to prepare themselves or with their own cook or chef, while UK clients can access the additional convenience of meal preparation.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Prepared-meal delivery is currently available within the UK only.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>Can Private Table accommodate allergies, intolerances and complex dietary requirements?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Potentially, yes &#8212; but suitability is assessed individually.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Allergies, intolerances, dietary restrictions and other requirements are discussed during the consultation so we can understand the level of complexity and determine whether we can accommodate them safely and appropriately.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Where relevant, guidance from your registered dietitian or clinical team can also be incorporated into the agreed service.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If we do not believe a requirement can be accommodated to the appropriate standard, we will tell you before proceeding.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>What does a Private Table engagement actually include?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">The service is defined around your individual brief rather than a fixed package.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Depending on what you require, it may include:</p>
+          <ul style="margin: 0 0 16px; padding-left: 20px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown);">
+            <li style="margin: 0 0 6px;">an in-depth consultation</li>
+            <li style="margin: 0 0 6px;">bespoke Nigerian fusion recipe development</li>
+            <li style="margin: 0 0 6px;">personalised menu development</li>
+            <li style="margin: 0 0 6px;">consideration of dietary, lifestyle, health, recovery or performance requirements</li>
+            <li style="margin: 0 0 6px;">registered dietitian oversight</li>
+            <li style="margin: 0 0 6px;">collaboration with your clinical team where appropriate</li>
+            <li style="margin: 0 0 6px;">nutritional information where relevant to the agreed scope</li>
+            <li style="margin: 0 0 6px;">UK meal preparation where selected</li>
+            <li style="margin: 0 0 6px;">an agreed delivery or implementation plan</li>
+          </ul>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Your proposal will set out exactly what is included before the engagement begins.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>Why does Private Table start from {{ privatePrice }}?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Private Table starts from <strong style="font-weight: 600; color: var(--green-forest);">{{ privatePrice }}</strong> because it is an individually commissioned service rather than a standardised meal-planning product.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">The fee reflects the depth of consultation, bespoke recipe and menu development, professional oversight and the level of individual consideration required to create a service around one client&#8217;s needs.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Where the brief requires registered dietitian oversight, collaboration with a clinical team, additional development, multiple household members or UK meal preparation, the final scope and fee will reflect that work.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">You will receive a clear proposal before proceeding, so the service and price are agreed in advance.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>What happens after I enquire?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Every Private Table engagement begins privately and individually.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We first review your enquiry and arrange a consultation to understand what you are looking for, what matters to you and whether Private Table is the right fit.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If we proceed, we define the scope of the engagement, including any professional collaboration required, and provide a clear proposal.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">From there, your bespoke recipes and menu are developed. For UK clients who choose meal preparation, the preparation and delivery plan is then agreed.</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">A typical journey is:</p>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.7; color: var(--green-forest); text-wrap: pretty;">Private enquiry <span aria-hidden="true" style="color: var(--brass-ink);">&#8594;</span> Consultation <span aria-hidden="true" style="color: var(--brass-ink);">&#8594;</span> Bespoke scope &amp; proposal <span aria-hidden="true" style="color: var(--brass-ink);">&#8594;</span> Menu development <span aria-hidden="true" style="color: var(--brass-ink);">&#8594;</span> Professional oversight/collaboration where required <span aria-hidden="true" style="color: var(--brass-ink);">&#8594;</span> Meal preparation where selected <span aria-hidden="true" style="color: var(--brass-ink);">&#8594;</span> Delivery or implementation</p>
+        </details>
+        <a class="at-faq-top" href="#faq-topics" style="display: flex; width: fit-content; align-items: center; gap: 9px; min-height: 44px; margin: 8px 0 0 auto; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass-ink); text-decoration: none;"><span>Back to FAQ topics</span><span aria-hidden="true" style="font-size: 15px; line-height: 1;">&#8593;</span></a>
+      </div>
+
+      <div id="faq-about" ref="{{ grpAbout }}" style="padding: 34px 0 0; scroll-margin-top: 96px;">
+      <div class="at-faq-head">
+        <h2 class="at-faq-h2" style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(30px, 8.6vw, 40px); line-height: 1.08; letter-spacing: -0.01em; color: var(--green-forest);">About Abby&#8217;s Table</h2>
+        <button class="at-expand" type="button" onClick="{{ expAbout }}" style="flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0; background: transparent; border: none; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--brass-ink);"><span>{{ expAboutLabel }}</span><span aria-hidden="true" style="font-size: 15px; line-height: 1;">{{ expAboutSign }}</span></button>
+      </div>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>What makes Abby&#8217;s Table different?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Abby&#8217;s Table is Nigerian fusion food rooted in traditional flavours, with nutrition considered alongside taste. We cook from scratch using carefully chosen ingredients, without commercial seasoning blends or unnecessary shortcuts, and provide full nutritional information for our dishes.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>Do you use Maggi or commercial seasoning blends?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">No. We don&#8217;t use Maggi, bouillon cubes or commercial seasoning blends. We build flavour from real ingredients, herbs, spices, aromatics and house-made stocks.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>Do you cater for specific health or dietary needs?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Our main menu provides clear ingredient, allergen and nutritional information to help you choose dishes that suit you. For more individual requirements, <a href="Abby's Table - Private Table v2.dc.html" style="color: var(--brass-ink);">Abby&#8217;s Private Table</a> offers bespoke Nigerian fusion menus created around personal health, recovery or performance needs, with <span style="white-space: nowrap;">UK-wide</span> meal preparation available as part of the service.</p>
+        </details>
+        <details class="at-faq-q">
+          <summary style="display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 13px 0; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest);"><span>I still have a question. How can I contact you?</span><span class="at-faq-chev" aria-hidden="true"></span></summary>
+          <p style="margin: 0 0 16px; max-width: 760px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If you can&#8217;t find the answer you need here, visit our Contact page and send us a message. We&#8217;ll be happy to help.</p>
+        </details>
+        <a class="at-faq-top" href="#faq-topics" style="display: flex; width: fit-content; align-items: center; gap: 9px; min-height: 44px; margin: 8px 0 0 auto; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass-ink); text-decoration: none;"><span>Back to FAQ topics</span><span aria-hidden="true" style="font-size: 15px; line-height: 1;">&#8593;</span></a>
+      </div>
+    </div>
+  </section>
+
+  <section class="at-help-sec {{ emptyCls }}" style="padding: 64px 0 48px;">
+    <div class="at-page-inner" style="max-width: 1280px; margin: 0 auto; padding: 0 22px;">
+      <div class="at-help" style="display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center; background: var(--cream-2); border: 1px solid var(--sand); border-radius: 18px; padding: 26px 22px;">
+        <span aria-hidden="true" style="flex: 0 0 auto;"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3h-6l-5 4v-4H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z" /></svg></span>
+        <div style="flex: 1 1 auto;">
+          <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest);">Still need help?</p>
+          <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">If you can&#8217;t find what you&#8217;re looking for, we&#8217;re here to help.</p>
+        </div>
+        <a class="at-help-cta" href="#contact" style="flex: 0 0 auto; display: flex; align-items: center; justify-content: center; min-height: 52px; padding: 0 34px; border-radius: var(--radius-pill); border: 1px solid var(--green-forest); color: var(--green-forest); font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; text-decoration: none;">Contact us</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Footer. Becomes the canonical shared footer on approval.
+     Dropped from the old version: "Journal" and "Discovery Box" (no such pages), and the 1440
+     shell (this is on the 1280 grid like every other band). Added: legal links, and a consent
+     line on the signup, which previously collected an email with no lawful basis stated.
+     TWO DESTINATIONS DO NOT EXIST YET — Privacy Policy and Terms. They stay on #contact rather
+     than pointing at files that would 404. Delivery & FAQs, Contact us and Allergens are wired. -->
+<footer id="contact" ref="{{ footRef }}" style="background: var(--green-deep);">
+  <div aria-hidden="true" style="height: 2px; background: var(--brass);"></div>
+  <div class="at-foot-inner" style="max-width: 1280px; margin: 0 auto; padding: 40px 22px 0;">
+
+    <div class="at-foot-grid" style="display: grid; gap: 36px;">
+      <div class="at-foot-news">
+        <p style="margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">Join the table</p>
+        <p style="margin: 12px 0 18px; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; color: var(--blush);">Kitchen notes and offers from Abby, monthly.</p>
+
+        <sc-if value="{{ subscribed }}" hint-placeholder-val="{{ false }}">
+          <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.3; color: var(--blush);">Thank you for joining the table.</p>
+        </sc-if>
+
+        <sc-if value="{{ notSubscribed }}" hint-placeholder-val="{{ true }}">
+          <!-- Stacked on a phone, one pill from 640. The input is 52px for comfortable typing and
+               the button 48px; the field is not a CTA, so it is not on the ladder. -->
+          <form class="at-foot-form" onSubmit="{{ onJoin }}" style="display: flex; flex-direction: column; gap: 10px;">
+            <label for="at-foot-email" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);">Email address</label>
+            <input class="at-foot-input" id="at-foot-email" name="email" type="email" required autocomplete="email" placeholder="Enter your email address" style="height: 52px; box-sizing: border-box; min-width: 0; border: 1px solid var(--green-mid); border-radius: var(--radius-pill); background: transparent; padding: 0 20px; font-family: var(--font-sans); font-size: 16px; color: var(--blush);" />
+            <button type="submit" class="at-foot-join" style="height: 48px; width: 100%; border: none; cursor: pointer; border-radius: var(--radius-pill); background: var(--brass); color: var(--green-deep); font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase;">Join</button>
+          </form>
+          <!-- 13px, not 14: the intro above is 16px and our floor forbids two body sizes within
+               2px of each other. -->
+          <p class="at-foot-consent" style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 13px; line-height: 1.5; color: var(--sand-2);">We use your email for kitchen notes and offers only. Unsubscribe any time. See our <a href="Abby's Table - Privacy Policy.dc.html" class="at-foot-link" style="color: var(--sand-2); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-skip-ink: none;">Privacy Policy</a>.</p>
+        </sc-if>
+      </div>
+
+      <div class="at-foot-cols" style="display: grid; border-bottom: 1px solid var(--green-mid);">
+        <div class="at-foot-col {{ shopCls }}" style="border-top: 1px solid var(--green-mid);">
+          <button class="at-foot-head" type="button" onClick="{{ toggleShop }}" aria-expanded="{{ shopExp }}" aria-controls="at-foot-shop" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 0; background: transparent; border: none; text-align: left; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">
+            <span>Shop</span>
+            <svg class="at-foot-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          <div class="at-foot-links" id="at-foot-shop" style="padding-bottom: 8px;">
+            <a class="at-foot-link" href="Abby's Table - Menu Landing v3.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Menu</a>
+            <a class="at-foot-link" href="Abby's Table - Gifting v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Gifting</a>
+            <a class="at-foot-link" href="Abby's Table - Private Table v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Private Table</a>
+          </div>
+        </div>
+
+        <div class="at-foot-col {{ learnCls }}" style="border-top: 1px solid var(--green-mid);">
+          <button class="at-foot-head" type="button" onClick="{{ toggleLearn }}" aria-expanded="{{ learnExp }}" aria-controls="at-foot-learn" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 0; background: transparent; border: none; text-align: left; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">
+            <span>Learn</span>
+            <svg class="at-foot-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          <div class="at-foot-links" id="at-foot-learn" style="padding-bottom: 8px;">
+            <a class="at-foot-link" href="Abby's Table - Abby's Story v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Abby&#8217;s Story</a>
+            <a class="at-foot-link" href="Abby's Table - How It Works v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">How it works</a>
+            <a class="at-foot-link" href="Abby's Table - Standards v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Our standards</a>
+          </div>
+        </div>
+
+        <div class="at-foot-col {{ infoCls }}" style="border-top: 1px solid var(--green-mid);">
+          <button class="at-foot-head" type="button" onClick="{{ toggleInfo }}" aria-expanded="{{ infoExp }}" aria-controls="at-foot-info" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 0; background: transparent; border: none; text-align: left; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">
+            <span>Information</span>
+            <svg class="at-foot-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          <div class="at-foot-links" id="at-foot-info" style="padding-bottom: 8px;">
+            <a class="at-foot-link" href="Abby's Table - Delivery and FAQs.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Delivery &amp; FAQs</a>
+            <a class="at-foot-link" href="Abby's Table - Allergens.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Allergens</a>
+            <a class="at-foot-link" href="Abby's Table - Contact Us.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Contact us</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Desktop-only. On mobile the accordion group's own bottom border closes the block, so a
+         second rule 32px below it read as a stray line. -->
+    <div class="at-foot-rule" aria-hidden="true" style="display: none; height: 1px; background: var(--green-mid); margin: 32px 0 26px;"></div>
+
+    <div class="at-foot-bottom" style="display: grid; gap: 26px; justify-items: center; margin-top: 30px;">
+      <a class="at-foot-logo" href="Abby's Table - Homepage v2.dc.html" aria-label="Abby&#8217;s Table &#8212; home" style="display: block; text-decoration: none;">
+        <span class="at-foot-mark" aria-hidden="true" style="display: block; width: 176px; height: 30px; color: var(--blush);"><at-wordmark></at-wordmark></span>
+      </a>
+
+      <!-- 25px, not the old 22: terracotta is 3.2:1 on green-deep, which only clears the 3:1
+           large-text threshold at 24px and above. -->
+      <span class="at-foot-sig" style="font-family: var(--font-display); font-style: italic; font-size: 25px; line-height: 1; color: var(--terracotta);">Abby x</span>
+
+      <div class="at-foot-follow" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+        <span style="font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--green-sage);">Follow the table</span>
+        <div class="at-foot-follow-row" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <a href="https://www.instagram.com/fromabbystable" target="_blank" rel="noopener" aria-label="Instagram" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07zM12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.31-1.46.72-2.12 1.38A5.86 5.86 0 0 0 .63 4.13c-.3.76-.5 1.64-.56 2.91C.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.31.79.72 1.46 1.38 2.12.66.66 1.33 1.07 2.12 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.86 5.86 0 0 0 2.12-1.38 5.86 5.86 0 0 0 1.38-2.12c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.86 5.86 0 0 0-1.38-2.12A5.86 5.86 0 0 0 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84A6.16 6.16 0 1 0 12 18.16 6.16 6.16 0 0 0 12 5.84zm0 10.16A4 4 0 1 1 12 8a4 4 0 0 1 0 8zm6.41-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z" /></svg></a>
+            <a href="https://www.tiktok.com/@fromabbystable" target="_blank" rel="noopener" aria-label="TikTok" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 11.5 11.4" fill="var(--blush)" style="display: block;"><path d="M6.95 0v6.9A2.66 2.66 0 1 1 4.3 4.85c.35 0 .7.07 1 .21V3.15a4.5 4.5 0 0 0-1-.1A4.2 4.2 0 1 0 8.75 6.9V3.3a4.55 4.55 0 0 0 2.75 1.1V2.55A2.73 2.73 0 0 1 8.75 0Z" /></svg></a>
+            <a href="https://www.facebook.com/fromabbystable/" target="_blank" rel="noopener" aria-label="Facebook" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 6.15 11.15" fill="var(--blush)" style="display: block;"><path d="M4.05 11.15V6h1.7l.3-1.95h-2V2.8c0-.55.25-.95 1-.95h1.1V.1A14.6 14.6 0 0 0 4.55 0C2.85 0 1.75 1.05 1.75 2.6v1.45H0V6h1.75v5.15Z" /></svg></a>
+            <a href="https://x.com/fromabbystable" target="_blank" rel="noopener" aria-label="X" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg></a>
+          </div>
+          <span class="at-foot-dash" aria-hidden="true" style="display: none; color: var(--green-sage); font-size: 13px; line-height: 1;">&#8211;</span>
+          <!-- Plain text, not a link: the four icons above already go to the accounts, so a fifth
+               route to the same place is redundant. No hit area or hover needed. -->
+          <span style="display: flex; align-items: center; padding: 4px 0; font-family: var(--font-sans); font-size: 16px; color: var(--blush);">@FromAbbysTable</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="at-foot-legal" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0 24px; margin-top: 20px; padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));">
+      <span style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--green-sage);">&#169; 2026 Abby&#8217;s Table</span>
+      <div class="at-foot-legal-row" style="display: flex; align-items: center; gap: 12px;">
+        <a href="Abby's Table - Privacy Policy.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--sand-2); text-decoration: none; transition: color .16s ease;">Privacy Policy</a>
+        <span class="at-foot-legal-sep" aria-hidden="true" style="color: var(--green-mid); font-size: 13px; line-height: 1;">|</span>
+        <a href="Abby's Table - Terms of Sale.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--sand-2); text-decoration: none; transition: color .16s ease;">Terms</a>
+      </div>
+      <!-- Progressive enhancement, and the canonical pattern for every off-page consent trigger:
+           a REAL link to the Privacy Policy's cookie section, which is what a customer gets with no
+           JS or if the consent manager fails to initialise. Where the manager is available it binds
+           one delegated listener on [data-consent-open], suppresses navigation only after a
+           genuinely successful open, and adds aria-haspopup="dialog" itself.
+           PRODUCTION: this href becomes /privacy#cookies — a named routing requirement, see
+           build-handoff.md "Cookie consent — production contract". -->
+      <a href="Abby's Table - Privacy Policy.dc.html#cookies" data-consent-open style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--sand-2); text-decoration: none; transition: color .16s ease;">Cookie preferences</a>
+    </div>
+  </div>
+</footer>
+
+<div class="at-drawer-wrap {{ drawerCls }}">
+  <div class="at-drawer-scrim" onClick="{{ closeDrawer }}" style="position: fixed; inset: 0; z-index: 90; background: rgba(21,41,31,.5);"></div>
+  <aside id="at-drawer" class="at-drawer-panel" ref="{{ panelRef }}" role="dialog" aria-modal="true" aria-label="Main menu" style="position: fixed; top: 0; left: 0; bottom: 0; z-index: 95; display: flex; flex-direction: column; width: min(300px, 84vw); background: var(--green-forest); padding: 18px 22px 26px; overflow-y: auto;">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+      <a class="at-logo" href="Abby's Table - Homepage v2.dc.html" aria-label="Abby&#8217;s Table &#8212; home" style="display: flex; align-items: center; min-height: 44px; text-decoration: none;">
+        <span aria-hidden="true" style="display: block; width: 142px; aspect-ratio: 186 / 32; color: var(--blush);"><at-wordmark></at-wordmark></span>
+      </a>
+      <button type="button" onClick="{{ closeDrawer }}" aria-label="Close menu" style="flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-right: -10px; border: none; background: transparent; color: var(--blush); font-size: 24px; line-height: 1; cursor: pointer;">&#215;</button>
+    </div>
+
+    <a class="at-drawer-link" href="Abby's Table - Log in.dc.html" style="display: flex; align-items: center; min-height: 48px; margin-top: 20px; font-family: var(--font-sans); font-weight: 600; font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Log in</a>
+    <span aria-hidden="true" style="display: block; height: 1px; background: var(--green-mid); margin: 4px 0 6px;"></span>
+
+    <nav aria-label="Main" style="display: flex; flex-direction: column;">
+      <a class="at-drawer-link" href="Abby's Table - Menu Landing v3.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Menu</a>
+      <a class="at-drawer-link" href="Abby's Table - How It Works v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">How it works</a>
+      <a class="at-drawer-link" href="Abby's Table - Abby's Story v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Abby&#8217;s Story</a>
+      <a class="at-drawer-link" href="Abby's Table - Gifting v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Gifting</a>
+      <a class="at-drawer-link" href="Abby's Table - Private Table v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Private Table</a>
+    </nav>
+
+    <a class="at-drawer-cta" href="Abby's Table - Choose Box v2.dc.html" style="display: flex; align-items: center; justify-content: center; min-height: 54px; margin-top: 26px; border-radius: var(--radius-pill); background: var(--terracotta); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; text-decoration: none;">Build a Box</a>
+
+    <div style="margin-top: auto; border-top: 1px solid var(--green-mid); padding-top: 22px; display: flex; gap: 20px; align-items: center;">
+      <a class="at-social" href="https://www.instagram.com/fromabbystable" target="_blank" rel="noopener" aria-label="Instagram" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px; transition: opacity .16s ease;"><svg width="20" height="20" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07zM12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.31-1.46.72-2.12 1.38A5.86 5.86 0 0 0 .63 4.13c-.3.76-.5 1.64-.56 2.91C.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.31.79.72 1.46 1.38 2.12.66.66 1.33 1.07 2.12 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.86 5.86 0 0 0 2.12-1.38 5.86 5.86 0 0 0 1.38-2.12c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.86 5.86 0 0 0-1.38-2.12A5.86 5.86 0 0 0 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84A6.16 6.16 0 1 0 12 18.16 6.16 6.16 0 0 0 12 5.84zm0 10.16A4 4 0 1 1 12 8a4 4 0 0 1 0 8zm6.41-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z" /></svg></a>
+      <a class="at-social" href="https://www.tiktok.com/@fromabbystable" target="_blank" rel="noopener" aria-label="TikTok" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px; transition: opacity .16s ease;"><svg width="20" height="20" viewBox="0 0 11.5 11.4" fill="var(--blush)" style="display: block;"><path d="M6.95 0v6.9A2.66 2.66 0 1 1 4.3 4.85c.35 0 .7.07 1 .21V3.15a4.5 4.5 0 0 0-1-.1A4.2 4.2 0 1 0 8.75 6.9V3.3a4.55 4.55 0 0 0 2.75 1.1V2.55A2.73 2.73 0 0 1 8.75 0Z" /></svg></a>
+      <a class="at-social" href="https://www.facebook.com/fromabbystable/" target="_blank" rel="noopener" aria-label="Facebook" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px; transition: opacity .16s ease;"><svg width="20" height="20" viewBox="0 0 6.15 11.15" fill="var(--blush)" style="display: block;"><path d="M4.05 11.15V6h1.7l.3-1.95h-2V2.8c0-.55.25-.95 1-.95h1.1V.1A14.6 14.6 0 0 0 4.55 0C2.85 0 1.75 1.05 1.75 2.6v1.45H0V6h1.75v5.15Z" /></svg></a>
+      <a class="at-social" href="https://x.com/fromabbystable" target="_blank" rel="noopener" aria-label="X" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px; transition: opacity .16s ease;"><svg width="20" height="20" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg></a>
+    </div>
+  </aside>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:900},&quot;stateOverride&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Off&quot;,&quot;Deliver&quot;,&quot;Not in area&quot;,&quot;Invalid postcode&quot;,&quot;Empty postcode&quot;,&quot;Check failed&quot;,&quot;Finding location&quot;,&quot;Location denied&quot;],&quot;default&quot;:&quot;Off&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Development only&quot;},&quot;startPrice&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;£158&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Content&quot;},&quot;privatePrice&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;£1,500&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Content&quot;},&quot;leadDays&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:4,&quot;min&quot;:1,&quot;max&quot;:21,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Content&quot;}}">
+// ---------------------------------------------------------------------------------------------
+// PLACEHOLDER delivery timing. Both values are awaited from the client (build-handoff.md § Open
+// items) and live in exactly one place so the real figures are a two-line change.
+const LEAD_DAYS = 4;      // working days from order to delivery
+const CUTOFF_HOUR = 12;   // orders after this hour count as the next day
+
+// PLACEHOLDER coverage list — outward-code AREAS not yet served. The real list comes from the
+// courier's coverage, not from us, so this is a stand-in for review only. AB is included so the
+// mockup's AB12 3CD reads as not-in-area.
+const NOT_YET = ["AB", "BT", "GY", "HS", "IM", "IV", "JE", "KW", "ZE"];
+
+// Format check only. It cannot tell a real postcode from a well-formed invented one — that needs
+// a lookup service, which is also why the failure state exists.
+const PC_RE = /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i;
+
+const normPc = (v) => {
+  const t = String(v || "").toUpperCase().replace(/\s+/g, "");
+  return t.replace(/^(.+?)(\d[A-Z]{2})$/, "$1 $2");
+};
+const areaOf = (v) => (String(v || "").toUpperCase().match(/^[A-Z]{1,2}/) || [""])[0];
+
+const MSG = {
+  empty: "Enter your postcode to check delivery.",
+  invalid: "Please enter a valid UK postcode.",
+  geo: "We couldn\u2019t access your location. Enter your postcode instead.",
+};
+
+class Component extends DCLogic {
+  state = { drawer: false, dirDown: false, footOpen: {}, subscribed: false,
+            status: "idle", pcEcho: "", fieldMsg: "", locating: false, notifySent: false, hasPc: false,
+            query: "", results: null, typed: false, counts: {}, expand: {} };
+
+  // ---- footer (canonical) ----
+  // Canonical footer. The column heads are accordion buttons on mobile and plain labels from 1024,
+  // where the CSS already zeroes their hit area and hides the chevron. Without this they stayed
+  // focusable buttons announcing aria-expanded at desktop — three collapsible controls that do
+  // nothing. Attributes cannot be swapped in CSS, so the semantics are set here. One element, so
+  // no duplicated markup; the visual design is untouched.
+  footRef = (el) => {
+    this._foot = el;
+    if (el) this._footSemantics();
+  };
+
+  // Canonical: the footer column heads are accordion BUTTONS on mobile and non-interactive
+  // LABELS from 1024, where the toggle is inert and the chevron is hidden. Without this they stay
+  // focusable buttons announcing aria-expanded at desktop — three collapsible controls that do
+  // nothing. Attributes cannot be swapped in CSS, so the semantics are set here. One element, so
+  // no duplicated markup, and the visual design is untouched.
+  _footSemantics = () => {
+    if (!this._foot) return;
+    const label = window.innerWidth >= 1024;
+    Array.prototype.forEach.call(this._foot.querySelectorAll(".at-foot-head"), (b) => {
+      if (label) {
+        // Captured before the first desktop pass strips them: React only rewrites an attribute
+        // when its value changes, so it will not restore these on the way back to mobile.
+        if (!b.dataset.ctrl) b.dataset.ctrl = b.getAttribute("aria-controls") || "";
+        if (!b.dataset.exp) b.dataset.exp = b.getAttribute("aria-expanded") || "false";
+        b.removeAttribute("aria-expanded");
+        b.removeAttribute("aria-controls");
+        b.setAttribute("role", "heading");
+        b.setAttribute("aria-level", "3");
+        b.setAttribute("tabindex", "-1");
+      } else {
+        b.removeAttribute("role");
+        b.removeAttribute("aria-level");
+        b.removeAttribute("tabindex");
+        if (b.dataset.ctrl) b.setAttribute("aria-controls", b.dataset.ctrl);
+        if (!b.hasAttribute("aria-expanded")) b.setAttribute("aria-expanded", b.dataset.exp || "false");
+      }
+    });
+  };
+
+  _footToggle = (k) => {
+    // Inert at desktop: the columns are already open and the head is a label there.
+    if (window.innerWidth >= 1024) return;
+    this._footToggleState(k);
+  };
+
+  _footToggleState = (k) => this.setState((s) => {
+    const o = Object.assign({}, s.footOpen);
+    o[k] = !o[k];
+    return { footOpen: o };
+  });
+  toggleShop = () => this._footToggle("shop");
+  toggleLearn = () => this._footToggle("learn");
+  toggleInfo = () => this._footToggle("info");
+  onJoin = (e) => { e.preventDefault(); this.setState({ subscribed: true }); };
+
+  // ---- postcode checker ----
+  pcRef = (el) => { this._pc = el; };
+
+  _focusPc = (select) => {
+    const el = this._pc;
+    if (!el) return;
+    el.focus();
+    if (select && el.select) el.select();
+  };
+
+  _run = (raw) => {
+    const v = String(raw || "").trim();
+    if (!v) { this.setState({ status: "idle", fieldMsg: MSG.empty, hasPc: false }); this._focusPc(false); return; }
+    if (!PC_RE.test(v)) { this.setState({ status: "idle", fieldMsg: MSG.invalid }); this._focusPc(true); return; }
+    const pc = normPc(v);
+    const served = NOT_YET.indexOf(areaOf(pc)) === -1;
+    // Only a real outcome moves the page. An empty or malformed entry is a correction to make in
+    // the field, so those messages stay beside the input and the page holds still.
+    this._pcPending = true;
+    this.setState({ status: served ? "deliver" : "notarea", pcEcho: pc, fieldMsg: "", notifySent: false });
+  };
+
+  onCheck = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    this._run(this._pc ? this._pc.value : "");
+  };
+
+  // Typing is a fresh search: the previous result is no longer about what is in the field, and
+  // any correction message clears the moment they start fixing it.
+  onPcInput = () => {
+    const has = !!(this._pc && this._pc.value.trim());
+    if (this.state.fieldMsg || this.state.status !== "idle") {
+      this.setState({ fieldMsg: "", status: "idle", notifySent: false, hasPc: has });
+    } else if (has !== this.state.hasPc) {
+      this.setState({ hasPc: has });
+    }
+  };
+
+  // Quick field clearing, distinct from Change postcode: that one is a deliberate reset from a
+  // finished result, this just empties the field. Focus is re-asserted because the button itself
+  // unmounts as soon as the field is empty, which would otherwise drop focus to the body.
+  clearPc = () => {
+    if (this._pc) this._pc.value = "";
+    this.setState({ hasPc: false, status: "idle", fieldMsg: "", notifySent: false });
+    this._selectPc();
+  };
+
+  // Used by both Change postcode and Check another postcode: drop the panel, put the caret back
+  // in the field with the old value selected so it can be typed straight over.
+  // Selection INTENT, re-asserted until it holds — not a frame count. A later commit collapses
+  // the caret to the end, and how many commits happen depends on which panel is being torn down
+  // (not-in-area carries an extra <sc-if>), so 1 rAF, 2 rAF or N rAF is correct for some
+  // sequences and wrong for others. The ref callback cannot do it either: the input is never
+  // remounted, so a stable ref never re-fires.
+  // Time-bounded at 400ms, acts only when the selection has actually been lost, and stands down
+  // the moment the value changes — so it can neither spin nor fight someone typing.
+  _selectPc = () => {
+    const el = this._pc;
+    if (!el) return;
+    const v = el.value;
+    const now = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
+    const until = now() + 400;
+    const step = () => {
+      const cur = this._pc;
+      if (!cur || cur.value !== v) return;
+      if (document.activeElement !== cur) cur.focus();
+      if (cur.selectionStart !== 0 || cur.selectionEnd !== v.length) {
+        try { cur.setSelectionRange(0, v.length); } catch (e) {}
+      }
+      if (now() < until) this._selRaf = requestAnimationFrame(step);
+    };
+    el.focus();
+    step();
+  };
+
+  changePostcode = () => {
+    this.setState({ status: "idle", fieldMsg: "", notifySent: false });
+    this._selectPc();
+  };
+
+  tryAgain = () => { this.setState({ status: "idle" }); this._run(this._pc ? this._pc.value : ""); };
+
+  onNotify = (e) => { if (e && e.preventDefault) e.preventDefault(); this.setState({ notifySent: true }); };
+
+  // SIMULATED. Production calls navigator.geolocation and then a coordinates-to-postcode lookup;
+  // neither exists here, so this fills a served postcode and runs the ordinary check. The denied
+  // and unavailable paths are reviewed through the development-only state override.
+  useLocation = () => {
+    this.setState({ locating: true, fieldMsg: "" });
+    clearTimeout(this._locT);
+    clearTimeout(this._qT);
+    this._locT = setTimeout(() => {
+      this.setState({ locating: false });
+      if (this._pc) this._pc.value = "DA1 2AB";
+      this.setState({ hasPc: true });
+      this._run("DA1 2AB");
+    }, 900);
+  };
+
+  // ---- FAQ groups ----
+  // A <details> owns its own open state and its "toggle" event does NOT bubble, so the label is
+  // derived from the questions via one CAPTURING listener per group. Tracking it from the button
+  // instead meant manually opening every question left the label reading "Expand all".
+  _watch = (key, el) => {
+    this._g = this._g || {};
+    this._g[key] = el;
+    if (!el || el._atWatched) return;
+    el._atWatched = true;
+    el.addEventListener("toggle", () => this._sync(key), true);
+    this._counts();
+  };
+
+  // "Collapse all" only when EVERY question is open; a partial section still offers "Expand all",
+  // because the label must describe what the button will do.
+  _sync = (key) => {
+    const root = this._g && this._g[key];
+    if (!root) return;
+    const all = root.querySelectorAll("details");
+    const open = all.length > 0 && Array.prototype.every.call(all, (d) => d.open);
+    if (!!this.state.expand[key] === open) return;
+    const e = Object.assign({}, this.state.expand);
+    e[key] = open;
+    this.setState({ expand: e });
+  };
+
+  grpDelivery = (el) => this._watch("delivery", el);
+  grpFood = (el) => this._watch("food", el);
+  grpOrders = (el) => this._watch("orders", el);
+  grpPrivate = (el) => this._watch("private", el);
+  grpPayment = (el) => this._watch("payment", el);
+  grpGifting = (el) => this._watch("gifting", el);
+  grpStorage = (el) => this._watch("storage", el);
+  grpAbout = (el) => this._watch("about", el);
+
+  // <details> owns its own open state, so Expand all writes the attribute directly rather than
+  // this component tracking 23 booleans. Only the button's own label needs state.
+  _expand = (key) => {
+    const root = this._g && this._g[key];
+    if (!root) return;
+    const next = !this.state.expand[key];
+    Array.prototype.forEach.call(root.querySelectorAll("details"), (d) => { d.open = next; });
+    this._sync(key);
+  };
+  expDelivery = () => this._expand("delivery");
+  expFood = () => this._expand("food");
+  expOrders = () => this._expand("orders");
+  expPrivate = () => this._expand("private");
+  expPayment = () => this._expand("payment");
+  expGifting = () => this._expand("gifting");
+  expStorage = () => this._expand("storage");
+  expAbout = () => this._expand("about");
+
+  // ---- header + scroll-spy ----
+  hdrRef = (el) => { this._hdr = el; };
+
+  // Index built from the LIVE DOM, so the questions stay the single source of truth: adding a
+  // question needs no data entry, and the search cannot drift out of step with the page.
+  _index = () => {
+    if (this._idx) return this._idx;
+    const g = this._g;
+    if (!g) return [];
+    const out = [];
+    Object.keys(g).forEach((k) => {
+      const root = g[k];
+      if (!root) return;
+      const h = root.querySelector("h2");
+      const topic = h ? h.textContent.trim() : "";
+      Array.prototype.forEach.call(root.querySelectorAll("details"), (d) => {
+        const sum = d.querySelector("summary > span");
+        const body = Array.prototype.map.call(d.children, (c) => (c.tagName === "SUMMARY" ? "" : c.textContent)).join(" ");
+        out.push({
+          topic: topic,
+          q: sum ? sum.textContent.trim() : "",
+          hay: ((sum ? sum.textContent : "") + " " + body).toLowerCase(),
+          node: d,
+        });
+      });
+    });
+    // "Can I freeze my meals?" is deliberately asked under both Your food and Storage &
+    // reheating. That was fine while each result carried its topic label, but the label was
+    // removed, so an exact-duplicate question would print twice with no way to tell them apart.
+    // First occurrence wins, in document order. The underlying content duplication is a copy
+    // question, logged in build-handoff.md.
+    const seen = {};
+    this._idx = out.filter((e) => {
+      const k = e.q.toLowerCase();
+      if (seen[k]) return false;
+      seen[k] = true;
+      return true;
+    });
+    return this._idx;
+  };
+
+  _counts = () => {
+    const g = this._g;
+    if (!g) return;
+    const c = {};
+    let changed = false;
+    Object.keys(g).forEach((k) => {
+      if (!g[k]) return;
+      c[k] = g[k].querySelectorAll("details").length;
+      if (c[k] !== this.state.counts[k]) changed = true;
+    });
+    if (changed) this.setState({ counts: c });
+  };
+
+  // Matches on question wording AND answer text; every term must appear somewhere in the entry,
+  // so "freeze meals" narrows rather than widens. Ranked by a hit in the question first.
+  _search = (raw) => {
+    const q = String(raw || "").trim().toLowerCase();
+    // null means "no search is running" (browse state). A single character returns an empty
+    // holding state instead, so the topic grid never comes back while a query is present.
+    if (!q.length) return null;
+    if (q.length < 2) return [];
+    const terms = q.split(/\s+/).filter(Boolean);
+    return this._index()
+      .filter((e) => terms.every((t) => e.hay.indexOf(t) !== -1))
+      .map((e) => {
+        const inQ = terms.filter((t) => e.q.toLowerCase().indexOf(t) !== -1).length;
+        return { e: e, rank: inQ };
+      })
+      .sort((a, b) => b.rank - a.rank)
+      .map((r) => r.e);
+  };
+
+  qRef = (el) => {
+    this._q = el;
+    if (el) this._placeholder();
+  };
+
+  // A placeholder is an attribute, so it cannot be swapped in CSS. Below 640 the long prompt is
+  // clipped mid-word, which reads as a broken field rather than a hint.
+  _placeholder = () => {
+    if (!this._q) return;
+    const wide = window.innerWidth >= 640;
+    const txt = wide ? "Search FAQs (e.g. delivery, allergens, payment\u2026)" : "Search FAQs\u2026";
+    if (this._q.placeholder !== txt) this._q.placeholder = txt;
+  };
+
+  // Live search from two characters, with a short debounce so it is responsive without being
+  // twitchy while someone is still typing. A single character holds the search state and shows a
+  // "keep typing" line; only an empty field returns to browse.
+  onQInput = () => {
+    const v = this._q ? this._q.value : "";
+    clearTimeout(this._qT);
+    // Undebounced, so the clear control appears on the first keystroke and goes the moment the
+    // field empties. Results stay debounced.
+    if (!!v !== this.state.typed) this.setState({ typed: !!v });
+    this._dropBring();
+    // A new query invalidates whatever answer was open: the rows are reused by position, so an
+    // answer left open would sit under a different question.
+    this._collapse();
+    this._qT = setTimeout(() => {
+      this._pending = false;
+      this.setState({ query: v, results: this._search(v) });
+    }, 180);
+  };
+
+  // Enter still works, and is the only path that moves the page.
+  onSearch = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    clearTimeout(this._qT);
+    const v = this._q ? this._q.value : "";
+    const res = this._search(v);
+    this._collapse();
+    this.setState({ query: v, results: res, typed: !!v });
+    if (this._q) this._q.blur();
+    // Driven from the handler rather than from the results section's first render: with live
+    // search the section is usually already mounted, so a mount-time flag almost never fired and
+    // could survive to fire on a later search instead.
+    if (res && res.length) this._bring();
+  };
+
+  // Mobile only. Below 1024 the results start under the fold, so pressing Done can look as though
+  // nothing happened. Desktop shows field and results together.
+  _bring = (tries) => {
+    if (window.innerWidth >= 1024) return;
+    const left = typeof tries === "number" ? tries : 12;
+    cancelAnimationFrame(this._bringRaf);
+    this._bringRaf = requestAnimationFrame(() => {
+      const el = this._res;
+      if (!el) {
+        // Not mounted yet. An <sc-if> mounts during commit, so the first frame can beat the ref.
+        if (left > 0) this._bring(left - 1);
+        return;
+      }
+      const hdr = this._hdr ? this._hdr.offsetHeight : 0;
+      const target = el.getBoundingClientRect().top + window.scrollY - hdr - 14;
+      if (Math.abs(target - window.scrollY) < 12) return;
+      const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      window.scrollTo({ top: Math.max(0, target), behavior: reduce ? "auto" : "smooth" });
+    });
+  };
+
+  _dropBring = () => { cancelAnimationFrame(this._bringRaf); };
+
+  _collapse = () => {
+    if (!this._res) return;
+    Array.prototype.forEach.call(this._res.querySelectorAll("details"), (d) => { d.open = false; });
+  };
+
+  // Lands the result line just under the sticky header rather than at the top of the viewport, and
+  // only when the page actually needs to move. window.scrollTo, never scrollIntoView.
+  resRef = (el) => { this._res = el; };
+
+  // Mobile only: below 1024 the outcome panel lands under the fold, so a customer can check a
+  // postcode and see nothing change. Desktop shows field and result together, so it stays put.
+  pcResRef = (el) => {
+    this._pcRes = el;
+    if (!el || !this._pcPending) return;
+    this._pcPending = false;
+    if (window.innerWidth >= 1024) return;
+    requestAnimationFrame(() => {
+      if (!this._pcRes) return;
+      const hdr = this._hdr ? this._hdr.offsetHeight : 0;
+      const target = this._pcRes.getBoundingClientRect().top + window.scrollY - hdr - 14;
+      if (target - window.scrollY < 12) return;
+      const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      window.scrollTo({ top: Math.max(0, target), behavior: reduce ? "auto" : "smooth" });
+    });
+  };
+
+  clearSearch = () => {
+    clearTimeout(this._qT);
+    this._pending = false;
+    this._collapse();
+    this._dropBring();
+    if (this._q) this._q.value = "";
+    this.setState({ query: "", results: null, typed: false });
+    if (this._q && window.innerWidth >= 1024) this._q.focus();
+    else if (this._q) this._q.blur();
+  };
+
+  _onScroll = () => {
+    const y = window.scrollY;
+    const last = this._lastY || 0;
+    if (Math.abs(y - last) < 8) return;
+    const down = y > last && y > 120;
+    this._lastY = y;
+    // never slide the header out from under a keyboard user who is tabbing through it
+    if (down && this._hdr && this._hdr.contains(document.activeElement)) return;
+    if (down !== this.state.dirDown) this.setState({ dirDown: down });
+  };
+
+  componentDidMount() {
+    window.addEventListener("scroll", this._onScroll, { passive: true });
+    window.addEventListener("resize", this._footSemantics);
+    window.addEventListener("resize", this._placeholder);
+    this._onKey = (e) => {
+      if (!this.state.drawer) return;
+      if (e.key === "Escape") { e.preventDefault(); this.close(); return; }
+      if (e.key === "Tab") this.trap(e);
+    };
+    document.addEventListener("keydown", this._onKey);
+  }
+
+  componentWillUnmount() {
+    document.removeEventListener("keydown", this._onKey);
+    window.removeEventListener("scroll", this._onScroll);
+    window.removeEventListener("resize", this._footSemantics);
+    window.removeEventListener("resize", this._placeholder);
+    clearTimeout(this._locT);
+    clearTimeout(this._qT);
+    cancelAnimationFrame(this._selRaf);
+    cancelAnimationFrame(this._bringRaf);
+    document.body.style.overflow = "";
+    cancelAnimationFrame(this._drawerRaf);
+    clearTimeout(this._drawerTo);
+  }
+
+  // ---- drawer (canonical) ----
+  // The panel is always mounted under a known id, so it is read from the document rather than
+  // through a ref: ref attach timing was the unreliable part.
+  _drawerPanel = () => this._panel || document.getElementById("at-drawer");
+
+  // Required by _takeDrawerFocus below. This page never defined it, so it comes across with the
+  // canonical block rather than being left as a call to nothing.
+  _canFocus = (el) => !!el && el.offsetParent !== null && getComputedStyle(el).visibility !== "hidden";
+
+  // Stable class fields, NOT arrows created inside renderVals(): a ref rebuilt on every render is
+  // detached with null each time, and renderVals() runs on scroll here (header auto-hide), so the
+  // handles were unreliable exactly when open()/close() read them.
+  panelRef = (el) => { this._panel = el; };
+  burgerRef = (el) => { this._burger = el; };
+
+  focusables = () => {
+    const panel = this._drawerPanel();
+    if (!panel) return [];
+    return Array.from(panel.querySelectorAll("a[href], button")).filter((el) => el.offsetParent !== null);
+  };
+
+  // Canonical, from Homepage v2 (build-handoff.md § 3x). Focus moves here rather than in a
+  // lifecycle hook or a setState callback: this runtime calls neither, so a callback-based move
+  // never ran at all. Poll for the panel becoming focusable on BOTH a frame and a timer (a frame
+  // can be throttled, a timer cannot), bounded by 1s of wall clock rather than a frame count — the
+  // old 20-frame budget could expire before the display: none -> flex flip had landed, leaving
+  // focus on the burger with no error. Target is the Close button, a fixed position in the panel.
+  _takeDrawerFocus = () => {
+    cancelAnimationFrame(this._drawerRaf);
+    clearTimeout(this._drawerTo);
+    const start = Date.now();
+    const take = () => {
+      const panel = this._drawerPanel();
+      const btn = panel && panel.querySelector('button[aria-label="Close menu"]');
+      const t = this._canFocus(btn) ? btn : this.focusables()[0];
+      if (t) { t.focus(); return; }
+      if (Date.now() - start < 3000) {
+        this._drawerRaf = requestAnimationFrame(take);
+        this._drawerTo = setTimeout(take, 50);
+      }
+    };
+    take();
+  };
+
+  trap = (e) => {
+    const els = this.focusables();
+    if (!els.length) return;
+    const first = els[0], last = els[els.length - 1];
+    if (this._panel && !this._panel.contains(document.activeElement)) {
+      e.preventDefault();
+      (e.shiftKey ? last : first).focus();
+      return;
+    }
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  };
+
+  open = () => {
+    this.setState({ drawer: true });
+    document.body.style.overflow = "hidden";
+    // Focus moves here, not in panelRef: the panel is always mounted, so this._panel already
+    // exists and only its display is changing. But ONE frame is not enough — the display: none →
+    // flex flip has not landed, so focusables() (which filters on offsetParent) is still empty and
+    // no focus is taken. Re-assert each frame until the panel is laid out, bounded so it cannot
+    // spin; the frame is cancelled on close and unmount.
+    this._takeDrawerFocus();
+  };
+  close = () => {
+    this.setState({ drawer: false });
+    document.body.style.overflow = "";
+    cancelAnimationFrame(this._drawerRaf);
+    clearTimeout(this._drawerTo);
+    if (this._burger) this._burger.focus();
+  };
+
+  // The override exists because states 6 to 9 cannot be triggered without production services.
+  // DEVELOPMENT ONLY — it must not reach the customer-facing build.
+  _view = () => {
+    const o = this.props.stateOverride || "Off";
+    if (o === "Off") {
+      return { status: this.state.status, pcEcho: this.state.pcEcho,
+               fieldMsg: this.state.fieldMsg, locating: this.state.locating };
+    }
+    const M = {
+      "Deliver": { status: "deliver", pcEcho: "DA1 2AB", fieldMsg: "", locating: false },
+      "Not in area": { status: "notarea", pcEcho: "AB12 3CD", fieldMsg: "", locating: false },
+      "Invalid postcode": { status: "idle", pcEcho: "", fieldMsg: MSG.invalid, locating: false },
+      "Empty postcode": { status: "idle", pcEcho: "", fieldMsg: MSG.empty, locating: false },
+      "Check failed": { status: "error", pcEcho: "", fieldMsg: "", locating: false },
+      "Finding location": { status: "idle", pcEcho: "", fieldMsg: "", locating: true },
+      "Location denied": { status: "idle", pcEcho: "", fieldMsg: MSG.geo, locating: false },
+    };
+    return M[o] || M.Deliver;
+  };
+
+  _earliest = () => {
+    const lead = Number(this.props.leadDays) > 0 ? Number(this.props.leadDays) : LEAD_DAYS;
+    const d = new Date();
+    let add = lead + (d.getHours() >= CUTOFF_HOUR ? 1 : 0);
+    // Working days only: the kitchen does not cook to a weekend delivery in the placeholder model.
+    while (add > 0) {
+      d.setDate(d.getDate() + 1);
+      const wd = d.getDay();
+      if (wd !== 0 && wd !== 6) add--;
+    }
+    try {
+      return d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+    } catch (e) {
+      return d.toDateString();
+    }
+  };
+
+  renderVals() {
+    const v = this._view();
+    const exp = this.state.expand;
+    const res = this.state.results;
+    const qs = String(this.state.query || "").trim();
+    const n = this.state.counts;
+    const cnt = (k) => (n[k] ? (n[k] === 1 ? "1 question" : n[k] + " questions") : "");
+    // The answer is copied from its source question rather than re-authored, so the markup stays
+    // the one source of truth and formatting (bold values, lists) survives into the result.
+    const cards = (res || []).map((e, i) => ({
+      q: e.q,
+      setAns: (el) => {
+        if (!el) return;
+        const html = Array.prototype.filter.call(e.node.children, (c) => c.tagName !== "SUMMARY")
+          .map((c) => c.outerHTML).join("");
+        if (el.innerHTML !== html) el.innerHTML = html;
+      },
+    }));
+    const lbl = (k) => (exp[k] ? "Collapse all" : "Expand all");
+    const sgn = (k) => (exp[k] ? "\u2212" : "+");
+    return {
+      // checker
+      pcRef: this.pcRef,
+      onCheck: this.onCheck,
+      onPcInput: this.onPcInput,
+      useLocation: this.useLocation,
+      changePostcode: this.changePostcode,
+      tryAgain: this.tryAgain,
+      onNotify: this.onNotify,
+      hasPc: !!this.state.hasPc,
+      clearPc: this.clearPc,
+      hasFieldMsg: !!v.fieldMsg,
+      fieldMsg: v.fieldMsg,
+      locating: !!v.locating,
+      notLocating: !v.locating,
+      resDeliver: v.status === "deliver",
+      resNotArea: v.status === "notarea",
+      resError: v.status === "error",
+      pcEcho: v.pcEcho,
+      earliest: this._earliest(),
+      buildHref: "Abby's Table - Choose Box v2.dc.html?postcode=" + encodeURIComponent(v.pcEcho),
+      notifySent: !!this.state.notifySent,
+      notifyNotSent: !this.state.notifySent,
+      // Canonical wording, configured value — never hard-coded as copy.
+      startPrice: this.props.startPrice || "\u00a3158",
+
+      // FAQ
+      grpDelivery: this.grpDelivery,
+      grpFood: this.grpFood,
+      grpOrders: this.grpOrders,
+      grpPrivate: this.grpPrivate,
+      grpPayment: this.grpPayment,
+      grpGifting: this.grpGifting,
+      grpStorage: this.grpStorage,
+      grpAbout: this.grpAbout,
+      expPrivate: this.expPrivate,
+      expPrivateLabel: lbl("private"), expPrivateSign: sgn("private"),
+      // Configured value, not literal copy — same rule as the six-dish starting price.
+      privatePrice: this.props.privatePrice || "\u00a31,500",
+      expDelivery: this.expDelivery,
+      expFood: this.expFood,
+      expOrders: this.expOrders,
+      expPayment: this.expPayment,
+      expGifting: this.expGifting,
+      expStorage: this.expStorage,
+      expAbout: this.expAbout,
+      expDeliveryLabel: lbl("delivery"), expDeliverySign: sgn("delivery"),
+      expFoodLabel: lbl("food"), expFoodSign: sgn("food"),
+      expOrdersLabel: lbl("orders"), expOrdersSign: sgn("orders"),
+      expPaymentLabel: lbl("payment"), expPaymentSign: sgn("payment"),
+      expGiftingLabel: lbl("gifting"), expGiftingSign: sgn("gifting"),
+      expStorageLabel: lbl("storage"), expStorageSign: sgn("storage"),
+      expAboutLabel: lbl("about"), expAboutSign: sgn("about"),
+
+      // search
+      qRef: this.qRef,
+      onQInput: this.onQInput,
+      onSearch: this.onSearch,
+      clearSearch: this.clearSearch,
+      resRef: this.resRef,
+      pcResRef: this.pcResRef,
+      hasQuery: !!this.state.typed,
+      searching: !!res,
+      hasResults: !!res && res.length > 0,
+      tooShort: !!res && res.length === 0 && qs.length < 2,
+      noResults: !!res && res.length === 0 && qs.length >= 2,
+      results: cards,
+      resultLine: (res && res.length) ? (res.length === 1 ? '1 result for \u201c' + qs + '\u201d' : res.length + ' results for \u201c' + qs + '\u201d') : "",
+      emptyLine: 'We couldn\u2019t find anything for \u201c' + qs + '\u201d.',
+      browseCls: res ? "is-hidden" : "",
+      emptyCls: (res && res.length === 0 && qs.length >= 2) ? "is-hidden" : "",
+      emptyPadCls: (res && res.length === 0 && qs.length >= 2) ? "at-pad-end" : "",
+      nDelivery: cnt("delivery"),
+      nFood: cnt("food"),
+      nOrders: cnt("orders"),
+      nStorage: cnt("storage"),
+      nPayment: cnt("payment"),
+      nGifting: cnt("gifting"),
+      nPrivate: cnt("private"),
+      nAbout: cnt("about"),
+
+      // shell
+      hdrRef: this.hdrRef,
+      hdrHidden: (this.state.dirDown && !this.state.drawer) ? "true" : "false",
+      burgerExpanded: this.state.drawer ? "true" : "false",
+      openDrawer: this.open,
+      closeDrawer: this.close,
+      panelRef: this.panelRef,
+      drawerCls: this.state.drawer ? "is-open" : "",
+      burgerRef: this.burgerRef,
+      subscribed: !!this.state.subscribed,
+      notSubscribed: !this.state.subscribed,
+      onJoin: this.onJoin,
+      footRef: this.footRef,
+      toggleShop: this.toggleShop,
+      toggleLearn: this.toggleLearn,
+      toggleInfo: this.toggleInfo,
+      shopCls: this.state.footOpen.shop ? "is-open" : "",
+      learnCls: this.state.footOpen.learn ? "is-open" : "",
+      infoCls: this.state.footOpen.info ? "is-open" : "",
+      shopExp: this.state.footOpen.shop ? "true" : "false",
+      learnExp: this.state.footOpen.learn ? "true" : "false",
+      infoExp: this.state.footOpen.info ? "true" : "false",
+    };
+  }
+}
+
+</script>
+</body>
+</html>

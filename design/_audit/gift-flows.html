@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Order-draft + gift-intent flows — audit harness</title>
+<style>
+  body { margin: 0; font: 14px/1.45 system-ui, sans-serif; background: #F7F1E8; color: #2B2118; }
+  .wrap { display: grid; grid-template-columns: 560px 1100px; gap: 16px; padding: 16px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; background: #fff; }
+  td, th { padding: 6px 8px; border-bottom: 1px solid #E0D8C8; vertical-align: top; text-align: left; }
+  .pass { color: #1E5A3A; font-weight: 700; } .fail { color: #A3271B; font-weight: 700; }
+  iframe { width: 1100px; height: 900px; border: 1px solid #E0D8C8; background: #fff; }
+  #sum { font-size: 18px; font-weight: 700; margin: 0 0 10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div><p id="sum">Running…</p><table><thead><tr><th>Flow / check</th><th>Result</th><th>Detail</th></tr></thead><tbody id="out"></tbody></table></div>
+  <iframe id="f"></iframe>
+</div>
+<script>
+/* Drives the REAL pages in an iframe (same origin, same sessionStorage) through the six gift-intent
+   flows and asserts on the order record and the rendered controls. The tab's own at-order-v1 /
+   at-gift-box-v1 values are saved first and put back at the end. */
+const P = (n) => "../Abby's Table - " + n + ".dc.html";
+const f = document.getElementById("f"), out = document.getElementById("out");
+const rows = []; let fails = 0;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const rec = () => { try { return JSON.parse(sessionStorage.getItem("at-order-v1") || "null"); } catch (_) { return null; } };
+function row(name, ok, detail) { if (!ok) fails++; rows.push(name); out.insertAdjacentHTML("beforeend", "<tr><td>" + name + "</td><td class='" + (ok ? "pass'>PASS" : "fail'>FAIL") + "</td><td>" + (detail || "") + "</td></tr>"); }
+const D = () => f.contentDocument;
+async function waitFor(fn, ms) { const t = Date.now(); while (Date.now() - t < (ms || 9000)) { try { const v = fn(); if (v) return v; } catch (_) {} await sleep(120); } return null; }
+function go(url) { return new Promise((res) => { f.onload = () => res(); f.src = url; }); }
+function nav(fnClick) { return new Promise((res) => { f.onload = () => res(); fnClick(); }); }
+const vis = (el) => el && el.offsetParent !== null;
+const text = (re) => [...D().querySelectorAll("a, button")].find((el) => vis(el) && re.test(el.textContent.trim()));
+async function ready(sel) { await waitFor(() => D() && D().querySelector(sel), 12000); await sleep(500); }
+const giftNote = () => /Sending this as a gift\?/.test(D().body.innerText);
+async function ckState() {
+  await ready('input[aria-controls="ck-gift-body"]');
+  const g = D().querySelector('input[aria-controls="ck-gift-body"]');
+  const body = D().getElementById("ck-gift-body");
+  const boxes = body ? [...body.querySelectorAll('input[type="checkbox"]')] : [];
+  const hide = boxes.find((b) => /Hide prices/.test(b.closest("label").textContent));
+  const card = boxes.find((b) => /greeting card/i.test(b.closest("label").textContent));
+  return { gift: !!(g && g.checked), hide: !!(hide && hide.checked), card: !!(card && card.checked) };
+}
+async function fillStep2(target) {
+  target = target || 6;
+  await ready("button");
+  for (let i = 0; i < 40; i++) {
+    if (s2count() >= target) break;
+    const b = [...D().querySelectorAll("button[aria-label]")].find((el) => vis(el) && !el.disabled && /^Add .* to your box$/.test(el.getAttribute("aria-label")));
+    if (!b) break; b.click(); await sleep(420);
+    const x = [...D().querySelectorAll('[role="dialog"] button')].find((el) => vis(el) && /close|continue browsing|keep browsing|×/i.test(el.getAttribute("aria-label") || el.textContent)); if (x) { x.click(); await sleep(200); }
+  }
+  await sleep(500);
+}
+function s2() { const r = rec(); return (r && r.snap && r.snap.s2) || {}; }
+function s2count() { return (s2().lines || []).reduce((n, l) => n + (l.qty || 0), 0); }
+function pickSize(n) { const el = [...D().querySelectorAll('[role="button"]')].filter(vis).find((e) => new RegExp("(^|\\D)" + n + "(\\D|$)").test(e.textContent) && /dish/i.test(e.textContent)); if (el) el.click(); return !!el; }
+const railHas = (re) => re.test(D().body.textContent.replace(/\s+/g, " "));
+
+async function run() {
+  const saved = { o: sessionStorage.getItem("at-order-v1"), g: sessionStorage.getItem("at-gift-box-v1") };
+  try {
+    sessionStorage.removeItem("at-order-v1"); sessionStorage.removeItem("at-gift-box-v1");
+
+    const clickGiftLink = async () => { await go(P("Gifting v2")); await ready('a.gf-cta'); const el = D().querySelector('a.gf-cta[href*="gift=1"]'); const href = el && decodeURIComponent(el.getAttribute("href")); await nav(() => el.click()); await sleep(600); return href; };
+    const toStep2 = async () => { await nav(() => text(/^add dishes$/i).click()); await ready("main"); await sleep(500); };
+    const back = async () => { await new Promise((res) => { f.onload = () => res(); f.contentWindow.history.back(); setTimeout(res, 3000); }); await sleep(700); };
+
+    // A — Gifting → Step 1 → Add Dishes → Extras → Review → Checkout (new gift order)
+    let href = await clickGiftLink();
+    row("A · Gifting link with no order: Choose Box ?gift=1", /Choose Box v2\.dc\.html\?gift=1$/.test(href), href);
+    await ready("h2");
+    row("A · Step 1 shows the gift note and 'No dishes yet'", giftNote() && railHas(/No dishes yet/));
+    await toStep2();
+    row("A · Step 2 URL carries gift=1", /gift=1/.test(f.contentWindow.location.search), f.contentWindow.location.search);
+    await fillStep2(6);
+    row("A · Record: gift, 6 dishes", rec() && rec().giftIntent === true && s2count() === 6, "gift " + (rec() && rec().giftIntent) + " · dishes " + s2count());
+    await go(P("Extras v2") + "?resume=1"); await ready("main");
+    await go(P("Review v2") + "?resume=1"); await ready("main");
+    await go(P("Checkout v2") + "?resume=1"); let c = await ckState();
+    row("A · Checkout: gift on, Hide prices on, £3 card off", c.gift && c.hide && !c.card, JSON.stringify(c));
+
+    // B — Back navigation to Step 1 never empties the box
+    for (let i = 0; i < 8 && !/Choose Box/.test(decodeURIComponent(f.contentWindow.location.pathname)); i++) await back();
+    await ready("h2"); await sleep(600);
+    row("B · Browser Back from Checkout through Review, Extras, Add Dishes to Step 1", /Choose Box/.test(decodeURIComponent(f.contentWindow.location.pathname)), decodeURIComponent(f.contentWindow.location.search));
+    row("B · …record kept: 6 dishes, still a gift", rec() && s2count() === 6 && rec().giftIntent === true, "dishes " + s2count() + " · gift " + (rec() && rec().giftIntent));
+    row("B · …Step 1 shows '6 dishes in your box' and the gift note", railHas(/6 dishes in your box/) && giftNote());
+    await go(P("Add Dishes v2") + "?resume=1"); await ready("main");
+    await nav(() => D().querySelector("a.ad-back").click()); await ready("h2"); await sleep(600);
+    row("B · Step 2's 'Back to Build your box' link: order kept", rec() && s2count() === 6 && railHas(/6 dishes in your box/), D().querySelector("a") && decodeURIComponent(f.contentWindow.location.search));
+    await toStep2();
+    row("B · Forward again: Step 2 has the same 6 dishes", s2count() === 6 && /resume=1/.test(f.contentWindow.location.search), f.contentWindow.location.search);
+
+    // C — Changing box size on Step 1 uses the order, never clears it
+    await go(P("Choose Box v2") + "?resume=1"); await ready("h2");
+    row("C · Step 1 opens on the current size (6 selected)", /6 of 6 dishes selected/.test(D().body.innerText));
+    row("C · Choose 12 on Step 1", pickSize(12)); await sleep(400);
+    await toStep2();
+    row("C · Step 2: 12-dish box, the 6 dishes kept", s2().boxSize === 12 && s2count() === 6, "size " + s2().boxSize + " · dishes " + s2count());
+    await f.contentWindow.location.reload(); await sleep(1500);
+    row("C · Reloading that Step 2 URL does not re-apply anything", s2().boxSize === 12 && s2count() === 6);
+    await fillStep2(12);
+    row("C · Box filled to 12", s2count() === 12, "dishes " + s2count());
+    await go(P("Choose Box v2") + "?resume=1"); await ready("h2");
+    row("C · Step 1 shows 12 selected", /12 of 12 dishes selected/.test(D().body.innerText));
+    pickSize(6); await sleep(400);
+    row("C · Choosing 6 with 12 dishes: box held at 12, told what to resolve", /Your box has 12 dishes\. To choose a smaller box, remove dishes on the next step\./.test(D().body.innerText));
+    await toStep2();
+    row("C · …Step 2 keeps all 12 dishes in a 12-dish box", s2().boxSize === 12 && s2count() === 12, "size " + s2().boxSize + " · dishes " + s2count());
+
+    // D — Gift switched off at Checkout stays off, including on Step 1
+    await go(P("Checkout v2") + "?resume=1"); c = await ckState();
+    D().querySelector('input[aria-controls="ck-gift-body"]').click(); await sleep(400);
+    row("D · Switching off writes giftIntent = false", rec() && rec().giftIntent === false);
+    await go(P("Review v2") + "?resume=1"); await ready("main");
+    await go(P("Checkout v2") + "?resume=1"); c = await ckState();
+    row("D · Leave and return: gift stays off", !c.gift && !c.card, JSON.stringify(c));
+    await go(P("Choose Box v2") + "?resume=1"); await ready("h2");
+    row("D · Step 1: no gift note, order kept", !giftNote() && s2count() === 12);
+
+    // E — Plain entry (Get started / Build a box) with an active order: an EDIT, not a reset
+    await go(P("Choose Box v2")); await ready("h2"); await sleep(500);
+    row("E · Get started with an active order: order kept, 12 dishes shown", rec() && s2count() === 12 && railHas(/12 dishes in your box/), "dishes " + s2count());
+    row("E · …gift intent untouched (still off)", rec() && rec().giftIntent === false);
+
+    // F — Dish page entry with an active order: the dish joins the box once
+    await go(P("Choose Box v2") + "?dish=seafood-okra"); await ready("h2"); await sleep(500);
+    row("F · ?dish= with an active order: order kept", rec() && s2count() === 12);
+    const had = (s2().lines || []).some((l) => l.id === "royal-seafood-okra"), n0 = s2count();
+    await toStep2();
+    const want = had ? n0 : n0 + 1;
+    row("F · Step 2: carried dish added once (or kept if already in), box grown to fit, nothing removed", s2count() === want && s2().boxSize >= want && (s2().lines || []).some((l) => l.id === "royal-seafood-okra"), (had ? "already in box" : "added") + " · dishes " + s2count() + " · size " + s2().boxSize);
+    await back(); await ready("h2"); await sleep(400);
+    await toStep2();
+    row("F · Back to that Step 1 and forward again: dish not added twice", s2count() === want, "dishes " + s2count());
+    const nF = s2count();
+
+    // G — An active normal order, then Gifting → Build their box converts the same order
+    href = await clickGiftLink(); await ready("h2"); await sleep(500);
+    row("G · Gifting link with an order: Choose Box ?resume=1&gift=1", /Choose Box v2\.dc\.html\?resume=1&gift=1$/.test(href), href);
+    row("G · Same order converted: gift true, dishes kept, note shown", rec() && rec().giftIntent === true && s2count() === nF && giftNote(), "dishes " + s2count());
+    await toStep2();
+    await go(P("Checkout v2") + "?resume=1"); c = await ckState();
+    row("G · Checkout: gift on, Hide on, card off", c.gift && c.hide && !c.card, JSON.stringify(c));
+
+    // H — £3 card only when explicitly chosen
+    const cardBox = () => [...D().getElementById("ck-gift-body").querySelectorAll('input[type="checkbox"]')].find((x) => /greeting card/i.test(x.closest("label").textContent));
+    cardBox().click(); await sleep(300); c = await ckState();
+    row("H · Explicit tick turns the card on", c.card, JSON.stringify(c));
+    D().querySelector('input[aria-controls="ck-gift-body"]').click(); await sleep(300);
+    D().querySelector('input[aria-controls="ck-gift-body"]').click(); await sleep(300); c = await ckState();
+    row("H · Gift off then on: card back to unticked", c.gift && !c.card, JSON.stringify(c));
+
+    // I — No active order: a plain entry is a genuinely fresh box
+    sessionStorage.removeItem("at-order-v1");
+    await go(P("Choose Box v2")); await ready("h2"); await sleep(400);
+    row("I · No order: Step 1 is fresh — 'No dishes yet', 6 selected, no gift note", railHas(/No dishes yet/) && /0 of 6 dishes selected/.test(D().body.innerText) && !giftNote());
+
+    // ===== Shared ACTIVE BOX rule (2 Oct 2026): commit at Step 1 → Step 2, empty boxes stay active
+    const hdr = async () => { await go(P("Log in")); await ready("header"); await sleep(900); const el = D().querySelector("header .at-cta"); return { text: el ? el.textContent.trim() : "", href: el ? decodeURIComponent(el.getAttribute("href") || "") : "" }; };
+    const emptyStep2 = async () => { for (let i = 0; i < 40 && s2count() > 0; i++) { const b = [...D().querySelectorAll("button[aria-label]")].find((el) => vis(el) && !el.disabled && /^(Remove|Decrease|Fewer|One fewer|Reduce)/i.test(el.getAttribute("aria-label"))); if (!b) break; b.click(); await sleep(350); } await sleep(600); };
+
+    sessionStorage.removeItem("at-order-v1");
+    await go(P("Choose Box v2")); await ready("h2"); await sleep(500);
+    let hd = await hdr();
+    row("J · Default 6 shown on Step 1, not committed: no record, header GET STARTED", !rec() && /get started/i.test(hd.text), hd.text);
+    await go(P("Choose Box v2")); await ready("h2");
+    await toStep2();
+    row("J · Default 6 → ADD DISHES: record committed, 6-dish, 0 dishes", rec() && rec().boxCommitted === true && rec().boxSize === 6 && s2count() === 0, JSON.stringify({ c: rec() && rec().boxCommitted, size: rec() && rec().boxSize, d: s2count() }));
+    hd = await hdr();
+    row("J · Leave to a site page: header VIEW BOX → Step 2", /view box/i.test(hd.text) && /Add Dishes v2\.dc\.html\?resume=1/.test(hd.href), hd.text + " → " + hd.href);
+    await go(P(hd.href.replace("Abby's Table - ", "").replace(".dc.html", "").split("?")[0]) + "?" + hd.href.split("?")[1]); await ready("main"); await sleep(500);
+    row("J · VIEW BOX resumes Step 2 as a 6-dish box", /Add Dishes/.test(decodeURIComponent(f.contentWindow.location.pathname)) && s2().boxSize === 6, "size " + s2().boxSize);
+
+    sessionStorage.removeItem("at-order-v1");
+    await go(P("Choose Box v2")); await ready("h2");
+    pickSize(12); await sleep(300); await toStep2();
+    row("K · 12 → ADD DISHES: committed 12-dish box, 0 dishes", rec() && rec().boxCommitted === true && s2().boxSize === 12 && s2count() === 0, "size " + s2().boxSize);
+    hd = await hdr();
+    row("K · Header VIEW BOX for the empty 12-dish box", /view box/i.test(hd.text) && /12-dish box/.test(rec().label), hd.text + " · " + rec().label);
+    await go(P("Choose Box v2") + "?resume=1"); await ready("h2");
+    row("K · Back on Step 1: 12 still selected, record kept", /0 of 12 dishes selected/.test(D().body.innerText) && rec() && rec().boxCommitted === true);
+    await go(P("Choose Box v2")); await ready("h2"); await sleep(400);
+    row("K · Plain Get started with the empty active box: kept (12), not reset", /0 of 12 dishes selected/.test(D().body.innerText) && rec() && rec().boxCommitted === true);
+
+    await go(P("Add Dishes v2") + "?resume=1"); await ready("main"); await fillStep2(3);
+    row("L · Dishes added to the committed box", s2count() === 3, "dishes " + s2count());
+    await emptyStep2();
+    row("L · All dishes removed: box still active (record kept, committed)", s2count() === 0 && rec() && rec().boxCommitted === true && s2().boxSize === 12, "dishes " + s2count() + " · size " + s2().boxSize);
+    hd = await hdr();
+    row("L · …header still VIEW BOX", /view box/i.test(hd.text), hd.text);
+
+    await go(P("Add Dishes v2") + "?resume=1"); await ready("main");
+    await nav(() => D().querySelector("a.ad-back").click()); await ready("h2"); await sleep(400);
+    row("M · Step 2 → Back to Step 1: empty 12-dish box intact", /0 of 12 dishes selected/.test(D().body.innerText) && rec() && rec().boxCommitted === true);
+
+    // Gift box with 0 dishes
+    sessionStorage.removeItem("at-order-v1");
+    href = await clickGiftLink(); await ready("h2"); await toStep2();
+    row("P · Gift box → Step 2 with 0 dishes: active and a gift", rec() && rec().boxCommitted === true && rec().giftIntent === true && s2count() === 0);
+    hd = await hdr();
+    row("P · …header VIEW BOX", /view box/i.test(hd.text), hd.text);
+    href = await clickGiftLink(); await ready("h2");
+    row("P · Gifting sees the empty box as the current order (resume link)", /\?resume=1&gift=1$/.test(href) && giftNote() && rec().boxCommitted === true, href);
+
+    // Carried dish, never committed
+    sessionStorage.removeItem("at-order-v1");
+    await go(P("Choose Box v2") + "?dish=seafood-okra"); await ready("h2"); await sleep(700);
+    row("O · Carried dish on Step 1: a record exists and is active", rec() && !rec().boxCommitted && window.top && rec().label, rec() && rec().label);
+    hd = await hdr();
+    row("O · …header VIEW BOX", /view box/i.test(hd.text), hd.text);
+    href = await clickGiftLink();
+    row("O · …Gifting treats it as the current order", /\?resume=1&gift=1$/.test(href), href);
+    await go(P("Choose Box v2")); await ready("h2"); await sleep(700);
+    row("O · Plain Get started: the carried dish is kept, not cleared", rec() && /Royal Seafood Okra/.test(D().body.innerText), rec() ? "record kept" : "record CLEARED");
+
+    // Payment success
+    await go(P("Order Confirmation v2")); await ready("main"); await sleep(500);
+    row("Q · Payment success (Order Confirmation): active box cleared", !rec());
+    hd = await hdr();
+    row("Q · …header back to GET STARTED", /get started/i.test(hd.text), hd.text);
+  } catch (e) {
+    row("Harness error", false, String(e && e.stack || e));
+  } finally {
+    try {
+      if (saved.o === null) sessionStorage.removeItem("at-order-v1"); else sessionStorage.setItem("at-order-v1", saved.o);
+      if (saved.g === null) sessionStorage.removeItem("at-gift-box-v1"); else sessionStorage.setItem("at-gift-box-v1", saved.g);
+    } catch (_) {}
+    document.getElementById("sum").textContent = (fails ? fails + " FAILED" : "ALL PASSED") + " · " + rows.length + " checks";
+    document.title = fails ? "FAIL " + fails : "PASS";
+  }
+}
+run();
+</script>
+</body>
+</html>

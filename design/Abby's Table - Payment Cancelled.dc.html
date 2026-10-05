@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>html, body { background-color: #F7F1E8; color-scheme: light; }</style>
+<!-- ↑ First-paint ground: FIRST in the head so it is in the first bytes the parser sees.
+     Dependency-free literal of --cream (no tokens, no runtime); see CLAUDE.md head standard. -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Shared stylesheets: ONE authoritative load path, in the real head. In <helmet> they were
+     applied from the raw template, torn down when the runtime consumed it, then re-added —
+     the transparent gap on every full load and on back navigation. -->
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/colors.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/typography.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/styles.css">
+<link rel="stylesheet" href="at-focus.css">
+<script src="at-logo.js"></script>
+<script src="./support.js"></script>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#1E3A2F"/><circle cx="50" cy="50" r="17" fill="none" stroke="#C28E3C" stroke-width="2.6"/><path d="M50 48v11M50 41.5h.01" fill="none" stroke="#C28E3C" stroke-width="3.2" stroke-linecap="round"/></svg></template>
+</head>
+<body>
+<x-dc>
+<helmet>
+<!-- No at-order-state.js (it would write VIEW BOX) or at-account-state.js: the payment-status header carries no ordering CTA and no account link. -->
+  <script src="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/_ds_bundle.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background: var(--cream); }
+    a { color: var(--green-forest); }
+    a:hover { color: var(--terracotta-deep); }
+    :root { --terracotta: #B7554E; --terracotta-deep: #9C433D; --gold: #F6C33B; --brass-ink: #8A5F1F; --taupe: #86755F; --chilli: #B8431C; --terracotta-ink: #943E38; --sage: #E1E2D2; }
+    /* Simplified checkout footer — Checkout v2's, on this page's 640/1024 steps (Checkout v2 uses
+       641/1081) so the footer gutters change at the same widths as the header's. */
+    .gc-foot { border-top: 2px solid var(--brass); background: var(--green-deep); }
+    .gc-foot-inner { max-width: 1280px; margin: 0 auto; padding: 30px 22px 34px; text-align: center; }
+    .gc-foot-logo { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; }
+    .gc-foot-logo:hover span { opacity: .82; }
+    .gc-foot-logo span { display: block; width: 156px; aspect-ratio: 186 / 32; color: var(--blush); }
+    .gc-foot-top { display: grid; justify-items: center; }
+    .gc-foot-nav { display: grid; grid-template-columns: 1fr 1fr; align-items: center; justify-items: center; column-gap: 18px; margin-top: 10px; }
+    .gc-foot-nav a:last-child { grid-column: 1 / -1; }
+    .gc-foot-link { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none; transition: color .16s ease; }
+    .gc-foot-link:hover { color: var(--brass); }
+    .gc-foot-inline { font-weight: 600; }
+    .gc-foot-base { display: grid; gap: 10px; justify-items: center; margin-top: 18px; }
+    .gc-foot-legal { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 16px; margin: 0; font-family: var(--font-sans); font-size: 14px; color: var(--sand-2); }
+    .gc-foot-legal .gc-foot-link { font-size: 14px; }
+    .gc-foot-sign { margin: 2px 0 0; font-family: var(--font-display); font-style: italic; font-size: 20px; color: var(--terracotta); }
+    .gc-foot a:focus-visible { outline: 2px solid #FBF8F1; outline-offset: 0; box-shadow: 0 0 0 3px var(--gold); }
+    @media (min-width: 640px) {
+      .gc-foot-inner { padding: 32px 34px 36px; text-align: left; }
+      .gc-foot-top { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+      .gc-foot-nav { display: flex; flex: 1 1 auto; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 4px 26px; margin-top: 0; }
+      .gc-foot-nav a:last-child { grid-column: auto; }
+      .gc-foot-base { grid-template-columns: 1fr auto; align-items: center; justify-items: start; gap: 10px 20px; }
+      .gc-foot-legal { justify-content: flex-start; }
+      .gc-foot-sign { grid-column: 2; grid-row: 1; justify-self: end; margin: 0; }
+    }
+    @media (min-width: 1024px) { .gc-foot-inner { padding: 36px 48px 40px; } }
+    @media (prefers-reduced-motion: reduce) { .gc-foot-link { transition: none !important; } }
+  </style>
+<style>
+  /* Sterling sign, site-wide. Playfair Display's £ has a double crossbar that reads as a euro, so
+     U+00A3 alone is drawn from a Figtree subset (1 KB, 400–700) prepended to the display and
+     accent stacks. Every other character is untouched. html:root outranks the token sheet. */
+  @font-face { font-family: "AT Sterling"; src: url("assets/fonts/at-sterling.woff2") format("woff2"); font-weight: 400 700; font-style: normal; font-display: block; unicode-range: U+00A3; }
+  html:root {
+    --font-display: "AT Sterling", "Playfair Display", ui-serif, Georgia, "Times New Roman", serif;
+    --font-accent: "AT Sterling", "Cormorant Garamond", ui-serif, Georgia, serif;
+  }
+</style>
+<style>
+  /* Payment was cancelled (status page 6, user's mockup, 1 Oct 2026). Payment Not Completed's
+     composition with a NEUTRAL information panel — the customer chose this, so nothing is styled
+     as an error. Mobile first; min-width only. */
+  .pp-hdr { border-bottom: 1px solid var(--sand); background: var(--cream); }
+  .pp-hdr-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; max-width: 1280px; margin: 0 auto; padding: 13px 22px; min-height: 70px; }
+  .pp-mark { display: block; width: clamp(108px, 36vw, 168px); aspect-ratio: 186 / 32; color: var(--green-forest); }
+  .pp-q { position: relative; display: inline-flex; align-items: center; gap: 7px; min-height: 44px; padding: 0; background: transparent; border: none; cursor: pointer; font-family: var(--font-sans); font-size: 16px; color: var(--green-forest); text-decoration: none; transition: color .16s ease; }
+  .pp-q > span:first-of-type { border-bottom: 1px solid var(--brass); padding-bottom: 1px; }
+  .pp-q:hover { color: var(--terracotta-deep); }
+  .pp-q:hover > span:first-of-type { border-bottom-color: var(--terracotta-deep); }
+  .pp-q:active { filter: brightness(.94); }
+  /* Questions drawer — Checkout v2's (gift-card checkout canon), verbatim. */
+  .gc-help-wrap { position: fixed; inset: 0; z-index: 90; }
+  .gc-help-scrim { position: absolute; inset: 0; background: rgba(21, 41, 31, .46); }
+  .gc-help { position: absolute; top: auto; left: 0; right: 0; bottom: 0; width: 100%; max-width: none; max-height: 86vh; max-height: 86dvh; overflow-y: auto; scroll-padding-top: 78px; -webkit-overflow-scrolling: touch; padding: 0 22px calc(28px + env(safe-area-inset-bottom)); background: var(--cream); border-top: 1px solid var(--sand-2); border-radius: 22px 22px 0 0; box-shadow: 0 -12px 44px rgba(21, 41, 31, .28); animation: gc-help-up .22s ease both; }
+  @keyframes gc-help-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  @keyframes gc-help-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
+  .gc-help-top { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; margin: 0 -22px; padding: 14px 16px 6px 22px; background: var(--cream); }
+  .gc-help-x { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; background: transparent; border: none; border-radius: 50%; color: var(--green-forest); cursor: pointer; transition: color .16s ease; }
+  .gc-help-x:hover { color: var(--terracotta-deep); }
+  .gc-help-back { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0; background: none; border: none; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; color: var(--green-forest); transition: color .16s ease; }
+  .gc-help-back:hover { color: var(--terracotta-deep); }
+  .gc-help-h { margin: 14px 0 0; padding-top: 2px; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 30px; line-height: 1.18; letter-spacing: -0.01em; color: var(--green-forest); scroll-margin-top: 78px; }
+  .gc-help-h:focus-visible { outline-offset: 4px; }
+  .gc-help-p { margin: 12px 0 0; font-family: var(--font-sans); font-size: 18px; line-height: 1.5; color: var(--brown); text-wrap: pretty; }
+  .gc-help-note { display: flex; align-items: flex-start; gap: 9px; margin: 16px 0 0; padding: 12px 14px; background: var(--sand); border-radius: 12px; font-family: var(--font-sans); font-size: 16px; line-height: 1.45; color: var(--brown); }
+  .gc-wa-fail { margin: 12px 0 0; padding: 13px 15px; background: var(--blush); border: 1px solid var(--terracotta-ink); border-radius: 12px; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); }
+  .gc-wa-fail-b { display: block; font-weight: 600; color: var(--terracotta-ink); }
+  .gc-wa-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; margin-top: 4px; }
+  .gc-wa-act { display: inline-flex; align-items: center; min-height: 44px; padding: 0; background: none; border: none; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; color: var(--green-forest); transition: color .16s ease; }
+  .gc-wa-act span { border-bottom: 1px solid var(--brass); padding-bottom: 1px; }
+  .gc-wa-act:hover { color: var(--terracotta-deep); }
+  .gc-sel { position: relative; }
+  .gc-sel-btn { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 52px; padding: 13px 15px; text-align: left; background: var(--white); border: 1px solid var(--sand-2); border-radius: 14px; cursor: pointer; font-family: var(--font-sans); font-size: 16px; color: var(--green-forest); transition: border-color .16s ease; }
+  .gc-sel-btn:hover { border-color: var(--taupe); }
+  .gc-sel-btn[aria-expanded="true"] { border-color: var(--green-forest); }
+  .gc-sel-btn[data-bad="true"] { border-color: var(--chilli); }
+  .gc-sel-ph { color: var(--brown); }
+  .gc-sel-list[data-dir="up"] { top: auto; bottom: calc(100% + 6px); }
+  .gc-sel-list { position: absolute; z-index: 3; top: calc(100% + 6px); left: 0; right: 0; max-height: 268px; overflow-y: auto; margin: 0; padding: 5px; list-style: none; background: var(--cream-2); border: 1px solid var(--sand-2); border-radius: 14px; box-shadow: var(--shadow-card); }
+  .gc-sel-opt { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 48px; padding: 12px 13px; border-radius: 10px; cursor: pointer; font-family: var(--font-sans); font-size: 16px; line-height: 1.35; color: var(--green-forest); }
+  .gc-sel-opt:hover, .gc-sel-opt[data-active="true"] { background: var(--sage); }
+  .gc-sel-opt[aria-selected="true"] { background: var(--blush); font-weight: 600; }
+  .gc-sel-tick { flex: 0 0 auto; }
+  .gc-sent-ok { display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; margin-top: 10px; border-radius: 50%; background: var(--sage); }
+  .gc-search { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding: 0 15px; background: var(--white); border: 1px solid var(--sand-2); border-radius: 14px; }
+  .gc-search-in { flex: 1 1 auto; align-self: stretch; min-width: 0; min-height: 52px; border: none; outline: none; background: transparent; font-family: var(--font-sans); font-size: 16px; color: var(--brown); }
+  .gc-search-in::placeholder { color: var(--brown); opacity: 1; }
+  .gc-help-sub { margin: 24px 0 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.15; color: var(--green-forest); }
+  .gc-faqs { margin-top: 12px; border: 1px solid var(--sand-2); border-radius: 14px; background: var(--cream-2); overflow: hidden; }
+  .gc-faq + .gc-faq { border-top: 1px solid var(--sand-2); }
+  .gc-faq-q { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%; min-height: 56px; padding: 13px 15px; text-align: left; background: transparent; border: none; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest); transition: color .16s ease; }
+  .gc-faq-q:hover { color: var(--terracotta-deep); }
+  .gc-chev { transition: transform .16s ease; }
+  .gc-chev-open { transform: rotate(180deg); }
+  .gc-faq-a { margin: 0; padding: 0 15px 15px; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; color: var(--brown); text-wrap: pretty; }
+  .gc-help-none { margin: 12px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); }
+  .gc-help-card { display: flex; align-items: center; gap: 13px; margin-top: 12px; padding: 14px 15px; background: var(--cream-2); border: 1px solid var(--sand-2); border-radius: 14px; text-decoration: none; transition: border-color .16s ease; }
+  .gc-help-card:hover { border-color: var(--green-forest); }
+  .gc-help-disc { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; background: var(--blush); }
+  .gc-help-card-t { display: block; font-family: var(--font-sans); font-weight: 600; font-size: 16px; color: var(--green-forest); }
+  .gc-help-card-s { display: block; margin-top: 2px; font-family: var(--font-sans); font-size: 16px; line-height: 1.4; color: var(--brown); }
+  .gc-card-note { display: inline-flex; align-items: center; gap: 7px; margin-top: 9px; padding: 5px 10px 5px 8px; background: var(--sand); border-radius: 999px; font-family: var(--font-sans); font-size: 14px; line-height: 1.3; color: var(--brown); }
+  .gc-field { margin-top: 18px; }
+  .gc-lab { display: block; margin-bottom: 7px; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass-ink); }
+  .gc-in { display: block; width: 100%; min-height: 52px; padding: 13px 15px; font-family: var(--font-sans); font-size: 16px; color: var(--brown); background: var(--white); border: 1px solid var(--sand-2); border-radius: 14px; transition: border-color .16s ease; }
+  .gc-in::placeholder { color: var(--taupe); opacity: 1; }
+  .gc-in:hover { border-color: var(--taupe); }
+  .gc-in[data-bad="true"] { border-color: var(--chilli); }
+  .gc-ta { resize: vertical; min-height: 96px; line-height: 1.5; }
+  .gc-err { display: flex; align-items: flex-start; gap: 6px; margin: 8px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.45; color: var(--chilli); }
+  .gc-cta { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 54px; margin-top: 14px; padding: 0 22px; background: var(--green-forest); color: var(--cream); border: none; border-radius: var(--radius-pill); cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; transition: background .16s ease; }
+  .gc-cta:hover { background: var(--green-deep); }
+  .gc-cta:active { filter: brightness(.94); }
+  @media (min-width: 640px) {
+    .gc-help { top: 0; left: auto; right: 0; bottom: 0; max-width: 480px; max-height: none; border-top: none; border-left: 1px solid var(--sand-2); border-radius: 0; box-shadow: none; animation: gc-help-in .22s ease both; }
+    .gc-search { margin-top: 18px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .gc-help { animation: none !important; }
+    .gc-help-x, .gc-help-card, .gc-faq-q, .gc-chev, .gc-in, .gc-cta, .gc-sel-btn { transition: none !important; }
+  }
+  .pp-in { max-width: 1280px; margin: 0 auto; padding: 0 22px; }
+  .pp { padding: 34px 0 48px; }
+  .pp-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; }
+  .pp-h1 { margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(34px, 9.6vw, 56px); line-height: 1.08; letter-spacing: -0.015em; color: var(--green-forest); text-wrap: balance; }
+  .pp-lede { margin: 14px 0 0; max-width: 560px; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; color: var(--brown); text-wrap: pretty; }
+  .pp-safe { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 14px; align-items: start; margin-top: 26px; padding: 16px 18px 18px; border-radius: 16px; background: color-mix(in oklab, var(--sand) 55%, var(--cream)); }
+  .pp-safe-ic { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; background: var(--white); }
+  .pp-safe-h { margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 19px; line-height: 1.25; color: var(--green-forest); }
+  .pp-safe-p { margin: 4px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.45; color: var(--brown); text-wrap: pretty; }
+  .pp-fig { margin: 0; overflow: hidden; border-radius: 24px; background: var(--green-deep); aspect-ratio: 762 / 796; }
+  .pp-fig img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  /* Actions: 52px major CTAs — full width inside the gutters on a phone, intrinsic and side by side from 640. */
+  .pp-acts { display: grid; gap: 12px; margin-top: 28px; }
+  .pp-cta, .pp-cta2 { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; padding: 12px 24px; border-radius: var(--radius-pill); font-family: var(--font-sans); font-weight: 600; font-size: 14px; line-height: 1.35; letter-spacing: .12em; text-transform: uppercase; text-align: center; text-wrap: balance; text-decoration: none; cursor: pointer; transition: background .16s ease, border-color .16s ease; }
+  .pp-cta { background: var(--green-forest); color: var(--cream); border: 1px solid var(--green-forest); }
+  .pp-cta:hover { background: var(--green-deep); border-color: var(--green-deep); color: var(--cream); }
+  .pp-cta2 { background: transparent; color: var(--green-forest); border: 1px solid var(--green-forest); }
+  .pp-cta2:hover { background: var(--sand); color: var(--green-forest); }
+  .pp-cta:active, .pp-cta2:active { filter: brightness(.94); }
+  .pp-back { display: inline-flex; align-items: center; min-height: 44px; margin-top: 14px; font-family: var(--font-sans); font-weight: 600; font-size: 16px; color: var(--green-forest); text-decoration: none; transition: color .16s ease; }
+  /* Site text-CTA treatment (homepage "How it works" link): the brass rule runs under the label AND the arrow. */
+  .pp-back > span { display: inline-flex; align-items: center; gap: 8px; border-bottom: 1.5px solid var(--brass); padding-bottom: 3px; transition: border-color .16s ease; }
+  .pp-back:hover { color: var(--terracotta-deep); }
+  .pp-back:hover > span { border-bottom-color: var(--terracotta-deep); }
+  @media (min-width: 640px) {
+    .pp-in { padding: 0 34px; }
+    .pp-hdr-row { padding: 15px 34px; }
+    .pp-safe { max-width: 560px; }
+    .pp-fig { max-width: 460px; }
+    .pp-acts { display: flex; flex-wrap: wrap; }
+    .pp-cta, .pp-cta2 { width: auto; padding: 0 28px; }
+  }
+  @media (min-width: 1024px) {
+    .pp-in { padding: 0 48px; }
+    .pp-hdr-row { padding: 17px 48px; }
+    .pp { padding: 64px 0 80px; }
+    .pp-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 440px); gap: 64px; align-items: center; }
+    .pp-lede { font-size: 18px; }
+    .pp-safe { margin-top: 32px; padding: 20px 22px 22px; }
+    .pp-safe-h { font-size: 20px; }
+    .pp-fig { max-width: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { .pp-q, .pp-cta, .pp-cta2, .pp-back { transition: none !important; } }
+</style>
+</helmet>
+
+<div class="at-page-pad">
+<!-- Payment-status header: wordmark + Questions? only. No ordering CTA (Get started / View box),
+     no My Account. Nothing is in flight here, so unlike Payment Processing the wordmark is a link.
+     Questions? opens the checkout's help drawer over the page. Never auto-hides. -->
+<header class="pp-hdr">
+  <div class="pp-hdr-row">
+    <a href="Abby's Table - Homepage v2.dc.html" aria-label="Abby&#8217;s Table &#8212; home" style="display: inline-flex; align-items: center; min-height: 44px; text-decoration: none; min-width: 0;"><span class="pp-mark" aria-hidden="true"><at-wordmark></at-wordmark></span></a>
+    <button class="pp-q" type="button" ref="{{ helpBtnRef }}" onClick="{{ onHelpOpen }}" aria-haspopup="dialog" aria-expanded="{{ helpOpenAttr }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.7" stroke-linecap="round" aria-hidden="true" style="flex: 0 0 auto;"><circle cx="12" cy="12" r="9" /><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.4c-.7.3-1 .8-1 1.5v.4M12 16.9h.01" /></svg><span>Questions?</span></button>
+  </div>
+</header>
+
+<!-- Payment was cancelled (status page 6). Reached when the customer backs out of the payment
+     provider. Nothing is charged; the order draft and its details are kept, and the dominant action
+     is the customer's existing order. Prototype: both CTAs go to Payment Processing; production
+     returns to the payment provider for the same order draft. -->
+<main>
+  <section class="pp" aria-labelledby="pp-h">
+    <div class="pp-in pp-grid">
+      <div>
+        <h1 class="pp-h1" id="pp-h">Payment was cancelled</h1>
+        <p class="pp-lede">Nothing has been charged and your order is still here.</p>
+        <div class="pp-safe">
+          <span class="pp-safe-ic" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.9h.01" stroke-width="2"/></svg></span>
+          <div>
+            <h2 class="pp-safe-h">You cancelled the payment</h2>
+            <p class="pp-safe-p">You can continue and try again when you&#8217;re ready.</p>
+          </div>
+        </div>
+        <div class="pp-acts">
+          <a class="pp-cta" href="Abby's Table - Payment Processing.dc.html">Continue to payment</a>
+          <a class="pp-cta2" href="Abby's Table - Payment Processing.dc.html">Use another card</a>
+        </div>
+        <a class="pp-back" href="Abby's Table - Checkout v2.dc.html"><span>Return to checkout<span aria-hidden="true">&#8594;</span></span></a>
+      </div>
+      <figure class="pp-fig"><img src="assets/food-box-open.jpg" alt="An open Abby&#8217;s Table box packed with chilled dishes" width="762" height="796" decoding="async" /></figure>
+    </div>
+  </section>
+</main>
+
+<!-- Simplified checkout footer (Checkout v2 / gift-card canon), as on Checkout v2: wordmark links
+     home and links open in the same tab — no payment is in flight and the order draft is kept. -->
+<footer class="gc-foot">
+  <div class="gc-foot-inner">
+    <div class="gc-foot-top">
+      <a class="gc-foot-logo" href="Abby's Table - Homepage v2.dc.html" aria-label="Abby&#8217;s Table &#8212; home"><span aria-hidden="true"><at-wordmark></at-wordmark></span></a>
+      <nav class="gc-foot-nav" aria-label="Legal and help">
+        <a class="gc-foot-link" href="Abby's Table - Delivery and FAQs.dc.html">Delivery &amp; FAQs</a>
+        <a class="gc-foot-link" href="Abby's Table - Allergens.dc.html">Allergens</a>
+        <a class="gc-foot-link" href="Abby's Table - Contact Us.dc.html">Contact us</a>
+        <a class="gc-foot-link" href="Abby's Table - Privacy Policy.dc.html">Privacy Policy</a>
+        <a class="gc-foot-link" href="Abby's Table - Terms of Sale.dc.html">Terms</a>
+      </nav>
+    </div>
+    <div class="gc-foot-base">
+      <p class="gc-foot-legal">
+        <span>&#169; 2026 Abby&#8217;s Table</span>
+        <a class="gc-foot-link gc-foot-inline" href="Abby's Table - Privacy Policy.dc.html#cookies" data-consent-open>Cookie preferences</a>
+      </p>
+      <p class="gc-foot-sign">Abby x</p>
+    </div>
+  </div>
+</footer>
+</div>
+
+  <!-- HELP PANEL — the Delivery & FAQs pattern (search, disclosure list, "still need help" cards)
+       reduced to what a payment page needs. No live chat: the routes are WhatsApp and a message. -->
+  <sc-if value="{{ helpOpen }}" hint-placeholder-val="{{ false }}">
+    <div class="gc-help-wrap">
+      <div class="gc-help-scrim" onClick="{{ onHelpClose }}"></div>
+      <!-- The label follows the view: each one has its own heading, so a fixed id would point at an
+           element that is no longer rendered. -->
+      <div class="gc-help" role="dialog" aria-modal="true" aria-labelledby="{{ helpLabelId }}" ref="{{ helpRef }}" onKeyDown="{{ onHelpKeys }}">
+        <div class="gc-help-top">
+          <sc-if value="{{ helpIsMessage }}" hint-placeholder-val="{{ false }}">
+            <button class="gc-help-back" type="button" onClick="{{ onHelpBack }}">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M14.5 5.5 8 12l6.5 6.5" /></svg>
+              Back to help options
+            </button>
+          </sc-if>
+          <button class="gc-help-x" type="button" ref="{{ helpCloseRef }}" onClick="{{ onHelpClose }}" aria-label="Close questions" style="margin-left: auto;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
+          </button>
+        </div>
+
+        <!-- VIEW 1 — help. The drawer's job is to answer the question without leaving this page, so
+             there is no link out to the FAQs page: searching happens in here. -->
+        <sc-if value="{{ helpIsHelp }}" hint-placeholder-val="{{ true }}">
+          <div>
+            <h2 class="gc-help-h" id="gc-help-h">Questions about your order?</h2>
+            <p class="gc-help-p">Find a quick answer below, or contact us if you need more help.</p>
+            <span class="gc-search">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" style="flex: 0 0 auto;"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></svg>
+              <input class="gc-search-in" type="search" placeholder="Search questions&#8230;" aria-label="Search questions" value="{{ q }}" onInput="{{ onQ }}" />
+            </span>
+
+            <h3 class="gc-help-sub">{{ faqHeading }}</h3>
+            <div class="gc-faqs">
+              <sc-for list="{{ faqs }}" as="f" hint-placeholder-count="4">
+                <div class="gc-faq">
+                  <button class="gc-faq-q" type="button" onClick="{{ f.toggle }}" aria-expanded="{{ f.exp }}">
+                    <span>{{ f.q }}</span>
+                    <svg class="{{ f.chev }}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="m6 9.5 6 6 6-6" /></svg>
+                  </button>
+                  <sc-if value="{{ f.open }}" hint-placeholder-val="{{ false }}">
+                    <p class="gc-faq-a">{{ f.a }}</p>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+
+            <sc-if value="{{ noMatch }}" hint-placeholder-val="{{ false }}">
+              <p class="gc-help-none">We couldn&#8217;t find an answer to that. You can message us or contact us on WhatsApp below.</p>
+            </sc-if>
+
+            <h3 class="gc-help-sub">Still need help?</h3>
+
+            <!-- Real anchor so middle-click, copy-link and a no-JS load all work; the handler only
+                 takes over to catch a blocked pop-up. rel=noopener noreferrer, and NOTHING about
+                 the order is passed — no prefilled message, no recipient details, no email. -->
+            <a class="gc-help-card" href="{{ waUrl }}" target="_blank" rel="noopener noreferrer" onClick="{{ onWhatsApp }}">
+              <span class="gc-help-disc" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.7a8.5 8.5 0 0 1-12.4 7.5L3.5 20.5l1.3-4.4A8.5 8.5 0 1 1 20.5 11.7z" /><path d="M8.8 9.2c.3 2.6 3.4 5.7 6 6 .8.1 1.6-.6 1.7-1.4l-2-.9-1 .9c-1-.5-2.2-1.7-2.7-2.7l.9-1-.9-2c-.8.1-1.5.9-1.4 1.7z" /></svg>
+              </span>
+              <!-- Each route's reply time sits INSIDE its own card, so the promise cannot drift away
+                   from the route it belongs to. -->
+              <span style="min-width: 0;">
+                <span class="gc-help-card-t">WhatsApp us</span>
+                <span class="gc-help-card-s">The quickest way to contact us during opening hours.</span>
+                <span class="gc-card-note">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><circle cx="12" cy="12" r="9" /><path d="M12 7.5V12l3 2" /></svg>
+                  {{ waNote }}.
+                </span>
+              </span>
+              <!-- Direction icon, so green-forest: brass-ink is reserved for leading identity marks
+                   (the disc glyphs, the clock, the search magnifier). -->
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M4.5 12h14M13 6.5 18.5 12 13 17.5" /></svg>
+            </a>
+
+            <sc-if value="{{ waFail }}" hint-placeholder-val="{{ false }}">
+              <p class="gc-wa-fail" role="status" aria-live="polite">
+                <span class="gc-wa-fail-b">Unable to open WhatsApp.</span>
+                <span class="gc-wa-acts">
+                  <button class="gc-wa-act" type="button" onClick="{{ onWaRetry }}"><span>Try again</span></button>
+                  <button class="gc-wa-act" type="button" onClick="{{ onMessageUs }}"><span>Message us instead</span></button>
+                </span>
+              </p>
+            </sc-if>
+
+            <!-- A button, not a link: the form opens inside this drawer so this page stays put. -->
+            <button class="gc-help-card" type="button" onClick="{{ onMessageUs }}" style="width: 100%; text-align: left; cursor: pointer;">
+              <span class="gc-help-disc" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2" /><path d="m3.6 6.6 8.4 6 8.4-6" /></svg>
+              </span>
+              <span style="min-width: 0;">
+                <span class="gc-help-card-t">Message us</span>
+                <span class="gc-help-card-s">Send us a message and we&#8217;ll get back to you as soon as possible.</span>
+                <span class="gc-card-note">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><circle cx="12" cy="12" r="9" /><path d="M12 7.5V12l3 2" /></svg>
+                  We usually reply within 2 working days.
+                </span>
+              </span>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M4.5 12h14M13 6.5 18.5 12 13 17.5" /></svg>
+            </button>
+          </div>
+        </sc-if>
+
+        <!-- VIEW 2 — message form, in the same drawer. -->
+        <sc-if value="{{ helpIsMessage }}" hint-placeholder-val="{{ false }}">
+          <div>
+            <h2 class="gc-help-h" id="gc-msg-h" ref="{{ msgHeadRef }}" tabindex="-1">Send us a message</h2>
+            <p class="gc-help-p">Share a few details and we&#8217;ll get back to you as soon as possible.</p>
+
+            <div class="gc-field">
+              <label class="gc-lab" for="gc-c-name">Name</label>
+              <input class="gc-in" id="gc-c-name" ref="{{ cNameRef }}" type="text" autoComplete="name" value="{{ cName }}" onInput="{{ onCName }}" data-bad="{{ cNameBad }}" />
+            </div>
+            <div class="gc-field">
+              <label class="gc-lab" for="gc-c-email">Email address</label>
+              <input class="gc-in" id="gc-c-email" ref="{{ cEmailRef }}" type="email" autoComplete="email" placeholder="you@example.com" value="{{ cEmail }}" onInput="{{ onCEmail }}" data-bad="{{ cEmailBad }}" />
+            </div>
+            <div class="gc-field">
+              <label class="gc-lab" for="gc-c-ref">Order reference (optional)</label>
+              <input class="gc-in" id="gc-c-ref" type="text" placeholder="e.g. #12345" value="{{ cRef }}" onInput="{{ onCRef }}" />
+            </div>
+            <div class="gc-field">
+              <span class="gc-lab" id="gc-c-topic-l">How can we help?</span>
+              <div class="gc-sel">
+                <button class="gc-sel-btn" type="button" id="gc-c-topic" ref="{{ cTopicRef }}" onClick="{{ onTopicToggle }}" onKeyDown="{{ onTopicKeys }}" aria-haspopup="listbox" aria-expanded="{{ topicOpenAttr }}" aria-labelledby="gc-c-topic-l gc-c-topic" aria-activedescendant="{{ topicActiveId }}" data-bad="{{ cTopicBad }}">
+                  <span class="{{ topicValueCls }}">{{ topicLabel }}</span>
+                  <svg class="{{ topicChev }}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="m6 9.5 6 6 6-6" /></svg>
+                </button>
+                <sc-if value="{{ topicOpen }}" hint-placeholder-val="{{ false }}">
+                  <ul class="gc-sel-list" role="listbox" aria-labelledby="gc-c-topic-l" data-dir="{{ topicDir }}" ref="{{ topicListRef }}">
+                    <sc-for list="{{ topicOpts }}" as="o" hint-placeholder-count="6">
+                      <li class="gc-sel-opt" role="option" id="{{ o.id }}" aria-selected="{{ o.sel }}" data-active="{{ o.active }}" onClick="{{ o.pick }}" onMouseEnter="{{ o.hover }}">
+                        <span>{{ o.label }}</span>
+                        <!-- Tick on a committed choice only — never on the placeholder. -->
+                        <sc-if value="{{ o.ticked }}" hint-placeholder-val="{{ false }}">
+                          <svg class="gc-sel-tick" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7" /></svg>
+                        </sc-if>
+                      </li>
+                    </sc-for>
+                  </ul>
+                </sc-if>
+              </div>
+            </div>
+            <div class="gc-field">
+              <label class="gc-lab" for="gc-c-msg">Message</label>
+              <textarea class="gc-in gc-ta" id="gc-c-msg" ref="{{ cMsgRef }}" placeholder="Type your message here&#8230;" value="{{ cMsg }}" onInput="{{ onCMsg }}" data-bad="{{ cMsgBad }}"></textarea>
+            </div>
+
+            <p role="status" aria-live="polite" style="margin: 0;">
+              <sc-if value="{{ cErrOn }}" hint-placeholder-val="{{ false }}">
+                <span class="gc-err" style="margin-top: 10px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--chilli)" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" style="flex: 0 0 auto; margin-top: 3px;"><path d="M12 3.5l8.5 16h-17z" /><path d="M12 10v4M12 16.8h.01" /></svg><span>{{ cErr }}</span></span>
+              </sc-if>
+            </p>
+
+            <button class="gc-cta" type="button" onClick="{{ onSendMessage }}">Send message</button>
+
+            <p class="gc-help-note">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto; margin-top: 2px;"><circle cx="12" cy="12" r="9" /><path d="M12 7.5V12l3 2" /></svg>
+              We usually reply within 2 working days.
+            </p>
+          </div>
+        </sc-if>
+
+        <!-- VIEW 3 — sent. Still inside the drawer: the payment page is untouched behind it. -->
+        <sc-if value="{{ helpIsSent }}" hint-placeholder-val="{{ false }}">
+          <div>
+            <span class="gc-sent-ok" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7" /></svg>
+            </span>
+            <h2 class="gc-help-h" id="gc-sent-h" ref="{{ sentHeadRef }}" tabindex="-1">Message sent</h2>
+            <p class="gc-help-p">Thanks &#8212; we&#8217;ll get back to you as soon as possible.</p>
+            <button class="gc-cta" type="button" onClick="{{ onHelpClose }}">Close</button>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:900}}">
+let CONTACT = null;
+const TOPICS = [
+  { v: "thisorder", label: "This payment" },
+  { v: "order", label: "An existing order" },
+  { v: "payment", label: "Payment" },
+  { v: "delivery", label: "Delivery" },
+  { v: "allergens", label: "Allergens & ingredients" },
+  { v: "other", label: "Something else" },
+];
+const HELP_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+class Component extends DCLogic {
+  state = {
+    helpView: "help", waFail: false, q: "", openFaq: -1,
+    cName: "", cEmail: "", cRef: "", cTopic: "", cMsg: "", cErrs: {},
+    topicOpen: false, topicActive: -1, topicDir: "down", helpOpen: false,
+  };
+
+  // Drawer FAQs for THIS page: what a customer who backed out of payment asks. Four show unqueried.
+  FAQ = [
+    { id: "charged", q: "Have I been charged?", a: "No. Nothing is charged until you complete your payment." },
+    { id: "kept", q: "Is my order still saved?", a: "Yes. Your box, dishes, extras and delivery details are kept, so you can continue when you\u2019re ready." },
+    { id: "date", q: "Is my delivery date still held?", a: "Delivery dates are held for a short time during checkout. If yours is no longer available, you can choose another from your delivery details." },
+    { id: "change", q: "Can I change my order before paying?", a: "Yes. Return to checkout to update your details, or go back through your box before you pay." },
+    { id: "secure", q: "Is my payment secure?", a: "Yes. Your payment is processed by our secure payment provider." },
+  ];
+
+  componentDidMount() {
+    if (!CONTACT) import("./at-contact-data.js").then((m) => { CONTACT = m; this.forceUpdate(); }).catch(() => {});
+  }
+
+  componentWillUnmount() {
+    clearTimeout(this._helpTo); cancelAnimationFrame(this._helpRaf);
+    clearTimeout(this._viewTo); cancelAnimationFrame(this._viewRaf);
+    clearTimeout(this._topicTo);
+    if (this._unbindTopicDismiss) this._unbindTopicDismiss();
+    document.body.style.overflow = "";
+  }
+
+  /* ---------- questions drawer (canonical, Checkout v2 / gift-card checkout) ---------- */
+  helpRef = (el) => { this._help = el; };
+  helpBtnRef = (el) => { this._helpBtn = el; };
+  helpCloseRef = (el) => { this._helpClose = el; };
+  msgHeadRef = (el) => { this._msgHead = el; };
+  sentHeadRef = (el) => { this._sentHead = el; };
+  cNameRef = (el) => { this._cName = el; };
+  cEmailRef = (el) => { this._cEmail = el; };
+  cTopicRef = (el) => { this._cTopic = el; };
+  cMsgRef = (el) => { this._cMsg = el; };
+  topicListRef = (el) => { this._topicList = el; };
+
+  // Everything behind a modal drawer leaves the tab order as well as the accessibility tree — a
+  // focus trap alone still leaves the page reachable by other means. Every direct child of the
+  // page wrapper except the drawer itself, so the list cannot drift out of step with the markup.
+  _bgInert = (on) => {
+    const pad = document.querySelector(".at-page-pad");
+    if (!pad) return;
+    Array.prototype.forEach.call(pad.children, (el) => {
+      if (el.classList && el.classList.contains("gc-help-wrap")) return;
+      if (el.querySelector && el.querySelector(".gc-help")) return;
+      if (on) { el.setAttribute("inert", ""); el.setAttribute("aria-hidden", "true"); }
+      else { el.removeAttribute("inert"); el.removeAttribute("aria-hidden"); }
+    });
+  };
+
+  openHelp = () => {
+    // Opening always lands on the help view, but never clears a part-typed message.
+    this.setState({ helpOpen: true, helpView: "help", waFail: false });
+    document.body.style.overflow = "hidden";
+    this._bgInert(true);
+    clearTimeout(this._helpTo);
+    cancelAnimationFrame(this._helpRaf);
+    const start = Date.now();
+    const take = () => {
+      const el = this._helpClose || (this._help && this._help.querySelector(".gc-help-x"));
+      if (el && el.getClientRects().length) { el.focus(); return; }
+      if (Date.now() - start < 3000) {
+        this._helpRaf = requestAnimationFrame(take);
+        this._helpTo = setTimeout(take, 50);
+      }
+    };
+    take();
+  };
+
+  closeHelp = () => {
+    // Only the drawer's own browsing state resets. Page state is never touched here, and the
+    // message draft survives so closing by accident does not lose it.
+    this._unbindTopicDismiss();
+    this.setState({ helpOpen: false, q: "", openFaq: -1, waFail: false, topicOpen: false });
+    document.body.style.overflow = "";
+    this._bgInert(false);
+    clearTimeout(this._helpTo);
+    cancelAnimationFrame(this._helpRaf);
+    if (this._helpBtn) this._helpBtn.focus();
+  };
+
+  // Moves focus to the new view's heading so a screen-reader user is told where they now are.
+  _focusView = (getEl) => {
+    clearTimeout(this._viewTo);
+    cancelAnimationFrame(this._viewRaf);
+    const start = Date.now();
+    const take = () => {
+      const el = getEl();
+      if (el && el.getClientRects().length) { el.focus({ preventScroll: true }); if (this._help) this._help.scrollTop = 0; return; }
+      if (Date.now() - start < 3000) {
+        this._viewRaf = requestAnimationFrame(take);
+        this._viewTo = setTimeout(take, 50);
+      }
+    };
+    take();
+  };
+
+  showMessageView = () => {
+    this._closeTopic(false);
+    this.setState({ helpView: "message", waFail: false, topicOpen: false, cErrs: {} });
+    this._focusView(() => this._msgHead);
+  };
+
+  backToHelp = () => {
+    this.setState({ helpView: "help" });
+    this._focusView(() => this._helpClose);
+  };
+
+  onHelpKeys = (e) => {
+    // An open dropdown swallows Escape first, so the key closes the innermost thing.
+    if (e.key === "Escape") { e.preventDefault(); this.closeHelp(); return; }
+    if (e.key !== "Tab" || !this._help) return;
+    const els = Array.from(this._help.querySelectorAll("button, a[href], input, textarea")).filter((el) => el.getClientRects().length);
+    if (!els.length) return;
+    const first = els[0], last = els[els.length - 1];
+    if (!this._help.contains(document.activeElement)) { e.preventDefault(); first.focus(); return; }
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  };
+
+  // Opens WhatsApp in a new context. No message is prefilled and nothing about the order travels
+  // with it. A blocked window keeps us here and offers a way on, rather than navigating this page away.
+  openWhatsApp = (e) => {
+    if (e && e.preventDefault) {
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || (e.button && e.button !== 0)) return;
+      e.preventDefault();
+    }
+    let w = null;
+    try { w = window.open(CONTACT ? CONTACT.WA_URL : "", "_blank", "noopener,noreferrer"); } catch (err) { w = null; }
+    this.setState({ waFail: !w });
+  };
+
+  _topicListH = () => Math.min(268, TOPICS.length * 48 + 10);
+
+  _openTopic = (active) => {
+    const btn = this._cTopic, panel = this._help;
+    let dir = "down";
+    if (btn && panel) {
+      const b = btn.getBoundingClientRect(), p = panel.getBoundingClientRect();
+      const need = this._topicListH() + 6;
+      const below = p.bottom - b.bottom;
+      const above = b.top - p.top;
+      if (below < need && above > below) dir = "up";
+    }
+    this.setState({ topicOpen: true, topicDir: dir, topicActive: active });
+    this._bindTopicDismiss();
+    this._revealTopicList();
+  };
+
+  _closeTopic = (refocus) => {
+    this._unbindTopicDismiss();
+    this.setState({ topicOpen: false });
+    if (refocus && this._cTopic) this._cTopic.focus();
+  };
+
+  _bindTopicDismiss = () => {
+    if (this._topicBound) return;
+    this._topicBound = true;
+    this._onTopicDown = (ev) => {
+      const wrap = this._cTopic && this._cTopic.closest(".gc-sel");
+      if (wrap && wrap.contains(ev.target)) return;
+      this._closeTopic(false);
+    };
+    this._onTopicFocusOut = (ev) => {
+      const wrap = this._cTopic && this._cTopic.closest(".gc-sel");
+      if (!wrap) return;
+      const to = ev.relatedTarget;
+      if (to && !wrap.contains(to)) this._closeTopic(false);
+    };
+    document.addEventListener("pointerdown", this._onTopicDown, true);
+    document.addEventListener("focusout", this._onTopicFocusOut, true);
+  };
+
+  _unbindTopicDismiss = () => {
+    if (!this._topicBound) return;
+    this._topicBound = false;
+    document.removeEventListener("pointerdown", this._onTopicDown, true);
+    document.removeEventListener("focusout", this._onTopicFocusOut, true);
+  };
+
+  // Settle-then-scroll: wait for two matching readings, then scroll the DRAWER just far enough.
+  _revealTopicList = () => {
+    clearTimeout(this._topicTo);
+    const start = Date.now();
+    let lastBottom = null;
+    const go = () => {
+      const list = this._topicList, panel = this._help;
+      const ready = list && panel && list.getClientRects().length;
+      const bottom = ready ? Math.round(list.getBoundingClientRect().bottom) : null;
+      if (ready && bottom === lastBottom) {
+        const l = list.getBoundingClientRect(), p = panel.getBoundingClientRect();
+        const over = l.bottom + 12 - p.bottom;
+        const under = p.top - (l.top - 12);
+        if (over > 0) panel.scrollTop += over;
+        else if (under > 0) panel.scrollTop -= under;
+        return;
+      }
+      lastBottom = bottom;
+      if (Date.now() - start < 1500) this._topicTo = setTimeout(go, 60);
+    };
+    go();
+  };
+
+  onTopicKeys = (e) => {
+    const s = this.state;
+    const last = TOPICS.length - 1;
+    if (!s.topicOpen) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        const i = TOPICS.findIndex((t) => t.v === s.cTopic);
+        this._openTopic(i < 0 ? 0 : i);
+      }
+      return;
+    }
+    if (e.key === "Escape" || e.key === "Tab") {
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); }
+      this._closeTopic(false);
+      return;
+    }
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      const t = TOPICS[s.topicActive];
+      if (t) this._pickTopic(t.v);
+      return;
+    }
+    const step = { ArrowDown: 1, ArrowUp: -1 }[e.key];
+    if (step === undefined && e.key !== "Home" && e.key !== "End") return;
+    e.preventDefault();
+    const n = e.key === "Home" ? 0 : e.key === "End" ? last
+      : Math.min(last, Math.max(0, s.topicActive + step));
+    this.setState({ topicActive: n });
+    if (this._topicList) {
+      const li = this._topicList.children[n];
+      if (li) {
+        const lr = li.getBoundingClientRect(), pr = this._topicList.getBoundingClientRect();
+        if (lr.bottom > pr.bottom) this._topicList.scrollTop += lr.bottom - pr.bottom;
+        else if (lr.top < pr.top) this._topicList.scrollTop -= pr.top - lr.top;
+      }
+    }
+  };
+
+  _pickTopic = (v) => {
+    const errs = Object.assign({}, this.state.cErrs);
+    delete errs.cTopic; delete errs.first;
+    this._unbindTopicDismiss();
+    this.setState({ cTopic: v, cErrs: errs, topicOpen: false, topicActive: TOPICS.findIndex((t) => t.v === v) });
+    if (this._cTopic) this._cTopic.focus();
+  };
+
+  _setC = (k, v) => {
+    const errs = Object.assign({}, this.state.cErrs);
+    delete errs[k]; delete errs.first;
+    this.setState({ [k]: v, cErrs: errs });
+  };
+
+  sendMessage = () => {
+    const s = this.state;
+    const errs = {};
+    if (!s.cName.trim()) errs.cName = 1;
+    if (!s.cEmail.trim() || !HELP_EMAIL_RE.test(s.cEmail.trim())) errs.cEmail = 1;
+    if (!s.cTopic) errs.cTopic = 1;
+    if (!s.cMsg.trim()) errs.cMsg = 1;
+    const order = [["cName", "Enter your name so we know who we\u2019re replying to.", this._cName],
+                   ["cEmail", "Enter a valid email address so we can reply.", this._cEmail],
+                   ["cTopic", "Choose what your message is about.", this._cTopic],
+                   ["cMsg", "Enter your message.", this._cMsg]];
+    const firstBad = order.find(([k]) => errs[k]);
+    if (firstBad) {
+      // Nothing typed is cleared — the values live in state, so a failed send preserves the lot.
+      errs.first = firstBad[1];
+      this.setState({ cErrs: errs });
+      if (firstBad[2]) firstBad[2].focus();
+      return;
+    }
+    this.setState({ helpView: "sent", cErrs: {}, cMsg: "", cRef: "", cTopic: "" });
+    this._focusView(() => this._sentHead);
+  };
+
+  renderVals() {
+    // Drawer search: ONE FAQ list for the page (this.FAQ), filtered live; four shown unqueried.
+    const hq = (this.state.q || "").trim().toLowerCase();
+    const FAQ_HITS = hq
+      ? this.FAQ.filter((it) => (it.q + " " + it.a).toLowerCase().includes(hq))
+      : this.FAQ.slice(0, 4);
+    const helpFaqs = FAQ_HITS.map((item) => {
+      const open = this.state.openFaq === item.id;
+      return {
+        q: item.q, a: item.a, open,
+        exp: open ? "true" : "false",
+        chev: open ? "gc-chev gc-chev-open" : "gc-chev",
+        toggle: () => this.setState((s) => ({ openFaq: s.openFaq === item.id ? -1 : item.id })),
+      };
+    });
+    return {
+      helpOpenAttr: this.state.helpOpen ? "true" : "false",
+      // ---- questions drawer (canonical: Checkout v2's) ----
+      helpOpen: this.state.helpOpen,
+      helpRef: this.helpRef,
+      helpBtnRef: this.helpBtnRef,
+      helpCloseRef: this.helpCloseRef,
+      onHelpOpen: this.openHelp,
+      onHelpClose: this.closeHelp,
+      onHelpKeys: this.onHelpKeys,
+      helpIsHelp: this.state.helpView === "help",
+      helpIsMessage: this.state.helpView === "message",
+      helpIsSent: this.state.helpView === "sent",
+      helpLabelId: this.state.helpView === "message" ? "gc-msg-h" : this.state.helpView === "sent" ? "gc-sent-h" : "gc-help-h",
+      onHelpBack: this.backToHelp,
+      onMessageUs: this.showMessageView,
+      waUrl: CONTACT ? CONTACT.WA_URL : "",
+      // Reply time follows the opening hours, so the promise is never made when nobody is there to
+      // keep it. The drawer opens fresh each time, so it cannot go stale on screen.
+      waNote: CONTACT ? CONTACT.replyNote() : "Closed now \u00B7 We\u2019ll reply when we reopen",
+      onWhatsApp: this.openWhatsApp,
+      waFail: !!this.state.waFail,
+      onWaRetry: () => this.openWhatsApp(),
+      q: this.state.q,
+      onQ: (e) => this.setState({ q: e.target.value, openFaq: -1 }),
+      faqHeading: hq ? "Matching questions" : "Popular questions",
+      faqs: helpFaqs,
+      noMatch: !!hq && FAQ_HITS.length === 0,
+      msgHeadRef: this.msgHeadRef,
+      sentHeadRef: this.sentHeadRef,
+      cNameRef: this.cNameRef, cEmailRef: this.cEmailRef, cTopicRef: this.cTopicRef, cMsgRef: this.cMsgRef,
+      cName: this.state.cName, cEmail: this.state.cEmail, cRef: this.state.cRef, cTopic: this.state.cTopic, cMsg: this.state.cMsg,
+      onCName: (e) => this._setC("cName", e.target.value),
+      onCEmail: (e) => this._setC("cEmail", e.target.value),
+      onCRef: (e) => this._setC("cRef", e.target.value),
+      onCMsg: (e) => this._setC("cMsg", e.target.value),
+      topicOpen: !!this.state.topicOpen,
+      topicOpenAttr: this.state.topicOpen ? "true" : "false",
+      topicChev: this.state.topicOpen ? "gc-chev gc-chev-open" : "gc-chev",
+      topicLabel: (TOPICS.find((t) => t.v === this.state.cTopic) || {}).label || "Please select",
+      topicValueCls: this.state.cTopic ? "" : "gc-sel-ph",
+      topicActiveId: this.state.topicOpen && this.state.topicActive >= 0 ? "gc-topic-o" + this.state.topicActive : "",
+      topicListRef: this.topicListRef,
+      topicDir: this.state.topicDir,
+      onTopicToggle: () => {
+        if (this.state.topicOpen) { this._closeTopic(false); return; }
+        const i = TOPICS.findIndex((t) => t.v === this.state.cTopic);
+        this._openTopic(i < 0 ? 0 : i);
+      },
+      onTopicKeys: this.onTopicKeys,
+      topicOpts: TOPICS.map((t, i) => ({
+        id: "gc-topic-o" + i,
+        label: t.label,
+        sel: this.state.cTopic === t.v ? "true" : "false",
+        ticked: this.state.cTopic === t.v,
+        active: this.state.topicActive === i ? "true" : "false",
+        pick: () => this._pickTopic(t.v),
+        hover: () => this.setState({ topicActive: i }),
+      })),
+      cNameBad: this.state.cErrs.cName ? "true" : "false",
+      cEmailBad: this.state.cErrs.cEmail ? "true" : "false",
+      cTopicBad: this.state.cErrs.cTopic ? "true" : "false",
+      cMsgBad: this.state.cErrs.cMsg ? "true" : "false",
+      cErrOn: !!this.state.cErrs.first, cErr: this.state.cErrs.first || "",
+      onSendMessage: this.sendMessage,
+    };
+  }
+}
+</script>
+</body>
+</html>

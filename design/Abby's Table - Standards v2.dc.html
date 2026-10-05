@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>html, body { background-color: #F7F1E8; color-scheme: light; }</style>
+<!-- ↑ First-paint ground: FIRST in the head so it is in the first bytes the parser sees.
+     Dependency-free literal of --cream (no tokens, no runtime); see CLAUDE.md head standard. -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Focus standard. In the real <head>, before the runtime, so it is parser-inserted and
+     render-blocking: it exists before first paint and before any script can move focus. A
+     <helmet> link is injected by the runtime AFTER render, which is what let the browser's blue
+     outline flash first. -->
+<!-- Shared stylesheets: ONE authoritative load path, in the real head. In <helmet> they were
+     applied from the raw template, torn down when the runtime consumed it, then re-added —
+     the transparent gap on every full load and on back navigation. -->
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="apple-touch-icon" href="assets/favicon-180.png">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/colors.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/typography.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/styles.css">
+<link rel="stylesheet" href="at-focus.css">
+<script src="at-logo.js"></script>
+<script src="at-desktop-header.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<!-- Order in progress: swaps "Get started" for VIEW BOX and the purchase bar for a box
+     summary once step 1 has been started. Self-initialising; no page-local code. -->
+<script src="at-order-state.js"></script>
+<!-- Signed in: "Log in" reads "My Account" in the header and drawer. Self-initialising. -->
+<script src="at-account-state.js"></script>
+  <script src="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/_ds_bundle.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background: var(--cream); }
+    a { color: var(--green-forest); }
+    a:hover { color: var(--terracotta-deep); }
+    :focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; border-radius: 3px; }
+    /* Brass is only 1.9:1 on green-deep, so dark grounds take a cream ring with a gold outer edge. */
+    .st-out :focus-visible, .at-drawer-panel :focus-visible { outline-color: #FBF8F1; outline-offset: 0; box-shadow: 0 0 0 3px var(--gold); }
+
+    /* Pending tokens, declared locally until the components using them are approved and the
+       values move into the design system. Rationale in CLAUDE.md § Tokens.
+       --brass-ink-warm is the one that matters most on this page: the hero and the "From our
+       kitchen" band are sage and blush, where --brass-ink measures 4.28:1 and 3.72:1 and fails
+       the small-text minimum. --brass-lift carries brass type on --green-forest (4.97:1). */
+    :root { --terracotta: #B7554E; --terracotta-deep: #9C433D; --gold: #F6C33B; --brass-ink: #8A5F1F; --brass-ink-warm: #7A5219; --brass-lift: #D09B45; --terracotta-ink: #943E38; --sage: #E1E2D2; }
+
+    @keyframes at-drawer-in { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+    @keyframes at-fade-in { from { opacity: 0; } to { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+    }
+
+    /* ---------- header (canonical, from Homepage v2) ---------- */
+    .at-hdr { transition: transform .22s ease; }
+    .at-hdr[data-hidden="true"] { transform: translateY(-100%); }
+    .at-nav-link:hover { color: var(--terracotta-deep) !important; border-bottom-color: var(--brass) !important; }
+    .at-nav-link[aria-current="page"] { color: var(--green-forest) !important; font-weight: 600; border-bottom-color: var(--brass) !important; }
+    .at-login:hover { color: var(--terracotta-deep) !important; }
+    .at-login:hover span { border-bottom-color: var(--brass) !important; }
+    .at-logo { transition: opacity .16s ease; }
+    .at-logo:hover { opacity: .78; }
+    .at-burger span, .at-burger span span { transition: background .16s ease, border-color .16s ease; }
+    .at-burger:hover span { border-color: var(--terracotta-deep) !important; }
+    .at-burger:hover span span { background: var(--terracotta-deep) !important; }
+    .at-cta, .at-drawer-cta { transition: background .16s ease; }
+    .at-cta:hover, .at-drawer-cta:hover { background: var(--terracotta-deep) !important; }
+    .at-cta:active, .at-drawer-cta:active { background: var(--terracotta-deep) !important; filter: brightness(.94); }
+
+    /* ---------- drawer (canonical) ---------- */
+    .at-drawer-wrap { display: none; }
+    .at-drawer-wrap.is-open { display: block; }
+    .at-drawer-panel { animation: at-drawer-in .2s ease; }
+    .at-drawer-scrim { animation: at-fade-in .2s ease; }
+    .at-drawer-link:hover { color: var(--brass) !important; }
+
+    /* ---------- page shell ---------- */
+    .st-inner { max-width: 1280px; margin: 0 auto; padding: 0 22px; }
+    .st-sec { padding: 44px 0 48px; }
+    /* The hero ground lives here rather than inline so the review variant can win without
+       !important — an inline background would beat any non-important class rule. The helmet
+       stylesheet is parsed before the hero element streams, so nothing is delayed. */
+    /* Phone: title and lede centred, and the four marks are stacked cards two-up — the mockup's
+       composition. Both revert at 640, where the measure makes a left-aligned column read better
+       and the marks return to the inline row. */
+    .st-hero-lead { text-align: center; }
+    /* Back to dish: pulled up into the hero's top padding so it reads as part of the header zone,
+       not as the start of the content. 48px target on a phone, 44 from 1024 (pointer). */
+    .st-backbar { display: flex; margin: -22px 0 10px; }
+    .at-back { min-height: 48px; transition: color .16s ease; }
+    .at-back:hover { color: var(--terracotta-deep) !important; }
+    .st-nos-item { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; background: var(--surface-bright); border: 1px solid var(--sand-2); border-radius: 14px; padding: 14px; font-family: var(--font-sans); font-size: 16px; font-weight: 500; line-height: 1.3; color: var(--green-forest); }
+
+    /* The closing CTA shares the hero's ground, so the page opens and closes on the same colour —
+       which means it follows the review variant too, or the two would diverge the moment the
+       hero is switched. */
+    .st-hero, .st-hero-ground { background: var(--sage); }
+    .st-hero.is-sand, .is-sand ~ .st-hero-ground { background: var(--sand); }
+
+    /* MOBILE composition for a standard: lead copy, then the photograph, then the fact list.
+       Three DIRECT children so the desktop state can put the figure in its own column and the
+       two copy blocks on shared row tracks. None of them holds an interactive control, so the
+       figure changing sides at 1024 cannot desync focus order from visual order. */
+    .st-row { display: grid; gap: 22px; }
+    .st-fig { margin: 0; border-radius: 18px; overflow: hidden; background: var(--sand); aspect-ratio: 4 / 3; }
+    .st-fig img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .st-row + .st-row { margin-top: 44px; }
+
+    /* The gap under the rule is deliberately larger than the space between a band's own numeral
+       and its title, so the hierarchy is unambiguous: chapter, then five bands. */
+    /* Left-aligned on a phone: the hero's title and lede are the page's one centred block, and a
+       second centred heading below it reads as a competing title. It centres at 1024, which is
+       the composition the mockup showed. */
+    .st-head { margin-bottom: 44px; }
+    /* Side margins live here, not in the inline style: an inline `margin: … auto …` outranks any
+       class rule, so the paragraph stayed centred while the heading above it went left. */
+    .st-head-p { margin-left: 0; margin-right: 0; margin-bottom: 0; }
+
+    /* Index. On a phone it is a LIST — five columns at 390px would put the numerals at 12px and
+       break every label over three lines. Numeral inline, label beside it, hairline between;
+       56px rows clear the 44px target. It becomes the five-across rule from 1024, where the
+       screenshot's composition fits. */
+    .st-idx { display: grid; margin-top: 26px; text-align: left; }
+    .st-idx-item { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; column-gap: 14px; min-height: 56px; padding: 10px 0; text-decoration: none; }
+    /* Chevron: a direction mark, so green-forest rather than the brass of the identity numerals.
+       Phone only — from 640 the entries are centred columns, where a trailing chevron would sit
+       off-centre under the label. */
+    .st-idx-ch { display: block; color: var(--green-forest); transition: color .16s ease, transform .16s ease; }
+    .st-idx-item:hover .st-idx-ch { color: var(--terracotta-deep); transform: translateX(2px); }
+    @media (prefers-reduced-motion: reduce) { .st-idx-item:hover .st-idx-ch { transform: none; } }
+    .st-idx-item + .st-idx-item { border-top: 1px solid var(--sand); }
+    .st-idx-num { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--brass); font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 15px; line-height: 1; color: var(--green-forest); }
+    .st-idx-t { font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 20px; line-height: 1.2; color: var(--green-forest); transition: color .16s ease; }
+    .st-idx-item:hover .st-idx-t { color: var(--terracotta-deep); }
+
+    /* The numeral device, taken from How It Works v2's .hw-num rather than re-invented: 34px ring,
+       1px brass, green-forest figure on light bands. One device for every numeral on the site. */
+    .st-num { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; margin: 0 0 14px; border-radius: 50%; border: 1px solid var(--brass); font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 15px; line-height: 1; color: var(--green-forest); }
+
+    /* Check rows: tick spanning both text rows, hairline between. The tick is a status MARK, not
+       type and not an action, so it takes brass-ink — 4.96:1 on cream and 3.72:1 on blush, and a
+       graphic mark needs 3:1. */
+    .st-chk { display: grid; grid-template-columns: 24px minmax(0, 1fr); column-gap: 13px; align-items: start; padding: 16px 0; }
+    .st-chk > svg { grid-row: 1 / span 2; margin-top: 3px; }
+    .st-chk + .st-chk { border-top: 1px solid var(--sand); }
+    /* On blush the hairline needs a warmer line than --sand, which disappears into it. */
+    .st-band-blush .st-chk + .st-chk { border-top-color: rgba(120, 86, 58, .28); }
+
+    /* ---------- what we leave out (green-forest band) ---------- */
+    .st-out-row { display: grid; grid-template-columns: 56px minmax(0, 1fr); column-gap: 18px; align-items: start; padding: 22px 0; border-bottom: 1px solid var(--green-mid); }
+    .st-out-n { grid-row: 1 / span 2; display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border: 1px solid var(--brass); border-radius: 50%; }
+    .st-out-row:first-of-type { border-top: 1px solid var(--green-mid); }
+
+    /* ---------- nutrition panel ---------- */
+    .st-nut-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    /* column-reverse so the DOM keeps dt (the nutrient) before dd (its value) — a definition list
+       read in the wrong order is worse than none — while the figure still reads above the label.
+       Safe to reverse here: the cells hold no interactive content, so no focus order is affected. */
+    .st-nut-cell { display: flex; flex-direction: column-reverse; align-items: center; justify-content: flex-end; padding: 18px 10px 16px; text-align: center; border-top: 1px solid var(--sand-2); border-left: 1px solid var(--sand-2); }
+    .st-nut-cell:nth-child(2n+1) { border-left: none; }
+
+    /* ---------- CTAs ---------- */
+    .st-cta { transition: background .16s ease; }
+    .st-cta:hover { background: var(--green-deep) !important; }
+    .st-cta:active { filter: brightness(.94); }
+
+    /* ---------- mobile purchase bar (canonical) ---------- */
+    .at-mobbar { transform: translateY(100%); transition: transform .22s ease; }
+    .at-mobbar[data-on="true"] { transform: translateY(0); }
+    .at-mobbar-cta:hover { background: var(--green-deep) !important; }
+    .at-mobbar-cta:active { filter: brightness(.94); }
+
+    /* ---------- "↑ Top" utility control, from Menu Landing v3 ----------
+       A navigation utility, not a CTA: cream ground, green-forest ink, sand hairline, restrained
+       shadow. z-index 75 — above the purchase bar (70), below the drawer — and suppressed while
+       the drawer is open. Stays visible over the footer, which is where it is most useful.
+       This page HAS a purchase bar, so its clearance is read from the measured --at-bar-h and it
+       drops back to the viewport-edge inset whenever the bar is retracted. */
+    .st-top { position: fixed; z-index: 75; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: inline-flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 16px; border: 1px solid var(--sand-2); border-radius: var(--radius-pill); background: var(--cream-2); color: var(--green-forest); font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .01em; cursor: pointer; box-shadow: 0 6px 18px -10px rgba(30, 58, 47, .45); opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity .2s ease, transform .2s ease, background .16s ease, color .16s ease, bottom .22s ease; }
+    .st-top[data-on="true"] { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    .st-top[data-bar="true"] { bottom: calc(var(--at-bar-h, 85px) + 14px); }
+    .st-top:hover { background: var(--cream); color: var(--terracotta-deep); }
+    .st-top:active { filter: brightness(.96); }
+    .st-top:focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
+
+    /* ---------- footer (canonical, from Homepage v2) ---------- */
+    .at-foot-news { text-align: center; }
+    .at-foot-head { justify-content: center; cursor: pointer; }
+    .at-foot-link { justify-content: center; transition: color .16s ease; }
+    .at-foot-links { align-items: stretch; display: none; flex-direction: column; }
+    .at-foot-link:hover { color: var(--brass) !important; }
+    .at-foot-legal a:hover { color: var(--brass) !important; }
+    .at-foot-col.is-open .at-foot-links { display: flex; }
+    .at-foot-col.is-open .at-foot-chevron { transform: rotate(180deg); }
+    .at-foot-chevron { transition: transform .18s ease; }
+    .at-social svg { transition: fill .16s ease; }
+    .at-social:hover svg { fill: var(--brass); }
+    .at-foot-join { transition: background .16s ease; }
+    .at-foot-join:hover { background: var(--brass-deep) !important; }
+    .at-foot-join:active { filter: brightness(.94); }
+    .at-foot-input::placeholder { color: var(--green-sage); opacity: 1; }
+    .at-foot-inner a:focus-visible, .at-foot-inner button:focus-visible, .at-foot-input:focus-visible {
+      outline: 2px solid var(--cream); outline-offset: 0; box-shadow: 0 0 0 3px var(--gold);
+    }
+
+    /* ---------- 640px: more measure ---------- */
+    @media (min-width: 640px) {
+      .at-hdr-row { padding: 14px 34px !important; gap: 14px !important; }
+      .st-inner { padding: 0 34px; }
+      .st-sec { padding: 56px 0 60px; }
+      .st-hero { padding: 44px 0 56px !important; }
+      .st-backbar { margin: -30px 0 12px; }
+      /* The stacked mark cards are the phone composition; the centred hero copy is NOT — it holds
+         for the whole single-column layout and only goes left at 1024, where the hero splits into
+         copy beside the photograph. */
+      /* Auto side margins, or the measure stays anchored to the left gutter and the centred text
+         is centred inside a block that is itself off-centre. */
+      .st-hero-lead { max-width: 560px; margin-left: auto; margin-right: auto; }
+      .st-nos-item { flex-direction: row !important; align-items: center !important; gap: 12px !important; padding: 13px 16px !important; }
+      /* No intermediate 3-across: five items across three columns leaves a ragged 3 + 2 whose
+         hairlines span only part of the row, and the labels wrap to two lines at different
+         points. The row list holds until 1024, where all five fit on one line. */
+      .st-nos { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+      /* Intrinsic from 640, where the composition genuinely changes — never an intermediate
+         phone breakpoint, which would read as two sizing systems. Height never varies. */
+      .st-cta { width: auto !important; }
+      /* Centred under the centred copy. fit-content + auto side margins, because auto margins do
+         not centre an inline-flex box. Scoped to the hero: the closing CTA is centred by its own
+         wrapper. */
+      /* display needs !important: the anchor carries inline `display: inline-flex`, which beats a
+         class rule — and auto margins never centre an inline-level box, so the centring silently
+         did nothing. */
+      .st-hero-tail .st-cta { display: flex !important; width: fit-content !important; margin-left: auto; margin-right: auto; }
+      .st-nut-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .st-nut-cell:nth-child(2n+1) { border-left: 1px solid var(--sand-2); }
+      .st-nut-cell:nth-child(4n+1) { border-left: none; }
+      .at-foot-form { flex-direction: row !important; align-items: stretch !important; gap: 0 !important; height: 52px !important; width: 340px; max-width: 100%; margin-left: auto !important; margin-right: auto !important; border: 1px solid var(--green-mid); border-radius: var(--radius-pill); overflow: hidden; }
+      .at-foot-input { flex: 1 1 auto !important; min-width: 0 !important; border: none !important; border-radius: 0 !important; height: auto !important; }
+      .at-foot-join { border-radius: 0 !important; height: auto !important; width: auto !important; padding: 0 26px !important; }
+      .at-foot-inner { padding: 48px 34px 0 !important; }
+    }
+
+    /* ---------- 1024px: desktop compositions ---------- */
+    @media (min-width: 1024px) {
+      .at-burger { display: none !important; }
+      .at-nav, .at-login { display: flex !important; }
+      .at-hdr-row { grid-template-columns: auto 1fr auto auto !important; gap: 34px !important; padding: 18px 48px !important; }
+      .at-logo { justify-self: start !important; }
+      .at-login { margin-left: 12px !important; }
+      .at-hdr[data-hidden="true"] { transform: none !important; }
+      .at-mobbar { display: none !important; }
+      .st-top { min-height: 40px; padding: 0 14px; font-size: 13.5px; right: 24px; bottom: 24px; }
+      .st-top[data-bar="true"] { bottom: 24px; }
+
+      .st-inner { padding: 0 48px; }
+      .st-sec { padding: 72px 0 76px; }
+      .st-hero { padding: 64px 0 72px !important; }
+      .st-backbar { margin: -46px 0 18px; }
+      .at-back { min-height: 44px; }
+      .st-h1 { font-size: 56px !important; }
+      .st-h2 { font-size: 48px !important; }
+      .st-hero-lead { max-width: none; margin-left: 0; margin-right: 0; text-align: left; }
+      .st-head { margin-bottom: 64px; text-align: center; }
+      .st-head-p { margin-left: auto; margin-right: auto; }
+      /* Five across, numeral above the label, vertical hairlines between — the screenshot's
+         composition. Each cell is its own centred column, so no horizontal rules remain. */
+      .st-idx { grid-template-columns: repeat(5, minmax(0, 1fr)); column-gap: 0; margin-top: 36px; text-align: center; }
+      .st-idx-item { grid-template-columns: minmax(0, 1fr); justify-items: center; row-gap: 14px; padding: 4px 18px; border-top: none !important; }
+      .st-idx-item + .st-idx-item { border-left: 1px solid var(--sand); }
+      .st-idx-t { font-size: 22px; }
+      .st-idx-ch { display: none; }
+
+      /* Hero: 50/50, copy left, photograph right and vertically centred against it. A flexible
+         third row absorbs the figure's extra height — a spanning item otherwise distributes it
+         into the two auto rows and drags the marks block away from the copy. */
+      .st-hero-grid { grid-template-columns: minmax(0, 1.04fr) minmax(0, 1fr) !important; grid-template-rows: auto auto 1fr !important; column-gap: 56px !important; row-gap: 0 !important; align-content: center !important; }
+      .st-hero-lead { grid-column: 1 !important; grid-row: 1 !important; }
+      /* row-gap is zeroed on this grid so the row-spanning figure cannot inject gaps into the
+         copy column — so the lede → marks step has to be restated here, or the marks sit hard
+         against the lede. 28px is the homepage hero's subline → facts value. */
+      .st-hero-tail { grid-column: 1 !important; grid-row: 2 !important; margin-top: 28px; }
+      .st-hero-tail .st-cta { margin-left: 0; margin-right: 0; }
+      .st-hero-fig { grid-column: 2 !important; grid-row: 1 / span 3 !important; align-self: center !important; aspect-ratio: 5 / 4 !important; border-radius: 24px !important; }
+
+      /* A standard: photograph in its own column, alternating side. Both edges of the track are
+         set in ONE declaration — a lone grid-column-start would cancel the span. */
+      /* Scoped to .st-row as DIRECT children, deliberately. The hero figure also carries .st-fig,
+         and a bare `.st-fig` rule here is the same (0,1,0) + !important as .st-hero-fig above it
+         but comes LATER in the sheet — so it won the cascade and pulled the hero photograph into
+         column 1, on top of the headline. Media queries add no specificity and later wins; the
+         scope is what keeps the two compositions apart. */
+      .st-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important; grid-template-rows: auto auto 1fr !important; column-gap: 56px !important; row-gap: 0 !important; align-content: center !important; }
+      .st-row + .st-row { margin-top: 76px !important; }
+      .st-row > .st-lead { grid-column: 2 / span 1 !important; grid-row: 1 !important; }
+      .st-row > .st-facts { grid-column: 2 / span 1 !important; grid-row: 2 !important; }
+      .st-row > .st-fig, .st-row > .st-panelfig { grid-column: 1 / span 1 !important; grid-row: 1 / span 3 !important; align-self: center !important; border-radius: 24px !important; }
+      .st-row.st-flip > .st-lead, .st-row.st-flip > .st-facts { grid-column: 1 / span 1 !important; }
+      .st-row.st-flip > .st-fig, .st-row.st-flip > .st-panelfig { grid-column: 2 / span 1 !important; }
+      /* The panel is a card, not a photograph: it keeps the 18px panel radius the design system
+         gives cards, so the override above is undone for it alone. */
+      .st-row > .st-panelfig { border-radius: 18px !important; }
+
+      .st-num { width: 42px; height: 42px; font-size: 17px; margin-bottom: 18px; }
+
+      /* What we leave out: copy left, the three rows right. */
+      .st-out-grid { grid-template-columns: minmax(0, 0.84fr) minmax(0, 1fr) !important; column-gap: 72px !important; row-gap: 0 !important; align-items: center !important; }
+      .st-out-row { padding: 26px 0 !important; }
+
+      .at-foot-inner { padding: 56px 48px 0 !important; }
+      .at-foot-grid { grid-template-columns: 1.4fr 3fr !important; gap: 48px !important; }
+      .at-foot-cols { grid-template-columns: repeat(3, 1fr) !important; gap: 48px !important; border-bottom: none !important; }
+      .at-foot-col { border-top: none !important; }
+      .at-foot-head { min-height: 0 !important; padding: 0 !important; cursor: default !important; justify-content: space-between !important; }
+      .at-foot-chevron { display: none !important; }
+      .at-foot-links { display: flex !important; margin-top: 16px !important; padding-bottom: 0 !important; }
+      .at-foot-link { justify-content: flex-start !important; }
+      .at-foot-bottom { grid-template-columns: 1fr auto 1fr !important; align-items: center !important; margin-top: 0 !important; }
+      .at-foot-logo { justify-self: start !important; }
+      .at-foot-follow { justify-self: end !important; align-items: flex-end !important; }
+      .at-foot-follow-row { flex-direction: row !important; align-items: center !important; gap: 12px !important; }
+      .at-foot-dash { display: inline !important; }
+      .at-foot-mark { width: 220px !important; height: 38px !important; }
+      .at-foot-legal { flex-direction: row !important; gap: 4px 24px !important; }
+      .at-foot-legal-row { gap: 24px !important; }
+      .at-foot-legal-sep { display: none !important; }
+      .at-foot-news { text-align: left !important; }
+      .at-foot-form { margin-left: 0 !important; margin-right: 0 !important; }
+      .at-foot-news p { max-width: 300px; }
+      .at-foot-consent { max-width: 340px; }
+      .at-foot-rule { display: block !important; }
+    }
+  </style>
+<style>
+  /* Sterling sign, site-wide. Playfair Display's £ has a double crossbar that reads as a euro, so
+     U+00A3 alone is drawn from a Figtree subset (1 KB, 400–700) prepended to the display and
+     accent stacks. Every other character is untouched. html:root outranks the token sheet. */
+  @font-face { font-family: "AT Sterling"; src: url("assets/fonts/at-sterling.woff2") format("woff2"); font-weight: 400 700; font-style: normal; font-display: block; unicode-range: U+00A3; }
+  html:root {
+    --font-display: "AT Sterling", "Playfair Display", ui-serif, Georgia, "Times New Roman", serif;
+    --font-accent: "AT Sterling", "Cormorant Garamond", ui-serif, Georgia, serif;
+  }
+</style>
+</helmet>
+
+<template id="__bundler_thumbnail" data-bg-color="#1E3A2F">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#1E3A2F"/><path d="M50 22c9 10 15 18 15 26a15 15 0 0 1-30 0c0-8 6-16 15-26z" fill="none" stroke="#C28E3C" stroke-width="2.6" stroke-linejoin="round"/><path d="M30 78h40" stroke="#C28E3C" stroke-width="2.6" stroke-linecap="round"/></svg>
+</template>
+
+<header class="at-hdr" data-at-desk-hdr="marketing" ref="{{ hdrRef }}" data-hidden="{{ hdrHidden }}" style="position: sticky; top: 0; z-index: 60; background: var(--cream-2); border-bottom: 1px solid var(--sand);">
+  <div class="at-hdr-row" style="display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 8px; max-width: 1280px; margin: 0 auto; padding: 10px 14px;">
+    <button class="at-burger" type="button" ref="{{ burgerRef }}" onClick="{{ openDrawer }}" aria-label="Open menu" aria-controls="at-drawer" aria-expanded="{{ burgerExpanded }}" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-left: -10px; border: none; background: transparent; cursor: pointer;">
+      <span aria-hidden="true" style="display: block; width: 22px; height: 14px; border-top: 1.6px solid var(--green-forest); border-bottom: 1.6px solid var(--green-forest); position: relative;"><span style="position: absolute; left: 0; right: 0; top: 50%; margin-top: -0.8px; height: 1.6px; background: var(--green-forest);"></span></span>
+    </button>
+
+    <a class="at-logo" href="Abby's Table - Homepage v2.dc.html" aria-label="Abby&#8217;s Table &#8212; home" style="justify-self: center; display: block; text-decoration: none; min-width: 0;">
+      <span aria-hidden="true" style="display: block; width: clamp(108px, 36vw, 168px); aspect-ratio: 186 / 32; color: var(--green-forest);"><at-wordmark></at-wordmark></span>
+    </a>
+
+    <nav class="at-nav" aria-label="Main" style="display: none; justify-self: center; align-items: center; gap: 30px;">
+      <a class="at-nav-link" href="Abby's Table - Menu Landing v3.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Menu</a>
+      <a class="at-nav-link" href="Abby's Table - How It Works v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">How it works</a>
+      <a class="at-nav-link" href="Abby's Table - Abby's Story v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Abby&#8217;s Story</a>
+      <a class="at-nav-link" href="Abby's Table - Gifting v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Gifting</a>
+      <a class="at-nav-link" href="Abby's Table - Private Table v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Private Table</a>
+    </nav>
+
+    <a class="at-login" href="Abby's Table - Log in.dc.html" style="display: none; align-items: center; height: 44px; font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; transition: color .16s ease;"><span style="display: inline-block; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: border-color .16s ease;">Log in</span></a>
+
+    <a class="at-cta" href="Abby's Table - Choose Box v2.dc.html" style="display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 13px; border-radius: var(--radius-pill); background: var(--terracotta); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; text-decoration: none; white-space: nowrap;">Get started</a>
+  </div>
+</header>
+
+<!-- HERO. Ground is --sage, the sanctioned "Our standards" band colour from the homepage — this
+     whole page is that section expanded, so it inherits its ground rather than introducing a new
+     one. green-forest measures 9.4:1 on sage and brown 10.2:1; brass is only 2.2:1, so brass type
+     here is --brass-ink-warm (5.25:1) and the decorative strokes are --brass-ink (4.3:1). -->
+<section class="st-hero {{ heroGroundCls }}" ref="{{ heroRef }}" data-screen-label="Standards hero" style="padding: 34px 0 44px;">
+  <div class="st-inner">
+    <!-- Contextual return, shown ONLY when the customer came here from a dish page's "See our
+         standards" link (?from=dish AND a live return record in this tab's sessionStorage — the
+         query alone, e.g. a pasted link, is not enough). Navigation, not a CTA: the site's
+         existing back-link styling. The href is the real dish URL, so no-JS, new-tab and
+         modified clicks still work; a primary click returns through history instead. -->
+    <sc-if value="{{ fromDish }}" hint-placeholder-val="{{ false }}">
+      <div class="st-backbar">
+        <a class="at-back" href="{{ dishHref }}" onClick="{{ onBackToDish }}" style="display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-sans); font-weight: 600; font-size: 16px; color: var(--green-forest); text-decoration: none;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+          <span>{{ backLabel }}</span>
+        </a>
+      </div>
+    </sc-if>
+    <div class="st-hero-grid" style="display: grid; gap: 22px;">
+      <div class="st-hero-lead">
+        <!-- Three hard line breaks: art direction from the user's copy, kept at every width. Do
+             not replace them with a measure and do not remove them. -->
+        <h1 class="st-h1" ref="{{ h1Ref }}" style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(38px, 11.6vw, 56px); line-height: 1.04; letter-spacing: -0.015em; color: var(--green-forest); text-wrap: pretty;">Great food<br />Starts with<br />Higher Standards</h1>
+        <p style="margin: 18px 0 0; font-family: var(--font-sans); font-size: 18px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">Nigerian fusion food made properly. With carefully chosen ingredients, nutrition at the core, bold flavour and complete transparency.</p>
+      </div>
+
+      <figure class="st-fig st-hero-fig" style="margin: 0;">
+        <img src="assets/std2-hero.jpg" width="1200" height="895" alt="Yam, black-eyed beans, ofada rice, grains, scotch bonnets, red onion and greens on a dark tray" fetchpriority="high" decoding="async" />
+      </figure>
+
+      <div class="st-hero-tail">
+        <!-- The brand's signature device: the standard stated as what is left out. One column on a
+             phone — at 16px, the body floor, two columns cannot hold "No ultra-processed foods"
+             without dropping under it. Two columns from 640, where the measure allows it. -->
+        <ul class="st-nos" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none;">
+          <li class="st-nos-item">
+            <!-- Prohibition mark: the glyph sits UNDER a ring and a diagonal bar, so the "no" is
+                 carried by the symbol as well as the words. The inner group is scaled to 0.56, so
+                 its stroke-width is set to 2.5 to land back at the ring's visual 1.4. -->
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto; display: block;"><g stroke-width="2.5" transform="translate(12 12) scale(0.56) translate(-12 -12)"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></g><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
+            <span>No seed oils</span>
+          </li>
+          <li class="st-nos-item">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto; display: block;"><g stroke-width="2.5" transform="translate(12 12) scale(0.56) translate(-12 -12)"><path d="m21 8-9-5-9 5v8l9 5 9-5Z"/><path d="m3 8 9 5 9-5"/><path d="M12 13v8"/></g><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
+            <span>No <span style="white-space: nowrap;">ultra-processed</span> foods</span>
+          </li>
+          <li class="st-nos-item">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto; display: block;"><g stroke-width="2.5" transform="translate(12 12) scale(0.56) translate(-12 -12)"><path d="M9 3h6"/><path d="M10 3v5.5L5.5 17A2.5 2.5 0 0 0 7.8 21h8.4a2.5 2.5 0 0 0 2.3-4L14 8.5V3"/><path d="M7.3 15h9.4"/></g><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
+            <span>No added MSG</span>
+          </li>
+          <li class="st-nos-item">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto; display: block;"><g stroke-width="2.5" transform="translate(12 12) scale(0.56) translate(-12 -12)"><path d="M12 21V9"/><path d="M12 9C12 5.5 9.5 3 6 3c0 3.5 2.5 6 6 6Z"/><path d="M12 12c0-3 2.2-5.2 5.5-5.2 0 3-2.2 5.2-5.5 5.2Z"/></g><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
+            <span>No refined sugars</span>
+          </li>
+        </ul>
+
+        <!-- Hero primary, on the canonical ladder: 54px, terracotta, full width of the content
+             column at every phone width (the page gutters set its outer width — no mobile
+             max-width, no intermediate breakpoint), intrinsic from 640. Terracotta is correct
+             here by role: the reserved three are the header pill, the HERO CTA and the drawer
+             CTA. It is also the element the purchase bar waits to lose sight of. -->
+        <a class="st-cta" ref="{{ heroCtaRef }}" href="#standards" onClick="{{ goStandards }}" style="display: inline-flex; align-items: center; justify-content: center; width: 100%; min-height: 54px; margin-top: 30px; padding: 0 32px; border-radius: var(--radius-pill); background: var(--green-forest); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; text-decoration: none;">See what goes in</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- The three standards live in ONE cream band. Between them the transition is carried by the
+     heading and the spacing, never a divider or a second cream — the alternating nine-band
+     structure the old page had is what this replaces. -->
+<section id="standards" class="st-sec" data-screen-label="01 Quality ingredients" style="background: var(--cream); scroll-margin-top: 84px;">
+  <div class="st-inner">
+    <!-- Chapter opener for the whole 01–05 run, not band 01's title: centred, with an index of
+         the five standards and the brass rule closing it off. The index entries are anchors to
+         the bands — the same device as How It Works v2's rail, numeral and hover colour carrying
+         it with no underline. -->
+    <div class="st-head">
+      <h2 class="st-h2" style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(30px, 8.6vw, 40px); line-height: 1.08; letter-spacing: -0.01em; color: var(--green-forest); text-wrap: pretty;">What goes in</h2>
+      <p class="st-head-p" style="margin-top: 14px; max-width: 720px; font-family: var(--font-sans); font-size: 18px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">Five simple standards guide everything we make, from the ingredients we choose to the way we cook, so every meal is delicious, nutritious and made with integrity.</p>
+
+      <nav class="st-idx" aria-label="The five standards">
+        <a class="st-idx-item" href="#std-01"><span class="st-idx-num" aria-hidden="true">01</span><span class="st-idx-t">Quality ingredients</span><svg class="st-idx-ch" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg></a>
+        <a class="st-idx-item" href="#std-02"><span class="st-idx-num" aria-hidden="true">02</span><span class="st-idx-t">Flavour built naturally</span><svg class="st-idx-ch" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg></a>
+        <a class="st-idx-item" href="#std-03"><span class="st-idx-num" aria-hidden="true">03</span><span class="st-idx-t">Nutrition built in</span><svg class="st-idx-ch" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg></a>
+        <a class="st-idx-item" href="#std-04"><span class="st-idx-num" aria-hidden="true">04</span><span class="st-idx-t">Cooked with care</span><svg class="st-idx-ch" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg></a>
+        <a class="st-idx-item" href="#std-05"><span class="st-idx-num" aria-hidden="true">05</span><span class="st-idx-t">Always transparent</span><svg class="st-idx-ch" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg></a>
+      </nav>
+
+      <div class="st-head-rule" aria-hidden="true" style="height: 2px; background: var(--brass); margin: 26px 0 0;"></div>
+    </div>
+
+    <div id="std-01" class="st-row" ref="{{ rowRef }}" style="scroll-margin-top: 84px;">
+      <div class="st-lead">
+        <span class="st-num" aria-hidden="true">01</span>
+        <h3 style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(26px, 7.4vw, 34px); line-height: 1.12; color: var(--green-forest); text-wrap: pretty;">Quality ingredients</h3>
+        <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 18px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">We start with ingredients chosen for quality, flavour and nutrition.</p>
+      </div>
+
+      <figure class="st-fig" style="margin: 0;">
+        <img src="assets/std2-ingredients.jpg" width="1200" height="900" alt="Salmon, beef shin, eggs, olive and avocado oils, coconut, avocado, red palm fruit, wild rice, quinoa and basmati on a dark tray" loading="lazy" decoding="async" />
+      </figure>
+
+      <div class="st-facts">
+        <div class="st-chk">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block;"><path d="m4.5 12.5 5 5 10-11" /></svg>
+          <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest); text-wrap: pretty;">Carefully sourced proteins</p>
+          <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">Including wild-caught seafood, grass-fed meat and organic eggs.</p>
+        </div>
+        <div class="st-chk">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block;"><path d="m4.5 12.5 5 5 10-11" /></svg>
+          <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest); text-wrap: pretty;">Better cooking oils</p>
+          <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">Extra virgin olive oil, avocado oil, coconut oil and certified sustainable organic red palm oil. Never seed oils.</p>
+        </div>
+        <div class="st-chk">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block;"><path d="m4.5 12.5 5 5 10-11" /></svg>
+          <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest); text-wrap: pretty;">Whole grains &amp; traditional staples</p>
+          <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">From traditional ofada rice to quinoa and wholegrain basmati, offering more choice beyond standard white rice.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="st-sec st-band-blush" data-screen-label="02 Flavour built naturally" style="background: var(--blush);">
+  <div class="st-inner">
+    <div id="std-02" class="st-row st-flip" style="scroll-margin-top: 84px;">
+      <div class="st-lead">
+        <span class="st-num" aria-hidden="true">02</span>
+        <h3 style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(26px, 7.4vw, 34px); line-height: 1.12; color: var(--green-forest); text-wrap: pretty;">Flavour built naturally</h3>
+        <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 18px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">Whole spices, fresh aromatics and slow-simmered stocks, used to build deep, layered flavour.</p>
+      </div>
+
+      <figure class="st-fig" style="margin: 0;">
+        <img src="assets/std2-spices.jpg" width="1200" height="960" alt="Whole spices ground by hand in a mortar and pestle" loading="lazy" decoding="async" />
+      </figure>
+
+      <div class="st-facts">
+        <div class="st-chk">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block;"><path d="m4.5 12.5 5 5 10-11" /></svg>
+          <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest); text-wrap: pretty;">Marinades, stocks &amp; herbs</p>
+          <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">Flavour built with house-made marinades, slow-simmered stocks, fresh herbs and aromatics.</p>
+        </div>
+        <div class="st-chk">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block;"><path d="m4.5 12.5 5 5 10-11" /></svg>
+          <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest); text-wrap: pretty;">No commercial seasoning blends</p>
+          <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">No bouillon cubes or powders, added MSG or commercial seasoning mixes used to build flavour.</p>
+        </div>
+        <div class="st-chk">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block;"><path d="m4.5 12.5 5 5 10-11" /></svg>
+          <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest); text-wrap: pretty;">Traditional techniques</p>
+          <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">From cooked-down pepper bases to richly cooked stews, flavour is developed patiently and properly.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="st-sec" data-screen-label="03 Nutrition built in" style="background: var(--cream);">
+  <div class="st-inner">
+    <div id="std-03" class="st-row" style="scroll-margin-top: 84px;">
+      <div class="st-lead">
+        <span class="st-num" aria-hidden="true">03</span>
+        <h3 style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(26px, 7.4vw, 34px); line-height: 1.12; color: var(--green-forest); text-wrap: pretty;">Nutrition built in</h3>
+        <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 18px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">Nutrition considered from the start, through balanced plates, varied ingredients and thoughtful portioning.</p>
+      </div>
+
+      <figure class="st-fig" style="margin: 0;">
+        <img src="assets/std2-nutrition.jpg" width="1200" height="906" alt="Three plated dishes: goat efo with wild rice, lamb shank with jollof and greens, and fish peppersoup" loading="lazy" decoding="async" />
+      </figure>
+
+      <div class="st-facts">
+        <div class="st-chk">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block;"><path d="m4.5 12.5 5 5 10-11" /></svg>
+          <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest); text-wrap: pretty;">Balanced by design</p>
+          <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">Protein, vegetables and quality carbohydrates brought together in considered proportions.</p>
+        </div>
+        <div class="st-chk">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block;"><path d="m4.5 12.5 5 5 10-11" /></svg>
+          <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest); text-wrap: pretty;">Variety across the menu</p>
+          <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">A broad mix of proteins, vegetables, whole grains and traditional staples keeps meals varied.</p>
+        </div>
+        <div class="st-chk">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block;"><path d="m4.5 12.5 5 5 10-11" /></svg>
+          <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest); text-wrap: pretty;">Portions with purpose</p>
+          <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">Serving sizes are designed to feel satisfying while keeping the overall plate in balance.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="st-sec st-band-blush" data-screen-label="04 Cooked with care" style="background: var(--blush);">
+  <div class="st-inner">
+    <div id="std-04" class="st-row st-flip" style="scroll-margin-top: 84px;">
+      <div class="st-lead">
+        <span class="st-num" aria-hidden="true">04</span>
+        <h3 style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(26px, 7.4vw, 34px); line-height: 1.12; color: var(--green-forest); text-wrap: pretty;">Cooked with care</h3>
+        <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 18px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">Prepared in small batches, with attention given to every stage from cooking to packing.</p>
+      </div>
+
+      <figure class="st-fig" style="margin: 0;">
+        <img src="assets/std2-delivery.jpg" width="1200" height="960" alt="An Abby&#8217;s Table box packed with chilled dishes" loading="lazy" decoding="async" />
+      </figure>
+
+      <div class="st-facts">
+        <div class="st-chk">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block;"><path d="m4.5 12.5 5 5 10-11" /></svg>
+          <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest); text-wrap: pretty;">Small-batch cooking</p>
+          <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">We cook in limited quantities, giving each dish the time and attention it needs.</p>
+        </div>
+        <div class="st-chk">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block;"><path d="m4.5 12.5 5 5 10-11" /></svg>
+          <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest); text-wrap: pretty;">Cooked for your order</p>
+          <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">Food is prepared for scheduled cooking runs rather than produced in large volumes and stockpiled.</p>
+        </div>
+        <div class="st-chk">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block;"><path d="m4.5 12.5 5 5 10-11" /></svg>
+          <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest); text-wrap: pretty;">Handled properly</p>
+          <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">Dishes are blast chilled, carefully packed and shipped to preserve quality from our kitchen to yours.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 05. The example dish panel IS this band's visual, in the place the other four give a
+     photograph — the claim is transparency, so the evidence is the information itself.
+     ⚠ The figures are the old page's and have not been confirmed against a real recipe; the
+     panel says "Example dish information" for that reason. Flagged, not quietly kept. -->
+<section class="st-sec" data-screen-label="05 Always transparent" style="background: var(--cream);">
+  <div class="st-inner">
+    <div id="std-05" class="st-row" style="scroll-margin-top: 84px;">
+      <div class="st-lead">
+        <span class="st-num" aria-hidden="true">05</span>
+        <h3 style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(26px, 7.4vw, 34px); line-height: 1.12; color: var(--green-forest); text-wrap: pretty;">Always transparent</h3>
+        <p style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 18px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">Clear ingredients, straightforward labelling and honest information about what goes into every dish.</p>
+      </div>
+
+      <div class="st-panelfig" style="background: var(--surface-bright); border-radius: 18px; overflow: hidden; box-shadow: var(--shadow-card);">
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 20px 20px 22px;">
+          <div style="min-width: 0;">
+            <p style="margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass-ink);">Example dish information</p>
+            <p style="margin: 10px 0 0; max-width: 400px; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.25; color: var(--green-forest); text-wrap: pretty;">Grilled wild salmon, dirty ofada rice with kale</p>
+          </div>
+          <span style="flex: 0 0 auto; display: inline-flex; align-items: center; gap: 9px; background: var(--cream-2); border-radius: var(--radius-pill); padding: 8px 16px;">
+            <span role="img" aria-label="Heat level: Medium" style="display: inline-flex; gap: 3px; align-items: center;">
+              <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" style="display: block;"><path fill="var(--green-mid)" d="M13.6 6.7c.5-1.9 2.1-3.2 4.1-3.4-.2 2-1.6 3.6-3.6 4z"/><path fill="var(--chilli, #B8431C)" d="M13.6 6.7C9.1 8.7 7 12.2 7.8 16.2c.4 2.2 1.4 4.3 2.7 6 1.3-1.8 2.8-4.2 4-6.8 1.1-2.5 1.1-5.8-.9-8.7z"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" style="display: block;"><path fill="var(--green-mid)" d="M13.6 6.7c.5-1.9 2.1-3.2 4.1-3.4-.2 2-1.6 3.6-3.6 4z"/><path fill="var(--chilli, #B8431C)" d="M13.6 6.7C9.1 8.7 7 12.2 7.8 16.2c.4 2.2 1.4 4.3 2.7 6 1.3-1.8 2.8-4.2 4-6.8 1.1-2.5 1.1-5.8-.9-8.7z"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" style="display: block;"><path fill="var(--green-mist)" d="M13.6 6.7c.5-1.9 2.1-3.2 4.1-3.4-.2 2-1.6 3.6-3.6 4z"/><path fill="var(--green-mist)" d="M13.6 6.7C9.1 8.7 7 12.2 7.8 16.2c.4 2.2 1.4 4.3 2.7 6 1.3-1.8 2.8-4.2 4-6.8 1.1-2.5 1.1-5.8-.9-8.7z"/></svg>
+            </span>
+            <span style="font-family: var(--font-sans); font-weight: 600; font-size: 16px; color: var(--green-forest);">Medium</span>
+          </span>
+        </div>
+
+        <!-- A real definition list: each figure is a value for a named nutrient, so the pairing is
+             conveyed without depending on the visual grid. -->
+        <dl class="st-nut-grid" style="margin: 0;">
+          <div class="st-nut-cell">
+            <dt style="margin: 8px 0 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brown);">kcal</dt>
+            <dd style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1; color: var(--green-forest);">540</dd>
+          </div>
+          <div class="st-nut-cell">
+            <dt style="margin: 8px 0 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brown);">Fat</dt>
+            <dd style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1; color: var(--green-forest);">18g</dd>
+          </div>
+          <div class="st-nut-cell">
+            <dt style="margin: 8px 0 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brown);">Saturates</dt>
+            <dd style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1; color: var(--green-forest);">5.2g</dd>
+          </div>
+          <div class="st-nut-cell">
+            <dt style="margin: 8px 0 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brown);">Carbs</dt>
+            <dd style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1; color: var(--green-forest);">46g</dd>
+          </div>
+          <div class="st-nut-cell">
+            <dt style="margin: 8px 0 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brown);">Sugars</dt>
+            <dd style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1; color: var(--green-forest);">6g</dd>
+          </div>
+          <div class="st-nut-cell">
+            <dt style="margin: 8px 0 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brown);">Fibre</dt>
+            <dd style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1; color: var(--green-forest);">9g</dd>
+          </div>
+          <div class="st-nut-cell">
+            <dt style="margin: 8px 0 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brown);">Protein</dt>
+            <dd style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1; color: var(--green-forest);">32g</dd>
+          </div>
+          <div class="st-nut-cell">
+            <dt style="margin: 8px 0 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brown);">Salt</dt>
+            <dd style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1; color: var(--green-forest);">0.9g</dd>
+          </div>
+        </dl>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; border-top: 1px solid var(--sand-2); padding: 16px 20px;">
+          <span style="display: inline-flex; align-items: center; gap: 10px;">
+            <span style="font-family: var(--font-sans); font-size: 16px; color: var(--brown);">Allergens</span>
+            <span style="display: inline-flex; align-items: center; background: var(--cream-2); border-radius: var(--radius-pill); padding: 6px 14px; font-family: var(--font-sans); font-weight: 600; font-size: 16px; color: var(--green-forest);">Fish</span>
+          </span>
+          <a href="Abby's Table - Allergens.dc.html" class="at-foot-link" style="display: inline-flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--green-forest); text-decoration: none;"><span style="border-bottom: 1.5px solid var(--brass); padding-bottom: 2px;">Allergen information</span></a>
+        </div>
+      </div>
+
+      <div class="st-facts">
+        <div class="st-chk">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block;"><path d="m4.5 12.5 5 5 10-11" /></svg>
+          <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest); text-wrap: pretty;">Full ingredient information</p>
+          <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">Ingredients and allergens are clearly listed, so you know exactly what you&#8217;re ordering.</p>
+        </div>
+        <div class="st-chk">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block;"><path d="m4.5 12.5 5 5 10-11" /></svg>
+          <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest); text-wrap: pretty;">Nutrition made clear</p>
+          <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">Nutritional information is provided for every dish in a simple, easy-to-understand format.</p>
+        </div>
+        <div class="st-chk">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block;"><path d="m4.5 12.5 5 5 10-11" /></svg>
+          <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest); text-wrap: pretty;">Clear from kitchen to customer</p>
+          <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">No vague claims, hidden shortcuts or confusing language, just clear information about our food.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Closing CTA. --green-forest by role: the three terracotta primaries are the header pill, the
+     hero CTA and the drawer CTA, and an in-page CTA is green or outline. -->
+<section class="st-sec st-hero-ground" ref="{{ ctaRef }}" data-screen-label="Closing CTA">
+  <div class="st-inner" style="text-align: center;">
+    <h2 class="st-h2" style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(30px, 8.6vw, 40px); line-height: 1.08; letter-spacing: -0.01em; color: var(--green-forest); text-wrap: pretty;">Ready to fill your box?</h2>
+    <p style="margin: 12px auto 0; max-width: 540px; font-family: var(--font-sans); font-size: 18px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">Choose at least six dishes, personalise where available, and pick your delivery date.</p>
+    <div style="display: flex; justify-content: center; margin-top: 28px;">
+      <a class="st-cta" href="Abby's Table - Choose Box v2.dc.html" style="display: inline-flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; padding: 0 34px; border-radius: var(--radius-pill); background: var(--green-forest); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; text-decoration: none;">Build a Box</a>
+    </div>
+  </div>
+</section>
+
+<footer id="contact" ref="{{ footRef }}" style="background: var(--green-deep);">
+  <div aria-hidden="true" style="height: 2px; background: var(--brass);"></div>
+  <div class="at-foot-inner" style="max-width: 1280px; margin: 0 auto; padding: 40px 22px 0;">
+
+    <div class="at-foot-grid" style="display: grid; gap: 36px;">
+      <div class="at-foot-news">
+        <p style="margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">Join the table</p>
+        <p style="margin: 12px 0 18px; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; color: var(--blush);">Kitchen notes and offers from Abby, monthly.</p>
+
+        <sc-if value="{{ subscribed }}" hint-placeholder-val="{{ false }}">
+          <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.3; color: var(--blush);">Thank you for joining the table.</p>
+        </sc-if>
+
+        <sc-if value="{{ notSubscribed }}" hint-placeholder-val="{{ true }}">
+          <form class="at-foot-form" onSubmit="{{ onJoin }}" style="display: flex; flex-direction: column; gap: 10px;">
+            <label for="st-foot-email" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);">Email address</label>
+            <input class="at-foot-input" id="st-foot-email" name="email" type="email" required autocomplete="email" placeholder="Enter your email address" style="height: 52px; box-sizing: border-box; min-width: 0; border: 1px solid var(--green-mid); border-radius: var(--radius-pill); background: transparent; padding: 0 20px; font-family: var(--font-sans); font-size: 16px; color: var(--blush);" />
+            <button type="submit" class="at-foot-join" style="height: 48px; width: 100%; border: none; cursor: pointer; border-radius: var(--radius-pill); background: var(--brass); color: var(--green-deep); font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase;">Join</button>
+          </form>
+          <p class="at-foot-consent" style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 13px; line-height: 1.5; color: var(--sand-2);">We use your email for kitchen notes and offers only. Unsubscribe any time. See our <a href="Abby's Table - Privacy Policy.dc.html" class="at-foot-link" style="color: var(--sand-2); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-skip-ink: none;">Privacy Policy</a>.</p>
+        </sc-if>
+      </div>
+
+      <div class="at-foot-cols" style="display: grid; border-bottom: 1px solid var(--green-mid);">
+        <div class="at-foot-col {{ shopCls }}" style="border-top: 1px solid var(--green-mid);">
+          <button class="at-foot-head" type="button" onClick="{{ toggleShop }}" aria-expanded="{{ shopExp }}" aria-controls="st-foot-shop" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 0; background: transparent; border: none; text-align: left; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">
+            <span>Shop</span>
+            <svg class="at-foot-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          <div class="at-foot-links" id="st-foot-shop" style="padding-bottom: 8px;">
+            <a class="at-foot-link" href="Abby's Table - Menu Landing v3.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Menu</a>
+            <a class="at-foot-link" href="Abby's Table - Gifting v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Gifting</a>
+            <a class="at-foot-link" href="Abby's Table - Private Table v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Private Table</a>
+          </div>
+        </div>
+
+        <div class="at-foot-col {{ learnCls }}" style="border-top: 1px solid var(--green-mid);">
+          <button class="at-foot-head" type="button" onClick="{{ toggleLearn }}" aria-expanded="{{ learnExp }}" aria-controls="st-foot-learn" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 0; background: transparent; border: none; text-align: left; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">
+            <span>Learn</span>
+            <svg class="at-foot-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          <div class="at-foot-links" id="st-foot-learn" style="padding-bottom: 8px;">
+            <a class="at-foot-link" href="Abby's Table - Abby's Story v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Abby&#8217;s Story</a>
+            <a class="at-foot-link" href="Abby's Table - How It Works v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">How it works</a>
+            <a class="at-foot-link" href="Abby's Table - Standards v2.dc.html" aria-current="page" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Our standards</a>
+          </div>
+        </div>
+
+        <div class="at-foot-col {{ infoCls }}" style="border-top: 1px solid var(--green-mid);">
+          <button class="at-foot-head" type="button" onClick="{{ toggleInfo }}" aria-expanded="{{ infoExp }}" aria-controls="st-foot-info" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 0; background: transparent; border: none; text-align: left; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">
+            <span>Information</span>
+            <svg class="at-foot-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          <div class="at-foot-links" id="st-foot-info" style="padding-bottom: 8px;">
+            <a class="at-foot-link" href="Abby's Table - Delivery and FAQs.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Delivery &amp; FAQs</a>
+            <a class="at-foot-link" href="Abby's Table - Allergens.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Allergens</a>
+            <a class="at-foot-link" href="Abby's Table - Contact Us.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Contact us</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="at-foot-rule" aria-hidden="true" style="display: none; height: 1px; background: var(--green-mid); margin: 32px 0 26px;"></div>
+
+    <div class="at-foot-bottom" style="display: grid; gap: 26px; justify-items: center; margin-top: 30px;">
+      <a class="at-foot-logo" href="Abby's Table - Homepage v2.dc.html" aria-label="Abby&#8217;s Table &#8212; home" style="display: block; text-decoration: none;">
+        <span class="at-foot-mark" aria-hidden="true" style="display: block; width: 176px; height: 30px; color: var(--blush);"><at-wordmark></at-wordmark></span>
+      </a>
+
+      <span class="at-foot-sig" style="font-family: var(--font-display); font-style: italic; font-size: 25px; line-height: 1; color: var(--terracotta);">Abby x</span>
+
+      <div class="at-foot-follow" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+        <span style="font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--green-sage);">Follow the table</span>
+        <div class="at-foot-follow-row" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <a href="https://www.instagram.com/fromabbystable" target="_blank" rel="noopener" aria-label="Instagram" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07zM12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.31-1.46.72-2.12 1.38A5.86 5.86 0 0 0 .63 4.13c-.3.76-.5 1.64-.56 2.91C.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.31.79.72 1.46 1.38 2.12.66.66 1.33 1.07 2.12 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.86 5.86 0 0 0 2.12-1.38 5.86 5.86 0 0 0 1.38-2.12c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.86 5.86 0 0 0-1.38-2.12A5.86 5.86 0 0 0 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84A6.16 6.16 0 1 0 12 18.16 6.16 6.16 0 0 0 12 5.84zm0 10.16A4 4 0 1 1 12 8a4 4 0 0 1 0 8zm6.41-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z" /></svg></a>
+            <a href="https://www.tiktok.com/@fromabbystable" target="_blank" rel="noopener" aria-label="TikTok" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 11.5 11.4" fill="var(--blush)" style="display: block;"><path d="M6.95 0v6.9A2.66 2.66 0 1 1 4.3 4.85c.35 0 .7.07 1 .21V3.15a4.5 4.5 0 0 0-1-.1A4.2 4.2 0 1 0 8.75 6.9V3.3a4.55 4.55 0 0 0 2.75 1.1V2.55A2.73 2.73 0 0 1 8.75 0Z" /></svg></a>
+            <a href="https://www.facebook.com/fromabbystable/" target="_blank" rel="noopener" aria-label="Facebook" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 6.15 11.15" fill="var(--blush)" style="display: block;"><path d="M4.05 11.15V6h1.7l.3-1.95h-2V2.8c0-.55.25-.95 1-.95h1.1V.1A14.6 14.6 0 0 0 4.55 0C2.85 0 1.75 1.05 1.75 2.6v1.45H0V6h1.75v5.15Z" /></svg></a>
+            <a href="https://x.com/fromabbystable" target="_blank" rel="noopener" aria-label="X" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg></a>
+          </div>
+          <span class="at-foot-dash" aria-hidden="true" style="display: none; color: var(--green-sage); font-size: 13px; line-height: 1;">&#8211;</span>
+          <span style="display: flex; align-items: center; padding: 4px 0; font-family: var(--font-sans); font-size: 16px; color: var(--blush);">@FromAbbysTable</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="at-foot-legal" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0 24px; margin-top: 20px; padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));">
+      <span style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--green-sage);">&#169; 2026 Abby&#8217;s Table</span>
+      <div class="at-foot-legal-row" style="display: flex; align-items: center; gap: 12px;">
+        <a href="Abby's Table - Privacy Policy.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--sand-2); text-decoration: none; transition: color .16s ease;">Privacy Policy</a>
+        <span class="at-foot-legal-sep" aria-hidden="true" style="color: var(--green-mid); font-size: 13px; line-height: 1;">|</span>
+        <a href="Abby's Table - Terms of Sale.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--sand-2); text-decoration: none; transition: color .16s ease;">Terms</a>
+      </div>
+      <!-- Canonical consent trigger: a REAL link to the Privacy Policy's cookie section, which is
+           what a customer gets with no JS. The consent manager is mounted once globally in
+           production and binds [data-consent-open] itself — it is deliberately not copied onto
+           this page (build-handoff.md § 3s). -->
+      <a href="Abby's Table - Privacy Policy.dc.html#cookies" data-consent-open style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--sand-2); text-decoration: none; transition: color .16s ease;">Cookie preferences</a>
+    </div>
+  </div>
+</footer>
+
+<!-- No bar clearance spacer: the bar is suppressed from the closing CTA through the footer, so it
+     can never cover the end of the page. The measured --at-bar-h stays — the "↑ Top" control
+     reads it for its clearance. -->
+
+<div class="at-mobbar" ref="{{ barRef }}" data-on="{{ barOn }}" style="position: fixed; left: 0; right: 0; bottom: 0; z-index: 70; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 16px; background: var(--cream-2); border-top: 1px solid var(--sand); padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px));">
+  <span style="display: flex; flex-direction: column; min-width: 0; gap: 3px; font-family: var(--font-sans); font-size: 15px; line-height: 1.2; color: var(--brown);">
+    <span style="font-weight: 500;">Minimum 6 dishes</span>
+    <span style="font-weight: 600;">From &#163;158</span>
+  </span>
+  <a class="at-mobbar-cta" href="Abby's Table - Choose Box v2.dc.html" style="flex: 0 0 auto; min-width: max-content; display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 clamp(16px, 5vw, 24px); border-radius: var(--radius-pill); background: var(--green-forest); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; text-decoration: none; transition: background .16s ease;">Build a Box</a>
+</div>
+
+<!-- Scrolls to the page heading less the sticky header's height — never scrollY = 0 — and moves
+     focus to the h1, so a keyboard user is put back at the heading. -->
+<button class="st-top" type="button" onClick="{{ goTop }}" data-on="{{ topOn }}" data-bar="{{ topBar }}" aria-label="Back to top of page">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block;"><path d="M12 19V5" /><path d="m5 12 7-7 7 7" /></svg>
+  <span>Top</span>
+</button>
+
+<div class="at-drawer-wrap {{ drawerCls }}">
+  <div class="at-drawer-scrim" onClick="{{ closeDrawer }}" style="position: fixed; inset: 0; z-index: 90; background: rgba(21,41,31,.5);"></div>
+  <aside id="at-drawer" class="at-drawer-panel" ref="{{ panelRef }}" role="dialog" aria-modal="true" aria-label="Main menu" style="position: fixed; top: 0; left: 0; bottom: 0; z-index: 95; display: flex; flex-direction: column; width: min(300px, 84vw); background: var(--green-forest); padding: 18px 22px 26px; overflow-y: auto;">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+      <a class="at-logo" href="Abby's Table - Homepage v2.dc.html" aria-label="Abby&#8217;s Table &#8212; home" style="display: flex; align-items: center; min-height: 44px; text-decoration: none;">
+        <span aria-hidden="true" style="display: block; width: 142px; aspect-ratio: 186 / 32; color: var(--blush);"><at-wordmark></at-wordmark></span>
+      </a>
+      <button type="button" onClick="{{ closeDrawer }}" aria-label="Close menu" style="flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-right: -10px; border: none; background: transparent; color: var(--blush); font-size: 24px; line-height: 1; cursor: pointer;">&#215;</button>
+    </div>
+
+    <a class="at-drawer-link" href="Abby's Table - Log in.dc.html" style="display: flex; align-items: center; min-height: 48px; margin-top: 20px; font-family: var(--font-sans); font-weight: 600; font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Log in</a>
+    <span aria-hidden="true" style="display: block; height: 1px; background: var(--green-mid); margin: 4px 0 6px;"></span>
+
+    <nav aria-label="Main" style="display: flex; flex-direction: column;">
+      <a class="at-drawer-link" href="Abby's Table - Menu Landing v3.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Menu</a>
+      <a class="at-drawer-link" href="Abby's Table - How It Works v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">How it works</a>
+      <a class="at-drawer-link" href="Abby's Table - Abby's Story v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Abby&#8217;s Story</a>
+      <a class="at-drawer-link" href="Abby's Table - Gifting v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Gifting</a>
+      <a class="at-drawer-link" href="Abby's Table - Private Table v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Private Table</a>
+    </nav>
+
+    <a class="at-drawer-cta" href="Abby's Table - Choose Box v2.dc.html" style="display: flex; align-items: center; justify-content: center; min-height: 54px; margin-top: 26px; border-radius: var(--radius-pill); background: var(--terracotta); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; text-decoration: none;">Build a Box</a>
+
+    <div style="margin-top: auto; border-top: 1px solid var(--green-mid); padding-top: 22px; display: flex; gap: 20px; align-items: center;">
+      <a class="at-social" href="https://www.instagram.com/fromabbystable" target="_blank" rel="noopener" aria-label="Instagram" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07zM12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.31-1.46.72-2.12 1.38A5.86 5.86 0 0 0 .63 4.13c-.3.76-.5 1.64-.56 2.91C.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.31.79.72 1.46 1.38 2.12.66.66 1.33 1.07 2.12 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.86 5.86 0 0 0 2.12-1.38 5.86 5.86 0 0 0 1.38-2.12c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.86 5.86 0 0 0-1.38-2.12A5.86 5.86 0 0 0 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84A6.16 6.16 0 1 0 12 18.16 6.16 6.16 0 0 0 12 5.84zm0 10.16A4 4 0 1 1 12 8a4 4 0 0 1 0 8zm6.41-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z" /></svg></a>
+      <a class="at-social" href="https://www.tiktok.com/@fromabbystable" target="_blank" rel="noopener" aria-label="TikTok" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px;"><svg width="20" height="20" viewBox="0 0 11.5 11.4" fill="var(--blush)" style="display: block;"><path d="M6.95 0v6.9A2.66 2.66 0 1 1 4.3 4.85c.35 0 .7.07 1 .21V3.15a4.5 4.5 0 0 0-1-.1A4.2 4.2 0 1 0 8.75 6.9V3.3a4.55 4.55 0 0 0 2.75 1.1V2.55A2.73 2.73 0 0 1 8.75 0Z" /></svg></a>
+      <a class="at-social" href="https://www.facebook.com/fromabbystable/" target="_blank" rel="noopener" aria-label="Facebook" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px;"><svg width="20" height="20" viewBox="0 0 6.15 11.15" fill="var(--blush)" style="display: block;"><path d="M4.05 11.15V6h1.7l.3-1.95h-2V2.8c0-.55.25-.95 1-.95h1.1V.1A14.6 14.6 0 0 0 4.55 0C2.85 0 1.75 1.05 1.75 2.6v1.45H0V6h1.75v5.15Z" /></svg></a>
+      <a class="at-social" href="https://x.com/fromabbystable" target="_blank" rel="noopener" aria-label="X" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg></a>
+    </div>
+  </aside>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:900},&quot;barSuppressAtCta&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Review&quot;},&quot;showTopControl&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Review&quot;},&quot;heroGround&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Sage&quot;,&quot;Sand&quot;],&quot;default&quot;:&quot;Sage&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Review&quot;}}">
+class Component extends DCLogic {
+  // Read synchronously, before first paint, so the link is either there from the first frame or
+  // never — no layout shift at the top of the page.
+  // Two origins, each with its own record: a dish page (?from=dish) and the Step 2 dish quick
+  // view (?from=step2) or the Step 3 extra details (?from=step3), sharing at-std-return-v1. Direct visits carry neither, so no back link appears.
+  _readDishReturn() {
+    try {
+      const from = new URLSearchParams(location.search).get("from");
+      if (from === "step2" || from === "step3") {
+        const q = JSON.parse(sessionStorage.getItem("at-std-return-v1") || "null");
+        if (!q || q.v !== 1 || typeof q.page !== "string" || typeof q.name !== "string" || !(Date.now() - q.t < 6 * 3600e3)) return null;
+        const u2 = new URL(q.page, location.href);
+        if (u2.origin !== location.origin || !(from === "step2" ? /Add%20Dishes|Add Dishes/ : /Extras/).test(u2.pathname)) return null;
+        return Object.assign({}, q, { key: "at-std-return-v1", label: "Back to " + q.name });
+      }
+      if (from !== "dish") return null;
+      const r = JSON.parse(sessionStorage.getItem("at-dish-return-v1") || "null");
+      if (!r || typeof r !== "object" || r.v !== 1 || typeof r.page !== "string") return null;
+      if (!(Date.now() - r.t < 6 * 3600e3)) return null;
+      // Only a same-site dish page is a valid destination.
+      const u = new URL(r.page, location.href);
+      if (u.origin !== location.origin || !/Dish%20Landing|Dish Landing/.test(u.pathname)) return null;
+      return Object.assign({}, r, { key: "at-dish-return-v1", label: "Back to dish" });
+    } catch (_) { return null; }
+  }
+  _dishRet = this._readDishReturn();
+  // A true return, not a new forward entry: when the entry behind this one IS the dish, go back
+  // (the browser restores it, often straight from the back-forward cache). Otherwise replace this
+  // entry with the dish, so Back from the dish never bounces into Standards again.
+  _backToDish = (e) => {
+    const r = this._dishRet;
+    if (!r || !e || e.defaultPrevented || e.button > 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    if (r.key === "at-dish-return-v1") { try { const w = Object.assign({}, r); delete w.key; delete w.label; w.returning = true; sessionStorage.setItem(r.key, JSON.stringify(w)); } catch (_) {} }
+    let prevIsDish = false;
+    try { const ref = new URL(document.referrer); const pu = new URL(r.page, location.href); prevIsDish = ref.origin === location.origin && ref.pathname + ref.search === pu.pathname + pu.search; } catch (_) {}
+    if (!prevIsDish && typeof r.hl === "number" && history.length === r.hl + 1) prevIsDish = true;
+    if (prevIsDish) history.back(); else location.replace(r.page);
+  };
+  state = { fromDish: !!this._dishRet, drawer: false, dirDown: false, heroOut: false, ctaInView: false, topOn: false,
+            footOpen: {}, subscribed: false };
+
+  // ---- refs (stable class fields, never arrows rebuilt in renderVals: this page re-renders on
+  // scroll for the header auto-hide, and a ref recreated each render is detached with null every
+  // time — which is exactly when a handler needs it) ----
+  hdrRef = (el) => { this._hdr = el; };
+  burgerRef = (el) => { this._burger = el; };
+  panelRef = (el) => { this._panel = el; };
+  h1Ref = (el) => { this._h1 = el; };
+  heroRef = (el) => { this._hero = el; };
+  rowRef = (el) => { this._row = el; };
+
+  // ---- footer (canonical) ----
+  footRef = (el) => {
+    this._foot = el;
+    if (el) this._footSemantics();
+  };
+
+  // Column heads are accordion BUTTONS on mobile and non-interactive LABELS from 1024, where the
+  // CSS already zeroes the hit area and hides the chevron. Attributes cannot be swapped in CSS.
+  // One element, no duplicated markup. The original ARIA is captured into data- attributes first,
+  // because React only rewrites an attribute when ITS value changes and so will not restore them
+  // on the way back to mobile.
+  _footSemantics = () => {
+    if (!this._foot) return;
+    const label = window.innerWidth >= 1024;
+    Array.prototype.forEach.call(this._foot.querySelectorAll(".at-foot-head"), (b) => {
+      if (label) {
+        if (!b.dataset.ctrl) b.dataset.ctrl = b.getAttribute("aria-controls") || "";
+        if (!b.dataset.exp) b.dataset.exp = b.getAttribute("aria-expanded") || "false";
+        b.removeAttribute("aria-expanded");
+        b.removeAttribute("aria-controls");
+        b.setAttribute("role", "heading");
+        b.setAttribute("aria-level", "3");
+        b.setAttribute("tabindex", "-1");
+      } else {
+        b.removeAttribute("role");
+        b.removeAttribute("aria-level");
+        b.removeAttribute("tabindex");
+        if (b.dataset.ctrl) b.setAttribute("aria-controls", b.dataset.ctrl);
+        if (!b.hasAttribute("aria-expanded")) b.setAttribute("aria-expanded", b.dataset.exp || "false");
+      }
+    });
+  };
+
+  _footToggle = (k) => {
+    if (window.innerWidth >= 1024) return;   // inert at desktop: the columns are already open
+    this.setState((s) => {
+      const o = Object.assign({}, s.footOpen);
+      o[k] = !o[k];
+      return { footOpen: o };
+    });
+  };
+  toggleShop = () => this._footToggle("shop");
+  toggleLearn = () => this._footToggle("learn");
+  toggleInfo = () => this._footToggle("info");
+
+  onJoin = (e) => {
+    e.preventDefault();
+    this.setState({ subscribed: true });
+  };
+
+  // ---- mobile purchase bar height, MEASURED not restated ----
+  // The bar's height is content-dependent (the price label wraps at 320px), and the "↑ Top"
+  // control reads this value for its own clearance. Deduped and deferred out of the observer
+  // callback: writing from inside it changes page height, which can flip the scrollbar, which
+  // resizes this full-width fixed element and re-fires the observer. Never write a zero — at
+  // ref-commit time the bar has not laid out, and the dedupe would latch it permanently.
+  barRef = (el) => {
+    if (this._barRO) { this._barRO.disconnect(); this._barRO = null; }
+    if (!el) return;
+    const write = () => {
+      const h = el.offsetHeight;
+      if (!h || h === this._barH) return;
+      this._barH = h;
+      document.documentElement.style.setProperty("--at-bar-h", h + "px");
+    };
+    this._barWrite = write;
+    write();
+    requestAnimationFrame(write);
+    setTimeout(write, 500);
+    if (typeof ResizeObserver !== "undefined") {
+      this._barRO = new ResizeObserver(() => {
+        cancelAnimationFrame(this._barRaf);
+        this._barRaf = requestAnimationFrame(write);
+      });
+      this._barRO.observe(el);
+    }
+  };
+
+  // The bar appears only once the hero's "See what goes in" link has left the viewport AND the
+  // scroll is downward — the same rule as the homepage, whose trigger is its hero CTA. This page's
+  // hero has no purchase CTA, so the read-on link is the equivalent element.
+  heroCtaRef = (el) => {
+    if (this._io) { this._io.disconnect(); this._io = null; }
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    this._io = new IntersectionObserver(
+      ([e]) => this.setState({ heroOut: !e.isIntersecting }),
+      { threshold: 0 }
+    );
+    this._io.observe(el);
+  };
+
+  // ⚠ DECISION FOR REVIEW. Suppression is CONTINUOUS from the point the closing CTA meaningfully
+  // enters view (its top crossing 75% of the viewport) through the footer below it — the same
+  // positional, continuous mechanism the homepage applies to Private Table, for the strongest
+  // available reason: that band holds this page's own Build a Box, and "one purchase CTA visible
+  // at a time" is what the whole scroll-direction rule exists to enforce.
+  // The named suppression list in CLAUDE.md is Private Table and the footer, and additions need
+  // explicit approval — so this is flagged, not quietly added. The `barSuppressAtCta` prop turns
+  // it off so both behaviours can be compared. With it off, the footer is tracked on its own.
+  ctaRef = (el) => {
+    this._cta = el;
+    if (el) requestAnimationFrame(this._updateSuppress);
+  };
+
+  _updateSuppress = () => {
+    const el = (this.props.barSuppressAtCta ?? true) ? this._cta : this._foot;
+    if (!el) return;
+    const on = el.getBoundingClientRect().top < window.innerHeight * 0.75;
+    if (on !== this.state.ctaInView) this.setState({ ctaInView: on });
+  };
+
+  // ---- "↑ Top" control ----
+  // Position-derived, with two thresholds so it cannot flicker around a single line.
+  // MOBILE: shown once the hero's top has passed ~1.75 viewport heights, hidden again under ~0.9.
+  // DESKTOP: shown once the first standard has left the viewport — measured from the row, so it
+  // holds whatever that content's height turns out to be — and hidden once it is back.
+  _isDesktop = () => (window.matchMedia ? window.matchMedia("(min-width: 1024px)").matches : false);
+
+  _updateTop = () => {
+    if (!this._hero) return;
+    const was = this.state.topOn;
+    let on = was;
+    if (this._isDesktop()) {
+      if (!this._row) return;
+      const b = this._row.getBoundingClientRect().bottom;
+      if (b < 0) on = true; else if (b > 140) on = false;
+    } else {
+      const past = -this._hero.getBoundingClientRect().top;
+      const vh = window.innerHeight || 1;
+      if (past > vh * 1.75) on = true; else if (past < vh * 0.9) on = false;
+    }
+    if (on !== was) this.setState({ topOn: on });
+  };
+
+  goTop = () => {
+    const hdr = this._hdr ? this._hdr.offsetHeight : 72;
+    const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const y = this._hero ? Math.max(0, this._hero.getBoundingClientRect().top + window.scrollY - hdr) : 0;
+    window.scrollTo({ top: y, behavior: reduce ? "auto" : "smooth" });
+    if (this._h1) { this._h1.setAttribute("tabindex", "-1"); this._h1.focus({ preventScroll: true }); }
+  };
+
+  goStandards = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const target = document.getElementById("standards");
+    if (!target) return;
+    const hdr = this._hdr ? this._hdr.offsetHeight : 72;
+    const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({
+      top: Math.max(0, target.getBoundingClientRect().top + window.scrollY - hdr - 12),
+      behavior: reduce ? "auto" : "smooth",
+    });
+  };
+
+  // ---- scroll ----
+  // Direction is the single source of truth for the header and the bar: 8px movement threshold
+  // and a 120px floor, so a jittery scroll cannot flicker the UI. Suppression and the Top control
+  // are updated AHEAD of the threshold — both track position even when the direction state is
+  // deliberately not updating.
+  _onScroll = () => {
+    this._updateSuppress();
+    this._updateTop();
+    const y = window.scrollY;
+    const last = this._lastY || 0;
+    if (Math.abs(y - last) < 8) return;
+    const down = y > last && y > 120;
+    this._lastY = y;
+    // never slide the header out from under a keyboard user tabbing through it
+    if (down && this._hdr && this._hdr.contains(document.activeElement)) return;
+    if (down !== this.state.dirDown) this.setState({ dirDown: down });
+  };
+
+  _onResize = () => {
+    this._footSemantics();
+    this._updateTop();
+    if (this._barWrite) this._barWrite();
+  };
+
+  // ---- drawer ----
+  _drawerPanel = () => this._panel || document.getElementById("at-drawer");
+  _canFocus = (el) => !!el && el.offsetParent !== null && getComputedStyle(el).visibility !== "hidden";
+
+  focusables = () => {
+    const panel = this._drawerPanel();
+    if (!panel) return [];
+    return Array.from(panel.querySelectorAll("a[href], button")).filter((el) => el.offsetParent !== null);
+  };
+
+  trap = (e) => {
+    const els = this.focusables();
+    if (!els.length) return;
+    const first = els[0], last = els[els.length - 1];
+    const panel = this._drawerPanel();
+    if (panel && !panel.contains(document.activeElement)) {
+      e.preventDefault();
+      (e.shiftKey ? last : first).focus();
+      return;
+    }
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  };
+
+  open = () => {
+    document.body.style.overflow = "hidden";
+    this.setState({ drawer: true });
+    this._takeDrawerFocus();
+  };
+
+  // Focus moves here rather than in a lifecycle hook or a setState callback: this runtime calls
+  // neither. An always-mounted display:none panel has the same focus-timing problem as an
+  // unmounted one — focus() on a hidden element is a no-op, and one frame after setState the flip
+  // has not landed. So poll on BOTH a frame and a timer (a frame can be throttled, a timer cannot)
+  // against a wall-clock budget, never a frame count. Target is the Close button: a fixed position
+  // in the panel rather than whichever link happens to be first.
+  _takeDrawerFocus = () => {
+    cancelAnimationFrame(this._drawerRaf);
+    clearTimeout(this._drawerTo);
+    const start = Date.now();
+    const take = () => {
+      const panel = this._drawerPanel();
+      const btn = panel && panel.querySelector('button[aria-label="Close menu"]');
+      const t = this._canFocus(btn) ? btn : this.focusables()[0];
+      if (t) { t.focus(); return; }
+      if (Date.now() - start < 3000) {
+        this._drawerRaf = requestAnimationFrame(take);
+        this._drawerTo = setTimeout(take, 50);
+      }
+    };
+    take();
+  };
+
+  close = () => {
+    this.setState({ drawer: false });
+    document.body.style.overflow = "";
+    cancelAnimationFrame(this._drawerRaf);
+    clearTimeout(this._drawerTo);
+    if (this._canFocus(this._burger)) this._burger.focus();
+    else if (this._h1) { this._h1.setAttribute("tabindex", "-1"); this._h1.focus({ preventScroll: true }); }
+  };
+
+  componentDidMount() {
+    window.addEventListener("scroll", this._onScroll, { passive: true });
+    window.addEventListener("resize", this._onResize);
+    this._onKey = (e) => {
+      if (!this.state.drawer) return;
+      if (e.key === "Escape") { e.preventDefault(); this.close(); return; }
+      if (e.key === "Tab") this.trap(e);
+    };
+    document.addEventListener("keydown", this._onKey);
+    requestAnimationFrame(() => { this._updateSuppress(); this._updateTop(); });
+    setTimeout(() => { this._updateSuppress(); this._updateTop(); }, 500);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener("scroll", this._onScroll);
+    window.removeEventListener("resize", this._onResize);
+    document.removeEventListener("keydown", this._onKey);
+    if (this._io) this._io.disconnect();
+    if (this._barRO) this._barRO.disconnect();
+    cancelAnimationFrame(this._barRaf);
+    cancelAnimationFrame(this._drawerRaf);
+    clearTimeout(this._drawerTo);
+    document.body.style.overflow = "";
+  }
+
+  renderVals() {
+    const s = this.state;
+    const barOn = (s.heroOut && s.dirDown && !s.drawer && !s.ctaInView);
+    const topOn = (s.topOn && !s.drawer);
+    return {
+      heroGroundCls: (this.props.heroGround === "Sand") ? "is-sand" : "",
+      fromDish: s.fromDish,
+      dishHref: this._dishRet ? this._dishRet.page : "",
+      backLabel: this._dishRet ? this._dishRet.label : "Back to dish",
+      onBackToDish: this._backToDish,
+
+      hdrRef: this.hdrRef,
+      hdrHidden: (s.dirDown && !s.drawer) ? "true" : "false",
+      burgerRef: this.burgerRef,
+      burgerExpanded: s.drawer ? "true" : "false",
+      openDrawer: this.open,
+      closeDrawer: this.close,
+      panelRef: this.panelRef,
+      drawerCls: s.drawer ? "is-open" : "",
+
+      h1Ref: this.h1Ref,
+      heroRef: this.heroRef,
+      heroCtaRef: this.heroCtaRef,
+      rowRef: this.rowRef,
+      ctaRef: this.ctaRef,
+      goStandards: this.goStandards,
+
+      barRef: this.barRef,
+      barOn: barOn ? "true" : "false",
+
+      // Suppressed with the drawer like everything else fixed, and hidden entirely when the
+      // control is turned off for review. Clearance follows the bar's real state: 14px above it
+      // when it is out, back to the viewport-edge inset when it is retracted.
+      topOn: (topOn && (this.props.showTopControl ?? true)) ? "true" : "false",
+      topBar: barOn ? "true" : "false",
+      goTop: this.goTop,
+
+      footRef: this.footRef,
+      toggleShop: this.toggleShop,
+      toggleLearn: this.toggleLearn,
+      toggleInfo: this.toggleInfo,
+      shopCls: s.footOpen.shop ? "is-open" : "",
+      learnCls: s.footOpen.learn ? "is-open" : "",
+      infoCls: s.footOpen.info ? "is-open" : "",
+      shopExp: s.footOpen.shop ? "true" : "false",
+      learnExp: s.footOpen.learn ? "true" : "false",
+      infoExp: s.footOpen.info ? "true" : "false",
+      subscribed: !!s.subscribed,
+      notSubscribed: !s.subscribed,
+      onJoin: this.onJoin,
+    };
+  }
+}
+</script>
+</body>
+</html>

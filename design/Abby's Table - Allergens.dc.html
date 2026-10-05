@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>html, body { background-color: #F7F1E8; color-scheme: light; }</style>
+<!-- ↑ First-paint ground: FIRST in the head so it is in the first bytes the parser sees.
+     Dependency-free literal of --cream (no tokens, no runtime); see CLAUDE.md head standard. -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Focus standard. In the real <head>, before the runtime, so it is parser-inserted and
+     render-blocking: it exists before first paint and before any script can move focus. A
+     <helmet> link is injected by the runtime AFTER render, which is what let the browser's blue
+     outline flash first. -->
+<!-- Shared stylesheets: ONE authoritative load path, in the real head. In <helmet> they were
+     applied from the raw template, torn down when the runtime consumed it, then re-added —
+     the transparent gap on every full load and on back navigation. -->
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/colors.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/typography.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/styles.css">
+<link rel="stylesheet" href="at-focus.css">
+<script src="at-logo.js"></script>
+<script src="./support.js"></script>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#1E3A2F"/><rect x="30" y="38" width="40" height="26" rx="3" fill="none" stroke="#C28E3C" stroke-width="2.4"/><path d="M30 41l20 14 20-14" fill="none" stroke="#C28E3C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></template>
+</head>
+<body>
+<x-dc>
+<helmet>
+<!-- Order in progress: swaps "Get started" for VIEW BOX and the purchase bar for a box
+     summary once step 1 has been started. Self-initialising; no page-local code. -->
+<script src="at-order-state.js"></script>
+<!-- Signed in: "Log in" reads "My Account" in the header and drawer. Self-initialising. -->
+<script src="at-account-state.js"></script>
+  <script src="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/_ds_bundle.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background: var(--cream); }
+    a { color: var(--green-forest); }
+    a:hover { color: var(--terracotta-deep); }
+    :focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; border-radius: 3px; }
+    /* Brass is only 1.9:1 on green-deep, so dark grounds get a cream ring with a gold outer edge. */
+    @keyframes at-drawer-in { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+    @keyframes at-fade-in { from { opacity: 0; } to { opacity: 1; } }
+    /* Closed with display: none rather than unmounted, so aria-controls always resolves. It also
+       keeps the drawer out of the accessibility tree and the tab order, and the animation replays
+       on each open because the element goes from display: none to displayed. */
+    .at-drawer-wrap { display: none; }
+    .at-drawer-wrap.is-open { display: block; }
+    .at-drawer-panel { animation: at-drawer-in .2s ease; }
+    .at-drawer-scrim { animation: at-fade-in .2s ease; }
+    /* Pending token refinement: --terracotta sampled from the approved mockup (#B7554E — the
+       shipped token #B45F5A carries more blue, which reads dull). Scoped to this page until
+       the header/CTA is approved, then it moves into the design system and this block goes. */
+    /* --gold is the bright accent sampled from the approved mockup (#F6C33B). DARK GROUNDS ONLY:
+       9.3:1 on green-deep, but 1.45:1 on cream and 1.63:1 under white text. --brass (#C28E3C)
+       stays the accent for light grounds until those sections are redesigned. */
+    /* --brass-ink is brass for SMALL TEXT on cream. --brass-deep (#A9762C) measures only 3.47:1
+       there, under the 4.5:1 small-text minimum; #8A5F1F measures 4.96:1 and still reads brass.
+       Use --brass for rules, hairlines and large marks; --brass-ink whenever brass is type. */
+    /* --chilli is the terracotta value quoted in the design system's own guide (#B8431C); the
+       shipped token has since drifted to a pinker #B45F5A, which at 15px pip size reads as rose
+       rather than heat. Graphic only, never type. 6.4:1 on the #EDE5D9 card panel. */
+    /* --sage is a new band ground, sampled from the approved Our standards mockup. Full-bleed
+       coloured bands are now sanctioned for specific sections (this one, Abby's Story, Private
+       Table) — they are NOT an invitation to alternate bands page-wide. Light ground: green-forest
+       reads 9.4:1 on it and brown 10.2:1, so all type is safe; brass is only 2.2:1, which is why
+       the icons use brass-ink (4.3:1) rather than brass or the hero's gold. */
+    :root { --terracotta: #B7554E; --terracotta-deep: #9C433D; --gold: #F6C33B; --brass-ink: #8A5F1F; --chilli: #B8431C; --sage: #E1E2D2; }
+
+    .at-nav-link:hover { color: var(--terracotta-deep) !important; border-bottom-color: var(--brass) !important; }
+    /* Current page. aria-current was already on the right link in every header but nothing styled
+       it, so on desktop there was no way to tell where you were. Three signals, not colour alone:
+       green-forest ink, semibold, and the brass underline made persistent — the same underline the
+       hover uses, so the language is one. Hover still wins over it, which is correct: the pointer
+       is reporting what it is over, not where you are. */
+    .at-nav-link[aria-current="page"] { color: var(--green-forest) !important; font-weight: 600; border-bottom-color: var(--brass) !important; }
+    .at-login:hover { color: var(--terracotta-deep) !important; }
+    .at-login:hover span { border-bottom-color: var(--brass) !important; }
+    .at-drawer-link:hover { color: var(--brass) !important; }
+    /* No hover lift. The design system specifies fades and colour shifts, "no bounces, no large
+       motion", with press feedback as a slight colour deepen — the translateY(-1px) these three
+       carried came across from the old homepage and made them the only buttons on the page that
+       moved. Press is a deepen, per the system. */
+    .at-cta, .at-drawer-cta { transition: background .16s ease; }
+    .at-cta:hover, .at-drawer-cta:hover { background: var(--terracotta-deep) !important; }
+    .at-cta:active, .at-drawer-cta:active { background: var(--terracotta-deep) !important; filter: brightness(.94); }
+    @media (prefers-reduced-motion: reduce) {
+      .at-cta, .at-drawer-cta { transition: none !important; }
+    }
+    .at-logo { transition: opacity .16s ease; }
+    .at-logo:hover { opacity: .78; }
+    .at-burger span, .at-burger span span { transition: background .16s ease, border-color .16s ease; }
+    .at-burger:hover span { border-color: var(--terracotta-deep) !important; }
+    .at-burger:hover span span { background: var(--terracotta-deep) !important; }
+    .at-hdr { transition: transform .22s ease; }
+    .at-hdr[data-hidden="true"] { transform: translateY(-100%); }
+    /* Footer. Mobile-first: the accordion IS the mobile design, and it is switched off at 1024
+       rather than built there and overridden down. All type on --green-deep clears AA: brass
+       5.2:1, green-sage 5.4:1, sand-2 9.9:1, blush ~12:1. */
+    /* Mobile footer is centred throughout. Input TEXT stays left-aligned — centred text in a
+       field jumps around as you type an email. */
+    .at-foot-news { text-align: center; }
+    /* The page head is centred as one unit, matching Contact and Terms of Sale. The body below
+       stays left-aligned — centring the allergen list and notices would hurt scanning. */
+    .at-a-hd { text-align: center; }
+    .at-foot-head { justify-content: center; }
+    .at-foot-link { justify-content: center; }
+    .at-foot-links { align-items: stretch; }
+    /* Smooth for the in-page jump to Opening hours, off for reduced motion. */
+    html { scroll-behavior: smooth; }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+    /* Contact. One hover language, same as every rebuilt page: colour shift, never a fade, plus a
+       3px arrow nudge on links that carry one. Borders darken on hover, go green on focus. */
+    .at-arrow { display: inline-block; transition: transform .16s ease; }
+    /* One order at every width: Our approach, Need more help, Useful links. The mockup leads with
+       Need more help, but a flex `order` swap put visual and DOM order in disagreement below 1024
+       and both panels hold links — tab focus jumped 152px back up the page (WCAG 2.4.3). The three
+       panels are independent self-labelled peers, so DOM order is the order everywhere and the
+       sequence still reads as an escalation after the caveat: how we handle allergens, then a
+       person, then links. */
+    .at-aside { display: flex; flex-direction: column; gap: 30px; }
+    .at-a-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .at-a-cta { background-color: var(--green-forest); transition: background-color .16s ease; }
+    .at-a-cta:hover { background-color: var(--green-deep); }
+    .at-a-cta:active { filter: brightness(.94); }
+    .at-a-cta:hover .at-arrow { transform: translateX(3px); }
+    .at-a-cta:focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
+    .at-tlink { transition: color .16s ease; }
+    .at-tlink:hover { color: var(--terracotta-deep) !important; }
+    .at-tlink:hover .at-arrow { transform: translateX(3px); }
+    .at-tlink:focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
+    @media (prefers-reduced-motion: reduce) {
+      .at-arrow, .at-tlink, .at-a-cta { transition: none !important; }
+      .at-arrow { transform: none !important; }
+    }
+    .at-foot-link { transition: color .16s ease; }
+    .at-foot-link:hover { color: var(--brass) !important; }
+    /* Anchor only: the legal strip has no buttons since Cookie preferences became a link.
+       Leaving the button selectors in place would be dead CSS, and their presence is what hid the
+       missing-hover bug the first time this control changed type. */
+    .at-foot-legal a:hover { color: var(--brass) !important; }
+    .at-foot-head { cursor: pointer; }
+    /* Collapsed state lives HERE, not inline: these links carry inline styles, and an inline
+       display would beat this rule (the accordion silently never closed). */
+    .at-foot-links { display: none; flex-direction: column; }
+    .at-foot-col.is-open .at-foot-links { display: flex; }
+    .at-foot-col.is-open .at-foot-chevron { transform: rotate(180deg); }
+    .at-foot-chevron { transition: transform .18s ease; }
+    /* Icon links shift fill like any other link — no fade. The presentation attribute fill on the
+       svg loses to CSS, so this wins without !important. */
+    .at-social svg { transition: fill .16s ease; }
+    .at-social:hover svg { fill: var(--brass); }
+    .at-foot-join { transition: background .16s ease; }
+    .at-foot-join:hover { background: var(--brass-deep) !important; }
+    .at-foot-join:active { filter: brightness(.94); }
+    .at-foot-input::placeholder { color: var(--green-sage); opacity: 1; }
+    /* Cream ring with a gold outer edge: brass is only 1.9:1 on green-deep, so a brass ring is
+       invisible here. Two crisp bands, not a glow — offset 0 so the cream sits flush against the
+       control and the gold reads as a hairline edge outside it rather than a halo. The outline
+       paints OVER the shadow, so the gold band is (spread - outline width) = 1px; a literal 2px
+       spread would hide the gold behind the cream entirely. Same values on hero, drawer, footer
+       and Private Table — one focus language, no per-control exceptions. */
+    .at-foot-inner a:focus-visible, .at-foot-inner button:focus-visible, .at-foot-input:focus-visible {
+      outline: 2px solid var(--cream); outline-offset: 0; box-shadow: 0 0 0 3px var(--gold);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .at-foot-chevron, .at-foot-link, .at-foot-join, .at-social svg { transition: none !important; }
+    }
+
+    /* --- 640px: more measure, so the buttons sit side by side and copy widens --- */
+    @media (min-width: 640px) {
+      .at-hdr-row { padding: 14px 34px !important; gap: 14px !important; }
+      /* The combined pill only appears once the column is wide enough for it. At 320 it left the
+         input about 150px, which cannot show "Enter your email address". */
+      .at-foot-form { flex-direction: row !important; align-items: stretch !important; gap: 0 !important; height: 52px !important; width: 340px; max-width: 100%; border: 1px solid var(--green-mid); border-radius: var(--radius-pill); overflow: hidden; }
+      .at-foot-input { flex: 1 1 auto !important; min-width: 0 !important; border: none !important; border-radius: 0 !important; height: auto !important; }
+      .at-foot-join { border-radius: 0 !important; height: auto !important; width: auto !important; padding: 0 26px !important; }
+      .at-foot-inner { padding: 48px 34px 0 !important; }
+      .at-page-inner { padding: 0 34px !important; }
+      .at-asec { padding: 52px 0 56px !important; }
+      .at-a-list { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+      .at-a-cta { width: auto !important; }
+      .at-cta { font-size: 13px !important; letter-spacing: .1em !important; padding: 0 20px !important; }
+    }
+
+    /* --- 1024px: desktop composition — nav in the header, sidebar beside the main column --- */
+    @media (min-width: 1024px) {
+      .at-burger { display: none !important; }
+      .at-nav, .at-login { display: flex !important; }
+      .at-hdr-row { padding: 18px 48px !important; }
+      .at-logo { justify-self: start !important; }
+      .at-hdr-row { grid-template-columns: auto 1fr auto auto !important; gap: 34px !important; }
+      .at-login { margin-left: 12px !important; }
+
+      .at-foot-inner { padding: 56px 48px 0 !important; }
+      .at-page-inner { padding: 0 48px !important; }
+      .at-asec { padding: 60px 0 64px !important; }
+      .at-h1 { font-size: 56px !important; }
+      /* Two columns, both starting at the top: the h1 leads the left column rather than spanning
+         the page, so the sidebar sits level with it as in the mockup. */
+      .at-agrid { grid-template-columns: minmax(0, 1fr) 372px !important; gap: 56px !important; }
+      .at-aside { border-left: 1px solid var(--sand); padding-left: 56px; gap: 34px !important; }
+      .at-a-list { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+      .at-a-h2 { font-size: 48px !important; }
+      .at-a-note { font-size: 30px !important; }
+      .at-a-panel { padding: 30px 34px !important; }
+      .at-a-cta { width: auto !important; }
+      .at-foot-grid { grid-template-columns: 1.4fr 3fr !important; gap: 48px !important; }
+      .at-foot-cols { grid-template-columns: repeat(3, 1fr) !important; gap: 48px !important; }
+      /* Accordion off: every column open, heads are labels rather than controls. */
+      .at-foot-col { border-top: none !important; }
+      .at-foot-head { min-height: 0 !important; padding: 0 !important; cursor: default !important; }
+      .at-foot-chevron { display: none !important; }
+      .at-foot-links { display: flex !important; margin-top: 16px !important; padding-bottom: 0 !important; }
+      .at-foot-bottom { grid-template-columns: 1fr auto 1fr !important; align-items: center !important; }
+      /* DOM order IS the visual order at every width — logo → signature → follow — so keyboard
+         focus never runs backwards across the four social links and the logo link (WCAG 2.4.3).
+         Only ALIGNMENT changes at this breakpoint; placement never does. The three blocks used to
+         carry order: 1/2/3 with the follow row first in the DOM, which reversed the row here. */
+      .at-foot-logo { justify-self: start !important; }
+      .at-foot-follow { justify-self: end !important; align-items: flex-end !important; }
+      .at-foot-follow-row { flex-direction: row !important; align-items: center !important; gap: 12px !important; }
+      .at-foot-dash { display: inline !important; }
+      .at-foot-mark { width: 220px !important; height: 38px !important; }
+      .at-foot-legal { flex-direction: row !important; gap: 4px 24px !important; }
+      .at-foot-news { text-align: left !important; }
+      .at-foot-news p { max-width: 300px; }
+      .at-foot-consent { max-width: 340px; }
+      .at-foot-head { justify-content: space-between !important; }
+      .at-foot-link { justify-content: flex-start !important; }
+      .at-foot-legal-row { gap: 24px !important; }
+      .at-foot-legal-sep { display: none !important; }
+      .at-foot-rule { display: block !important; }
+      .at-foot-cols { border-bottom: none !important; }
+      .at-foot-bottom { margin-top: 0 !important; }
+    }
+
+    /* Breakpoint exception — min-width 1280. The method cards go 4-up only here, not at 1024:
+       four across at 1024 leaves 164px of text column, and the email address needs 208px at its
+       smallest sensible size. At 1280 the column is 228px. A content reason, not a device size. */
+  </style>
+<style>
+  /* Sterling sign, site-wide. Playfair Display's £ has a double crossbar that reads as a euro, so
+     U+00A3 alone is drawn from a Figtree subset (1 KB, 400–700) prepended to the display and
+     accent stacks. Every other character is untouched. html:root outranks the token sheet. */
+  @font-face { font-family: "AT Sterling"; src: url("assets/fonts/at-sterling.woff2") format("woff2"); font-weight: 400 700; font-style: normal; font-display: block; unicode-range: U+00A3; }
+  html:root {
+    --font-display: "AT Sterling", "Playfair Display", ui-serif, Georgia, "Times New Roman", serif;
+    --font-accent: "AT Sterling", "Cormorant Garamond", ui-serif, Georgia, serif;
+  }
+</style>
+</helmet>
+
+<header class="at-hdr" ref="{{ hdrRef }}" data-hidden="{{ hdrHidden }}" style="position: sticky; top: 0; z-index: 60; background: var(--cream-2); border-bottom: 1px solid var(--sand);">
+  <div class="at-hdr-row" style="display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 8px; max-width: 1280px; margin: 0 auto; padding: 10px 14px;">
+
+    <button class="at-burger" type="button" ref="{{ burgerRef }}" onClick="{{ openDrawer }}" aria-label="Open menu" aria-controls="at-drawer" aria-expanded="{{ burgerExpanded }}" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-left: -10px; border: none; background: transparent; cursor: pointer;">
+      <span aria-hidden="true" style="display: block; width: 22px; height: 14px; border-top: 1.6px solid var(--green-forest); border-bottom: 1.6px solid var(--green-forest); position: relative;"><span style="position: absolute; left: 0; right: 0; top: 50%; margin-top: -0.8px; height: 1.6px; background: var(--green-forest);"></span></span>
+    </button>
+
+    <a class="at-logo" href="Abby's Table - Homepage v2.dc.html" aria-label="Abby's Table — home" style="justify-self: center; display: block; text-decoration: none; min-width: 0;">
+      <span aria-hidden="true" style="display: block; width: clamp(108px, 36vw, 168px); aspect-ratio: 186 / 32; color: var(--green-forest);"><at-wordmark></at-wordmark></span>
+    </a>
+
+    <nav class="at-nav" aria-label="Main" style="display: none; justify-self: center; align-items: center; gap: 30px;">
+      <a class="at-nav-link" href="Abby's Table - Menu Landing v3.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Menu</a>
+      <a class="at-nav-link" href="Abby's Table - How It Works v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">How it works</a>
+      <a class="at-nav-link" href="Abby's Table - Abby's Story v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Abby&#8217;s Story</a>
+      <a class="at-nav-link" href="Abby's Table - Gifting v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Gifting</a>
+      <a class="at-nav-link" href="Abby's Table - Private Table v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Private Table</a>
+    </nav>
+
+    <a class="at-login" href="Abby's Table - Log in.dc.html" style="display: none; align-items: center; height: 44px; font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; transition: color .16s ease;"><span style="display: inline-block; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: border-color .16s ease;">Log in</span></a>
+
+    <a class="at-cta" href="Abby's Table - Choose Box v2.dc.html" style="display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 13px; border-radius: var(--radius-pill); background: var(--terracotta); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; text-decoration: none; white-space: nowrap;">Get started</a>
+  </div>
+</header>
+
+<!-- Allergens. An information page like Delivery & FAQs and Contact: no hero, no mobile purchase
+     bar. Header, drawer and footer are copied verbatim from the canonical homepage v2.
+     ALL SAFETY COPY IS PLACEHOLDER and needs sign-off before launch — the cross-contamination
+     statement and every operational claim under "Our approach" (build-handoff.md § Open items).
+     The 14 are the UK regulated list, presented as a plain <ul>: not links, not buttons, no icons
+     and no chevrons — there is no per-allergen destination, and a chevron on something inert is a
+     promise the page cannot keep. -->
+<main>
+  <section class="at-asec" style="padding: 34px 0 48px;">
+    <div class="at-page-inner" style="max-width: 1280px; margin: 0 auto; padding: 0 22px;">
+      <div class="at-agrid" style="display: grid; gap: 30px;">
+
+        <div>
+          <h1 class="at-h1 at-a-hd" style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(38px, 11.6vw, 56px); line-height: 1.04; letter-spacing: -0.015em; color: var(--green-forest);">Allergens</h1>
+          <p class="at-a-hd" style="margin: 12px auto 0; max-width: 560px; font-family: var(--font-sans); font-size: 18px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">We take allergens seriously and follow strict procedures in our kitchen. This page provides information about the 14 major allergens used in our dishes.</p>
+
+          <h2 class="at-a-h2" style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(30px, 8.6vw, 40px); line-height: 1.08; letter-spacing: -0.01em; color: var(--green-forest); margin-top: 34px;">The 14 major allergens</h2>
+          <p style="margin: 10px 0 0; max-width: 560px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Our dishes may contain, or be prepared in an environment where the following allergens are present.</p>
+
+          <ul class="at-a-list" style="display: grid; gap: 10px; margin: 20px 0 0; padding: 0; list-style: none;">
+          <li style="display: flex; align-items: center; min-height: 56px; background: var(--cream-2); border: 1px solid var(--sand); border-radius: 12px; padding: 12px 16px; font-family: var(--font-sans); font-size: 16px; line-height: 1.35; color: var(--green-forest); text-wrap: pretty;">Celery</li>
+          <li style="display: flex; align-items: center; min-height: 56px; background: var(--cream-2); border: 1px solid var(--sand); border-radius: 12px; padding: 12px 16px; font-family: var(--font-sans); font-size: 16px; line-height: 1.35; color: var(--green-forest); text-wrap: pretty;">Cereals containing gluten</li>
+          <li style="display: flex; align-items: center; min-height: 56px; background: var(--cream-2); border: 1px solid var(--sand); border-radius: 12px; padding: 12px 16px; font-family: var(--font-sans); font-size: 16px; line-height: 1.35; color: var(--green-forest); text-wrap: pretty;">Crustaceans</li>
+          <li style="display: flex; align-items: center; min-height: 56px; background: var(--cream-2); border: 1px solid var(--sand); border-radius: 12px; padding: 12px 16px; font-family: var(--font-sans); font-size: 16px; line-height: 1.35; color: var(--green-forest); text-wrap: pretty;">Eggs</li>
+          <li style="display: flex; align-items: center; min-height: 56px; background: var(--cream-2); border: 1px solid var(--sand); border-radius: 12px; padding: 12px 16px; font-family: var(--font-sans); font-size: 16px; line-height: 1.35; color: var(--green-forest); text-wrap: pretty;">Fish</li>
+          <li style="display: flex; align-items: center; min-height: 56px; background: var(--cream-2); border: 1px solid var(--sand); border-radius: 12px; padding: 12px 16px; font-family: var(--font-sans); font-size: 16px; line-height: 1.35; color: var(--green-forest); text-wrap: pretty;">Lupin</li>
+          <li style="display: flex; align-items: center; min-height: 56px; background: var(--cream-2); border: 1px solid var(--sand); border-radius: 12px; padding: 12px 16px; font-family: var(--font-sans); font-size: 16px; line-height: 1.35; color: var(--green-forest); text-wrap: pretty;">Milk</li>
+          <li style="display: flex; align-items: center; min-height: 56px; background: var(--cream-2); border: 1px solid var(--sand); border-radius: 12px; padding: 12px 16px; font-family: var(--font-sans); font-size: 16px; line-height: 1.35; color: var(--green-forest); text-wrap: pretty;">Molluscs</li>
+          <li style="display: flex; align-items: center; min-height: 56px; background: var(--cream-2); border: 1px solid var(--sand); border-radius: 12px; padding: 12px 16px; font-family: var(--font-sans); font-size: 16px; line-height: 1.35; color: var(--green-forest); text-wrap: pretty;">Mustard</li>
+          <li style="display: flex; align-items: center; min-height: 56px; background: var(--cream-2); border: 1px solid var(--sand); border-radius: 12px; padding: 12px 16px; font-family: var(--font-sans); font-size: 16px; line-height: 1.35; color: var(--green-forest); text-wrap: pretty;">Nuts</li>
+          <li style="display: flex; align-items: center; min-height: 56px; background: var(--cream-2); border: 1px solid var(--sand); border-radius: 12px; padding: 12px 16px; font-family: var(--font-sans); font-size: 16px; line-height: 1.35; color: var(--green-forest); text-wrap: pretty;">Peanuts</li>
+          <li style="display: flex; align-items: center; min-height: 56px; background: var(--cream-2); border: 1px solid var(--sand); border-radius: 12px; padding: 12px 16px; font-family: var(--font-sans); font-size: 16px; line-height: 1.35; color: var(--green-forest); text-wrap: pretty;">Sesame</li>
+          <li style="display: flex; align-items: center; min-height: 56px; background: var(--cream-2); border: 1px solid var(--sand); border-radius: 12px; padding: 12px 16px; font-family: var(--font-sans); font-size: 16px; line-height: 1.35; color: var(--green-forest); text-wrap: pretty;">Soya</li>
+          <li style="display: flex; align-items: center; min-height: 56px; background: var(--cream-2); border: 1px solid var(--sand); border-radius: 12px; padding: 12px 16px; font-family: var(--font-sans); font-size: 16px; line-height: 1.35; color: var(--green-forest); text-wrap: pretty;">Sulphur dioxide and sulphites</li>
+          </ul>
+
+          <!-- The legally load-bearing notice on the page. Its own --blush panel so it cannot be
+               read as supporting copy, and every point stated in words rather than relying on the
+               icon. At this length the label is a real heading rather than a 13px eyebrow, so it
+               takes an <h2> at the panel-heading size.
+               Emphasis marks the ACTION in each paragraph — what the reader must do, or the limit
+               of what they may assume — so it is semantic <strong>, not bold for weight. The final
+               line is a legal backstop rather than an instruction, so a hairline and --taupe set it
+               apart from the six actionable paragraphs above.
+               Copy is the client's, verbatim; still awaiting food-safety sign-off
+               (build-handoff.md § Open items). -->
+          <div class="at-a-panel" style="margin-top: 26px; background: var(--blush); border-radius: 18px; padding: 24px 22px;">
+            <div style="display: flex; align-items: center; gap: 13px;">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><circle cx="12" cy="12" r="9" /><path d="M12 11v5.5M12 7.6h.01" /></svg>
+              <h2 class="at-a-note" style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest); text-wrap: pretty;">Important allergen information</h2>
+            </div>
+            <p style="margin: 18px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;"><strong style="font-weight: 600; color: var(--green-forest);">Allergens contained in each dish are clearly identified on our website before you order and provided again with your food when it is delivered.</strong> Recipes, ingredients and suppliers can change, so please check the current allergen information for every dish when ordering and check the information supplied with your delivery again before eating. This is especially important if you are ordering for someone else.</p>
+            <p style="margin: 18px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We have procedures in place to manage allergens and reduce the risk of unintended cross-contact. However, different allergens are handled within our kitchen. Where our allergen risk assessment identifies an unavoidable risk of cross-contact that cannot be adequately controlled, we will clearly identify the specific allergen using appropriate precautionary wording, such as <strong style="font-weight: 600; color: var(--green-forest);">&#8220;may contain [allergen]&#8221;</strong>. Precautionary warnings are based on assessed risk and are not used as a substitute for good food-safety practices.</p>
+            <p style="margin: 18px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Unless a product is expressly described as <strong style="font-weight: 600; color: var(--green-forest);">free from</strong> a particular allergen, you should not assume that it is suitable for someone who needs to completely avoid that allergen. Terms such as <strong style="font-weight: 600; color: var(--green-forest);">vegan, vegetarian or plant-led do not mean allergen-free.</strong></p>
+            <p style="margin: 18px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;"><strong style="font-weight: 600; color: var(--green-forest);">If you have a food allergy or intolerance, please review the allergen information carefully before placing your order. If anything is unclear, or you have a severe allergy or specific concern, <a class="at-tlink" href="Abby's Table - Contact Us.dc.html" style="color: var(--green-forest); text-decoration: underline; text-underline-offset: 3px;">contact us</a> before ordering.</strong></p>
+            <p style="margin: 18px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;"><strong style="font-weight: 600; color: var(--green-forest);">If the allergen information supplied with your delivery differs from information you previously viewed online, or if a label is missing, damaged or unclear, do not eat the dish until you have contacted us and we have confirmed the information.</strong></p>
+            <p style="margin: 22px 0 0; padding-top: 18px; border-top: 1px solid var(--brass); font-family: var(--font-sans); font-size: 14px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Nothing in this notice limits Abby&#8217;s Table&#8217;s responsibilities under food-safety or consumer law.</p>
+          </div>
+        </div>
+
+        <!-- Sidebar on desktop; a continuation of the page on mobile, in the SAME order at both.
+             After the caveat it reads as an escalation: how we handle allergens, then the route to
+             a person, then the links. The mockup leads with "Need more help", and it was built
+             that way first with a flex `order` swap below 1024 — but that desynced visual and DOM
+             order and both panels hold links, so tab focus jumped back up the page. DOM order
+             wins; do not reintroduce the swap at either breakpoint.
+             The Contact CTA is 52px — a major section CTA, matching "Still need help" on
+             Delivery & FAQs. Filled rather than outline per the mockup; the height is the ladder's,
+             not the panel's. -->
+        <div class="at-aside">
+          <div>
+            <h2 style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest);">Our approach</h2>
+            <p style="margin: 10px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">We follow strict food safety procedures, including separate storage, careful preparation and thorough cleaning. Our team is trained to manage allergens responsibly.</p>
+            <p style="margin: 12px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If you&#8217;re unsure whether a dish is suitable for you, please ask us.</p>
+            </div>
+
+          <div>
+            <h2 style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest);">Need more help?</h2>
+            <p style="margin: 10px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">If you have a specific allergy or dietary requirement, please get in touch before placing an order.</p>
+            <div style="display: flex; margin-top: 16px;">
+              <a class="at-a-cta" href="Abby's Table - Contact Us.dc.html" style="display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 52px; padding: 0 28px; border-radius: var(--radius-pill); color: var(--cream); font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; text-decoration: none;"><span>Contact us</span></a>
+            </div>
+          </div>
+
+          <div>
+            <h2 style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest);">Useful links</h2>
+            <ul style="display: grid; gap: 12px; margin: 14px 0 0; padding: 0; list-style: none;">
+            <li style="background: var(--cream-2); border: 1px solid var(--sand); border-radius: 14px; padding: 16px 18px;">
+              <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 19px; line-height: 1.2; color: var(--green-forest);">Allergen information by dish</p>
+              <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">Check allergens for each dish on our menu.</p>
+              <a class="at-tlink" href="Abby's Table - Menu Landing v3.dc.html" style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--brass-ink); text-decoration: none;"><span style="border-bottom: 1px solid var(--brass); padding-bottom: 1px;">View the menu</span><span class="at-arrow" aria-hidden="true">&#8594;</span></a>
+            </li>
+            <li style="background: var(--cream-2); border: 1px solid var(--sand); border-radius: 14px; padding: 16px 18px;">
+              <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 19px; line-height: 1.2; color: var(--green-forest);">FAQs</p>
+              <p style="margin: 5px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); text-wrap: pretty;">Find answers to common questions about allergens, ingredients and more.</p>
+              <a class="at-tlink" href="Abby's Table - Delivery and FAQs.dc.html" style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--brass-ink); text-decoration: none;"><span style="border-bottom: 1px solid var(--brass); padding-bottom: 1px;">Browse our FAQ<span style="text-transform: lowercase;">s</span></span><span class="at-arrow" aria-hidden="true">&#8594;</span></a>
+            </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Footer. Becomes the canonical shared footer on approval.
+     Dropped from the old version: "Journal" and "Discovery Box" (no such pages), and the 1440
+     shell (this is on the 1280 grid like every other band). Added: legal links, and a consent
+     line on the signup, which previously collected an email with no lawful basis stated.
+     FOUR DESTINATIONS DO NOT EXIST YET — Contact us, Allergens, Privacy Policy, Terms. They stay
+     on #contact rather than pointing at files that would 404. Delivery & FAQs is now wired. -->
+<footer id="contact" ref="{{ footRef }}" style="background: var(--green-deep);">
+  <div aria-hidden="true" style="height: 2px; background: var(--brass);"></div>
+  <div class="at-foot-inner" style="max-width: 1280px; margin: 0 auto; padding: 40px 22px 0;">
+
+    <div class="at-foot-grid" style="display: grid; gap: 36px;">
+      <div class="at-foot-news">
+        <p style="margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">Join the table</p>
+        <p style="margin: 12px 0 18px; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; color: var(--blush);">Kitchen notes and offers from Abby, monthly.</p>
+
+        <sc-if value="{{ subscribed }}" hint-placeholder-val="{{ false }}">
+          <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.3; color: var(--blush);">Thank you for joining the table.</p>
+        </sc-if>
+
+        <sc-if value="{{ notSubscribed }}" hint-placeholder-val="{{ true }}">
+          <!-- Stacked on a phone, one pill from 640. The input is 52px for comfortable typing and
+               the button 48px; the field is not a CTA, so it is not on the ladder. -->
+          <form class="at-foot-form" onSubmit="{{ onJoin }}" style="display: flex; flex-direction: column; gap: 10px;">
+            <label for="at-foot-email" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);">Email address</label>
+            <input class="at-foot-input" id="at-foot-email" name="email" type="email" required autocomplete="email" placeholder="Enter your email address" style="height: 52px; box-sizing: border-box; min-width: 0; border: 1px solid var(--green-mid); border-radius: var(--radius-pill); background: transparent; padding: 0 20px; font-family: var(--font-sans); font-size: 16px; color: var(--blush);" />
+            <button type="submit" class="at-foot-join" style="height: 48px; width: 100%; border: none; cursor: pointer; border-radius: var(--radius-pill); background: var(--brass); color: var(--green-deep); font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase;">Join</button>
+          </form>
+          <!-- 13px, not 14: the intro above is 16px and our floor forbids two body sizes within
+               2px of each other. -->
+          <p class="at-foot-consent" style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 13px; line-height: 1.5; color: var(--sand-2);">We use your email for kitchen notes and offers only. Unsubscribe any time. See our <a href="Abby's Table - Privacy Policy.dc.html" class="at-foot-link" style="color: var(--sand-2); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-skip-ink: none;">Privacy Policy</a>.</p>
+        </sc-if>
+      </div>
+
+      <div class="at-foot-cols" style="display: grid; border-bottom: 1px solid var(--green-mid);">
+        <div class="at-foot-col {{ shopCls }}" style="border-top: 1px solid var(--green-mid);">
+          <button class="at-foot-head" type="button" onClick="{{ toggleShop }}" aria-expanded="{{ shopExp }}" aria-controls="at-foot-shop" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 0; background: transparent; border: none; text-align: left; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">
+            <span>Shop</span>
+            <svg class="at-foot-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          <div class="at-foot-links" id="at-foot-shop" style="padding-bottom: 8px;">
+            <a class="at-foot-link" href="Abby's Table - Menu Landing v3.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Menu</a>
+            <a class="at-foot-link" href="Abby's Table - Gifting v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Gifting</a>
+            <a class="at-foot-link" href="Abby's Table - Private Table v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Private Table</a>
+          </div>
+        </div>
+
+        <div class="at-foot-col {{ learnCls }}" style="border-top: 1px solid var(--green-mid);">
+          <button class="at-foot-head" type="button" onClick="{{ toggleLearn }}" aria-expanded="{{ learnExp }}" aria-controls="at-foot-learn" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 0; background: transparent; border: none; text-align: left; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">
+            <span>Learn</span>
+            <svg class="at-foot-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          <div class="at-foot-links" id="at-foot-learn" style="padding-bottom: 8px;">
+            <a class="at-foot-link" href="Abby's Table - Abby's Story v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Abby&#8217;s Story</a>
+            <a class="at-foot-link" href="Abby's Table - How It Works v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">How it works</a>
+            <a class="at-foot-link" href="Abby's Table - Standards v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Our standards</a>
+          </div>
+        </div>
+
+        <div class="at-foot-col {{ infoCls }}" style="border-top: 1px solid var(--green-mid);">
+          <button class="at-foot-head" type="button" onClick="{{ toggleInfo }}" aria-expanded="{{ infoExp }}" aria-controls="at-foot-info" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 0; background: transparent; border: none; text-align: left; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">
+            <span>Information</span>
+            <svg class="at-foot-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          <div class="at-foot-links" id="at-foot-info" style="padding-bottom: 8px;">
+            <a class="at-foot-link" href="Abby's Table - Delivery and FAQs.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Delivery &amp; FAQs</a>
+            <a class="at-foot-link" href="Abby's Table - Allergens.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Allergens</a>
+            <a class="at-foot-link" href="Abby's Table - Contact Us.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Contact us</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Desktop-only. On mobile the accordion group's own bottom border closes the block, so a
+         second rule 32px below it read as a stray line. -->
+    <div class="at-foot-rule" aria-hidden="true" style="display: none; height: 1px; background: var(--green-mid); margin: 32px 0 26px;"></div>
+
+    <div class="at-foot-bottom" style="display: grid; gap: 26px; justify-items: center; margin-top: 30px;">
+      <a class="at-foot-logo" href="Abby's Table - Homepage v2.dc.html" aria-label="Abby&#8217;s Table &#8212; home" style="display: block; text-decoration: none;">
+        <span class="at-foot-mark" aria-hidden="true" style="display: block; width: 176px; height: 30px; color: var(--blush);"><at-wordmark></at-wordmark></span>
+      </a>
+
+      <!-- 25px, not the old 22: terracotta is 3.2:1 on green-deep, which only clears the 3:1
+           large-text threshold at 24px and above. -->
+      <span class="at-foot-sig" style="font-family: var(--font-display); font-style: italic; font-size: 25px; line-height: 1; color: var(--terracotta);">Abby x</span>
+
+      <div class="at-foot-follow" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+        <span style="font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--green-sage);">Follow the table</span>
+        <div class="at-foot-follow-row" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <a href="https://www.instagram.com/fromabbystable" target="_blank" rel="noopener" aria-label="Instagram" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07zM12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.31-1.46.72-2.12 1.38A5.86 5.86 0 0 0 .63 4.13c-.3.76-.5 1.64-.56 2.91C.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.31.79.72 1.46 1.38 2.12.66.66 1.33 1.07 2.12 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.86 5.86 0 0 0 2.12-1.38 5.86 5.86 0 0 0 1.38-2.12c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.86 5.86 0 0 0-1.38-2.12A5.86 5.86 0 0 0 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84A6.16 6.16 0 1 0 12 18.16 6.16 6.16 0 0 0 12 5.84zm0 10.16A4 4 0 1 1 12 8a4 4 0 0 1 0 8zm6.41-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z" /></svg></a>
+            <a href="https://www.tiktok.com/@fromabbystable" target="_blank" rel="noopener" aria-label="TikTok" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 11.5 11.4" fill="var(--blush)" style="display: block;"><path d="M6.95 0v6.9A2.66 2.66 0 1 1 4.3 4.85c.35 0 .7.07 1 .21V3.15a4.5 4.5 0 0 0-1-.1A4.2 4.2 0 1 0 8.75 6.9V3.3a4.55 4.55 0 0 0 2.75 1.1V2.55A2.73 2.73 0 0 1 8.75 0Z" /></svg></a>
+            <a href="https://www.facebook.com/fromabbystable/" target="_blank" rel="noopener" aria-label="Facebook" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 6.15 11.15" fill="var(--blush)" style="display: block;"><path d="M4.05 11.15V6h1.7l.3-1.95h-2V2.8c0-.55.25-.95 1-.95h1.1V.1A14.6 14.6 0 0 0 4.55 0C2.85 0 1.75 1.05 1.75 2.6v1.45H0V6h1.75v5.15Z" /></svg></a>
+            <a href="https://x.com/fromabbystable" target="_blank" rel="noopener" aria-label="X" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg></a>
+          </div>
+          <span class="at-foot-dash" aria-hidden="true" style="display: none; color: var(--green-sage); font-size: 13px; line-height: 1;">&#8211;</span>
+          <!-- Plain text, not a link: the four icons above already go to the accounts, so a fifth
+               route to the same place is redundant. No hit area or hover needed. -->
+          <span style="display: flex; align-items: center; padding: 4px 0; font-family: var(--font-sans); font-size: 16px; color: var(--blush);">@FromAbbysTable</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="at-foot-legal" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0 24px; margin-top: 20px; padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));">
+      <span style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--green-sage);">&#169; 2026 Abby&#8217;s Table</span>
+      <div class="at-foot-legal-row" style="display: flex; align-items: center; gap: 12px;">
+        <a href="Abby's Table - Privacy Policy.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--sand-2); text-decoration: none; transition: color .16s ease;">Privacy Policy</a>
+        <span class="at-foot-legal-sep" aria-hidden="true" style="color: var(--green-mid); font-size: 13px; line-height: 1;">|</span>
+        <a href="Abby's Table - Terms of Sale.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--sand-2); text-decoration: none; transition: color .16s ease;">Terms</a>
+      </div>
+      <!-- Progressive enhancement, and the canonical pattern for every off-page consent trigger:
+           a REAL link to the Privacy Policy's cookie section, which is what a customer gets with no
+           JS or if the consent manager fails to initialise. Where the manager is available it binds
+           one delegated listener on [data-consent-open], suppresses navigation only after a
+           genuinely successful open, and adds aria-haspopup="dialog" itself.
+           PRODUCTION: this href becomes /privacy#cookies — a named routing requirement, see
+           build-handoff.md "Cookie consent — production contract". -->
+      <a href="Abby's Table - Privacy Policy.dc.html#cookies" data-consent-open style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--sand-2); text-decoration: none; transition: color .16s ease;">Cookie preferences</a>
+    </div>
+  </div>
+</footer>
+
+<div class="at-drawer-wrap {{ drawerCls }}">
+  <div class="at-drawer-scrim" onClick="{{ closeDrawer }}" style="position: fixed; inset: 0; z-index: 90; background: rgba(21,41,31,.5);"></div>
+  <aside id="at-drawer" class="at-drawer-panel" ref="{{ panelRef }}" role="dialog" aria-modal="true" aria-label="Main menu" style="position: fixed; top: 0; left: 0; bottom: 0; z-index: 95; display: flex; flex-direction: column; width: min(300px, 84vw); background: var(--green-forest); padding: 18px 22px 26px; overflow-y: auto;">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+      <a class="at-logo" href="Abby's Table - Homepage v2.dc.html" aria-label="Abby&#8217;s Table &#8212; home" style="display: flex; align-items: center; min-height: 44px; text-decoration: none;">
+        <span aria-hidden="true" style="display: block; width: 142px; aspect-ratio: 186 / 32; color: var(--blush);"><at-wordmark></at-wordmark></span>
+      </a>
+      <button type="button" onClick="{{ closeDrawer }}" aria-label="Close menu" style="flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-right: -10px; border: none; background: transparent; color: var(--blush); font-size: 24px; line-height: 1; cursor: pointer;">&#215;</button>
+    </div>
+
+    <a class="at-drawer-link" href="Abby's Table - Log in.dc.html" style="display: flex; align-items: center; min-height: 48px; margin-top: 20px; font-family: var(--font-sans); font-weight: 600; font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Log in</a>
+    <span aria-hidden="true" style="display: block; height: 1px; background: var(--green-mid); margin: 4px 0 6px;"></span>
+
+    <nav aria-label="Main" style="display: flex; flex-direction: column;">
+      <a class="at-drawer-link" href="Abby's Table - Menu Landing v3.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Menu</a>
+      <a class="at-drawer-link" href="Abby's Table - How It Works v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">How it works</a>
+      <a class="at-drawer-link" href="Abby's Table - Abby's Story v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Abby&#8217;s Story</a>
+      <a class="at-drawer-link" href="Abby's Table - Gifting v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Gifting</a>
+      <a class="at-drawer-link" href="Abby's Table - Private Table v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Private Table</a>
+    </nav>
+
+    <a class="at-drawer-cta" href="Abby's Table - Choose Box v2.dc.html" style="display: flex; align-items: center; justify-content: center; min-height: 54px; margin-top: 26px; border-radius: var(--radius-pill); background: var(--terracotta); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; text-decoration: none;">Build a Box</a>
+
+    <div style="margin-top: auto; border-top: 1px solid var(--green-mid); padding-top: 22px; display: flex; gap: 20px; align-items: center;">
+      <a class="at-social" href="https://www.instagram.com/fromabbystable" target="_blank" rel="noopener" aria-label="Instagram" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px; transition: opacity .16s ease;"><svg width="20" height="20" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07zM12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.31-1.46.72-2.12 1.38A5.86 5.86 0 0 0 .63 4.13c-.3.76-.5 1.64-.56 2.91C.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.31.79.72 1.46 1.38 2.12.66.66 1.33 1.07 2.12 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.86 5.86 0 0 0 2.12-1.38 5.86 5.86 0 0 0 1.38-2.12c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.86 5.86 0 0 0-1.38-2.12A5.86 5.86 0 0 0 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84A6.16 6.16 0 1 0 12 18.16 6.16 6.16 0 0 0 12 5.84zm0 10.16A4 4 0 1 1 12 8a4 4 0 0 1 0 8zm6.41-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z" /></svg></a>
+      <a class="at-social" href="https://www.tiktok.com/@fromabbystable" target="_blank" rel="noopener" aria-label="TikTok" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px; transition: opacity .16s ease;"><svg width="20" height="20" viewBox="0 0 11.5 11.4" fill="var(--blush)" style="display: block;"><path d="M6.95 0v6.9A2.66 2.66 0 1 1 4.3 4.85c.35 0 .7.07 1 .21V3.15a4.5 4.5 0 0 0-1-.1A4.2 4.2 0 1 0 8.75 6.9V3.3a4.55 4.55 0 0 0 2.75 1.1V2.55A2.73 2.73 0 0 1 8.75 0Z" /></svg></a>
+      <a class="at-social" href="https://www.facebook.com/fromabbystable/" target="_blank" rel="noopener" aria-label="Facebook" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px; transition: opacity .16s ease;"><svg width="20" height="20" viewBox="0 0 6.15 11.15" fill="var(--blush)" style="display: block;"><path d="M4.05 11.15V6h1.7l.3-1.95h-2V2.8c0-.55.25-.95 1-.95h1.1V.1A14.6 14.6 0 0 0 4.55 0C2.85 0 1.75 1.05 1.75 2.6v1.45H0V6h1.75v5.15Z" /></svg></a>
+      <a class="at-social" href="https://x.com/fromabbystable" target="_blank" rel="noopener" aria-label="X" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px; transition: opacity .16s ease;"><svg width="20" height="20" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg></a>
+    </div>
+  </aside>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { drawer: false, dirDown: false, footOpen: {}, subscribed: false };
+
+  // ---- footer (canonical) ----
+  // Canonical: the footer column heads are accordion BUTTONS on mobile and non-interactive
+  // LABELS from 1024, where the toggle is inert and the chevron is hidden. Without this they stay
+  // focusable buttons announcing aria-expanded at desktop — three collapsible controls that do
+  // nothing. Attributes cannot be swapped in CSS, so the semantics are set here. One element, so
+  // no duplicated markup, and the visual design is untouched.
+  footRef = (el) => {
+    this._foot = el;
+    if (el) this._footSemantics();
+  };
+
+  _footSemantics = () => {
+    if (!this._foot) return;
+    const label = window.innerWidth >= 1024;
+    Array.prototype.forEach.call(this._foot.querySelectorAll(".at-foot-head"), (b) => {
+      if (label) {
+        // Captured before the first desktop pass strips them: React only rewrites an attribute
+        // when its value changes, so it will not restore these on the way back to mobile.
+        if (!b.dataset.ctrl) b.dataset.ctrl = b.getAttribute("aria-controls") || "";
+        if (!b.dataset.exp) b.dataset.exp = b.getAttribute("aria-expanded") || "false";
+        b.removeAttribute("aria-expanded");
+        b.removeAttribute("aria-controls");
+        b.setAttribute("role", "heading");
+        b.setAttribute("aria-level", "3");
+        b.setAttribute("tabindex", "-1");
+      } else {
+        b.removeAttribute("role");
+        b.removeAttribute("aria-level");
+        b.removeAttribute("tabindex");
+        if (b.dataset.ctrl) b.setAttribute("aria-controls", b.dataset.ctrl);
+        if (!b.hasAttribute("aria-expanded")) b.setAttribute("aria-expanded", b.dataset.exp || "false");
+      }
+    });
+  };
+
+  _footToggle = (k) => {
+    // Inert at desktop: the columns are already open there and the head is a label, not a control.
+    if (window.innerWidth >= 1024) return;
+    this._footToggleState(k);
+  };
+
+  _footToggleState = (k) => this.setState((s) => {
+    const o = Object.assign({}, s.footOpen);
+    o[k] = !o[k];
+    return { footOpen: o };
+  });
+  toggleShop = () => this._footToggle("shop");
+  toggleLearn = () => this._footToggle("learn");
+  toggleInfo = () => this._footToggle("info");
+  onJoin = (e) => { e.preventDefault(); this.setState({ subscribed: true }); };
+
+  // ---- header ----
+  hdrRef = (el) => { this._hdr = el; };
+
+  _onScroll = () => {
+    const y = window.scrollY;
+    const last = this._lastY || 0;
+    if (Math.abs(y - last) < 8) return;
+    const down = y > last && y > 120;
+    this._lastY = y;
+    if (down && this._hdr && this._hdr.contains(document.activeElement)) return;
+    if (down !== this.state.dirDown) this.setState({ dirDown: down });
+  };
+
+  componentDidMount() {
+    window.addEventListener("scroll", this._onScroll, { passive: true });
+    window.addEventListener("resize", this._footSemantics);
+    this._onKey = (ev) => {
+      if (!this.state.drawer) return;
+      if (ev.key === "Escape") { ev.preventDefault(); this.close(); return; }
+      if (ev.key === "Tab") this.trap(ev);
+    };
+    document.addEventListener("keydown", this._onKey);
+  }
+
+  componentWillUnmount() {
+    // Part of the canonical drawer set: the focus poll is bounded but must not outlive the page.
+    cancelAnimationFrame(this._drawerRaf);
+    clearTimeout(this._drawerTo);
+    document.removeEventListener("keydown", this._onKey);
+    window.removeEventListener("scroll", this._onScroll);
+    window.removeEventListener("resize", this._footSemantics);
+    document.body.style.overflow = "";
+  }
+
+  // ---- drawer (canonical) ----
+  // The panel is always mounted under a known id, so it is read from the document rather than
+  // through a ref: ref attach timing was the unreliable part.
+  _drawerPanel = () => this._panel || document.getElementById("at-drawer");
+
+  // Required by _takeDrawerFocus below. This page never defined it, so it comes across with the
+  // canonical block rather than being left as a call to nothing.
+  _canFocus = (el) => !!el && el.offsetParent !== null && getComputedStyle(el).visibility !== "hidden";
+
+  // Stable class fields, NOT arrows created inside renderVals(): a ref rebuilt on every render is
+  // detached with null each time, and renderVals() runs on scroll here (header auto-hide), so the
+  // handles were unreliable exactly when open()/close() read them.
+  panelRef = (el) => { this._panel = el; };
+  burgerRef = (el) => { this._burger = el; };
+
+  focusables = () => {
+    const panel = this._drawerPanel();
+    if (!panel) return [];
+    return Array.from(panel.querySelectorAll("a[href], button")).filter((el) => el.offsetParent !== null);
+  };
+
+  // Canonical, from Homepage v2 (build-handoff.md § 3x). Focus moves here rather than in a
+  // lifecycle hook or a setState callback: this runtime calls neither, so a callback-based move
+  // never ran at all. Poll for the panel becoming focusable on BOTH a frame and a timer (a frame
+  // can be throttled, a timer cannot), bounded by 1s of wall clock rather than a frame count — the
+  // old 20-frame budget could expire before the display: none -> flex flip had landed, leaving
+  // focus on the burger with no error. Target is the Close button, a fixed position in the panel.
+  _takeDrawerFocus = () => {
+    cancelAnimationFrame(this._drawerRaf);
+    clearTimeout(this._drawerTo);
+    const start = Date.now();
+    const take = () => {
+      const panel = this._drawerPanel();
+      const btn = panel && panel.querySelector('button[aria-label="Close menu"]');
+      const t = this._canFocus(btn) ? btn : this.focusables()[0];
+      if (t) { t.focus(); return; }
+      if (Date.now() - start < 3000) {
+        this._drawerRaf = requestAnimationFrame(take);
+        this._drawerTo = setTimeout(take, 50);
+      }
+    };
+    take();
+  };
+
+  trap = (e) => {
+    const els = this.focusables();
+    if (!els.length) return;
+    const first = els[0], last = els[els.length - 1];
+    if (this._panel && !this._panel.contains(document.activeElement)) {
+      e.preventDefault();
+      (e.shiftKey ? last : first).focus();
+      return;
+    }
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  };
+
+  open = () => {
+    this.setState({ drawer: true });
+    document.body.style.overflow = "hidden";
+    // The panel is always mounted, so focus is taken here rather than in a ref callback. ONE frame
+    // is not enough: the display: none → flex flip has not landed, so focusables() (which filters
+    // on offsetParent) is still empty and no focus is taken. Re-assert each frame until the panel
+    // is laid out, bounded so it cannot spin.
+    this._takeDrawerFocus();
+  };
+
+  close = () => {
+    this.setState({ drawer: false });
+    document.body.style.overflow = "";
+    cancelAnimationFrame(this._drawerRaf);
+    clearTimeout(this._drawerTo);
+    if (this._burger) this._burger.focus();
+  };
+
+  renderVals() {
+    return {
+      hdrRef: this.hdrRef,
+      hdrHidden: (this.state.dirDown && !this.state.drawer) ? "true" : "false",
+      drawerCls: this.state.drawer ? "is-open" : "",
+      burgerExpanded: this.state.drawer ? "true" : "false",
+      openDrawer: this.open,
+      closeDrawer: this.close,
+      panelRef: this.panelRef,
+      burgerRef: this.burgerRef,
+      subscribed: !!this.state.subscribed,
+      notSubscribed: !this.state.subscribed,
+      onJoin: this.onJoin,
+      footRef: this.footRef,
+      toggleShop: this.toggleShop,
+      toggleLearn: this.toggleLearn,
+      toggleInfo: this.toggleInfo,
+      shopCls: this.state.footOpen.shop ? "is-open" : "",
+      learnCls: this.state.footOpen.learn ? "is-open" : "",
+      infoCls: this.state.footOpen.info ? "is-open" : "",
+      shopExp: this.state.footOpen.shop ? "true" : "false",
+      learnExp: this.state.footOpen.learn ? "true" : "false",
+      infoExp: this.state.footOpen.info ? "true" : "false",
+    };
+  }
+}
+</script>
+</body>
+</html>

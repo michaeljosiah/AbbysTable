@@ -1,0 +1,1815 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>html, body { background-color: #F7F1E8; color-scheme: light; }</style>
+<!-- ↑ First-paint ground: FIRST in the head so it is in the first bytes the parser sees.
+     Dependency-free literal of --cream (no tokens, no runtime); see CLAUDE.md head standard. -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Focus standard. In the real <head>, before the runtime, so it is parser-inserted and
+     render-blocking: it exists before first paint and before any script can move focus. A
+     <helmet> link is injected by the runtime AFTER render, which is what let the browser's blue
+     outline flash first. -->
+<!-- Shared stylesheets: ONE authoritative load path, in the real head. In <helmet> they were
+     applied from the raw template, torn down when the runtime consumed it, then re-added —
+     the transparent gap on every full load and on back navigation. -->
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/colors.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/typography.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/styles.css">
+<link rel="stylesheet" href="at-focus.css">
+<script src="at-logo.js"></script>
+<script src="at-desktop-header.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<!-- Order in progress: swaps "Get started" for VIEW BOX and the purchase bar for a box
+     summary once step 1 has been started. Self-initialising; no page-local code. -->
+<script src="at-order-state.js"></script>
+<!-- Signed in: "Log in" reads "My Account" in the header and drawer. Self-initialising. -->
+<script src="at-account-state.js"></script>
+  <script src="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/_ds_bundle.js"></script>
+  <!-- Unpack splash / no-JS fallback for the standalone export: brass-on-green, a card grid. -->
+  <template id="__bundler_thumbnail" data-bg-color="#1E3A2F">
+    <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+      <rect width="1200" height="800" fill="#1E3A2F"/>
+      <rect x="330" y="250" width="240" height="140" rx="14" fill="none" stroke="#C28E3C" stroke-width="3"/>
+      <rect x="630" y="250" width="240" height="140" rx="14" fill="none" stroke="#C28E3C" stroke-width="3"/>
+      <rect x="330" y="420" width="240" height="140" rx="14" fill="none" stroke="#C28E3C" stroke-width="3"/>
+      <rect x="630" y="420" width="240" height="140" rx="14" fill="none" stroke="#C28E3C" stroke-width="3"/>
+      <circle cx="450" cy="320" r="34" fill="#E9CDB8"/>
+      <circle cx="750" cy="490" r="34" fill="#E9CDB8"/>
+    </svg>
+  </template>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background: var(--cream); }
+    a { color: var(--green-forest); }
+    a:hover { color: var(--terracotta-deep); }
+    :focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; border-radius: 3px; }
+    /* Brass is only 1.9:1 on green-deep, so dark grounds get a cream ring with a gold outer edge. */
+    .at-drawer-panel :focus-visible { outline-color: #FBF8F1; outline-offset: 0; box-shadow: 0 0 0 3px var(--gold); }
+    @keyframes at-drawer-in { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+    @keyframes at-fade-in { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes mn-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    /* Closed with display: none rather than unmounted, so aria-controls always resolves, the
+       panel stays out of the accessibility tree and tab order, and the animation replays on open. */
+    .at-drawer-wrap { display: none; }
+    .at-drawer-wrap.is-open { display: block; }
+    .at-drawer-panel { animation: at-drawer-in .2s ease; }
+    .at-drawer-scrim { animation: at-fade-in .2s ease; }
+    /* Pending token overrides, same values and status as Homepage v2 / How It Works v2: page-local
+       until the components they belong to are approved and propagated.
+       --terracotta      sampled from the approved mockup (#B7554E); the shipped #B45F5A reads dull.
+       --gold            bright accent, DARK GROUNDS ONLY (9.3:1 on green-deep, 1.45:1 on cream).
+       --brass-ink       brass for SMALL TEXT on light grounds (4.96:1 on cream, ~4.8:1 on blush).
+       --terracotta-ink  terracotta as TYPE on light grounds (6.2:1 on cream) — the "Clear all"
+                         links. Plain --terracotta is 3.55:1 there and only ever passed at
+                         headline scale, which is what the old menu page used it at 13px.
+       --chilli          the dish-card heat pips. Graphic only, never type. */
+    :root { --terracotta: #B7554E; --terracotta-deep: #9C433D; --gold: #F6C33B; --brass-ink: #8A5F1F;
+            --terracotta-ink: #943E38; --surface-dish: #EDE5D9; --chilli: #B8431C;
+            /* The Our standards band ground, used here for the delivery strip — a real token, not a
+               fresh panel colour. Light ground: green-forest 9.4:1, brown 10.2:1; brass is 2.2:1
+               on it, so nothing in that strip is brass. */
+            --sage: #E1E2D2; }
+
+    html { scroll-behavior: smooth; }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+    .at-nav-link:hover { color: var(--terracotta-deep) !important; border-bottom-color: var(--brass) !important; }
+    /* Current page. aria-current was already on the right link in every header but nothing styled
+       it, so on desktop there was no way to tell where you were. Three signals, not colour alone:
+       green-forest ink, semibold, and the brass underline made persistent — the same underline the
+       hover uses, so the language is one. Hover still wins over it, which is correct: the pointer
+       is reporting what it is over, not where you are. */
+    .at-nav-link[aria-current="page"] { color: var(--green-forest) !important; font-weight: 600; border-bottom-color: var(--brass) !important; }
+    .at-login:hover { color: var(--terracotta-deep) !important; }
+    .at-login:hover span { border-bottom-color: var(--brass) !important; }
+    .at-drawer-link:hover { color: var(--brass) !important; }
+    /* No hover lift: fades and colour shifts, press is a colour deepen. The colour is re-stated on
+       hover because the global `a:hover` rule (0,1,1) outranks the button class (0,1,0). */
+    .at-cta, .at-drawer-cta { transition: background .16s ease; }
+    .at-cta:hover, .at-drawer-cta:hover { background: var(--terracotta-deep) !important; color: #fff !important; }
+    .at-cta:active, .at-drawer-cta:active { background: var(--terracotta-deep) !important; filter: brightness(.94); }
+    .at-logo { transition: opacity .16s ease; }
+    .at-logo:hover { opacity: .78; }
+    .at-burger span, .at-burger span span { transition: background .16s ease, border-color .16s ease; }
+    .at-burger:hover span { border-color: var(--terracotta-deep) !important; }
+    .at-burger:hover span span { background: var(--terracotta-deep) !important; }
+    .at-hdr { transition: transform .22s ease; }
+    .at-hdr[data-hidden="true"] { transform: translateY(-100%); }
+    /* Canonical mobile purchase bar, copied verbatim from Homepage v2. */
+    .at-mobbar { transform: translateY(100%); transition: transform .22s ease; }
+    .at-mobbar[data-on="true"] { transform: translateY(0); }
+    .at-mobbar-cta:hover { background: var(--green-deep) !important; }
+    .at-mobbar-cta:active { filter: brightness(.94); }
+    @media (prefers-reduced-motion: reduce) {
+      .at-cta, .at-drawer-cta, .at-hdr, .at-mobbar { transition: none !important; }
+    }
+
+    /* Footer, canonical. Mobile-first: the accordion IS the mobile design and is switched off at
+       1024. All type on --green-deep clears AA: brass 5.2:1, green-sage 5.4:1, sand-2 9.9:1. */
+    .at-foot-news { text-align: center; }
+    .at-foot-head { justify-content: center; cursor: pointer; }
+    .at-foot-link { justify-content: center; transition: color .16s ease; }
+    .at-foot-links { align-items: stretch; display: none; flex-direction: column; }
+    .at-foot-link:hover { color: var(--brass) !important; }
+    .at-foot-legal a:hover { color: var(--brass) !important; }
+    .at-foot-col.is-open .at-foot-links { display: flex; }
+    .at-foot-col.is-open .at-foot-chevron { transform: rotate(180deg); }
+    .at-foot-chevron { transition: transform .18s ease; }
+    .at-social svg { transition: fill .16s ease; }
+    .at-social:hover svg { fill: var(--brass); }
+    .at-foot-join { transition: background .16s ease; }
+    .at-foot-join:hover { background: var(--brass-deep) !important; }
+    .at-foot-join:active { filter: brightness(.94); }
+    .at-foot-input::placeholder { color: var(--green-sage); opacity: 1; }
+    /* Cream ring with a gold outer edge, offset 0: two crisp bands, not a glow. */
+    .at-foot-inner a:focus-visible, .at-foot-inner button:focus-visible, .at-foot-input:focus-visible {
+      outline: 2px solid var(--cream); outline-offset: 0; box-shadow: 0 0 0 3px var(--gold);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .at-foot-chevron, .at-foot-link, .at-foot-join, .at-social svg { transition: none !important; }
+    }
+
+    /* --- Menu page. Mobile is the base; 640 and 1024 add compositions, never overrides. --- */
+    /* Canonical band padding (44-48 -> 56-60 -> 72-76). The hero and the menu band are ONE cream
+       run: the hero closes with 8px and the menu band opens with 4px, so the two read as a single
+       section opened by the page title — per the rule that a cream-to-cream transition comes from
+       heading and spacing, never a divider or a second cream. */
+    .mn-sec { padding: 44px 0 48px; }
+    /* Centred at every width, per the user's call — the homepage's section headings are centred
+       too, so the menu opening reads with them rather than against them. The lede's measure is
+       centred with auto margins, not just its text. */
+    .mn-hero { padding-bottom: 8px; text-align: center; }
+    .mn-hero .mn-lede { margin-left: auto; margin-right: auto; max-width: 620px; }
+    .mn-lede-more { display: none; }
+    .mn-band { padding-top: 4px; }
+    .mn-lede { margin: 14px 0 0; font-family: var(--font-sans); font-size: 18px; line-height: 1.55; color: var(--brown); text-wrap: pretty; }
+
+    /* Delivery availability strip. Page-level context, so it sits under the lede rather than in the
+       filter card: it is not a filter and it does not change the results. Full width of the content
+       column on a phone at a 14px radius, intrinsic and centred as a pill from 640 — the strip is
+       one line at every width.
+       --sage ground: green-forest measures 9.4:1 on it and brown 10.2:1, so the type and the mark
+       are safe; brass is only 2.2:1 there, which is why nothing in this strip is brass. */
+    .mn-deliv-wrap { margin-top: 18px; }
+    .mn-deliv { position: relative; display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 6px 12px 6px 16px; border-radius: 14px; background: var(--sage); }
+    .mn-deliv-txt { font-family: var(--font-sans); font-size: 16px; line-height: 1.35; color: var(--brown); text-wrap: pretty; }
+    /* green-forest, not the brass-ink the filter note's "i" uses: brass-ink measures 4.28:1 on
+       --sage, which carries a mark but not a 13px glyph, and green-forest is 9.4:1 there and
+       matches the strip's other ink. The filter sheet's "i" sits on cream-3, where brass-ink is
+       4.96:1, so it keeps brass. */
+    .mn-deliv .mn-info span { border-color: var(--green-forest); color: var(--green-forest); }
+    .mn-deliv .mn-info:hover span { background: var(--green-forest); color: var(--sage); }
+    .mn-deliv-date { font-weight: 600; color: var(--green-forest); white-space: nowrap; }
+    /* The same disclosure panel as the filter note, floated under the strip instead of sitting in
+       the flow — the strip is a single line with nothing below it to displace, and the strip is the
+       positioning context, so the caret can sit against the "i" at every width (the "i" is always
+       the strip's last element). */
+    /* Two classes, so this outranks `.mn-note { margin-top: 14px }` further down the sheet: both
+       were (0,1,0), the later rule won, and the panel sat 14px below its authored position with
+       the caret floating clear of the strip. */
+    .mn-note.mn-note-pop { position: absolute; left: 0; right: 0; top: calc(100% + 10px); z-index: 40; margin-top: 0; box-shadow: 0 18px 40px -18px rgba(30, 58, 47, .42); }
+    /* The caret is a rotated SQUARE carrying two of the panel's own borders, not a solid triangle.
+       A triangle sits on top of the 1px outline and breaks it — the border visibly stopped either
+       side of the notch. Rotated, its fill covers the segment of panel border behind it while its
+       own two edges continue that line, so the outline reads as one unbroken shape.
+       right: 16px is measured, not guessed: it puts the square's centre on the "i" disc's centre. */
+    .mn-note-pop::after { content: ""; position: absolute; right: 16px; top: -7px; width: 12px; height: 12px; background: var(--cream-3); border-left: 1px solid var(--sand-2); border-top: 1px solid var(--sand-2); transform: rotate(45deg); }
+    .mn-note-title { font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.25; color: var(--green-forest); }
+
+    /* Filter card. The search + Filters + Sort model is carried over unchanged from the current
+       menu page — only its geometry, type and targets are rebuilt to the standards. Deliberately
+       NOT sticky: the header now auto-hides on downward scroll, and a second sticky band moving
+       under it fought that rule on the old page. */
+    .mn-tools { background: var(--cream-3); border: 1px solid var(--sand); border-radius: 18px; padding: 14px; }
+    .mn-search { display: flex; align-items: center; gap: 11px; min-height: 52px; padding: 0 18px; background: var(--white); border: 1px solid var(--sand-2); border-radius: var(--radius-pill); transition: border-color .16s ease; }
+    .mn-search:focus-within { border-color: var(--green-forest); }
+    /* 16px minimum: anything under it triggers a zoom on iOS. */
+    /* align-self: stretch, so the input's own box IS the 52px field. At its intrinsic 21px height
+       only the text line focused the field on a tap — a 21px target on a control that looks 52px
+       tall. */
+    .mn-search input { flex: 1 1 auto; align-self: stretch; min-width: 0; border: none; outline: none; background: transparent; font-family: var(--font-sans); font-size: 16px; color: var(--brown); }
+    .mn-search input::placeholder { color: var(--brown); opacity: .75; }
+    .mn-clear-x { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-right: -12px; border: none; background: transparent; cursor: pointer; color: var(--brown); font-size: 20px; line-height: 1; transition: color .16s ease; }
+    .mn-clear-x:hover { color: var(--terracotta-deep); }
+    /* Two utility controls, not CTAs: sentence case at body size, 48px targets. They are side by
+       side at every width — one row of two on a phone, one row of three from 640. */
+    .mn-ctl-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+    .mn-btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 0 16px; border-radius: var(--radius-pill); font-family: var(--font-sans); font-weight: 600; font-size: 16px; cursor: pointer; transition: background .16s ease, border-color .16s ease, color .16s ease; }
+    .mn-btn-fill { border: 1px solid var(--green-forest); background: var(--green-forest); color: var(--blush); }
+    .mn-btn-fill:hover { background: var(--green-deep); border-color: var(--green-deep); }
+    .mn-btn-out { border: 1px solid var(--sand-2); background: var(--cream-2); color: var(--green-forest); }
+    .mn-btn-out:hover { border-color: var(--green-forest); }
+    .mn-btn:active { filter: brightness(.94); }
+    .mn-btn svg { flex: 0 0 auto; transition: transform .18s ease; }
+    .mn-btn[aria-expanded="true"] svg { transform: rotate(180deg); }
+    .mn-count-pill { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 7px; border-radius: var(--radius-pill); background: var(--blush); color: var(--green-forest); font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: 0; }
+    @media (prefers-reduced-motion: reduce) { .mn-btn, .mn-btn svg { transition: none !important; } }
+
+    /* Active filters, inside the card. Each is a real control with a 44px target. */
+    .mn-active { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; }
+    .mn-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border: 1.5px solid var(--surface-dish); border-radius: var(--radius-pill); background: var(--surface-dish); font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.2; color: var(--green-forest); cursor: pointer; transition: background .16s ease, border-color .16s ease, color .16s ease; }
+    .mn-chip:hover { border-color: var(--green-forest); }
+    .mn-chip[aria-pressed="true"] { background: var(--green-forest); border-color: var(--green-forest); color: #fff; }
+    .mn-chip[aria-pressed="true"]:hover { background: var(--green-deep); border-color: var(--green-deep); }
+    .mn-chip:active { filter: brightness(.94); }
+    .mn-chip-x { font-size: 17px; line-height: 1; }
+    /* Type, so --terracotta-ink rather than --terracotta. */
+    .mn-textbtn { display: inline-flex; align-items: center; min-height: 44px; padding: 0 2px; border: none; background: transparent; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; color: var(--terracotta-ink); transition: color .16s ease; }
+    .mn-textbtn span { border-bottom: 1.5px solid var(--brass); padding-bottom: 2px; }
+    .mn-textbtn:hover { color: var(--terracotta-deep); }
+    @media (prefers-reduced-motion: reduce) { .mn-chip, .mn-textbtn { transition: none !important; } }
+
+    /* MOBILE: the filter panel is a bottom sheet. From 1024 the same markup becomes an inline
+       panel inside the card — one set of content, recomposed, never a second copy. */
+    .mn-sheet-wrap { display: none; }
+    .mn-sheet-wrap.is-open { display: block; }
+    .mn-scrim { position: fixed; inset: 0; z-index: 90; background: rgba(21, 41, 31, .5); animation: at-fade-in .2s ease; }
+    .mn-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 95; display: flex; flex-direction: column; max-height: 88vh; background: var(--cream-2); border-top: 2px solid var(--brass); border-radius: 20px 20px 0 0; animation: mn-up .22s ease; }
+    .mn-sheet:focus { outline: none; }
+    @media (prefers-reduced-motion: reduce) { .mn-sheet, .mn-scrim { animation: none !important; } }
+    .mn-sheet-head { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 22px; border-bottom: 1px solid var(--sand); }
+    .mn-sheet-title { margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.25; color: var(--green-forest); }
+    .mn-sheet-body { flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 2px 22px 16px; }
+    .mn-sheet-foot { flex: 0 0 auto; display: grid; gap: 4px; justify-items: center; border-top: 1px solid var(--sand); padding: 14px 22px calc(14px + env(safe-area-inset-bottom, 0px)); }
+    /* Sheet apply is a major section CTA: 52px, full width inside the sheet padding on a phone. */
+    .mn-apply { display: inline-flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; padding: 0 30px; border: none; border-radius: var(--radius-pill); background: var(--green-forest); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; transition: background .16s ease; }
+    .mn-apply:hover { background: var(--green-deep); }
+    .mn-apply:active { filter: brightness(.94); }
+    @media (prefers-reduced-motion: reduce) { .mn-apply { transition: none !important; } }
+
+    .mn-group { padding: 18px 0; border-top: 1px solid var(--sand); }
+    .mn-group:first-child { border-top: none; }
+    .mn-group-head { display: flex; align-items: center; gap: 6px; min-height: 26px; }
+    /* brass as TYPE, so brass-ink. Plain --brass is 3.47:1 at this size on cream. */
+    .mn-group-title { font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass-ink); }
+    .mn-chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+    /* 44px target, 22px visible disc: the same visible-disc/large-target split as the clip pause
+       control and the card's Signature note. */
+    .mn-info { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px; border: none; background: transparent; cursor: pointer; }
+    .mn-info span { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border: 1px solid var(--brass-ink); border-radius: 50%; font-family: var(--font-sans); font-weight: 600; font-size: 13px; line-height: 1; letter-spacing: 0; text-transform: none; color: var(--brass-ink); transition: background .16s ease, color .16s ease; }
+    .mn-info:hover span { background: var(--brass-ink); color: var(--cream); }
+    /* A disclosure panel in the flow of its own group, not a floating tooltip. As a popover it
+       opened over the "Eating style" label and its own trigger, and covered the chips beside it;
+       in flow it sits between the head and the chips, so it can never overlap anything or be
+       clipped by the sheet's scroll box. State-driven, so Esc and a second tap close it. */
+    .mn-note { display: none; flex-direction: column; gap: 12px; margin-top: 14px; padding: 16px 18px; background: var(--cream-3); border: 1px solid var(--sand-2); border-radius: 14px; text-align: left; }
+    .mn-note[data-open="true"] { display: flex; }
+    /* The close control sits on the note's own top row, so the panel can be dismissed without
+       hunting for the "i" again. 44px target, the glyph inset by a negative margin so the visible
+       cross still lines up with the panel's padding. */
+    .mn-note-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .mn-note-head { font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass-ink); }
+    .mn-note-x { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -12px -14px -12px 0; border: none; background: transparent; cursor: pointer; color: var(--green-forest); font-size: 22px; line-height: 1; transition: color .16s ease; }
+    .mn-note-x:hover { color: var(--terracotta-deep); }
+    @media (prefers-reduced-motion: reduce) { .mn-note-x { transition: none !important; } }
+    .mn-def { font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); }
+    .mn-def b { display: block; font-weight: 600; color: var(--green-forest); }
+
+    /* Results row. The count is live copy at body size; Sort is a utility control. */
+    .mn-results { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-top: 22px; }
+    .mn-count { font-family: var(--font-sans); font-size: 16px; color: var(--brown); }
+    .mn-sort { position: relative; }
+    .mn-sort-menu { display: none; position: absolute; top: calc(100% + 8px); right: 0; z-index: 40; min-width: 246px; background: var(--cream-3); border: 1px solid var(--sand-2); border-radius: 14px; box-shadow: 0 18px 40px -18px rgba(30, 58, 47, .42); overflow: hidden; }
+    .mn-sort.is-open .mn-sort-menu { display: block; }
+    .mn-sort-opt { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 14px; min-height: 48px; padding: 0 18px; border: none; background: transparent; cursor: pointer; text-align: left; font-family: var(--font-sans); font-size: 16px; color: var(--green-forest); transition: background .16s ease; }
+    .mn-sort-opt:hover { background: var(--cream-2); }
+    .mn-sort-opt[aria-pressed="true"] { background: rgba(233, 205, 184, .34); font-weight: 600; }
+
+    /* Dish grid. One card per row on a phone; the CARD itself is the approved homepage card,
+       markup and values verbatim — only its width changes (100% of the grid cell rather than the
+       carousel's min(360px, 82vw)). */
+    .mn-grid { display: grid; gap: 18px; margin-top: 22px; }
+    .mn-cell { position: relative; display: flex; }
+    .at-dish-link { display: flex; flex: 1 1 auto; text-decoration: none; }
+    .at-dish-link:focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; border-radius: var(--radius-card); }
+    .at-dish-card { transition: transform .18s ease, box-shadow .18s ease; }
+    /* Shown at EVERY width on the menu, at the user's request. It is the one deliberate departure
+       from the approved homepage card, and the reason is the surface: the homepage carousel is a
+       taster, where card height costs more than the sentence adds, whereas someone on the menu is
+       choosing dishes and the description is what they are choosing on. */
+    .at-dish-desc { display: block; font-size: 16px; }
+    /* The DS nutrition tag ships .16em tracking, right for an eyebrow but loose in a data row. */
+    .at-nutri span { letter-spacing: .06em !important; }
+    /* MOBILE: the Signature note opens BELOW the tag stack, tail pointing up; --tail-x is measured
+       from the "i" itself, because the panel is anchored to the stack and not to one pill. */
+    .at-sig-tip { position: absolute; top: calc(100% + 8px); left: 0; z-index: 8; width: max-content; max-width: min(252px, 70vw); background: var(--navy); color: var(--blush); border-radius: 12px; padding: 9px 13px; font-family: var(--font-sans); font-weight: 400; font-size: 13px; line-height: 1.45; letter-spacing: 0; text-transform: none; text-align: left; opacity: 0; transform: translateY(-5px); pointer-events: none; transition: opacity .16s ease, transform .16s ease; }
+    .at-sig-tip::after { content: ""; position: absolute; bottom: 100%; left: var(--tail-x, 18px); border: 9px solid transparent; border-bottom-color: var(--navy); }
+    .at-sig-tip[data-open="true"] { opacity: 1; transform: translate(0, 0); }
+    .at-sig-info:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+    /* 17px disc, 45px target: padding the button would inflate the navy pill it sits in. */
+    .at-sig-info::before { content: ""; position: absolute; inset: -14px; border-radius: 50%; }
+    @media (prefers-reduced-motion: reduce) { .at-dish-card, .at-sig-tip { transition: none !important; } }
+
+    /* --- "↑ Top": a navigation utility, NOT a CTA. Cream ground, green ink, hairline border and a
+       restrained shadow — deliberately none of the terracotta or filled-green treatment, so it
+       stays subordinate to Build a Box. z-index 75: above the purchase bar (70), below the drawer
+       scrim (90) and every overlay.
+       MOBILE: bottom-right, immediately above the purchase bar. The clearance is measured, not
+       restated — var(--at-bar-h) is published by the bar's own ResizeObserver, so this stays
+       correct at 320px where the price label wraps and the bar grows. When the bar is retracted
+       the control drops to the viewport edge rather than floating over a gap. --- */
+    .mn-top { position: fixed; z-index: 75; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: inline-flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 16px; border: 1px solid var(--sand-2); border-radius: var(--radius-pill); background: var(--cream-2); color: var(--green-forest); font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .01em; cursor: pointer; box-shadow: 0 6px 18px -10px rgba(30, 58, 47, .45); opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity .2s ease, transform .2s ease, bottom .22s ease, background .16s ease, color .16s ease; }
+    /* --at-bar-h already includes the bar's safe-area padding, so it is not added twice here. */
+    .mn-top[data-bar="true"] { bottom: calc(var(--at-bar-h, 85px) + 14px); }
+    .mn-top[data-on="true"] { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    .mn-top:hover { background: var(--cream); color: var(--terracotta-deep); }
+    .mn-top:active { filter: brightness(.96); }
+    .mn-top:focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
+    @media (prefers-reduced-motion: reduce) { .mn-top { transition: none !important; } }
+
+    /* Load more: a major section CTA, so 52px at every width and only the width is responsive. */
+    .mn-morewrap { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 30px; }
+    .mn-more { display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 52px; padding: 0 34px; border: none; border-radius: var(--radius-pill); background: var(--green-forest); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; transition: background .16s ease; }
+    .mn-more:hover { background: var(--green-deep); }
+    .mn-more:active { filter: brightness(.94); }
+    @media (prefers-reduced-motion: reduce) { .mn-more { transition: none !important; } }
+    .mn-empty { padding: 34px 0 6px; text-align: center; }
+    .mn-empty p { margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.3; color: var(--green-forest); }
+
+    /* --- Where the flavour comes from. Kept as it is, at the user's instruction: same copy, same
+       blush band, same monogram, hairline and 40px heading, and the photograph still appears only
+       at the wider composition. Only two things changed, both required by the standards it is now
+       sitting beside: the 12px label moves from --brass (2.2:1 on blush) to --brass-ink, and the
+       max-width query that produced the phone layout is expressed as the BASE state with the
+       two-column composition added at 1024. --- */
+    .fl-sec { background: var(--blush); padding: 48px 0 52px; }
+    .fl-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; }
+    .fl-copy { max-width: 620px; margin: 0 auto; text-align: center; }
+    .fl-mark { height: 60px; width: auto; display: block; margin: 0 auto 20px; }
+    /* --brown, not brass. Measured on this ground: --brass is 2.2:1 and even --brass-ink only
+       3.72:1, both under the 4.5:1 a 12px label needs. Blush behaves like --sand, where the
+       recorded rule already sends small brass text to --brown (8.85:1 here). The brass hairline
+       under the heading keeps the accent in the band. */
+    .fl-label { font-family: var(--font-sans); font-weight: 600; font-size: 12px; letter-spacing: .28em; text-transform: uppercase; color: var(--brown); margin-bottom: 18px; }
+    .fl-h2 { margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 34px; line-height: 1.16; color: var(--green-forest); text-wrap: pretty; }
+    .fl-rule { display: block; width: 88px; height: 1px; background: var(--brass); margin: 26px auto; }
+    .fl-facts { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    /* The icon is INLINE, inside the text run, not a flex sibling of it. As a flex sibling the text
+       span takes all the remaining width the moment its text wraps to two lines, so there is no
+       free space left for justify-content to centre and the icon strands itself at the column's
+       left edge — which is what happened at both 1024-1279 and ultrawide. Inline, it sits against
+       the first word at every width and cannot drift. */
+    .fl-fact { display: block; text-align: center; }
+    .fl-ic { display: inline-block; width: 22px; height: 22px; margin-right: 9px; vertical-align: -0.3em; }
+    .fl-txt { font-family: var(--font-sans); font-weight: 500; font-size: 16px; line-height: 1.5; color: var(--green-forest); text-align: center; }
+    /* Content prioritisation, not a duplicate: one element, hidden in the base state and revealed
+       at the wider composition where it has a column of its own. */
+    .fl-media { display: none; }
+
+    /* --- 640px: more measure, so the controls sit on one row and the grid splits --- */
+    @media (min-width: 640px) {
+      .at-hdr-row { padding: 14px 34px !important; gap: 14px !important; }
+      .at-cta { font-size: 13px !important; letter-spacing: .1em !important; padding: 0 20px !important; }
+      .at-foot-form { flex-direction: row !important; align-items: stretch !important; gap: 0 !important; height: 52px !important; width: 340px; max-width: 100%; margin-left: auto !important; margin-right: auto !important; border: 1px solid var(--green-mid); border-radius: var(--radius-pill); overflow: hidden; }
+      .at-foot-input { flex: 1 1 auto !important; min-width: 0 !important; border: none !important; border-radius: 0 !important; height: auto !important; }
+      .at-foot-join { border-radius: 0 !important; height: auto !important; width: auto !important; padding: 0 26px !important; }
+      .at-foot-inner { padding: 48px 34px 0 !important; }
+
+      .mn-lede-more { display: inline; }
+      .mn-lede-stop { display: none; }
+      /* Intrinsic and centred from 640: a full-width strip only earns its width on a phone. */
+      .mn-deliv-wrap { display: flex; justify-content: center; margin-top: 20px; }
+      .mn-deliv { border-radius: var(--radius-pill); padding: 6px 10px 6px 20px; }
+      .mn-note.mn-note-pop { left: auto; right: 0; width: min(380px, calc(100vw - 68px)); }
+      .mn-sec { padding: 56px 0 60px; }
+      .mn-hero { padding-bottom: 10px; }
+      .mn-band { padding-top: 6px; }
+      .at-page-inner { padding: 0 34px !important; }
+      .mn-tools { padding: 16px; }
+      /* Search, Filters and Sort on one row: the search takes the slack, the two controls stay
+         intrinsic. */
+      .mn-tool-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: center; }
+      .mn-ctl-row { display: contents; }
+      .mn-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+      /* Cards sit beside each other from here, so the name, components line and description are
+         clamped to two lines and hold a reserved height again — that is what keeps the nutrition
+         rows on one line across a row of cards. */
+      .at-dish-name, .at-dish-parts, .at-dish-desc { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+      .at-dish-name { min-height: 2.3em; }
+      .at-dish-parts, .at-dish-desc { min-height: 3em; }
+      .at-dish-desc { font-size: 14.5px; }
+      .mn-more { width: auto; }
+      /* Two groups across in the sheet at this measure. */
+      .mn-sheet-body { padding: 2px 34px 18px; }
+      .mn-sheet-head, .mn-sheet-foot { padding-left: 34px; padding-right: 34px; }
+      .mn-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 34px; }
+      .mn-group:nth-child(2) { border-top: none; }
+      .mn-apply { width: auto; min-width: 260px; }
+      .mn-sheet-foot { justify-items: center; }
+
+      .fl-sec { padding: 56px 0 60px; }
+    }
+
+    /* --- 1024px: desktop composition — nav in the header, filters inline, three cards across --- */
+    @media (min-width: 1024px) {
+      .at-burger { display: none !important; }
+      .at-nav, .at-login { display: flex !important; }
+      .at-hdr-row { padding: 18px 48px !important; grid-template-columns: auto 1fr auto auto !important; gap: 34px !important; }
+      .at-logo { justify-self: start !important; }
+      .at-login { margin-left: 12px !important; }
+      .at-foot-inner { padding: 56px 48px 0 !important; }
+      .at-foot-grid { grid-template-columns: 1.4fr 3fr !important; gap: 48px !important; }
+      .at-foot-cols { grid-template-columns: repeat(3, 1fr) !important; gap: 48px !important; border-bottom: none !important; }
+      .at-foot-col { border-top: none !important; }
+      .at-foot-head { min-height: 0 !important; padding: 0 !important; cursor: default !important; justify-content: space-between !important; }
+      .at-foot-chevron { display: none !important; }
+      .at-foot-links { display: flex !important; margin-top: 16px !important; padding-bottom: 0 !important; }
+      .at-foot-link { justify-content: flex-start !important; }
+      .at-foot-bottom { grid-template-columns: 1fr auto 1fr !important; align-items: center !important; margin-top: 0 !important; }
+      .at-foot-logo { justify-self: start !important; }
+      .at-foot-follow { justify-self: end !important; align-items: flex-end !important; }
+      .at-foot-follow-row { flex-direction: row !important; align-items: center !important; gap: 12px !important; }
+      .at-foot-dash { display: inline !important; }
+      .at-foot-mark { width: 220px !important; height: 38px !important; }
+      .at-foot-legal { flex-direction: row !important; gap: 4px 24px !important; }
+      .at-foot-legal-row { gap: 24px !important; }
+      .at-foot-legal-sep { display: none !important; }
+      .at-foot-rule { display: block !important; }
+      .at-foot-news { text-align: left !important; }
+      .at-foot-form { margin-left: 0 !important; margin-right: 0 !important; }
+      .at-foot-news p { max-width: 300px; }
+      .at-foot-consent { max-width: 340px; }
+      /* One persistent purchase action on mobile only; desktop keeps the header CTA. */
+      .at-mobbar { display: none !important; }
+      .at-hdr[data-hidden="true"] { transform: none !important; }
+
+      .mn-sec { padding: 72px 0 76px; }
+      .mn-hero { padding-bottom: 14px; }
+      .mn-band { padding-top: 10px; }
+      .at-page-inner { padding: 0 48px !important; }
+      .at-h1 { font-size: 56px !important; }
+      .mn-hero .mn-lede { max-width: 620px; }
+      .mn-tools { padding: 18px; }
+      /* Desktop composition: the filter panel is part of the card, not an overlay — no scrim, no
+         sheet chrome, four groups across, and the apply row becomes a right-aligned utility row. */
+      .mn-scrim { display: none !important; }
+      /* 16px above the panel's rule, not 0: the divider was landing a few pixels under the search
+         field and the two read as one crowded block. */
+      .mn-sheet-wrap { margin: 16px -18px -18px; }
+      .mn-sheet { position: static; max-height: none; border-radius: 0 0 17px 17px; border-top: 1px solid var(--sand); background: transparent; animation: none; }
+      .mn-sheet-head { display: none; }
+      .mn-sheet-body { overflow: visible; padding: 10px 18px 8px; }
+      .mn-sheet-foot { grid-template-columns: 1fr auto; justify-items: end; align-items: center; gap: 16px; border-top: 1px solid var(--sand); padding: 14px 18px; }
+      .mn-sheet-foot .mn-textbtn { justify-self: start; }
+      .mn-groups { grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 26px; }
+      .mn-group { border-top: none; padding: 14px 0 6px; }
+      .mn-group + .mn-group { border-left: 1px solid var(--sand); padding-left: 26px; }
+      .mn-groups { margin-left: 0; }
+      .mn-apply { min-width: 0; padding: 0 26px; }
+      .mn-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; }
+      .mn-results { margin-top: 26px; }
+      /* Compacter with a pointer — no thumb target to hold — and 24px from both edges. */
+      .mn-top { min-height: 40px; padding: 0 14px; font-size: 13.5px; right: 24px; bottom: 24px; }
+      .mn-top[data-bar="true"] { bottom: 24px; }
+      .at-dish-name { font-size: 26px !important; }
+      .at-dish-parts { font-size: 19px !important; }
+      /* DESKTOP: the mockup composition — the note sits right of the pill, tail pointing left. */
+      .at-sig-pill { position: relative; }
+      .at-sig-tip { top: -10px !important; left: calc(100% + 13px) !important; max-width: 250px !important; transform: translateX(-5px); }
+      .at-sig-tip::after { top: 15px !important; bottom: auto !important; left: auto !important; right: 100% !important; border-bottom-color: transparent !important; border-right-color: var(--navy) !important; }
+      /* Cards are not buttons: the lift is a card affordance and stays, guarded for reduced motion. */
+      .at-dish-link:hover .at-dish-card { transform: translateY(-4px); box-shadow: 0 14px 28px rgba(30, 58, 47, 0.18); }
+      .at-dish-link:active .at-dish-card { transform: translateY(-1px); }
+      @media (prefers-reduced-motion: reduce) {
+        .at-dish-link:hover .at-dish-card, .at-dish-link:active .at-dish-card { transform: none !important; }
+      }
+
+      .fl-sec { padding: 72px 0 76px; }
+      .fl-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 64px; align-items: center; }
+      .fl-copy { max-width: none; }
+      .fl-h2 { font-size: 40px; }
+      .fl-txt { font-weight: 600; font-size: 13.5px; letter-spacing: .1em; text-transform: uppercase; }
+      .fl-ic { width: 26px; height: 26px; }
+      .fl-facts { gap: 14px; }
+      .fl-media { display: block; position: relative; border-radius: 24px; overflow: hidden; box-shadow: var(--shadow-card); aspect-ratio: 4 / 3; background: #14100c; }
+      .fl-media img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    }
+
+    /* EXCEPTION — min-width 1440px, and a CONTENT reason: this is the width at which the page's
+       right gutter can hold the Top control CLEAR of the cards, so it stops sitting over
+       photography. The control measures 82px at the desktop size and keeps a 28px edge inset, so
+       it needs ~110px of free gutter; the gutter is (viewport - 1280px) / 2 plus the 48px page
+       padding, which passes that at 1440. Below it the control stays at 24px over the card — the
+       accepted fallback, since the alternative was shrinking the control.
+       The expression anchors to the CONTENT COLUMN, not the browser edge: right resolves to
+       (gutter - 66px), so the control's left edge sits a constant 32px clear of the card track at
+       any width. It therefore cannot drift out towards the bezel on a 2560px monitor — the
+       distance to the menu is fixed and only the distance to the window edge grows. The 28px floor
+       keeps it inside the 24-32px inset range at the narrow end of the band. */
+    @media (min-width: 1440px) {
+      .mn-top { right: max(28px, calc((100% - 1280px) / 2 - 66px)); }
+    }
+  </style>
+<style>
+  /* Sterling sign, site-wide. Playfair Display's £ has a double crossbar that reads as a euro, so
+     U+00A3 alone is drawn from a Figtree subset (1 KB, 400–700) prepended to the display and
+     accent stacks. Every other character is untouched. html:root outranks the token sheet. */
+  @font-face { font-family: "AT Sterling"; src: url("assets/fonts/at-sterling.woff2") format("woff2"); font-weight: 400 700; font-style: normal; font-display: block; unicode-range: U+00A3; }
+  html:root {
+    --font-display: "AT Sterling", "Playfair Display", ui-serif, Georgia, "Times New Roman", serif;
+    --font-accent: "AT Sterling", "Cormorant Garamond", ui-serif, Georgia, serif;
+  }
+</style>
+</helmet>
+
+<header class="at-hdr" data-at-desk-hdr="marketing" ref="{{ hdrRef }}" data-hidden="{{ hdrHidden }}" style="position: sticky; top: 0; z-index: 60; background: var(--cream-2); border-bottom: 1px solid var(--sand);">
+  <div class="at-hdr-row" style="display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 8px; max-width: 1280px; margin: 0 auto; padding: 10px 14px;">
+
+    <button class="at-burger" type="button" ref="{{ burgerRef }}" onClick="{{ openDrawer }}" aria-label="Open menu" aria-controls="at-drawer" aria-expanded="{{ burgerExpanded }}" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-left: -10px; border: none; background: transparent; cursor: pointer;">
+      <span aria-hidden="true" style="display: block; width: 22px; height: 14px; border-top: 1.6px solid var(--green-forest); border-bottom: 1.6px solid var(--green-forest); position: relative;"><span style="position: absolute; left: 0; right: 0; top: 50%; margin-top: -0.8px; height: 1.6px; background: var(--green-forest);"></span></span>
+    </button>
+
+    <a class="at-logo" href="Abby's Table - Homepage v2.dc.html" aria-label="Abby&#8217;s Table &#8212; home" style="justify-self: center; display: block; text-decoration: none; min-width: 0;">
+      <span aria-hidden="true" style="display: block; width: clamp(108px, 36vw, 168px); aspect-ratio: 186 / 32; color: var(--green-forest);"><at-wordmark></at-wordmark></span>
+    </a>
+
+    <nav class="at-nav" aria-label="Main" style="display: none; justify-self: center; align-items: center; gap: 30px;">
+      <a class="at-nav-link" href="Abby's Table - Menu Landing v3.dc.html" aria-current="page" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Menu</a>
+      <a class="at-nav-link" href="Abby's Table - How It Works v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">How it works</a>
+      <a class="at-nav-link" href="Abby's Table - Abby's Story v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Abby&#8217;s Story</a>
+      <a class="at-nav-link" href="Abby's Table - Gifting v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Gifting</a>
+      <a class="at-nav-link" href="Abby's Table - Private Table v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Private Table</a>
+    </nav>
+
+    <a class="at-login" href="Abby's Table - Log in.dc.html" style="display: none; align-items: center; height: 44px; font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; transition: color .16s ease;"><span style="display: inline-block; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: border-color .16s ease;">Log in</span></a>
+
+    <a class="at-cta" href="Abby's Table - Choose Box v2.dc.html" style="display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 13px; border-radius: var(--radius-pill); background: var(--terracotta); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; text-decoration: none; white-space: nowrap;">Get started</a>
+  </div>
+</header>
+
+<!-- Menu, rebuilt mobile-first. Header, drawer, footer and the mobile purchase bar are copied
+     verbatim from the canonical Homepage v2; the dish card is the approved homepage card, and the
+     page type scale, 1280/22-34-48 shell, band paddings, button ladder and hover/focus language
+     come from it too.
+     Dropped from the old page: the promo strip and its socials, the 1440 header shell, the logo
+     strapline, the "Order" pill, the basket icon, the floating back-to-top button, the "What's on
+     the table?" eyebrow (rebuilt pages carry no eyebrows — the words became the page title), the
+     name-truncation tooltip, and the sticky filter band, which fought the auto-hiding header.
+     Search, Filters and Sort are carried over as they behave today; only geometry, type and hit
+     areas are rebuilt.
+     Photography is AI placeholder (photography-shot-list.md). The cards load 800px JPEGs
+     (assets/dish-*-800.jpg, 96-119KB) rather than the 1200px 1.8MB PNG masters: the widest a card
+     ever paints is ~400px at desktop and ~346px on a phone, so 800 is the displayed size at 2x.
+     The PNG masters stay in assets/ for the reshoot. -->
+<main>
+  <section class="mn-sec mn-hero" data-screen-label="Menu — title" style="background: var(--cream);">
+    <div class="at-page-inner" style="max-width: 1280px; margin: 0 auto; padding: 0 22px;">
+      <h1 class="at-h1" ref="{{ h1Ref }}" tabindex="-1" style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(38px, 11.6vw, 56px); line-height: 1.04; letter-spacing: -0.015em; color: var(--green-forest); text-wrap: pretty;">What&#8217;s on the table?</h1>
+      <!-- Shorter on a phone, at the user's request: the first clause alone. Not two copies of the
+           sentence — the base carries the mobile wording and the rest is ONE element revealed from
+           640, with the mobile full stop as its counterpart. -->
+      <p class="mn-lede"><span style="white-space: nowrap;">Chef-prepared</span> Nigerian fusion dishes, cooked in small batches<span class="mn-lede-stop">.</span><span class="mn-lede-more"> and delivered chilled across the UK. Choose six or more dishes to build your box.</span></p>
+
+      <!-- The date is a VALUE, not copy: it comes from live availability, so it is a prop rather
+           than a literal in the markup (same treatment as the £158 price). The wording is fixed.
+           The note deliberately promises nothing the page can't know — postcode, order time and
+           availability decide the real dates, and the box builder is where they are confirmed.
+           The mark is the homepage hero's parcel glyph rather than a delivery van: no van exists
+           anywhere on the site, and the design system says to flag a new icon rather than draw
+           one quietly. -->
+      <div class="mn-deliv-wrap">
+        <div class="mn-deliv" onMouseLeave="{{ leaveDelivTip }}">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M20.5 7.3 12 2.6 3.5 7.3v9.4l8.5 4.7 8.5-4.7z" /><path d="M3.5 7.3 12 12l8.5-4.7" /><path d="M12 12v9.4" /></svg>
+          <span class="mn-deliv-txt">Next deliveries from <span class="mn-deliv-date">{{ nextDelivery }}</span></span>
+          <button class="mn-info" type="button" onClick="{{ toggleDelivTip }}" onMouseEnter="{{ hoverDelivTip }}" onFocus="{{ hoverDelivTip }}" onBlur="{{ leaveDelivTip }}" aria-label="About delivery dates" aria-controls="mn-deliv-note" aria-expanded="{{ delivTipOpen }}"><span aria-hidden="true">i</span></button>
+
+          <div class="mn-note mn-note-pop" id="mn-deliv-note" data-open="{{ delivTipOpen }}">
+            <span class="mn-note-top">
+              <span class="mn-note-title">About delivery dates</span>
+              <button class="mn-note-x" type="button" onClick="{{ closeDelivTip }}" aria-label="Close the delivery dates note">&#215;</button>
+            </span>
+            <span class="mn-def">We take a limited number of orders for each cooking run, so we can give every dish the care it deserves. The date shown is our next available run. <strong style="font-weight: 600; color: var(--green-forest);">Availability can change if a run fills before you complete checkout.</strong></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="mn-sec mn-band" data-screen-label="Menu — filters and dishes" style="background: var(--cream);">
+    <div class="at-page-inner" style="max-width: 1280px; margin: 0 auto; padding: 0 22px;">
+
+      <div class="mn-tools">
+        <div class="mn-tool-row">
+          <div class="mn-search">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brown)" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" style="flex: 0 0 auto;"><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.5" y2="16.5" /></svg>
+            <!-- type="text", not "search": WebKit adds its own clear affordance to a search input,
+                 which would sit beside ours and give the field two clear controls. -->
+            <input type="text" value="{{ query }}" onInput="{{ onSearch }}" aria-label="Search the menu" placeholder="Search dishes" />
+            <sc-if value="{{ hasQuery }}" hint-placeholder-val="{{ false }}">
+              <button class="mn-clear-x" type="button" onClick="{{ clearSearch }}" aria-label="Clear search">&#215;</button>
+            </sc-if>
+          </div>
+
+          <div class="mn-ctl-row">
+            <button class="mn-btn mn-btn-fill" type="button" onClick="{{ toggleFilters }}" aria-controls="mn-filters" aria-expanded="{{ filtersExpanded }}">
+              <span>Filters</span>
+              <sc-if value="{{ hasActiveFilters }}" hint-placeholder-val="{{ false }}">
+                <span class="mn-count-pill">{{ activeCount }}</span>
+              </sc-if>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blush)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+            </button>
+
+            <div class="mn-sort {{ sortOpenCls }}">
+              <button class="mn-btn mn-btn-out" type="button" onClick="{{ toggleSort }}" aria-haspopup="true" aria-expanded="{{ sortExpanded }}" aria-controls="mn-sort-menu" style="width: 100%;">
+                <span>{{ sortLabel }}</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+              </button>
+              <div class="mn-sort-menu" id="mn-sort-menu">
+                <sc-for list="{{ sortOptions }}" as="o" hint-placeholder-count="3">
+                  <button class="mn-sort-opt" type="button" onClick="{{ o.pick }}" aria-pressed="{{ o.on }}">
+                    <span>{{ o.label }}</span>
+                    <sc-if value="{{ o.selected }}" hint-placeholder-val="{{ false }}">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M5 12.5l4.5 4.5L19 7" /></svg>
+                    </sc-if>
+                  </button>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <sc-if value="{{ hasActiveFilters }}" hint-placeholder-val="{{ false }}">
+          <div class="mn-active">
+            <sc-for list="{{ activeFilters }}" as="f" hint-placeholder-count="0">
+              <button class="mn-chip" type="button" onClick="{{ f.onRemove }}" aria-label="{{ f.removeLabel }}">
+                <span>{{ f.label }}</span>
+                <span class="mn-chip-x" aria-hidden="true">&#215;</span>
+              </button>
+            </sc-for>
+            <button class="mn-textbtn" type="button" onClick="{{ clearAll }}"><span>Clear all</span></button>
+          </div>
+        </sc-if>
+
+        <!-- One set of filter content: a bottom sheet on a phone, an inline panel inside this card
+             from 1024. Always mounted and closed with display: none, so aria-controls always
+             resolves and the panel stays out of the tab order while shut. -->
+        <div class="mn-sheet-wrap {{ sheetCls }}">
+          <div class="mn-scrim" onClick="{{ closeFilters }}"></div>
+          <div class="mn-sheet" id="mn-filters" ref="{{ sheetRef }}" role="dialog" aria-modal="true" aria-label="Filter the menu" tabIndex="-1">
+            <div class="mn-sheet-head">
+              <p class="mn-sheet-title">Filters</p>
+              <button type="button" onClick="{{ closeFilters }}" aria-label="Close filters" style="flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-right: -10px; border: none; background: transparent; color: var(--green-forest); font-size: 24px; line-height: 1; cursor: pointer;">&#215;</button>
+            </div>
+
+            <div class="mn-sheet-body">
+              <div class="mn-groups">
+                <div class="mn-group">
+                  <div class="mn-group-head"><span class="mn-group-title">Protein source</span></div>
+                  <div class="mn-chips">
+                    <sc-for list="{{ proteinChips }}" as="c" hint-placeholder-count="7">
+                      <button class="mn-chip" type="button" onClick="{{ c.onClick }}" aria-pressed="{{ c.on }}">
+                        <span>{{ c.label }}</span>
+                      </button>
+                    </sc-for>
+                  </div>
+                </div>
+
+                <div class="mn-group">
+                  <div class="mn-group-head">
+                    <span class="mn-group-title">Eating style</span>
+                    <button class="mn-info" type="button" onClick="{{ toggleStyleTip }}" aria-label="What do these eating styles mean?" aria-controls="mn-style-note" aria-expanded="{{ styleTipOpen }}"><span aria-hidden="true">i</span></button>
+                  </div>
+                  <div class="mn-note" id="mn-style-note" data-open="{{ styleTipOpen }}">
+                    <span class="mn-note-top">
+                      <span class="mn-note-head">What do these mean?</span>
+                      <button class="mn-note-x" type="button" onClick="{{ closeStyleTip }}" aria-label="Close the eating style note">&#215;</button>
+                    </span>
+                    <span class="mn-def"><b>Protein-led</b>Dishes where protein is a key focus of the meal.</span>
+                    <span class="mn-def"><b>Carb-conscious</b>Dishes designed with a lighter carbohydrate emphasis.</span>
+                    <span class="mn-def"><b>Plant-led</b>Dishes where vegetables, legumes, grains and other plant ingredients take centre stage.</span>
+                    <span class="mn-def"><b><span style="white-space: nowrap;">Mediterranean-inspired</span></b>Dishes influenced by Mediterranean-style eating, with an emphasis on vegetables, pulses, whole grains, fish and healthy fats.</span>
+                  </div>
+                  <div class="mn-chips">
+                    <sc-for list="{{ styleChips }}" as="c" hint-placeholder-count="5">
+                      <button class="mn-chip" type="button" onClick="{{ c.onClick }}" aria-pressed="{{ c.on }}" style="white-space: nowrap;">
+                        <span>{{ c.label }}</span>
+                      </button>
+                    </sc-for>
+                  </div>
+                </div>
+
+                <div class="mn-group">
+                  <div class="mn-group-head"><span class="mn-group-title">Heat</span></div>
+                  <div class="mn-chips">
+                    <sc-for list="{{ heatChips }}" as="c" hint-placeholder-count="5">
+                      <button class="mn-chip" type="button" onClick="{{ c.onClick }}" aria-pressed="{{ c.on }}">
+                        <span>{{ c.label }}</span>
+                        <sc-if value="{{ c.hasPips }}" hint-placeholder-val="{{ false }}">
+                          <span aria-hidden="true" style="display: inline-flex; gap: 3px; align-items: center;">
+                            <sc-for list="{{ c.pips }}" as="p" hint-placeholder-count="0">
+                              <svg width="15" height="15" viewBox="0 0 24 24" style="display: block;"><path fill="{{ p.stem }}" d="M13.6 6.7c.5-1.9 2.1-3.2 4.1-3.4-.2 2-1.6 3.6-3.6 4z"></path><path fill="{{ p.fill }}" d="M13.6 6.7C9.1 8.7 7 12.2 7.8 16.2c.4 2.2 1.4 4.3 2.7 6 1.3-1.8 2.8-4.2 4-6.8 1.1-2.5 1.1-5.8-.9-8.7z"></path></svg>
+                            </sc-for>
+                          </span>
+                        </sc-if>
+                      </button>
+                    </sc-for>
+                  </div>
+                </div>
+
+                <div class="mn-group">
+                  <div class="mn-group-head"><span class="mn-group-title">Dietary &amp; other</span></div>
+                  <div class="mn-chips">
+                    <sc-for list="{{ dietChips }}" as="c" hint-placeholder-count="5">
+                      <button class="mn-chip" type="button" onClick="{{ c.onClick }}" aria-pressed="{{ c.on }}" style="white-space: nowrap;">
+                        <span>{{ c.label }}</span>
+                      </button>
+                    </sc-for>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mn-sheet-foot">
+              <sc-if value="{{ hasActiveFilters }}" hint-placeholder-val="{{ false }}">
+                <button class="mn-textbtn" type="button" onClick="{{ clearFilters }}"><span>Clear all filters</span></button>
+              </sc-if>
+              <button class="mn-apply" type="button" onClick="{{ closeFilters }}">{{ applyLabel }}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mn-results">
+        <!-- Announced politely: the count changes under the reader's fingers as filters are
+             applied, and nothing else on screen says so. -->
+        <span class="mn-count" role="status" aria-live="polite">{{ resultLabel }}</span>
+      </div>
+
+      <div class="mn-grid">
+        <sc-for list="{{ dishes }}" as="d" hint-placeholder-count="6">
+          <div class="mn-cell">
+            <a class="at-dish-link" href="{{ d.href }}">
+              <article class="at-dish-card" style="width: 100%; display: flex; flex-direction: column; border-radius: var(--radius-card); background: var(--surface-dish); overflow: hidden; box-shadow: var(--shadow-card);">
+                <div style="position: relative; aspect-ratio: 5 / 4; flex: 0 0 auto; background: var(--cream-3);">
+                  <!-- src/alt are set by the ref, not by a {{ }} hole: an unresolved hole in a src
+                       is fetched verbatim while streaming, firing a 404 and flashing broken
+                       images. Same pattern as every other dish surface. -->
+                  <img src="assets/dish-goat-efo-800.jpg" alt="" ref="{{ d.imgRef }}" loading="lazy" decoding="async" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
+                </div>
+
+                <div style="padding: 20px 18px 22px; text-align: center; flex: 1 1 auto; display: flex; flex-direction: column;">
+                  <!-- No clamp and no reserved height on a phone: one card per row, so there is
+                       nothing to align to and the min-heights only showed as dead space and
+                       truncated a long dish name for no reason. The clamps and reserved heights
+                       return at 640, where cards sit beside each other and rows must align. -->
+                  <!-- h2, not h3: the page's only other heading is the h1, so an h3 skipped a level
+                       and a screen reader's heading list read H1 then H3 eight times. Each dish is
+                       a top-level item of the menu. Purely semantic — the styling is on the class,
+                       so nothing moves. -->
+                  <h2 class="at-dish-name" style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 24px; line-height: 1.15; color: var(--green-forest);">{{ d.title }}</h2>
+
+                  <div aria-hidden="true" style="display: flex; align-items: center; gap: 10px; margin: 12px 0 10px;">
+                    <span style="flex: 1; height: 1px; background: var(--brass); opacity: .5;"></span>
+                    <span style="color: var(--brass); font-size: 9px; line-height: 1;">&#9670;</span>
+                    <span style="flex: 1; height: 1px; background: var(--brass); opacity: .5;"></span>
+                  </div>
+                  <!-- margin-bottom 0, not 18: the description now always follows and carries its
+                       own 12px top margin, so an 18px bottom here compounded to 30px. -->
+                  <p class="at-dish-parts" style="margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 17.5px; line-height: 1.5; color: var(--green-forest);">{{ d.parts }}</p>
+
+                  <!-- No font-size inline: an inline declaration beats any non-important class
+                       rule, and this one has to change at 640. 16px on a phone, per the mobile
+                       body floor — the card's own 14.5px is fine in the homepage carousel, where
+                       the description is hidden on mobile, but it is under the floor as soon as a
+                       phone actually reads it. The approved 14.5px returns from 640. -->
+                  <p class="at-dish-desc" style="margin: 12px 0 18px; font-family: var(--font-sans); line-height: 1.5; color: var(--brown);">{{ d.description }}</p>
+
+                  <!-- Two fixed rows rather than one wrapping row: heat on the first line, the two
+                       nutrition highlights on the second. A single row wrapped at a different
+                       point on every card depending on the dish name's height and the tag widths,
+                       so no two cards broke in the same place. -->
+                  <div class="at-nutri" style="display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: auto; padding-top: 16px; border-top: 1px solid var(--sand-2);">
+                    <!-- The pips carry the heat level as a graphic and the WORD states it in text —
+                         the homepage card leaves the word off, and on a menu you are scanning for
+                         heat that is a guess the reader should not have to make. One labelled group
+                         so a screen reader hears "Heat level: Medium" once, not pips and word
+                         twice. -->
+                    <span role="img" aria-label="{{ d.heatLabel }}" style="display: inline-flex; align-items: center; gap: 10px;">
+                      <span aria-hidden="true" style="display: inline-flex; gap: 3px; align-items: center;">
+                        <sc-for list="{{ d.pips }}" as="p" hint-placeholder-count="3">
+                          <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" style="display: block;"><path fill="{{ p.stem }}" d="M13.6 6.7c.5-1.9 2.1-3.2 4.1-3.4-.2 2-1.6 3.6-3.6 4z"></path><path fill="{{ p.fill }}" d="M13.6 6.7C9.1 8.7 7 12.2 7.8 16.2c.4 2.2 1.4 4.3 2.7 6 1.3-1.8 2.8-4.2 4-6.8 1.1-2.5 1.1-5.8-.9-8.7z"></path></svg>
+                        </sc-for>
+                      </span>
+                      <span aria-hidden="true" style="font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--brown); white-space: nowrap;">{{ d.heatWord }}</span>
+                    </span>
+                    <span style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 14px;">
+                      <sc-for list="{{ d.nutrition }}" as="n" hint-placeholder-count="2">
+                        <x-import component-from-global-scope="AbbySTableDesignSystem_c3ba5a.NutritionTag" dot="{{ n.dot }}" hint-size="auto,16px">{{ n.label }}</x-import>
+                      </sc-for>
+                    </span>
+                  </div>
+                </div>
+              </article>
+            </a>
+
+            <!-- The tag stack sits OUTSIDE the anchor: the Signature note needs a real <button>,
+                 and a button inside a link is invalid. pointer-events: none lets taps fall through
+                 to the card link; the info button alone takes pointer events back. -->
+            <div style="position: absolute; top: 12px; left: 12px; right: 12px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; pointer-events: none;">
+              <sc-for list="{{ d.creamTags }}" as="t" hint-placeholder-count="1">
+                <!-- nowrap on the pill is the render-layer protection for its hyphenated label
+                     ("Mediterranean-inspired"), so the data keeps an ordinary hyphen. -->
+                <span style="display: inline-flex; align-items: center; white-space: nowrap; background: var(--cream); color: var(--green-forest); font-family: var(--font-sans); font-weight: 600; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; padding: 6px 12px; border-radius: var(--radius-pill); box-shadow: var(--shadow-card);">{{ t }}</span>
+              </sc-for>
+              <sc-if value="{{ d.isNew }}" hint-placeholder-val="{{ false }}">
+                <span style="display: inline-flex; align-items: center; background: var(--gold); color: var(--green-forest); font-family: var(--font-sans); font-weight: 600; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; padding: 6px 12px; border-radius: var(--radius-pill); box-shadow: var(--shadow-card);">New</span>
+              </sc-if>
+              <sc-if value="{{ d.isSignature }}" hint-placeholder-val="{{ false }}">
+                <span class="at-sig-pill" style="display: inline-flex; align-items: center; gap: 7px; background: var(--navy); color: var(--blush); font-family: var(--font-sans); font-weight: 600; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; padding: 6px 10px 6px 12px; border-radius: var(--radius-pill); box-shadow: var(--shadow-card);">
+                  <span aria-hidden="true" style="font-size: 9px; line-height: 1; color: var(--brass);">&#9670;</span>Signature
+                  <!-- aria-describedby carries a PER-CARD id: the homepage card can use one fixed
+                       id because a single dish there is Signature, but the menu shows several and
+                       one id repeated is invalid and resolves to the wrong note. -->
+                  <button class="at-sig-info" type="button" aria-label="What does Signature mean?" aria-describedby="{{ d.sigId }}" ref="{{ d.sigBtnRef }}" onPointerDown="{{ d.sigDown }}" onClick="{{ d.sigClick }}" onMouseEnter="{{ d.sigEnter }}" onMouseLeave="{{ d.sigLeave }}" onFocus="{{ d.sigFocus }}" onBlur="{{ d.sigBlur }}" style="position: relative; pointer-events: auto; display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; padding: 0; border-radius: 50%; border: 1px solid var(--blush); background: transparent; color: var(--blush); font-family: var(--font-sans); font-weight: 600; font-size: 10px; line-height: 1; cursor: pointer;">i</button>
+                  <span class="at-sig-tip" id="{{ d.sigId }}" role="tooltip" data-open="{{ d.sigOpen }}">One of Abby&#8217;s specials. This dish takes a little more time or uses premium cuts, so there&#8217;s a small upgrade.</span>
+                </span>
+                <span style="display: inline-flex; align-items: center; background: var(--navy); color: var(--blush); font-family: var(--font-sans); font-weight: 600; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; padding: 6px 12px; border-radius: var(--radius-pill); box-shadow: var(--shadow-card);">{{ d.upgrade }}</span>
+              </sc-if>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+      <sc-if value="{{ showLoadMore }}" hint-placeholder-val="{{ false }}">
+        <div class="mn-morewrap">
+          <button class="mn-more" type="button" onClick="{{ onLoadMore }}">{{ loadMoreLabel }}</button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}">
+        <div class="mn-empty">
+          <p>No dishes match your search or filters.</p>
+          <button class="mn-textbtn" type="button" onClick="{{ clearAll }}" style="margin-top: 6px;"><span>Clear search and filters</span></button>
+        </div>
+      </sc-if>
+    </div>
+  </section>
+
+  <section class="fl-sec" data-screen-label="Where the flavour comes from">
+    <div class="at-page-inner" style="max-width: 1280px; margin: 0 auto; padding: 0 22px;">
+      <div class="fl-grid">
+        <div class="fl-copy">
+          <img class="fl-mark" src="assets/floral-monogram-gold.png" alt="" loading="lazy" decoding="async" />
+          <div class="fl-label">Where the flavour comes from</div>
+          <h2 class="fl-h2">Bold Nigerian flavour, built from real ingredients.</h2>
+          <span class="fl-rule" aria-hidden="true"></span>
+          <div class="fl-facts">
+            <!-- Both glyphs are lifted verbatim from How It Works v2's step 02 grid: the "Quality
+                 ingredients" leaf and the "No shortcuts" slashed circle. Only the glyph is reused —
+                 not the 48px sand disc it sits in there. The slashed circle IS the drawing, so its
+                 own circle stays.
+                 Decorative (each line states the standard in words), so both are aria-hidden, and
+                 brass-ink rather than brass: brass is 2.2:1 on blush. -->
+            <span class="fl-fact">
+              <span class="fl-txt"><svg class="fl-ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10Z" /><path d="M2 21c0-3 1.9-5.4 5.1-6C9.5 14.5 12 13 13 12" /></svg>Fresh herbs &#183; Whole spices &#183; Aromatics &#183; <span style="white-space: nowrap;">House-made</span> stocks</span>
+            </span>
+            <span class="fl-fact">
+              <span class="fl-txt"><svg class="fl-ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5" /><path d="M6 18 18 6" /></svg>No bouillon cubes or added MSG &#183; No <span style="white-space: nowrap;">ultra-processed</span> foods</span>
+            </span>
+          </div>
+        </div>
+        <div class="fl-media">
+          <!-- The JPEG re-encode of the same photograph, already in assets/ for How It Works v2.
+               The PNG master is a 1402px photograph, and PNG is for genuine transparency only. -->
+          <img src="assets/hw-scratch.jpg" alt="Whole spices and dried chillies ground by hand in a stone mortar" loading="lazy" decoding="async" />
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer id="contact" ref="{{ footRef }}" style="background: var(--green-deep);">
+  <div aria-hidden="true" style="height: 2px; background: var(--brass);"></div>
+  <div class="at-foot-inner" style="max-width: 1280px; margin: 0 auto; padding: 40px 22px 0;">
+
+    <div class="at-foot-grid" style="display: grid; gap: 36px;">
+      <div class="at-foot-news">
+        <p style="margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">Join the table</p>
+        <p style="margin: 12px 0 18px; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; color: var(--blush);">Kitchen notes and offers from Abby, monthly.</p>
+
+        <sc-if value="{{ subscribed }}" hint-placeholder-val="{{ false }}">
+          <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.3; color: var(--blush);">Thank you for joining the table.</p>
+        </sc-if>
+
+        <sc-if value="{{ notSubscribed }}" hint-placeholder-val="{{ true }}">
+          <form class="at-foot-form" onSubmit="{{ onJoin }}" style="display: flex; flex-direction: column; gap: 10px;">
+            <label for="at-foot-email" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);">Email address</label>
+            <input class="at-foot-input" id="at-foot-email" name="email" type="email" required autocomplete="email" placeholder="Enter your email address" style="height: 52px; box-sizing: border-box; min-width: 0; border: 1px solid var(--green-mid); border-radius: var(--radius-pill); background: transparent; padding: 0 20px; font-family: var(--font-sans); font-size: 16px; color: var(--blush);" />
+            <button type="submit" class="at-foot-join" style="height: 48px; width: 100%; border: none; cursor: pointer; border-radius: var(--radius-pill); background: var(--brass); color: var(--green-deep); font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase;">Join</button>
+          </form>
+          <p class="at-foot-consent" style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 13px; line-height: 1.5; color: var(--sand-2);">We use your email for kitchen notes and offers only. Unsubscribe any time. See our <a href="Abby's Table - Privacy Policy.dc.html" class="at-foot-link" style="color: var(--sand-2); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-skip-ink: none;">Privacy Policy</a>.</p>
+        </sc-if>
+      </div>
+
+      <div class="at-foot-cols" style="display: grid; border-bottom: 1px solid var(--green-mid);">
+        <div class="at-foot-col {{ shopCls }}" style="border-top: 1px solid var(--green-mid);">
+          <button class="at-foot-head" type="button" onClick="{{ toggleShop }}" aria-expanded="{{ shopExp }}" aria-controls="at-foot-shop" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 0; background: transparent; border: none; text-align: left; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">
+            <span>Shop</span>
+            <svg class="at-foot-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          <div class="at-foot-links" id="at-foot-shop" style="padding-bottom: 8px;">
+            <a class="at-foot-link" href="Abby's Table - Menu Landing v3.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Menu</a>
+            <a class="at-foot-link" href="Abby's Table - Gifting v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Gifting</a>
+            <a class="at-foot-link" href="Abby's Table - Private Table v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Private Table</a>
+          </div>
+        </div>
+
+        <div class="at-foot-col {{ learnCls }}" style="border-top: 1px solid var(--green-mid);">
+          <button class="at-foot-head" type="button" onClick="{{ toggleLearn }}" aria-expanded="{{ learnExp }}" aria-controls="at-foot-learn" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 0; background: transparent; border: none; text-align: left; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">
+            <span>Learn</span>
+            <svg class="at-foot-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          <div class="at-foot-links" id="at-foot-learn" style="padding-bottom: 8px;">
+            <a class="at-foot-link" href="Abby's Table - Abby's Story v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Abby&#8217;s Story</a>
+            <a class="at-foot-link" href="Abby's Table - How It Works v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">How it works</a>
+            <a class="at-foot-link" href="Abby's Table - Standards v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Our standards</a>
+          </div>
+        </div>
+
+        <div class="at-foot-col {{ infoCls }}" style="border-top: 1px solid var(--green-mid);">
+          <button class="at-foot-head" type="button" onClick="{{ toggleInfo }}" aria-expanded="{{ infoExp }}" aria-controls="at-foot-info" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 0; background: transparent; border: none; text-align: left; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">
+            <span>Information</span>
+            <svg class="at-foot-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          <div class="at-foot-links" id="at-foot-info" style="padding-bottom: 8px;">
+            <a class="at-foot-link" href="Abby's Table - Delivery and FAQs.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Delivery &amp; FAQs</a>
+            <a class="at-foot-link" href="Abby's Table - Allergens.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Allergens</a>
+            <a class="at-foot-link" href="Abby's Table - Contact Us.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Contact us</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="at-foot-rule" aria-hidden="true" style="display: none; height: 1px; background: var(--green-mid); margin: 32px 0 26px;"></div>
+
+    <div class="at-foot-bottom" style="display: grid; gap: 26px; justify-items: center; margin-top: 30px;">
+      <a class="at-foot-logo" href="Abby's Table - Homepage v2.dc.html" aria-label="Abby&#8217;s Table &#8212; home" style="display: block; text-decoration: none;">
+        <span class="at-foot-mark" aria-hidden="true" style="display: block; width: 176px; height: 30px; color: var(--blush);"><at-wordmark></at-wordmark></span>
+      </a>
+
+      <span class="at-foot-sig" style="font-family: var(--font-display); font-style: italic; font-size: 25px; line-height: 1; color: var(--terracotta);">Abby x</span>
+
+      <div class="at-foot-follow" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+        <span style="font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--green-sage);">Follow the table</span>
+        <div class="at-foot-follow-row" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <a href="https://www.instagram.com/fromabbystable" target="_blank" rel="noopener" aria-label="Instagram" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07zM12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.31-1.46.72-2.12 1.38A5.86 5.86 0 0 0 .63 4.13c-.3.76-.5 1.64-.56 2.91C.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.31.79.72 1.46 1.38 2.12.66.66 1.33 1.07 2.12 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.86 5.86 0 0 0 2.12-1.38 5.86 5.86 0 0 0 1.38-2.12c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.86 5.86 0 0 0-1.38-2.12A5.86 5.86 0 0 0 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84A6.16 6.16 0 1 0 12 18.16 6.16 6.16 0 0 0 12 5.84zm0 10.16A4 4 0 1 1 12 8a4 4 0 0 1 0 8zm6.41-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z" /></svg></a>
+            <a href="https://www.tiktok.com/@fromabbystable" target="_blank" rel="noopener" aria-label="TikTok" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 11.5 11.4" fill="var(--blush)" style="display: block;"><path d="M6.95 0v6.9A2.66 2.66 0 1 1 4.3 4.85c.35 0 .7.07 1 .21V3.15a4.5 4.5 0 0 0-1-.1A4.2 4.2 0 1 0 8.75 6.9V3.3a4.55 4.55 0 0 0 2.75 1.1V2.55A2.73 2.73 0 0 1 8.75 0Z" /></svg></a>
+            <a href="https://www.facebook.com/fromabbystable/" target="_blank" rel="noopener" aria-label="Facebook" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 6.15 11.15" fill="var(--blush)" style="display: block;"><path d="M4.05 11.15V6h1.7l.3-1.95h-2V2.8c0-.55.25-.95 1-.95h1.1V.1A14.6 14.6 0 0 0 4.55 0C2.85 0 1.75 1.05 1.75 2.6v1.45H0V6h1.75v5.15Z" /></svg></a>
+            <a href="https://x.com/fromabbystable" target="_blank" rel="noopener" aria-label="X" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg></a>
+          </div>
+          <span class="at-foot-dash" aria-hidden="true" style="display: none; color: var(--green-sage); font-size: 13px; line-height: 1;">&#8211;</span>
+          <span style="display: flex; align-items: center; padding: 4px 0; font-family: var(--font-sans); font-size: 16px; color: var(--blush);">@FromAbbysTable</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="at-foot-legal" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0 24px; margin-top: 20px; padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));">
+      <span style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--green-sage);">&#169; 2026 Abby&#8217;s Table</span>
+      <div class="at-foot-legal-row" style="display: flex; align-items: center; gap: 12px;">
+        <a href="Abby's Table - Privacy Policy.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--sand-2); text-decoration: none; transition: color .16s ease;">Privacy Policy</a>
+        <span class="at-foot-legal-sep" aria-hidden="true" style="color: var(--green-mid); font-size: 13px; line-height: 1;">|</span>
+        <a href="Abby's Table - Terms of Sale.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--sand-2); text-decoration: none; transition: color .16s ease;">Terms</a>
+      </div>
+      <!-- Canonical consent trigger: a REAL link to the Privacy Policy's cookie section, which is
+           what a customer gets with no JS or if the manager fails to initialise. The manager is
+           mounted once globally in production, not per page; it binds one delegated listener on
+           [data-consent-open] and adds aria-haspopup="dialog" itself. -->
+      <a href="Abby's Table - Privacy Policy.dc.html#cookies" data-consent-open style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--sand-2); text-decoration: none; transition: color .16s ease;">Cookie preferences</a>
+    </div>
+  </div>
+</footer>
+
+<!-- Canonical mobile purchase bar, copied verbatim from Homepage v2 (markup, values and copy).
+     This page has no Private Table band, so the FOOTER is tracked directly for suppression — it is
+     on the named suppression list in its own right ("the page has ended"), via the same
+     75%-of-viewport test and the footer ref that already exists. The open filter sheet suppresses
+     it too: a bottom sheet and a bottom bar are two fixed layers competing for the same edge, the
+     same reason the drawer and the consent layer suppress it.
+     No bottom clearance spacer, for the homepage's reason: the bar cannot be visible at the end of
+     this page, so a spacer would only show as a strip of page ground. The measured --at-bar-h is
+     still published, because the bar itself reads it. -->
+<div class="at-mobbar" ref="{{ barRef }}" data-on="{{ barOn }}" style="position: fixed; left: 0; right: 0; bottom: 0; z-index: 70; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 16px; background: var(--cream-2); border-top: 1px solid var(--sand); padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px));">
+  <span style="display: flex; flex-direction: column; min-width: 0; gap: 3px; font-family: var(--font-sans); font-size: 15px; line-height: 1.2; color: var(--brown);">
+    <span style="font-weight: 500;">Minimum 6 dishes</span>
+    <span style="font-weight: 600;">From &#163;158</span>
+  </span>
+  <a class="at-mobbar-cta" href="Abby's Table - Choose Box v2.dc.html" style="flex: 0 0 auto; min-width: max-content; display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 clamp(16px, 5vw, 24px); border-radius: var(--radius-pill); background: var(--green-forest); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; text-decoration: none; transition: background .16s ease;">Build a Box</a>
+</div>
+
+<!-- Navigation utility, not a conversion control: it returns the reader to the menu heading and
+     nothing else. Visibility is derived from scroll POSITION, never from a dish count — on a phone
+     once the menu band has passed ~1.75 viewport heights, at desktop once the first row of cards
+     has left the viewport — so it still behaves if card heights or the catalogue change. It is
+     suppressed while the drawer or the filter sheet is open and while consent is unresolved, like
+     every other fixed element on the page. -->
+<button class="mn-top" type="button" onClick="{{ goTop }}" data-on="{{ topOn }}" data-bar="{{ barOn }}" aria-label="Back to top of menu">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block;"><path d="M12 19V5" /><path d="M5 12l7-7 7 7" /></svg>
+  <span>Top</span>
+</button>
+
+<div class="at-drawer-wrap {{ drawerCls }}">
+  <div class="at-drawer-scrim" onClick="{{ closeDrawer }}" style="position: fixed; inset: 0; z-index: 90; background: rgba(21,41,31,.5);"></div>
+  <aside id="at-drawer" class="at-drawer-panel" ref="{{ panelRef }}" role="dialog" aria-modal="true" aria-label="Main menu" style="position: fixed; top: 0; left: 0; bottom: 0; z-index: 95; display: flex; flex-direction: column; width: min(300px, 84vw); background: var(--green-forest); padding: 18px 22px 26px; overflow-y: auto;">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+      <a class="at-logo" href="Abby's Table - Homepage v2.dc.html" aria-label="Abby&#8217;s Table &#8212; home" style="display: flex; align-items: center; min-height: 44px; text-decoration: none;">
+        <span aria-hidden="true" style="display: block; width: 142px; aspect-ratio: 186 / 32; color: var(--blush);"><at-wordmark></at-wordmark></span>
+      </a>
+      <button type="button" onClick="{{ closeDrawer }}" aria-label="Close menu" style="flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-right: -10px; border: none; background: transparent; color: var(--blush); font-size: 24px; line-height: 1; cursor: pointer;">&#215;</button>
+    </div>
+
+    <a class="at-drawer-link" href="Abby's Table - Log in.dc.html" style="display: flex; align-items: center; min-height: 48px; margin-top: 20px; font-family: var(--font-sans); font-weight: 600; font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Log in</a>
+    <span aria-hidden="true" style="display: block; height: 1px; background: var(--green-mid); margin: 4px 0 6px;"></span>
+
+    <nav aria-label="Main" style="display: flex; flex-direction: column;">
+      <a class="at-drawer-link" href="Abby's Table - Menu Landing v3.dc.html" aria-current="page" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Menu</a>
+      <a class="at-drawer-link" href="Abby's Table - How It Works v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">How it works</a>
+      <a class="at-drawer-link" href="Abby's Table - Abby's Story v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Abby&#8217;s Story</a>
+      <a class="at-drawer-link" href="Abby's Table - Gifting v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Gifting</a>
+      <a class="at-drawer-link" href="Abby's Table - Private Table v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Private Table</a>
+    </nav>
+
+    <a class="at-drawer-cta" href="Abby's Table - Choose Box v2.dc.html" style="display: flex; align-items: center; justify-content: center; min-height: 54px; margin-top: 26px; border-radius: var(--radius-pill); background: var(--terracotta); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; text-decoration: none;">Build a Box</a>
+
+    <div style="margin-top: auto; border-top: 1px solid var(--green-mid); padding-top: 22px; display: flex; gap: 20px; align-items: center;">
+      <a class="at-social" href="https://www.instagram.com/fromabbystable" target="_blank" rel="noopener" aria-label="Instagram" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07zM12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.31-1.46.72-2.12 1.38A5.86 5.86 0 0 0 .63 4.13c-.3.76-.5 1.64-.56 2.91C.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.31.79.72 1.46 1.38 2.12.66.66 1.33 1.07 2.12 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.86 5.86 0 0 0 2.12-1.38 5.86 5.86 0 0 0 1.38-2.12c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.86 5.86 0 0 0-1.38-2.12A5.86 5.86 0 0 0 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84A6.16 6.16 0 1 0 12 18.16 6.16 6.16 0 0 0 12 5.84zm0 10.16A4 4 0 1 1 12 8a4 4 0 0 1 0 8zm6.41-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z" /></svg></a>
+      <a class="at-social" href="https://www.tiktok.com/@fromabbystable" target="_blank" rel="noopener" aria-label="TikTok" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px;"><svg width="20" height="20" viewBox="0 0 11.5 11.4" fill="var(--blush)" style="display: block;"><path d="M6.95 0v6.9A2.66 2.66 0 1 1 4.3 4.85c.35 0 .7.07 1 .21V3.15a4.5 4.5 0 0 0-1-.1A4.2 4.2 0 1 0 8.75 6.9V3.3a4.55 4.55 0 0 0 2.75 1.1V2.55A2.73 2.73 0 0 1 8.75 0Z" /></svg></a>
+      <a class="at-social" href="https://www.facebook.com/fromabbystable/" target="_blank" rel="noopener" aria-label="Facebook" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px;"><svg width="20" height="20" viewBox="0 0 6.15 11.15" fill="var(--blush)" style="display: block;"><path d="M4.05 11.15V6h1.7l.3-1.95h-2V2.8c0-.55.25-.95 1-.95h1.1V.1A14.6 14.6 0 0 0 4.55 0C2.85 0 1.75 1.05 1.75 2.6v1.45H0V6h1.75v5.15Z" /></svg></a>
+      <a class="at-social" href="https://x.com/fromabbystable" target="_blank" rel="noopener" aria-label="X" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg></a>
+    </div>
+  </aside>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:900},&quot;nextDelivery&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Fri 18 Sep&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Menu&quot;},&quot;pageSize&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;6&quot;,&quot;12&quot;,&quot;All dishes&quot;],&quot;default&quot;:&quot;6&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Menu&quot;},&quot;reviewCatalogue&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Real menu (8)&quot;,&quot;24 dishes&quot;,&quot;48 dishes&quot;],&quot;default&quot;:&quot;Real menu (8)&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Review&quot;},&quot;openFilters&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Review&quot;},&quot;cookieUnresolved&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Fixed UI&quot;}}">
+// Photography is AI PLACEHOLDER. `imageKey` resolves through IMAGES, so records never hold a file
+// path and swapping a photograph is one line. alt travels WITH the photograph, not the dish: it
+// has to describe the picture actually shown, so every stand-in borrows the real shot's alt.
+// Only three dish photographs exist, so most cards are stand-ins (placeholder: true) — greppable,
+// and a production build can HARD-FAIL on any that remain.
+// 800px JPEGs, not the 1200px PNG masters: the widest a card paints is ~400px, so this is the
+// displayed size at 2x. Masters stay in assets/ for the reshoot.
+const IMAGES = {
+  goatEfo: { src: "assets/dish-goat-efo-800.jpg", alt: "A bowl of slow-cooked goat in spinach efo over wild rice" },
+  lambShank: { src: "assets/dish-lamb-shank-800.jpg", alt: "A braised lamb shank on rice with greens" },
+  fishPeppersoup: { src: "assets/dish-fish-peppersoup-800.jpg", alt: "A bowl of fish peppersoup bone broth" },
+};
+
+const HEAT_WORD = { 0: "None", 1: "Mild", 2: "Medium", 3: "Hot" };
+const HEAT_LEVEL = { None: 0, Mild: 1, Medium: 2, Hot: 3 };
+
+// The eight dishes carried over from the current menu page, unchanged in substance. Field shape is
+// the approved homepage card's, plus the fields the filters and sort read (protein, style, diet,
+// kcal, carbs).
+// `parts` is REQUIRED: the cards are equal height per grid row, and the components line is what
+// fills the middle of the card — a record without one leaves a void while its neighbours have
+// none. Six of the eight are marked AUTHORED: the source menu data has no components line for
+// them, so they are written from each dish's own description and are for review.
+// \u2011 (non-breaking hyphen) is a PROTOTYPE-ONLY protection for short compounds with no markup
+// hook. Production protects approved compounds at render time instead (build-handoff.md § 3e).
+const DISHES = [
+  {
+    imageKey: "goatEfo", slug: "wild-rice-goat-efo", title: "Wild Rice, Goat Efo",
+    parts: "Slow\u2011Cooked Goat \u00b7 Spinach Efo \u00b7 Wild Rice", // AUTHORED
+    description: "Slow\u2011cooked goat in a rich spinach efo, over nutty wild rice.",
+    style: ["Protein-led"], protein: "Beef", diet: ["Gluten-free", "High-fibre"],
+    isNew: true, heat: 2, proteinG: 32, fibre: 9, carbs: 31, kcal: 520, placeholder: true,
+  },
+  {
+    imageKey: "lambShank", slug: "ata-dindin-lamb-shank", title: "Ata Dindin Lamb Shank",
+    parts: "Sweet & Spicy Ata Dindin \u00b7 Lime\u2011Herb Purple Cabbage",
+    description: "Fall-off-the-bone lamb shank slow\u2011cooked in a bold, peppery ata dindin sauce with native spices.",
+    style: ["Protein-led"], protein: "Lamb", diet: ["Gluten-free"],
+    isSignature: true, upgrade: "+\u00a34 upgrade", heat: 3, proteinG: 38, fibre: 8, carbs: 20, kcal: 620, placeholder: true,
+  },
+  {
+    imageKey: "fishPeppersoup", slug: "fish-peppersoup-bone-broth", title: "Fish Peppersoup Bone Broth",
+    parts: "Native Aromatics \u00b7 Tender Fish \u00b7 Bone Broth", // AUTHORED
+    description: "A fragrant, deeply spiced bone broth with tender fish and native aromatics.",
+    style: ["DASH"], protein: "Fish", diet: ["Gluten-free", "Dairy-free"],
+    heat: 3, proteinG: 27, fibre: 9, carbs: 31, kcal: 520, placeholder: true,
+  },
+  {
+    imageKey: "fishPeppersoup", slug: "royal-seafood-okra", title: "Royal Seafood Okra",
+    parts: "King Prawns \u00b7 Snapper \u00b7 Blue Crab \u00b7 Palm & Okra Stew", // AUTHORED
+    description: "King prawns, snapper and blue crab in a rich palm-and-okra stew.",
+    style: ["Protein-led", "DASH"], protein: "Fish", diet: ["Gluten-free", "Dairy-free"],
+    isSignature: true, upgrade: "+\u00a35 upgrade", heat: 2, proteinG: 40, fibre: 7, carbs: 14, kcal: 560, placeholder: true,
+  },
+  {
+    imageKey: "goatEfo", slug: "suya-salmon-kale-quinoa", title: "Suya Salmon, Kale, Quinoa",
+    parts: "Suya\u2011Spiced Salmon \u00b7 Massaged Kale \u00b7 Quinoa", // AUTHORED
+    description: "Suya-spiced salmon with massaged kale and fluffy quinoa.",
+    style: ["Protein-led", "Mediterranean-inspired"], protein: "Fish", diet: ["Gluten-free", "Dairy-free", "High-fibre"],
+    heat: 1, proteinG: 32, fibre: 9, carbs: 16, kcal: 520, placeholder: true,
+  },
+  {
+    imageKey: "goatEfo", slug: "jollof-quinoa-bowl", title: "Jollof Quinoa Bowl",
+    parts: "Jollof Quinoa \u00b7 Rainbow Salad",
+    description: "Smoky party-style jollof made with quinoa and roasted vegetables.",
+    style: ["Plant-led", "Carb-conscious"], protein: "Plant-based", diet: ["Dairy-free", "High-fibre"],
+    isNew: true, heat: 2, proteinG: 24, fibre: 9, carbs: 24, kcal: 510, placeholder: true,
+  },
+  {
+    imageKey: "fishPeppersoup", slug: "turkey-ayamase-with-greens", title: "Turkey Ayamase with Greens",
+    parts: "Peppery Ayamase \u00b7 Lean Turkey \u00b7 Steamed Greens", // AUTHORED
+    description: "Peppery ayamase stew with lean turkey and steamed greens.",
+    style: ["Protein-led"], protein: "Turkey", diet: ["Gluten-free"],
+    heat: 2, proteinG: 30, fibre: 9, carbs: 18, kcal: 500, placeholder: true,
+  },
+  {
+    imageKey: "goatEfo", slug: "chicken-egusi-cauliflower-rice", title: "Chicken Egusi with Cauliflower Rice, Spinach & Pepper Sauce",
+    parts: "Melon\u2011Seed Egusi \u00b7 Cauliflower Rice \u00b7 Scotch Bonnet Sauce", // AUTHORED
+    description: "Melon-seed egusi with chicken, spinach and scotch-bonnet sauce over cauliflower rice.",
+    style: ["Carb-conscious", "Protein-led"], protein: "Chicken", diet: ["Gluten-free"],
+    heat: 1, proteinG: 31, fibre: 9, carbs: 16, kcal: 480, placeholder: true,
+  },
+];
+
+// "Lamb" is in the chip list because it is in the data — the old page offered five protein chips
+// and none of them matched the lamb shank, so that dish vanished under any protein filter.
+const PROTEINS = ["Chicken", "Beef", "Lamb", "Fish", "Turkey", "Plant-based"];
+const STYLES = ["Protein-led", "Carb-conscious", "Plant-led", "Mediterranean-inspired"];
+const HEATS = ["None", "Mild", "Medium", "Hot"];
+const DIETS = ["Gluten-free", "Dairy-free", "High in fibre", "Low sugar"];
+// "High in fibre" reads better on a chip than the data's own value.
+const DIET_DATA = { "High in fibre": "High-fibre" };
+// "Low sugar" has no field in the dish records — it stands in against carbohydrate load until the
+// real data exists.
+const DIET_RULE = { "Low sugar": (d) => d.carbs <= 20 };
+
+const SORTS = {
+  recommended: { label: "Recommended", fn: null },
+  protein: { label: "Highest protein", fn: (a, b) => b.proteinG - a.proteinG },
+  calories: { label: "Lowest calories", fn: (a, b) => a.kcal - b.kcal },
+};
+
+class Component extends DCLogic {
+  state = { drawer: false, sheet: false, dirDown: false, heroOut: false, footInView: false,
+            footOpen: {}, subscribed: false, sigOpen: null, tip: null, tipPinned: false, sortOpen: false, topOn: false,
+            query: "", fProtein: [], fStyle: [], fHeat: [], fDiet: [], shown: null };
+
+  _sigBtns = {};
+
+  // ---- filters ----
+  _step = () => {
+    const p = this.props.pageSize || "6";
+    return p === "All dishes" ? Infinity : Number(p) || 6;
+  };
+
+  _toggle = (key, label) => this.setState((s) => {
+    const arr = s[key] || [];
+    const next = arr.indexOf(label) === -1 ? arr.concat([label]) : arr.filter((x) => x !== label);
+    // Back to the first page on any filter change: keeping a deep page after narrowing the results
+    // shows a "load more" for dishes that are already all on screen.
+    return { [key]: next, shown: null };
+  });
+
+  _clearGroup = (key) => this.setState({ [key]: [], shown: null });
+
+  clearFilters = () => this.setState({ fProtein: [], fStyle: [], fHeat: [], fDiet: [], shown: null });
+  clearAll = () => this.setState({ query: "", fProtein: [], fStyle: [], fHeat: [], fDiet: [], shown: null });
+  onSearch = (e) => this.setState({ query: e.target.value, shown: null });
+  clearSearch = () => this.setState({ query: "", shown: null });
+  onLoadMore = () => this.setState((s) => ({ shown: (s.shown || this._step()) + this._step() }));
+
+  // The filter sheet is the drawer pattern: always mounted, closed with display: none, focus taken
+  // with a bounded re-assert (one frame after setState the display flip has not landed, and
+  // focus() on a hidden element is a no-op), Escape closes, Tab is trapped, body scroll locked.
+  openFilters = () => {
+    this.setState({ sheet: true });
+    if (!this._isDesktop()) document.body.style.overflow = "hidden";
+    cancelAnimationFrame(this._sheetRaf);
+    let tries = 0;
+    const take = () => {
+      const el = this._sheet;
+      if (el && el.getClientRects().length) { el.focus(); return; }
+      if (++tries < 20) this._sheetRaf = requestAnimationFrame(take);
+    };
+    this._sheetRaf = requestAnimationFrame(take);
+  };
+
+  closeFilters = () => {
+    this.setState({ sheet: false, tip: null });
+    document.body.style.overflow = "";
+    cancelAnimationFrame(this._sheetRaf);
+    const t = this._canFocus(this._filterBtn) ? this._filterBtn : this._canFocus(this._h1) ? this._h1 : null;
+    if (t) t.focus();
+  };
+
+  toggleFilters = (e) => {
+    if (e && e.currentTarget) this._filterBtn = e.currentTarget;
+    // Written from the NEXT value, in the handler: a frame scheduled after setState still reads the
+    // old one, and the ref callback is not re-invoked.
+    const next = !this.state.sheet;
+    if (e && e.currentTarget) e.currentTarget.setAttribute("aria-expanded", next ? "true" : "false");
+    if (next) this.openFilters(); else this.closeFilters();
+  };
+
+  _isDesktop = () => (window.matchMedia ? window.matchMedia("(min-width: 1024px)").matches : false);
+
+  // The panel is a modal bottom sheet on mobile and an ordinary part of the filter card from 1024,
+  // so its semantics have to change with the composition — a static inline panel announcing
+  // aria-modal would tell a screen reader the rest of the page is unavailable. Attributes cannot
+  // be swapped in CSS, so they are set here; the mobile branch re-asserts them because React only
+  // rewrites an attribute when ITS value changes and will not restore the markup values.
+  _sheetSemantics = () => {
+    const el = this._sheet;
+    if (!el) return;
+    if (this._isDesktop()) {
+      el.removeAttribute("role");
+      el.removeAttribute("aria-modal");
+    } else {
+      el.setAttribute("role", "dialog");
+      el.setAttribute("aria-modal", "true");
+    }
+  };
+  _canFocus = (el) => !!el && el.offsetParent !== null && getComputedStyle(el).visibility !== "hidden";
+
+  sheetFocusables = () => {
+    if (!this._sheet) return [];
+    return Array.from(this._sheet.querySelectorAll("a[href], button, input")).filter((el) => el.getClientRects().length);
+  };
+
+  _trapIn = (els, e) => {
+    if (!els.length) return;
+    const first = els[0], last = els[els.length - 1];
+    const root = e._root;
+    if (root && !root.contains(document.activeElement)) {
+      e.preventDefault();
+      (e.shiftKey ? last : first).focus();
+      return;
+    }
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  };
+
+  // One tip open at a time, keyed by group: opening Heat closes Eating style, so two panels can
+  // never overlap inside the same filter card.
+  _toggleTip = (key) => this.setState((s) => ({ tip: s.tip === key ? null : key }));
+  toggleStyleTip = (e) => { if (e && e.stopPropagation) e.stopPropagation(); this._toggleTip("style"); };
+  closeStyleTip = (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.setState({ tip: null }); };
+  // The delivery note opens on hover AND on click. Hover-opened it closes when the pointer
+  // leaves the strip; CLICK-opened it is pinned, and only the × (or Esc / a click outside)
+  // dismisses it — otherwise it vanishes the moment someone moves towards it to read.
+  // Leave is tracked on the whole strip, not the "?", so the pointer can travel into the panel.
+  hoverDelivTip = () => { if (this.state.tip !== "delivery") this.setState({ tip: "delivery", tipPinned: false }); };
+  leaveDelivTip = () => { if (this.state.tip === "delivery" && !this.state.tipPinned) this.setState({ tip: null }); };
+  toggleDelivTip = (e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    this.setState((s) => (s.tip === "delivery" && s.tipPinned)
+      ? { tip: null, tipPinned: false }
+      : { tip: "delivery", tipPinned: true });
+  };
+  closeDelivTip = (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.setState({ tip: null, tipPinned: false }); };
+
+  toggleSort = (e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    this.setState((s) => ({ sortOpen: !s.sortOpen }));
+  };
+
+  // ---- Signature note (approved homepage behaviour) ----
+  _canHover = () => (window.matchMedia ? window.matchMedia("(hover: hover)").matches : false);
+
+  // Mobile placement is computed: below and slightly right of the "i" so the panel reads as
+  // belonging to that control, clamped inside the card, and dropped below the whole tag stack if
+  // it would otherwise sit over the "+£4 upgrade" pill — covering the photograph is fine, covering
+  // the price is not. Desktop (>=1024) keeps the CSS right-hand placement, which overlaps nothing.
+  // Measured for the OPEN card only: one button per card, so the ref map is keyed by index rather
+  // than a single field (which would only ever measure the last card rendered).
+  measureSigTail = () => {
+    const i = this.state.sigOpen;
+    if (i === null || i === undefined) return;
+    const btn = this._sigBtns[i];
+    if (!btn) return;
+    const tip = btn.nextElementSibling;
+    if (!tip) return;
+    if (this._isDesktop()) { tip.style.left = ""; tip.style.top = ""; return; }
+
+    const overlay = tip.parentElement && tip.parentElement.parentElement;
+    const cell = overlay && overlay.parentElement;
+    if (!overlay || !cell) return;
+    const o = overlay.getBoundingClientRect();
+    const b = btn.getBoundingClientRect();
+    const c = cell.getBoundingClientRect();
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    if (!b.width || !w || !h) return;
+
+    const minL = c.left - o.left + 4;
+    const maxL = c.right - o.left - w - 4;
+    let left = Math.min(Math.max(b.left - o.left - 14, minL), Math.max(minL, maxL));
+    // 6px, so the 9px caret just reaches the "i".
+    let top = b.bottom - o.top + 6;
+
+    const upgrade = overlay.lastElementChild;
+    if (upgrade && upgrade !== tip.parentElement) {
+      const u = upgrade.getBoundingClientRect();
+      const l = o.left + left;
+      if (l < u.right && l + w > u.left && top < u.bottom - o.top) top = u.bottom - o.top + 6;
+    }
+
+    tip.style.left = left + "px";
+    tip.style.top = top + "px";
+    const t = tip.getBoundingClientRect();
+    tip.style.setProperty("--tail-x", Math.min(Math.max(10, b.left + b.width / 2 - t.left - 9), w - 28) + "px");
+  };
+
+  // ---- footer (canonical) ----
+  footRef = (el) => {
+    this._foot = el;
+    if (el) {
+      this._footSemantics();
+      // Doubles as the purchase bar's suppressor — see the bar's markup comment. One ref, because
+      // a second one bound to the same element is the half-wired-ref failure CLAUDE.md records.
+      requestAnimationFrame(this._updateFootSuppress);
+    }
+  };
+
+  // Same 75%-of-viewport test and the same continuous behaviour as the homepage's Private Table
+  // rule: once the footer has meaningfully entered view the bar stays down through the rest of the
+  // page, and scrolling back up releases it so the direction rule decides again on the next
+  // downward scroll. Releasing never FORCES the bar back.
+  _updateFootSuppress = () => {
+    const el = this._foot;
+    if (!el) return;
+    const on = el.getBoundingClientRect().top < window.innerHeight * 0.75;
+    if (on !== this.state.footInView) this.setState({ footInView: on });
+  };
+
+  // The footer column heads are accordion BUTTONS on mobile and non-interactive LABELS from 1024,
+  // where the toggle is inert and the chevron is hidden. Attributes cannot be swapped in CSS, so
+  // the semantics are set here — one element, no duplicated markup.
+  _footSemantics = () => {
+    if (!this._foot) return;
+    const label = window.innerWidth >= 1024;
+    Array.prototype.forEach.call(this._foot.querySelectorAll(".at-foot-head"), (b) => {
+      if (label) {
+        // Captured before the first desktop pass strips them: React only rewrites an attribute
+        // when its value changes, so it will not restore these on the way back to mobile.
+        if (!b.dataset.ctrl) b.dataset.ctrl = b.getAttribute("aria-controls") || "";
+        if (!b.dataset.exp) b.dataset.exp = b.getAttribute("aria-expanded") || "false";
+        b.removeAttribute("aria-expanded");
+        b.removeAttribute("aria-controls");
+        b.setAttribute("role", "heading");
+        b.setAttribute("aria-level", "3");
+        b.setAttribute("tabindex", "-1");
+      } else {
+        b.removeAttribute("role");
+        b.removeAttribute("aria-level");
+        b.removeAttribute("tabindex");
+        if (b.dataset.ctrl) b.setAttribute("aria-controls", b.dataset.ctrl);
+        if (!b.hasAttribute("aria-expanded")) b.setAttribute("aria-expanded", b.dataset.exp || "false");
+      }
+    });
+  };
+
+  _footToggle = (k) => {
+    if (window.innerWidth >= 1024) return;   // inert at desktop: the head is a label there
+    this.setState((s) => {
+      const o = Object.assign({}, s.footOpen);
+      o[k] = !o[k];
+      return { footOpen: o };
+    });
+  };
+  toggleShop = () => this._footToggle("shop");
+  toggleLearn = () => this._footToggle("learn");
+  toggleInfo = () => this._footToggle("info");
+  onJoin = (e) => { e.preventDefault(); this.setState({ subscribed: true }); };
+
+  // ---- header + bar ----
+  hdrRef = (el) => { this._hdr = el; };
+
+  // The bar's height is content-dependent (the price label wraps at 320px), so the value is
+  // measured and published rather than restated. Deduped and deferred out of the observer
+  // callback: writing from inside it changes page height, which can flip the scrollbar, which
+  // resizes this full-width fixed bar and re-fires the observer.
+  barRef = (el) => {
+    if (this._barRO) { this._barRO.disconnect(); this._barRO = null; }
+    if (!el) return;
+    const write = () => {
+      const h = el.offsetHeight;
+      if (!h || h === this._barH) return;
+      this._barH = h;
+      document.documentElement.style.setProperty("--at-bar-h", h + "px");
+    };
+    write();
+    requestAnimationFrame(write);
+    setTimeout(write, 500);
+    if (typeof ResizeObserver !== "undefined") {
+      this._barRO = new ResizeObserver(() => {
+        cancelAnimationFrame(this._barRaf);
+        this._barRaf = requestAnimationFrame(write);
+      });
+      this._barRO.observe(el);
+    }
+  };
+
+  // The bar appears only once the hero has left the viewport. This page has no hero CTA to track —
+  // the title band is the equivalent, so the hero BAND is observed instead.
+  heroRef = (el) => {
+    if (this._io) { this._io.disconnect(); this._io = null; }
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    this._io = new IntersectionObserver(([e]) => this.setState({ heroOut: !e.isIntersecting }), { threshold: 0 });
+    this._io.observe(el);
+  };
+
+  // Position-derived, with two thresholds so the control cannot flicker around a single line.
+  // MOBILE: shown once the menu band's top has passed ~1.75 viewport heights (about two dish cards
+  // on a phone), hidden again under ~0.9. DESKTOP: shown once the first ROW of cards has left the
+  // viewport — measured from the first card, so it holds whatever the card height or column count
+  // turns out to be — and hidden once that row is back in view. No dish counts anywhere.
+  _updateTop = () => {
+    const band = document.querySelector(".mn-band");
+    if (!band) return;
+    const was = this.state.topOn;
+    let on = was;
+    if (this._isDesktop()) {
+      const cell = document.querySelector(".mn-cell");
+      if (!cell) return;
+      const b = cell.getBoundingClientRect().bottom;
+      if (b < 0) on = true; else if (b > 140) on = false;
+    } else {
+      const past = -band.getBoundingClientRect().top;
+      const vh = window.innerHeight;
+      if (past > vh * 1.75) on = true; else if (past < vh * 0.9) on = false;
+    }
+    if (on !== was) this.setState({ topOn: on });
+  };
+
+  // The heading, not window 0: the sticky header sits above the page, so the top of the MENU is the
+  // h1 less the header's height. Focus follows the scroll, so a keyboard user is put back at the
+  // heading rather than left at the foot of the page.
+  goTop = () => {
+    const hero = document.querySelector(".mn-hero");
+    const hdr = this._hdr ? this._hdr.offsetHeight : 72;
+    const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const y = hero ? Math.max(0, hero.getBoundingClientRect().top + window.scrollY - hdr) : 0;
+    window.scrollTo({ top: y, behavior: reduce ? "auto" : "smooth" });
+    if (this._h1) { this._h1.setAttribute("tabindex", "-1"); this._h1.focus({ preventScroll: true }); }
+  };
+
+  _onScroll = () => {
+    // Ahead of the movement threshold and the focus guard: suppression must track position even
+    // when the direction state is deliberately not updating.
+    this._updateFootSuppress();
+    this._updateTop();
+    const y = window.scrollY;
+    const last = this._lastY || 0;
+    if (Math.abs(y - last) < 8) return;
+    const down = y > last && y > 120;
+    this._lastY = y;
+    if (down && this._hdr && this._hdr.contains(document.activeElement)) return;
+    if (down !== this.state.dirDown) this.setState({ dirDown: down });
+  };
+
+  componentDidMount() {
+    // The h1 is always mounted, so it is read directly rather than through a ref that could be
+    // left half-wired; same for the hero band the bar tracks.
+    this._h1 = document.querySelector(".at-h1");
+    this.heroRef(document.querySelector(".mn-hero"));
+    if (this.props.openFilters) this.openFilters();
+    // A reload can restore a deep scroll position, so the control's state is evaluated on mount
+    // rather than waiting for the first scroll event.
+    requestAnimationFrame(this._updateTop);
+
+    window.addEventListener("scroll", this._onScroll, { passive: true });
+    this._onResize = () => {
+      this._footSemantics();
+      this._updateFootSuppress();
+      this.measureSigTail();
+      this._sheetSemantics();
+      this._updateTop();
+      // A mobile-only lock would otherwise survive a resize into the desktop panel, where the
+      // sheet is part of the page and nothing should be locked.
+      if (this._isDesktop() && this.state.sheet) document.body.style.overflow = "";
+    };
+    window.addEventListener("resize", this._onResize);
+
+    this._onDocDown = (e) => {
+      if (this.state.sortOpen && !(e.target.closest && e.target.closest(".mn-sort"))) this.setState({ sortOpen: false });
+      // Anything outside the note itself closes it — including the chips in its own group, which a
+      // .mn-group test left open.
+      if (this.state.tip && e.target.closest && !e.target.closest(".mn-note") && !e.target.closest(".mn-info")) this.setState({ tip: null, tipPinned: false });
+      if (this.state.sigOpen !== null && !(e.target.closest && e.target.closest(".at-sig-pill"))) this.setState({ sigOpen: null });
+    };
+    document.addEventListener("pointerdown", this._onDocDown, true);
+
+    this._onKey = (ev) => {
+      if (ev.key === "Escape") {
+        if (this.state.sigOpen !== null) { this.setState({ sigOpen: null }); return; }
+        if (this.state.tip) { this.setState({ tip: null, tipPinned: false }); return; }
+        if (this.state.sortOpen) { this.setState({ sortOpen: false }); return; }
+      }
+      if (this.state.drawer) {
+        if (ev.key === "Escape") { ev.preventDefault(); this.close(); return; }
+        if (ev.key === "Tab") { ev._root = this._panel; this._trapIn(this.focusables(), ev); }
+        return;
+      }
+      // Only a sheet (mobile overlay) traps focus; the desktop panel is part of the page.
+      if (this.state.sheet && !this._isDesktop()) {
+        if (ev.key === "Escape") { ev.preventDefault(); this.closeFilters(); return; }
+        if (ev.key === "Tab") { ev._root = this._sheet; this._trapIn(this.sheetFocusables(), ev); }
+      }
+    };
+    document.addEventListener("keydown", this._onKey);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener("scroll", this._onScroll);
+    window.removeEventListener("resize", this._onResize);
+    document.removeEventListener("keydown", this._onKey);
+    document.removeEventListener("pointerdown", this._onDocDown, true);
+    if (this._io) this._io.disconnect();
+    if (this._barRO) this._barRO.disconnect();
+    cancelAnimationFrame(this._barRaf);
+    cancelAnimationFrame(this._drawerRaf);
+    clearTimeout(this._drawerTo);
+    cancelAnimationFrame(this._sheetRaf);
+    document.body.style.overflow = "";
+  }
+
+  // ---- drawer (canonical) ----
+  // The panel is always mounted under a known id, so it is read from the document rather than
+  // through a ref: ref attach timing was the unreliable part.
+  _drawerPanel = () => this._panel || document.getElementById("at-drawer");
+
+  // Stable class fields, NOT arrows created inside renderVals(): a ref rebuilt on every render is
+  // detached with null each time, and renderVals() runs on scroll here (header auto-hide), so the
+  // handles were unreliable exactly when open()/close() read them.
+  panelRef = (el) => { this._panel = el; };
+  burgerRef = (el) => { this._burger = el; };
+  h1Ref = (el) => { this._h1 = el; };
+
+  focusables = () => {
+    const panel = this._drawerPanel();
+    if (!panel) return [];
+    return Array.from(panel.querySelectorAll("a[href], button")).filter((el) => el.offsetParent !== null);
+  };
+
+  open = () => {
+    document.body.style.overflow = "hidden";
+    this.setState({ drawer: true });
+    this._takeDrawerFocus();
+  };
+
+  // Canonical, from Homepage v2 (build-handoff.md § 3x). Focus moves here rather than in a
+  // lifecycle hook or a setState callback: this runtime calls neither, so a callback-based move
+  // never ran at all. Poll for the panel becoming focusable on BOTH a frame and a timer (a frame
+  // can be throttled, a timer cannot), bounded by 1s of wall clock rather than a frame count — the
+  // old 20-frame budget could expire before the display: none -> flex flip had landed, leaving
+  // focus on the burger with no error. Target is the Close button, a fixed position in the panel.
+  _takeDrawerFocus = () => {
+    cancelAnimationFrame(this._drawerRaf);
+    clearTimeout(this._drawerTo);
+    const start = Date.now();
+    const take = () => {
+      const panel = this._drawerPanel();
+      const btn = panel && panel.querySelector('button[aria-label="Close menu"]');
+      const t = this._canFocus(btn) ? btn : this.focusables()[0];
+      if (t) { t.focus(); return; }
+      if (Date.now() - start < 3000) {
+        this._drawerRaf = requestAnimationFrame(take);
+        this._drawerTo = setTimeout(take, 50);
+      }
+    };
+    take();
+  };
+
+  close = () => {
+    this.setState({ drawer: false });
+    document.body.style.overflow = "";
+    cancelAnimationFrame(this._drawerRaf);
+    clearTimeout(this._drawerTo);
+    const t = this._canFocus(this._burger) ? this._burger : this._canFocus(this._h1) ? this._h1 : null;
+    if (t) t.focus();
+  };
+
+  // REVIEW ONLY. Lengthens the page so scroll behaviour can be exercised against a realistic
+  // catalogue. It REPEATS the eight real records rather than inventing dishes — no fictional dish
+  // names, prices or nutrition enter the prototype — and only the slug is made unique.
+  _pool = () => {
+    const n = { "24 dishes": 24, "48 dishes": 48 }[this.props.reviewCatalogue] || 0;
+    if (!n) return DISHES;
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      const d = DISHES[i % DISHES.length];
+      out.push(i < DISHES.length ? d : Object.assign({}, d, { slug: d.slug + "-r" + i }));
+    }
+    return out;
+  };
+
+  renderVals() {
+    const q = (this.state.query || "").trim().toLowerCase();
+    const fP = this.state.fProtein, fS = this.state.fStyle, fH = this.state.fHeat, fD = this.state.fDiet;
+
+    const matches = (d) => {
+      if (q) {
+        const hay = (d.title + " " + d.parts + " " + d.description + " " + d.protein + " " +
+                     d.style.join(" ") + " " + HEAT_WORD[d.heat]).toLowerCase();
+        if (hay.indexOf(q) === -1) return false;
+      }
+      if (fP.length && fP.indexOf(d.protein) === -1) return false;
+      if (fS.length && !fS.some((l) => d.style.indexOf(l) !== -1)) return false;
+      if (fH.length && !fH.some((l) => HEAT_LEVEL[l] === d.heat)) return false;
+      if (fD.length && !fD.some((l) => (DIET_RULE[l] ? DIET_RULE[l](d) : d.diet.indexOf(DIET_DATA[l] || l) !== -1))) return false;
+      return true;
+    };
+
+    const pool = this._pool();
+    const filtered = pool.filter(matches);
+    const sortKey = this.state.sort || "recommended";
+    if (SORTS[sortKey] && SORTS[sortKey].fn) filtered.sort(SORTS[sortKey].fn);
+
+    const total = filtered.length;
+    const step = this._step();
+    const shown = Math.min(this.state.shown || step, total);
+    const plural = (n) => n + (n === 1 ? " dish" : " dishes");
+
+    const active = [];
+    const push = (key, arr, fmt) => arr.forEach((label) => active.push({
+      label: fmt ? fmt(label) : label,
+      removeLabel: "Remove filter: " + (fmt ? fmt(label) : label),
+      onRemove: () => this._toggle(key, label),
+    }));
+    push("fProtein", fP);
+    push("fStyle", fS);
+    push("fHeat", fH, (l) => l + " heat");
+    push("fDiet", fD);
+
+    const chip = (key, label) => ({
+      label: label,
+      on: (this.state[key] || []).indexOf(label) !== -1 ? "true" : "false",
+      onClick: () => this._toggle(key, label),
+    });
+    const allChip = (key) => ({
+      label: "All",
+      on: (this.state[key] || []).length === 0 ? "true" : "false",
+      onClick: () => this._clearGroup(key),
+    });
+
+    const heatChips = [allChip("fHeat")].concat(HEATS.map((label) => {
+      const c = chip("fHeat", label);
+      const n = HEAT_LEVEL[label];
+      c.hasPips = n > 0;
+      c.pips = [0, 1, 2].map((i) => (i < n
+        ? { fill: "var(--chilli)", stem: "var(--green-mid)" }
+        : { fill: "var(--green-mist)", stem: "var(--green-mist)" }));
+      return c;
+    }));
+
+    const sheetOpen = this.state.sheet;
+
+    return {
+      hdrRef: this.hdrRef,
+      hdrHidden: (this.state.dirDown && !this.state.drawer && !sheetOpen) ? "true" : "false",
+      barRef: this.barRef,
+      // Consent outranks every fixed element (the manager is mounted once globally in production,
+      // so the prop stands in for an unresolved banner here), and so does an open overlay: drawer
+      // or filter sheet.
+      barOn: (this.state.heroOut && this.state.dirDown && !this.state.drawer && !sheetOpen
+              && !this.state.footInView && !this.props.cookieUnresolved) ? "true" : "false",
+      // Stays visible over the footer — that is where it is most useful — but yields to the drawer,
+      // the filter sheet and an unresolved consent layer like everything else fixed.
+      topOn: (this.state.topOn && !this.state.drawer && !sheetOpen && !this.props.cookieUnresolved) ? "true" : "false",
+      goTop: this.goTop,
+
+      query: this.state.query,
+      hasQuery: q.length > 0,
+      onSearch: this.onSearch,
+      clearSearch: this.clearSearch,
+
+      toggleFilters: this.toggleFilters,
+      closeFilters: this.closeFilters,
+      filtersExpanded: sheetOpen ? "true" : "false",
+      sheetCls: sheetOpen ? "is-open" : "",
+      sheetRef: (el) => { this._sheet = el; if (el) this._sheetSemantics(); },
+      applyLabel: "Show " + plural(total),
+      clearFilters: this.clearFilters,
+      clearAll: this.clearAll,
+      activeFilters: active,
+      hasActiveFilters: active.length > 0,
+      activeCount: active.length,
+
+      proteinChips: [allChip("fProtein")].concat(PROTEINS.map((l) => chip("fProtein", l))),
+      styleChips: [allChip("fStyle")].concat(STYLES.map((l) => chip("fStyle", l))),
+      heatChips: heatChips,
+      dietChips: [allChip("fDiet")].concat(DIETS.map((l) => chip("fDiet", l))),
+
+      styleTipOpen: this.state.tip === "style" ? "true" : "false",
+      delivTipOpen: this.state.tip === "delivery" ? "true" : "false",
+      toggleDelivTip: this.toggleDelivTip,
+      hoverDelivTip: this.hoverDelivTip,
+      leaveDelivTip: this.leaveDelivTip,
+      closeDelivTip: this.closeDelivTip,
+      // Editable value, fixed wording. 18 September 2026 is a FRIDAY — the mock-up's "Thu 18 Sep"
+      // would ship a wrong weekday, and a delivery promise is the last place to guess.
+      nextDelivery: this.props.nextDelivery || "Fri 18 Sep",
+      toggleStyleTip: this.toggleStyleTip,
+      closeStyleTip: this.closeStyleTip,
+
+      sortLabel: SORTS[sortKey].label,
+      sortOpenCls: this.state.sortOpen ? "is-open" : "",
+      sortExpanded: this.state.sortOpen ? "true" : "false",
+      toggleSort: this.toggleSort,
+      sortOptions: Object.keys(SORTS).map((k) => ({
+        label: SORTS[k].label,
+        on: k === sortKey ? "true" : "false",
+        selected: k === sortKey,
+        pick: () => this.setState({ sort: k, sortOpen: false, shown: null }),
+      })),
+
+      resultLabel: total === pool.length && shown >= total
+        ? "All " + plural(total)
+        : "Showing " + shown + " of " + plural(total),
+      showLoadMore: shown < total,
+      loadMoreLabel: "Load more dishes",
+      onLoadMore: this.onLoadMore,
+      noResults: total === 0,
+
+      dishes: filtered.slice(0, shown).map((d, i) => ({
+        title: d.title,
+        parts: d.parts,
+        description: d.description,
+        href: (d.isSignature ? "Abby's Table - Dish Landing Signature v2.dc.html" : "Abby's Table - Dish Landing v2.dc.html") + "?dish=" + d.slug,
+        imgRef: (el) => {
+          const pic = IMAGES[d.imageKey];
+          if (!el || !pic) return;
+          if (el.getAttribute("src") !== pic.src) el.src = pic.src;
+          el.alt = pic.alt;
+          if (!el._atBound) {
+            el._atBound = true;
+            el.addEventListener("load", () => this.measureSigTail());
+          }
+        },
+        // Cream tags: the dish's first eating style, plus the calorie mark DERIVED from the record
+        // rather than restated in it — the old page carried a literal "Under 500 kcal" tag on a
+        // 520 kcal dish.
+        creamTags: [d.style[0]].concat(d.kcal < 500 ? ["Under 500 kcal"] : []),
+        isNew: !!d.isNew,
+        isSignature: !!d.isSignature,
+        upgrade: d.upgrade || "",
+        sigOpen: this.state.sigOpen === i ? "true" : "false",
+        sigId: "mn-sig-note-" + i,
+        sigBtnRef: (el) => {
+          if (el) this._sigBtns[i] = el; else delete this._sigBtns[i];
+        },
+        // Read on pointerdown, because focus fires first on touch and would otherwise open the
+        // note a moment before the click closed it again.
+        sigDown: () => { this._sigWasOpen = this.state.sigOpen === i; this._sigPointer = true; },
+        sigClick: (e) => {
+          if (e && e.stopPropagation) e.stopPropagation();
+          if (e && e.preventDefault) e.preventDefault();
+          this.setState({ sigOpen: this._sigWasOpen ? null : i });
+          this._sigPointer = false;
+          requestAnimationFrame(this.measureSigTail);
+        },
+        sigEnter: () => { if (this._canHover()) { this.setState({ sigOpen: i }); requestAnimationFrame(this.measureSigTail); } },
+        sigLeave: () => { if (this._canHover()) this.setState({ sigOpen: null }); },
+        sigFocus: () => { if (!this._sigPointer) { this.setState({ sigOpen: i }); requestAnimationFrame(this.measureSigTail); } },
+        sigBlur: () => { this._sigPointer = false; this.setState({ sigOpen: null }); },
+        heatLabel: "Heat level: " + HEAT_WORD[d.heat],
+        heatWord: HEAT_WORD[d.heat],
+        pips: [0, 1, 2].map((i2) => (i2 < d.heat
+          ? { fill: "var(--chilli)", stem: "var(--green-mid)" }
+          : { fill: "var(--green-mist)", stem: "var(--green-mist)" })),
+        nutrition: [
+          { dot: "var(--brass-ink)", label: "Protein " + d.proteinG + "g" },
+          // green-forest is so dark at dot size that it reads as black; green-mid reads green.
+          { dot: "var(--green-mid)", label: "Fibre " + d.fibre + "g" },
+        ],
+      })),
+
+      drawerCls: this.state.drawer ? "is-open" : "",
+      burgerExpanded: this.state.drawer ? "true" : "false",
+      openDrawer: this.open,
+      closeDrawer: this.close,
+      panelRef: this.panelRef,
+      burgerRef: this.burgerRef,
+      h1Ref: this.h1Ref,
+
+      subscribed: !!this.state.subscribed,
+      notSubscribed: !this.state.subscribed,
+      onJoin: this.onJoin,
+      footRef: this.footRef,
+      toggleShop: this.toggleShop,
+      toggleLearn: this.toggleLearn,
+      toggleInfo: this.toggleInfo,
+      shopCls: this.state.footOpen.shop ? "is-open" : "",
+      learnCls: this.state.footOpen.learn ? "is-open" : "",
+      infoCls: this.state.footOpen.info ? "is-open" : "",
+      shopExp: this.state.footOpen.shop ? "true" : "false",
+      learnExp: this.state.footOpen.learn ? "true" : "false",
+      infoExp: this.state.footOpen.info ? "true" : "false",
+    };
+  }
+}
+</script>
+</body>
+</html>

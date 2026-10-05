@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Reorder hand-off check</title>
+<style>body{font:15px/1.5 system-ui,sans-serif;margin:24px;background:#F7F1E8;color:#3B2C22}table{border-collapse:collapse;background:#fff}td,th{padding:6px 10px;border-bottom:1px solid #E0D8C8;text-align:left;vertical-align:top}.p{color:#1E3A2F;font-weight:700}.f{color:#B8431C;font-weight:700}iframe{width:1100px;height:700px;border:1px solid #E0D8C8;margin-top:16px}</style></head>
+<body>
+<h1 id="v">Running…</h1>
+<p>Drives Add Dishes v2 with My Account's <code>?reorder=</code> hand-off. Saves and restores this tab's order records.</p>
+<table><thead><tr><th>Check</th><th>Result</th><th>Detail</th></tr></thead><tbody id="rows"></tbody></table>
+<iframe id="f"></iframe>
+<script>
+(async function () {
+  var KEYS = ["at-order-v1", "at-gift-box-v1", "at-date-hold-v1"], saved = {};
+  KEYS.forEach(function (k) { saved[k] = sessionStorage.getItem(k); });
+  var f = document.getElementById("f"), rows = document.getElementById("rows"), fails = 0, n = 0;
+  function row(name, ok, d) { n++; if (!ok) fails++; rows.insertAdjacentHTML("beforeend", "<tr><td>" + name + "</td><td class='" + (ok ? "p'>PASS" : "f'>FAIL") + "</td><td>" + (d || "") + "</td></tr>"); }
+  var wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+  function load(url) { return new Promise(function (r) { f.onload = function () { setTimeout(r, 3500); }; f.src = url; }); }
+  function rec() { try { return JSON.parse(sessionStorage.getItem("at-order-v1") || "null"); } catch (e) { return null; } }
+  function lines() { var o = rec(); return (o && o.snap && o.snap.s2 && o.snap.s2.lines) || []; }
+  function count() { return lines().reduce(function (t, l) { return t + (parseInt(l.qty, 10) || 0); }, 0); }
+  function size() { var o = rec(); return (o && o.snap && o.snap.s2 && o.snap.s2.boxSize) || (o && o.boxSize) || 0; }
+  var AD = "../Abby's Table - Add Dishes v2.dc.html";
+  try {
+    KEYS.forEach(function (k) { sessionStorage.removeItem(k); });
+    // A: no box in progress, 4 dishes (under the minimum) ⇒ 6-dish box with 4 in it
+    await load(AD + "?reorder=" + encodeURIComponent("jollof-quinoa-bowl.2.light,royal-seafood-okra.2.full") + "&fromd=" + encodeURIComponent("6 August"));
+    row("A · 4 dishes land in the box", count() === 4, "dishes " + count());
+    row("A · box is the 6 minimum", size() === 6, "size " + size());
+    var full = lines().find(function (l) { return l.id === "royal-seafood-okra"; });
+    row("A · portion carried (Full Table)", !!full && full.portion === "full", JSON.stringify(full || {}));
+    var txt = f.contentDocument.body.innerText;
+    row("A · confirmation names the order", /4 dishes added from your 6 August order/.test(txt));
+    // B: reload the same history entry ⇒ never added twice
+    f.contentWindow.location.reload(); await wait(4000);
+    row("B · reload does not add again", count() === 4, "dishes " + count());
+    // C: box in progress (4 in a 6) + 6 more ⇒ exact 10, same dish merged
+    await load(AD + "?resume=1&reorder=" + encodeURIComponent("jollof-quinoa-bowl.2.light,wild-rice-goat-efo.2.light,turkey-ayamase-with-greens.2.light") + "&fromd=" + encodeURIComponent("12 June"));
+    row("C · merged into the box in progress", count() === 10, "dishes " + count());
+    row("C · box grows to the EXACT count (10)", size() === 10, "size " + size());
+    var j = lines().filter(function (l) { return l.id === "jollof-quinoa-bowl" && (l.portion || "light") === "light"; });
+    row("C · same dish + portion merged, not listed twice", j.length === 1 && j[0].qty === 4, JSON.stringify(j));
+    // D: Undo restores the box exactly as it was
+    var u = f.contentDocument.querySelector("[data-undo-btn]");
+    if (u) { u.click(); await wait(1200); }
+    row("D · Undo button present", !!u);
+    row("D · Undo restores 4 dishes in a 6-dish box", count() === 4 && size() === 6, "dishes " + count() + " · size " + size());
+    // E: over 99 is ignored by step 2 (My Account blocks it first)
+    await load(AD + "?resume=1&reorder=" + encodeURIComponent("jollof-quinoa-bowl.99.light") + "&fromd=x");
+    row("E · a hand-off past 99 is ignored", count() === 4, "dishes " + count());
+  } catch (e) { row("Harness error", false, String(e)); }
+  KEYS.forEach(function (k) { if (saved[k] == null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, saved[k]); });
+  document.getElementById("v").textContent = fails ? fails + " FAILED of " + n : "ALL PASSED · " + n + " checks";
+})();
+</script>
+</body></html>

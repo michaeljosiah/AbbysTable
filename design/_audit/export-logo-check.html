@@ -1,0 +1,30 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Export logo check</title>
+<style>body{font:14px/1.45 system-ui;margin:16px;background:#F7F1E8;color:#3B2C22}#f{display:block;width:390px;height:700px;border:1px solid #E0D8C8;margin-top:12px}</style></head>
+<body><h2 id="v">Running…</h2><pre id="sum"></pre><iframe id="f"></iframe>
+<script>
+var FILES=["Homepage v2 (standalone)","Menu Landing v3 (standalone)","Dish Landing v2 (standalone)","Dish Landing Signature v2 (standalone)","How It Works v2 (standalone)","Abby's Story v2 (standalone)","Standards v2 (standalone)","Gifting v2 (standalone)","Private Table v2 (standalone)","Delivery and FAQs (standalone)","Contact Us (standalone)","Allergens (standalone)","Privacy Policy (standalone)","Terms of Sale (standalone)","Terms of Sale (print)","Log in (standalone)","My Account (standalone)","Choose Box v2 (standalone)","Add Dishes v2 (standalone)","Extras v2 (standalone)","Review v2 (standalone)","Checkout v2","Gift Card Checkout (standalone)","Payment Processing","Payment Not Completed","Payment Cancelled","Page Not Found","Something Went Wrong","Back Shortly","Link Expired","Order Confirmation v2 - Logged in (standalone)","Order Confirmation v2 - Account created (standalone)","Order Confirmation v2 - Guest (standalone)"];
+var EXPECT={"Terms of Sale (print)":0};
+var q=new URLSearchParams(location.search);if(q.get("from"))FILES=FILES.slice(+q.get("from"),q.get("to")?+q.get("to"):undefined);
+var f=document.getElementById("f"),S=document.getElementById("sum"),bad=0;
+function out(s){S.textContent+=s+"\n";}
+function wait(ms){return new Promise(function(r){setTimeout(r,ms);});}
+function load(u){return new Promise(function(res){var d=false;function go(){if(d)return;d=true;setTimeout(res,4000);}f.onload=go;setTimeout(go,12000);f.src=u;});}
+(async function(){for(var i=0;i<FILES.length;i++){var n=FILES[i];await load("../export/Abby's Table - "+encodeURIComponent(n)+".html");
+ var w=f.contentWindow,d=f.contentDocument,p=[];
+ try{for(var k=0;k<40&&!d.querySelector("at-wordmark");k++){await wait(500);d=f.contentDocument;w=f.contentWindow;}
+  var els=[].slice.call(d.querySelectorAll("at-wordmark")),exp=(n in EXPECT)?EXPECT[n]:(/Choose Box|Add Dishes|Extras|Review|Checkout|Payment|Something|Back Shortly/.test(n)?2:3);
+  if(els.length!==exp)p.push("wordmarks "+els.length+" (expected "+exp+")");
+  if(els.length&&!w.customElements.get("at-wordmark"))p.push("element not defined (script not inlined)");
+  var vis=0;els.forEach(function(e,j){var s=e.querySelector("svg"),b=e.parentElement,r=b.getBoundingClientRect();
+   if(!s){p.push("#"+j+" no svg");return;}
+   if(r.width>0){vis++;var sr=s.getBoundingClientRect();if(Math.abs(sr.width-r.width)>0.01||Math.abs(sr.height-r.height)>0.01)p.push("#"+j+" svg "+sr.width+"x"+sr.height+" vs box "+r.width+"x"+r.height);
+    var c=w.getComputedStyle(b).color;if(!c||/rgba\(0, 0, 0, 0\)/.test(c))p.push("#"+j+" no colour");}
+   if(s.getAttribute("aria-hidden")!=="true"||s.getAttribute("focusable")!=="false")p.push("#"+j+" svg a11y");});
+  var masks=[].slice.call(d.querySelectorAll("*")).filter(function(e){var cs=w.getComputedStyle(e);var m=cs.webkitMaskImage||cs.maskImage||"none";return m!=="none";}).length;
+  if(masks)p.push(masks+" elements still use a CSS mask");
+  var net=w.performance.getEntriesByType("resource").map(function(e){return e.name;}).filter(function(u){return /logo\.svg|at-logo\.js/.test(u);});
+  if(net.length)p.push("external requests: "+net.join(", "));
+  out((p.length?"FAIL ":"OK   ")+n+" — "+els.length+" wordmarks, "+vis+" visible"+(p.length?" — "+p.join("; "):""));if(p.length)bad++;
+ }catch(e){bad++;out("ERR  "+n+" "+e.message);}}
+ document.getElementById("v").textContent=bad?bad+" FAILED of "+FILES.length:"ALL OK · "+FILES.length+" exports";})();
+</script></body></html>

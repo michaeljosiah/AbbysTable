@@ -1,0 +1,80 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Desktop header check</title>
+<style>body{font:14px/1.45 system-ui;margin:16px;background:#F7F1E8;color:#3B2C22}#f{display:block;border:1px solid #E0D8C8;margin-top:12px}</style></head>
+<body><h2 id="v">Running…</h2><pre id="sum"></pre><iframe id="f"></iframe>
+<script>
+var MKT=["Homepage v2","Menu Landing v3","How It Works v2","Gifting v2","Private Table v2","Standards v2","Abby's Story v2","Delivery and FAQs","Contact Us"];
+var CTRL=["Log in","My Account","Dish Landing v2","Privacy Policy","Allergens","Choose Box v2"];
+var W=[[1024,768],[1280,800],[1440,900],[1920,1080]];
+var q=new URLSearchParams(location.search);
+if(q.get("pages"))MKT=q.get("pages").split(",").map(function(i){return MKT[+i];});
+if(q.get("w"))W=q.get("w").split(",").map(function(i){return W[+i];});
+var doCtrl=q.get("ctrl")!=="0",doMob=q.get("mob")!=="0";
+var f=document.getElementById("f"),S=document.getElementById("sum"),bad=0,n=0;
+function out(s){S.textContent+=s+"\n";}
+function wait(ms){return new Promise(function(r){setTimeout(r,ms);});}
+function load(u,w,h){return new Promise(function(res){var d=false;function go(){if(d)return;d=true;setTimeout(res,3000);}f.style.width=w+"px";f.style.height=h+"px";f.onload=go;setTimeout(go,10000);f.src=u;});}
+function W_(){return f.contentWindow;}
+function H(){return f.contentDocument.querySelector("header.at-hdr");}
+function shown(){var r=H().getBoundingClientRect();return r.bottom>1;}
+// The preview frame renders at a very low frame rate, so native scroll events coalesce or arrive
+// seconds late. Each step dispatches one scroll event after scrollTo (scrollY is already updated
+// synchronously) — the same as a real browser delivering one event per frame.
+async function to(y,ms){W_().scrollTo(0,y);var w=W_();w.dispatchEvent(new w.Event("scroll"));await wait(ms==null?90:ms);}
+async function steps(from,toY,step,ms){var y=from;var dir=toY>from?1:-1;while((toY-y)*dir>0){y+=dir*Math.min(step,Math.abs(toY-y));await to(y,ms);}return y;}
+function freeze(){var d=f.contentDocument,s=d.createElement("style");s.textContent=".at-hdr{transition:none!important}html,body{scroll-behavior:auto!important}";d.head.appendChild(s);}
+function st(){var e=H();return "attr="+e.getAttribute("data-desk-hidden")+" dh="+e.getAttribute("data-hidden")+" tf="+W_().getComputedStyle(e).transform+" sy="+W_().scrollY+" rectTop="+Math.round(e.getBoundingClientRect().top);}
+async function pchk(page,label,fn,detail){for(var i=0;i<20&&!fn();i++)await wait(100);chk(page,label,fn(),detail);}
+function chk(page,label,cond,detail){n++;if(!cond){bad++;out("  FAIL "+page+" · "+label+(detail?" — "+detail:"")+" | "+st());}}
+async function mkt(page,w,h){
+  await load("../Abby's Table - "+encodeURIComponent(page)+".dc.html",w,h);freeze();
+  var tag=page+" @"+w;var e=H();
+  chk(tag,"opted in",e&&e.getAttribute("data-at-desk-hdr")==="marketing");
+  var max=f.contentDocument.documentElement.scrollHeight-h;if(max<1200){out("  note "+tag+" short page max="+max);}
+  await to(0,150);await pchk(tag,"top: shown",function(){return shown();});
+  var top0=H().getBoundingClientRect().top;
+  await to(20,150);await wait(600);chk(tag,"tiny initial scroll keeps header",shown());
+  // slow wheel down
+  var y=await steps(20,700,12,40);await wait(120);await pchk(tag,"slow wheel down hides",function(){return !shown();});
+  // momentum jitter: small reversals while hidden
+  for(var i=0;i<6;i++){y-=3;await to(y,40);y+=2;await to(y,40);}await wait(600);chk(tag,"1-3px upward jitter stays hidden",!shown());
+  y=await steps(y,y-30,6,40);await wait(100);await wait(600);chk(tag,"30px up stays hidden (under threshold)",!shown());
+  y=await steps(y,y-50,10,40);await wait(120);await pchk(tag,"meaningful upward reveals",function(){return shown();},"y="+y);
+  var r=H().getBoundingClientRect();chk(tag,"revealed sits flush at viewport top",Math.abs(r.top)<1,"top="+r.top);
+  for(var j=0;j<6;j++){y+=3;await to(y,40);y-=2;await to(y,40);}await wait(600);chk(tag,"1-3px downward jitter stays visible",shown());
+  y=await steps(y,y+60,10,40);await wait(120);await pchk(tag,"meaningful downward hides again",function(){return !shown();});
+  // reversals
+  for(var k=0;k<3;k++){y=await steps(y,y-90,15,35);await wait(100);chk(tag,"reversal "+(k+1)+" up reveals",shown());y=await steps(y,y+90,15,35);await wait(100);chk(tag,"reversal "+(k+1)+" down hides",!shown());}
+  // fast scroll
+  await to(Math.min(max,2400),150);await pchk(tag,"fast down hides",function(){return !shown();});
+  await to(Math.max(400,Math.min(max,2400)-700),150);await pchk(tag,"fast up reveals",function(){return shown();});
+  // keyboard: focus a nav link while revealed then scroll down
+  var link=H().querySelector("nav a, a.at-login");if(link){link.focus();await to(W_().scrollY+200,150);await wait(600);chk(tag,"focus in header keeps it shown",shown());link.blur();}
+  // back to top
+  await to(0,200);var rt=H().getBoundingClientRect();chk(tag,"top: normal state restored",shown()&&Math.abs(rt.top-top0)<0.5&&H().getAttribute("data-desk-hidden")!=="true","top="+rt.top+" attr="+H().getAttribute("data-desk-hidden"));
+  // mobile state never applies on desktop
+  chk(tag,"no layout jump (header height constant)",Math.abs(rt.height-r.height)<0.5);
+}
+async function ctrl(page){await load("../Abby's Table - "+encodeURIComponent(page)+".dc.html",1280,800);freeze();var e=H();var tag=page+" @1280 (control)";
+  if(!e){out("  note "+tag+": no at-hdr header");return;}
+  chk(tag,"not opted in",!e.hasAttribute("data-at-desk-hdr"));
+  var before=[];await to(0,150);before.push(shown());await steps(0,900,15,40);await wait(150);before.push(shown());await steps(900,820,10,40);await wait(150);before.push(shown());
+  chk(tag,"no data-desk-hidden written",!e.hasAttribute("data-desk-hidden"));
+  out("  "+tag+": shown at top/after-down/after-up = "+before.join("/"));}
+async function mob(page){await load("../Abby's Table - "+encodeURIComponent(page)+".dc.html",390,800);freeze();var e=H();var tag=page+" @390 (mobile)";
+  await to(0,150);var y=await steps(0,600,12,40);await wait(150);
+  chk(tag,"desktop script writes nothing on mobile",!e.hasAttribute("data-desk-hidden"));
+  chk(tag,"mobile logic still hides on scroll down",e.getAttribute("data-hidden")==="true"&&!shown(),"data-hidden="+e.getAttribute("data-hidden"));
+  y=await steps(y,y-60,10,40);await wait(150);chk(tag,"mobile logic still reveals on scroll up",e.getAttribute("data-hidden")==="false"&&shown());}
+(async function(){var t0=Date.now();try{
+  if(q.get("debug")){await load("../Abby's Table - Homepage%20v2.dc.html",1280,800);var w=W_(),d=f.contentDocument;
+   out("style:"+!!d.querySelector("style[data-at-desk-hdr]")+" mq:"+w.matchMedia("(min-width: 1024px)").matches+" flag:"+w.__atDeskHdr+" innerW:"+w.innerWidth+" sh:"+d.documentElement.scrollHeight+" ch:"+d.documentElement.clientHeight+" bodyOv:"+w.getComputedStyle(d.body).overflow+" htmlOv:"+w.getComputedStyle(d.documentElement).overflow);
+   w.scrollTo(0,600);await wait(300);out("after scrollTo 600: sy="+w.scrollY+" se.scrollTop="+d.scrollingElement.scrollTop+" attr="+H().getAttribute("data-desk-hidden")+" tf="+w.getComputedStyle(H()).transform);
+   var sc=[].slice.call(d.querySelectorAll("*")).filter(function(e){return e.scrollHeight>e.clientHeight+50&&/(auto|scroll)/.test(w.getComputedStyle(e).overflowY);}).map(function(e){return e.tagName+"."+e.className+" "+e.scrollHeight;});out("scrollers: "+sc.slice(0,5).join(" | "));
+   var s=d.querySelector("style[data-at-desk-hdr]");out("css: "+(s?s.textContent.slice(0,200):"none")+" parent:"+(s&&s.parentNode&&s.parentNode.tagName));
+   return;}
+  if(q.get("mkt")!=="0")for(var a=0;a<MKT.length;a++){for(var b=0;b<W.length;b++){await mkt(MKT[a],W[b][0],W[b][1]);out("done "+MKT[a]+" @"+W[b][0]);}}
+  if(doCtrl)for(var c=0;c<CTRL.length;c++)await ctrl(CTRL[c]);
+  if(doMob)for(var m=0;m<MKT.length;m++)await mob(MKT[m]);
+ }catch(e){bad++;out("ERROR "+e.message);}
+ if(q.get("debug"))return;document.getElementById("v").textContent=(bad?bad+" FAILED":"ALL PASSED")+" · "+n+" checks · "+Math.round((Date.now()-t0)/1000)+"s";})();
+</script></body></html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<title>Head standard check</title>
+<style>
+  html, body { background-color: #F7F1E8; color-scheme: light; }
+  body { margin: 0; padding: 32px; font: 15px/1.5 ui-sans-serif, system-ui, sans-serif; color: #3B2C22; }
+  h1 { margin: 0 0 4px; font-size: 22px; color: #1E3A2F; }
+  p { margin: 0 0 20px; max-width: 70ch; }
+  #verdict { display: inline-block; margin: 0 0 20px; padding: 6px 12px; border-radius: 999px; font-weight: 600; background: #E0D8C8; }
+  #verdict[data-ok="true"] { background: #1E3A2F; color: #F7F1E8; }
+  #verdict[data-ok="false"] { background: #943E38; color: #F7F1E8; }
+  table { border-collapse: collapse; width: 100%; max-width: 1100px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #E0D8C8; vertical-align: top; }
+  th { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: #6B5A4C; }
+  td.ok { color: #1E3A2F; } td.bad { color: #943E38; font-weight: 600; }
+</style>
+</head>
+<body>
+<h1>Head standard check</h1>
+<p>Reads every page in <code>live-pages.json</code> as source text and checks the document head standard in CLAUDE.md: the first-paint background and the shared stylesheets in the real <code>&lt;head&gt;</code>, none of them in <code>&lt;helmet&gt;</code>, and no copy in both. Run it after any whole-page rewrite and in every final audit. It reports only; it never changes a page.</p>
+<div id="verdict">Checking…</div>
+<table>
+  <thead><tr><th>Page</th><th>Result</th><th>Problems</th></tr></thead>
+  <tbody id="rows"></tbody>
+</table>
+<script>
+(async function () {
+  var DS = "_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/";
+  var SHARED = ["tokens/fonts.css", "tokens/colors.css", "tokens/typography.css", "tokens/spacing.css", "styles.css"].map(function (p) { return DS + p; });
+  SHARED.push("at-focus.css");
+  var CRIT = /html,\s*body\s*\{\s*background-color:\s*#F7F1E8;\s*color-scheme:\s*light;\s*\}/i;
+  function count(text, href) {
+    var re = new RegExp('<link\\b[^>]*href="' + href.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + '"', "g");
+    return (text.match(re) || []).length;
+  }
+  function check(src) {
+    var problems = [];
+    var xi = src.indexOf("<x-dc>");
+    var head = xi < 0 ? src : src.slice(0, xi);
+    // After <x-dc> only: the head's own comments mention "<helmet>" by name.
+    var hStart = xi < 0 ? -1 : src.indexOf("<helmet>", xi), hEnd = hStart < 0 ? -1 : src.indexOf("</helmet>", hStart);
+    var helmet = hStart >= 0 && hEnd > hStart ? src.slice(hStart, hEnd) : "";
+    var headEnd = head.indexOf("</head>");
+    var realHead = headEnd >= 0 ? head.slice(0, headEnd) : head;
+    var support = realHead.indexOf("support.js");
+    if (!CRIT.test(realHead)) problems.push("missing first-paint background in real <head>");
+    else if (support >= 0 && realHead.search(CRIT) > support) problems.push("first-paint background is after support.js");
+    // Shared wordmark (at-logo.js): defined before anything renders, so it must be in the real head.
+    var logoRe = /<script\b[^>]*src="at-logo\.js"/g;
+    var lHead = (realHead.match(logoRe) || []).length, lHelm = (helmet.match(logoRe) || []).length;
+    if (/<at-wordmark/.test(src)) {
+      if (!lHead && lHelm) problems.push("at-logo.js: only in <helmet> (wordmark defined after first paint)");
+      else if (!lHead) problems.push("at-logo.js: missing (wordmark will not draw)");
+      else if (lHelm) problems.push("at-logo.js: in real <head> AND <helmet> (duplicate)");
+      else if (support >= 0 && realHead.search(logoRe) > support) problems.push("at-logo.js is after support.js");
+    }
+    if (/logo\.svg/.test(src)) problems.push("still references assets/logo.svg (use <at-wordmark>)");
+    SHARED.forEach(function (href) {
+      var name = href.split("/").pop();
+      var inHead = count(realHead, href), inHelmet = count(helmet, href);
+      if (inHead && inHelmet) problems.push(name + ": in real <head> AND <helmet> (duplicate)");
+      else if (!inHead && inHelmet) problems.push(name + ": only in <helmet> (applied after first paint)");
+      else if (!inHead) problems.push(name + ": missing");
+      else if (inHead > 1) problems.push(name + ": linked " + inHead + "x in <head>");
+      else if (support >= 0 && realHead.indexOf(href) > support) problems.push(name + ": after support.js");
+    });
+    return problems;
+  }
+  var rows = document.getElementById("rows"), verdict = document.getElementById("verdict");
+  var list, failed = 0;
+  try { list = (await (await fetch("live-pages.json", { cache: "no-store" })).json()).pages; }
+  catch (e) { verdict.textContent = "Could not read live-pages.json"; verdict.dataset.ok = "false"; return; }
+  var results = [];
+  for (var i = 0; i < list.length; i++) {
+    var name = list[i], problems;
+    try {
+      var res = await fetch("../" + encodeURIComponent(name), { cache: "no-store" });
+      problems = res.ok ? check(await res.text()) : ["could not load (" + res.status + ")"];
+    } catch (e) { problems = ["could not load"]; }
+    if (problems.length) failed++;
+    results.push({ page: name, ok: !problems.length, problems: problems });
+    var tr = document.createElement("tr");
+    tr.innerHTML = "<td></td><td></td><td></td>";
+    tr.children[0].textContent = name.replace("Abby's Table - ", "").replace(".dc.html", "");
+    tr.children[1].textContent = problems.length ? "Fails" : "Passes";
+    tr.children[1].className = problems.length ? "bad" : "ok";
+    tr.children[2].textContent = problems.join("; ");
+    rows.appendChild(tr);
+  }
+  verdict.textContent = failed ? failed + " of " + list.length + " pages fail" : "All " + list.length + " pages pass";
+  verdict.dataset.ok = failed ? "false" : "true";
+  window.__headCheck = { ok: !failed, failed: failed, total: list.length, results: results };
+})();
+</script>
+</body>
+</html>

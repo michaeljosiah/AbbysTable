@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>width harness</title>
+<style>
+  html, body { margin: 0; background: #333; }
+  #wrap { position: relative; overflow: hidden; }
+  iframe { border: 0; display: block; transform-origin: top left; background: #fff; }
+  #tag { position: fixed; right: 0; top: 0; z-index: 9; background: #000; color: #0f0;
+         font: 12px/1.4 monospace; padding: 4px 8px; }
+</style>
+</head>
+<body>
+<div id="wrap"><iframe id="f" src="../Abby's Table - How It Works v2.dc.html"></iframe></div>
+<div id="tag">—</div>
+<script>
+  const f = document.getElementById('f'), tag = document.getElementById('tag'), wrap = document.getElementById('wrap');
+  window.setW = (w, scale, scrollTo) => {
+    f.style.width = w + 'px';
+    const h = Math.ceil(window.innerHeight / scale);
+    f.style.height = h + 'px';
+    f.style.transform = 'scale(' + scale + ')';
+    wrap.style.width = (w * scale) + 'px';
+    wrap.style.height = window.innerHeight + 'px';
+    if (scrollTo !== undefined) f.contentWindow.scrollTo(0, scrollTo);
+    tag.textContent = w + 'px  x' + scale + '  @' + (scrollTo || 0);
+  };
+  window.probe = () => {
+    const d = f.contentDocument;
+    return { docH: d.documentElement.scrollHeight, innerW: f.contentWindow.innerWidth };
+  };
+  f.addEventListener('load', () => window.setW(390, 0.5, 0));
+</script>
+</body>
+</html>

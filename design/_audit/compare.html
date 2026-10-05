@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Choose Box — layout regression diff</title>
+<style>
+  body { margin: 0; font: 13px/1.5 ui-monospace, Menlo, monospace; background: #11170f; color: #d8e0d2; }
+  header { position: sticky; top: 0; background: #16200f; border-bottom: 1px solid #2c3a26; padding: 10px 14px; }
+  h1 { margin: 0 0 4px; font-size: 14px; }
+  #status { color: #a9c39a; }
+  #stage { position: fixed; left: -12000px; top: 0; }
+  iframe { border: 0; background: #fff; }
+  pre { margin: 0; padding: 14px; white-space: pre-wrap; }
+  .bad { color: #ff9c8a; }
+  .ok { color: #9ee08a; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Choose Box — layout regression diff (baseline ⇄ candidate)</h1>
+  <div id="status">idle</div>
+</header>
+<pre id="out"></pre>
+<div id="stage"></div>
+<script>
+// Compares the two pages by MEASUREMENT rather than by eye. Both documents are loaded in a real
+// iframe at each width, so media queries evaluate against a genuine viewport, then the same
+// layout-critical properties are read from both and only the differences are reported.
+//
+// v2 is never edited, so it IS the baseline — nothing has to be snapshotted to disk, and the
+// comparison can be re-run at any point during the refactor.
+
+// Frozen 28 Sep 2026, after the Undo / rail / 1024 / Secure-checkout round. Lives at the project
+// root, not in _audit/, so its relative script and asset paths resolve exactly as the live page's.
+const BASE = "../Abby's Table - Choose Box v2 - baseline 2026-09-28.dc.html";
+// Point this at a copy of the page to test a change. With both constants on the same file a run
+// is the harness's own self-test and must report zero differences.
+const NEXT = "../Abby's Table - Choose Box v2.dc.html";
+
+const WIDTHS_ALL = [320, 375, 390, 430, 640, 768, 1024, 1280, 1440];
+// One width per run keeps each pass short enough to read results between them; `#w=390` runs a
+// single width, `#w=all` runs the full matrix.
+const HASH = new URLSearchParams(location.hash.slice(1));
+const WSEL = HASH.get("w") || "390";
+const WIDTHS = WSEL === "all" ? WIDTHS_ALL : WSEL.split(",").map(Number);
+
+// Layout-critical only. Browser-computed noise (used fonts, resolved shorthands, paint props that
+// cannot shift a layout) is deliberately excluded — the point is to catch geometry and type
+// changes, not to diff every property the engine happens to expose.
+const PROPS = [
+  "display", "position", "flexDirection", "flexWrap", "justifyContent", "alignItems", "alignSelf",
+  "gap", "gridTemplateColumns", "gridTemplateRows", "order", "float", "clear",
+  "width", "height", "minWidth", "minHeight", "maxWidth", "maxHeight",
+  "paddingTop", "paddingRight", "paddingBottom", "paddingLeft",
+  "marginTop", "marginRight", "marginBottom", "marginLeft",
+  "fontSize", "fontWeight", "lineHeight", "letterSpacing", "textAlign", "textTransform",
+  "whiteSpace", "color", "backgroundColor", "borderRadius", "borderTopWidth", "borderBottomWidth",
+  "overflowX", "overflowY", "zIndex", "top", "right", "bottom", "left",
+  "transform", "opacity", "visibility", "boxSizing", "aspectRatio",
+];
+
+// States worth comparing: a default page proves nothing about a sheet, an error or a drawer.
+const STATES = [
+  { id: "default", mobileOnly: false, run: () => {} },
+  {
+    id: "box-selected", mobileOnly: false,
+    run: (d) => {
+      const card = d.querySelector("[class*='boxcard'] button, .at-boxcard button, .at-boxcard");
+      if (card && card.click) card.click();
+    },
+  },
+  {
+    id: "postcode-checked", mobileOnly: false,
+    run: (d) => {
+      const inp = d.querySelector(".dv-input");
+      if (!inp) return;
+      const setter = Object.getOwnPropertyDescriptor(d.defaultView.HTMLInputElement.prototype, "value").set;
+      setter.call(inp, "DA1 2AB");
+      inp.dispatchEvent(new d.defaultView.Event("input", { bubbles: true }));
+      const btn = d.querySelector(".dv-btn");
+      if (btn) btn.click();
+    },
+  },
+  {
+    id: "est-note-open", mobileOnly: false,
+    run: (d) => { const b = d.querySelector(".at-info-btn"); if (b) b.click(); },
+  },
+  {
+    id: "sheet-open", mobileOnly: true,
+    run: (d) => {
+      const bar = d.querySelector(".at-mobile-bar button, .at-mobile-bar");
+      if (bar && bar.click) bar.click();
+    },
+  },
+  {
+    id: "drawer-open", mobileOnly: false,
+    run: (d) => { const q = d.querySelector(".gc-q"); if (q) q.click(); },
+  },
+  {
+    id: "drawer-error", mobileOnly: false,
+    run: (d) => {
+      const q = d.querySelector(".gc-q");
+      if (q) q.click();
+      return 350; // let the view mount before driving it
+    },
+    then: (d) => {
+      const msg = [...d.querySelectorAll(".gc-help-card")].find((c) => c.tagName === "BUTTON");
+      if (msg) msg.click();
+      return 350;
+    },
+    then2: (d) => {
+      const send = d.querySelector(".gc-cta");
+      if (send) send.click();
+    },
+  },
+];
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function keyFor(el) {
+  // Structural path, so the two documents line up without relying on ids. A CSS-only refactor
+  // must not change structure, so a missing key is itself a finding.
+  const parts = [];
+  let n = el;
+  while (n && n.nodeType === 1 && n.tagName !== "BODY") {
+    const p = n.parentNode;
+    if (!p) break;
+    let i = 0, seen = 0;
+    for (const c of p.children) { if (c === n) { i = seen; break; } if (c.tagName === n.tagName) seen++; }
+    parts.unshift(n.tagName.toLowerCase() + "[" + i + "]");
+    n = p;
+  }
+  return parts.join(">");
+}
+
+async function digest(doc) {
+  const out = {};
+  const all = [];
+  for (const el of doc.querySelectorAll("body *")) {
+    if (all.length > 900) break;
+    if (el.tagName === "SCRIPT" || el.tagName === "STYLE") continue;
+    if (el.closest && el.closest("svg")) continue;
+    all.push(el);
+  }
+  // Rects first, styles second: interleaving the two forces a layout per element and was slow
+  // enough to block the page for seconds at a time.
+  const rects = all.map((el) => el.getBoundingClientRect());
+  for (let i = 0; i < all.length; i++) {
+    const el = all[i];
+    const cs = doc.defaultView.getComputedStyle(el);
+    const k = keyFor(el);
+    if (cs.display === "none") { out[k] = { display: "none" }; }
+    else {
+      const r = rects[i];
+      const rec = { _x: Math.round(r.left), _y: Math.round(r.top), _w: Math.round(r.width), _h: Math.round(r.height) };
+      for (const p of PROPS) rec[p] = cs[p];
+      out[k] = rec;
+    }
+    // Yield periodically so the page stays responsive while a long run is in progress.
+    if (i % 150 === 149) await sleep(0);
+  }
+  return out;
+}
+
+async function load(src, width, state) {
+  const stage = document.getElementById("stage");
+  const f = document.createElement("iframe");
+  f.style.width = width + "px";
+  f.style.height = "1000px";
+  f.src = src;
+  stage.appendChild(f);
+  await new Promise((res) => { f.onload = res; setTimeout(res, 9000); });
+  const d = f.contentDocument;
+  // wait for the component to paint
+  for (let i = 0; i < 60; i++) {
+    if (d.querySelector(".gc-hdr") && d.querySelector(".at-shell")) break;
+    await sleep(100);
+  }
+  // ...and for the design tokens to actually resolve. Measuring too early reports every token
+  // colour as rgb(0, 0, 0), which looks like a real difference and is not one.
+  for (let i = 0; i < 60; i++) {
+    const bg = d.defaultView.getComputedStyle(d.body).backgroundColor;
+    if (bg && bg !== "rgba(0, 0, 0, 0)" && bg !== "rgb(0, 0, 0)") break;
+    await sleep(100);
+  }
+  try { await d.fonts.ready; } catch (e) {}
+  // Freeze motion: a capture taken mid-transition records an interpolated colour or offset, which
+  // is noise, not a finding. We are comparing settled states.
+  const kill = d.createElement("style");
+  kill.textContent = "*, *::before, *::after { transition: none !important; animation: none !important; }";
+  d.head.appendChild(kill);
+  await sleep(250);
+  try {
+    const wait = state.run(d) || 0;
+    if (wait) await sleep(wait);
+    if (state.then) { const w2 = state.then(d) || 0; if (w2) await sleep(w2); }
+    if (state.then2) state.then2(d);
+  } catch (e) { /* a state that cannot be driven is reported by its empty diff */ }
+  await sleep(700);
+  const dig = await digest(d);
+  stage.removeChild(f);
+  return dig;
+}
+
+function diff(a, b) {
+  const rows = [];
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const k of keys) {
+    const x = a[k], y = b[k];
+    if (!x) { rows.push({ k, p: "(missing in v2)", a: "", b: "present" }); continue; }
+    if (!y) { rows.push({ k, p: "(missing in v3)", a: "present", b: "" }); continue; }
+    for (const p of Object.keys(x)) {
+      if (String(x[p]) !== String(y[p])) rows.push({ k, p, a: x[p], b: y[p] });
+    }
+  }
+  return rows;
+}
+
+window.__audit = { done: false, total: 0, ran: 0, diffs: [], summary: {} };
+
+async function run() {
+  const status = document.getElementById("status");
+  const out = document.getElementById("out");
+  const jobs = [];
+  for (const w of WIDTHS) for (const s of STATES) {
+    if (s.mobileOnly && w >= 1024) continue;
+    jobs.push({ w, s });
+  }
+  window.__audit.total = jobs.length;
+  for (const job of jobs) {
+    status.textContent = "measuring " + job.w + "px · " + job.s.id + "  (" + (window.__audit.ran + 1) + "/" + jobs.length + ")";
+    const a = await load(BASE, job.w, job.s);
+    const b = await load(NEXT, job.w, job.s);
+    const rows = diff(a, b);
+    await sleep(0);
+    window.__audit.ran++;
+    const label = job.w + "px/" + job.s.id;
+    window.__audit.summary[label] = rows.length;
+    if (rows.length) {
+      window.__audit.diffs.push({ at: label, rows: rows.slice(0, 120), more: Math.max(0, rows.length - 120) });
+      out.innerHTML += '<span class="bad">' + label + " — " + rows.length + " difference(s)</span>\n"
+        + rows.slice(0, 12).map((r) => "   " + r.k + "  " + r.p + ": " + r.a + "  →  " + r.b).join("\n") + "\n";
+    } else {
+      out.innerHTML += '<span class="ok">' + label + " — identical</span>\n";
+    }
+  }
+  window.__audit.done = true;
+  const line = "done · " + window.__audit.diffs.length + " of " + jobs.length + " captures differ";
+  status.textContent = line;
+  document.title = line;
+}
+
+run();
+</script>
+</body>
+</html>

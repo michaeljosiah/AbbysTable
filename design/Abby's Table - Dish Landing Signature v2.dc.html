@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>html, body { background-color: #F7F1E8; color-scheme: light; }</style>
+<!-- ↑ First-paint ground: FIRST in the head so it is in the first bytes the parser sees.
+     Dependency-free literal of --cream (no tokens, no runtime); see CLAUDE.md head standard. -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="ext-resource-dependency" content="assets/dish-fish-peppersoup-800.jpg" data-resource-id="dishFish" />
+<meta name="ext-resource-dependency" content="assets/dish-goat-efo-800.jpg" data-resource-id="dishGoat" />
+<template id="__bundler_thumbnail" data-bg-color="#1E3A2F">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#1E3A2F"/>
+    <rect x="430" y="150" width="340" height="340" rx="74" fill="none" stroke="#456052" stroke-width="4"/>
+    <text x="600" y="332" font-family="'Playfair Display', Georgia, 'Times New Roman', serif" font-size="220" font-weight="500" letter-spacing="-8" fill="#C28E3C" text-anchor="middle" dominant-baseline="central">AT</text>
+  </svg>
+</template>
+<!-- Focus standard. In the real <head>, before the runtime, so it is parser-inserted and
+     render-blocking: it exists before first paint and before any script can move focus. A
+     <helmet> link is injected by the runtime AFTER render, which is what let the browser's blue
+     outline flash first. -->
+<!-- Shared stylesheets: ONE authoritative load path, in the real head. In <helmet> they were
+     applied from the raw template, torn down when the runtime consumed it, then re-added —
+     the transparent gap on every full load and on back navigation. -->
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="apple-touch-icon" href="assets/favicon-180.png">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/colors.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/typography.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/styles.css">
+<link rel="stylesheet" href="at-focus.css">
+<script src="at-logo.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<!-- Order in progress: swaps "Get started" for VIEW BOX and the purchase bar for a box
+     summary once step 1 has been started. Self-initialising; no page-local code. -->
+<script src="at-order-state.js"></script>
+<!-- Signed in: "Log in" reads "My Account" in the header and drawer. Self-initialising. -->
+<script src="at-account-state.js"></script>
+<script src="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/_ds_bundle.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  /* clip, NOT hidden: `overflow-x: hidden` makes the browser compute `overflow-y: auto`, which
+     turns the element into a scroll container — and a sticky header sticks to its nearest
+     scrolling ancestor, so the header scrolled away with the page. `clip` clips without
+     creating one. Same reason on the page wrapper below. */
+  html, body { overflow-x: clip; max-width: 100%; }
+  body { margin: 0; background: var(--cream); font-family: var(--font-sans); color: var(--brown); }
+  a { color: var(--green-forest); }
+  a:hover { color: var(--terracotta-deep); }
+  :focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; border-radius: 3px; }
+  .at-drawer-panel :focus-visible, footer :focus-visible { outline-color: #FBF8F1; outline-offset: 0; box-shadow: 0 0 0 3px var(--gold); }
+
+  /* Pending tokens, as on every rebuilt page. */
+  :root { --terracotta: #B7554E; --terracotta-deep: #9C433D; --gold: #F6C33B; --brass-ink: #8A5F1F; --brass-ink-warm: #7A5219; --brass-lift: #D09B45; --terracotta-ink: #943E38; --surface-dish: #EDE5D9; --chilli: #B8431C; }
+
+  @keyframes at-drawer-in { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+  @keyframes at-fade-in { from { opacity: 0; } to { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; } }
+
+  /* ---------- canonical header ---------- */
+  .at-hdr { transition: transform .22s ease; }
+  .at-hdr[data-hidden="true"] { transform: translateY(-100%); }
+  .at-nav-link:hover { color: var(--terracotta-deep) !important; border-bottom-color: var(--brass) !important; }
+  .at-login:hover { color: var(--terracotta-deep) !important; }
+  .at-login:hover span { border-bottom-color: var(--brass) !important; }
+  .at-logo { transition: opacity .16s ease; }
+  .at-logo:hover { opacity: .78; }
+  .at-burger:hover span { border-color: var(--terracotta-deep) !important; }
+  .at-burger:hover span span { background: var(--terracotta-deep) !important; }
+  .at-hdr-cta, .at-drawer-cta { transition: background .16s ease; }
+  .at-hdr-cta:hover, .at-drawer-cta:hover { background: var(--terracotta-deep) !important; }
+  .at-hdr-cta:active, .at-drawer-cta:active { background: var(--terracotta-deep) !important; filter: brightness(.94); }
+
+  @media (prefers-reduced-motion: reduce) { .at-hdr, .dl-bar, .dl-top { transition: none !important; } }
+
+  /* ---------- canonical drawer ---------- */
+  .at-drawer-wrap { display: none; }
+  .at-drawer-wrap.is-open { display: block; }
+  .at-drawer-panel { animation: at-drawer-in .2s ease; }
+  .at-drawer-scrim { animation: at-fade-in .2s ease; }
+  .at-drawer-link { transition: color .16s ease; }
+  .at-drawer-link:hover { color: var(--brass) !important; }
+
+  /* ---------- page shell: single column, image then info ---------- */
+  .at-main { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 30px; padding: 22px 22px 48px; align-items: start; }
+  .at-col-img, .at-col-info { min-width: 0; }
+  .at-back { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-family: var(--font-sans); font-weight: 600; font-size: 16px; color: var(--green-forest); text-decoration: none; transition: color .16s ease; }
+  .at-back:hover { color: var(--terracotta-deep) !important; }
+  .at-dish-img { width: 100%; height: auto; display: block; border-radius: 18px; }
+
+  /* ---------- Signature marks ----------
+     Navy is the brand's premium ground (Private Table), so it carries the Signature marks. Blush
+     on navy is 9.2:1; brass on navy is 4.08:1, fine for the lozenge as a graphic mark but the
+     known small-text exception — so no brass TYPE on navy here. */
+  .sig-marks { position: absolute; top: 14px; right: 14px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; z-index: 6; }
+  .sig-pill { display: inline-flex; align-items: center; gap: 8px; background: var(--navy); color: var(--blush); border-radius: var(--radius-pill); padding: 8px 14px; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; }
+  .sig-loz { color: var(--brass); font-size: 13px; line-height: 1; }
+  /* 44px target from an invisible ::before so the visible disc stays 17px without inflating the
+     navy pill — the dish card's sanctioned exception, reused verbatim. */
+  .sig-note-btn { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; padding: 0; border: 1px solid var(--blush); border-radius: 50%; background: transparent; color: var(--blush); font-family: var(--font-display); font-style: italic; font-size: 11px; line-height: 1; cursor: pointer; transition: background .16s ease, color .16s ease; }
+  .sig-note-btn::before { content: ""; position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; transform: translate(-50%, -50%); }
+  .sig-note-btn:hover, .sig-note-btn[aria-expanded="true"] { background: var(--blush); color: var(--navy); }
+  .sig-note { display: none; max-width: min(264px, 66vw); background: var(--navy); color: var(--blush); border: 1px solid var(--brass); border-radius: 14px; padding: 12px 14px; font-family: var(--font-sans); font-size: 13px; line-height: 1.45; text-align: left; text-transform: none; letter-spacing: 0; box-shadow: 0 18px 40px -18px rgba(12, 20, 40, .6); }
+  .sig-note[data-open="true"] { display: block; }
+
+  .at-h1 { margin: 0 0 14px; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(38px, 11.6vw, 56px); line-height: 1.04; letter-spacing: -0.015em; color: var(--green-forest); text-wrap: pretty; }
+
+  .dl-parts { margin: 0 0 14px; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.3; color: var(--green-forest); text-wrap: pretty; }
+
+  /* ---------- buttons ---------- */
+  .at-cta { transition: background .16s ease; }
+  .at-cta:hover { background: var(--green-deep) !important; }
+  .at-cta:active { filter: brightness(.94); }
+  /* Panel heading tier: 22px mobile, 26px from 1024. These were 23px inline, which put them 1px
+     from everything else in the tier — noise, not hierarchy. Size lives here, not inline. */
+  .at-acc-title { font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest); }
+  @media (min-width: 1024px) { .at-acc-title { font-size: 26px; } }
+  .at-acc-head { transition: background .16s ease; min-height: 44px; }
+  /* The accordion heads sit on --sand (the dish card's text panel), so the hover tint has to be
+     a shade of that rather than cream-3, which would flash lighter than the card. */
+  .at-acc-head:hover { background: rgba(120, 86, 58, .08) !important; }
+  .at-social { display: flex; align-items: center; justify-content: center; text-decoration: none; }
+  .at-social svg { transition: fill .16s ease; }
+  .at-social:hover svg { fill: var(--brass) !important; }
+
+  /* Meta list: one line per fact, stacked at every width. */
+  .dl-meta { list-style: none; margin: 0 0 22px; padding: 0; display: grid; gap: 10px; }
+  .dl-meta-i { display: flex; align-items: center; gap: 10px; font-family: var(--font-sans); font-size: 16px; color: var(--brown); }
+  /* Delivery line + "?" disclosure — the menu page's pattern, WITHOUT its sage strip: here the
+     line sits in the meta list on cream, so it needs no ground of its own.
+     44px target / 22px visible disc, the same split the menu uses. brass-ink is 4.96:1 on cream. */
+  .dl-deliv { position: relative; display: flex; align-items: center; gap: 10px; font-family: var(--font-sans); font-size: 16px; color: var(--brown); }
+  .dl-deliv-date { font-weight: 600; color: var(--green-forest); white-space: nowrap; }
+  .dl-info { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px; border: none; background: transparent; cursor: pointer; }
+  .dl-info span { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border: 1px solid var(--brass-ink); border-radius: 50%; font-family: var(--font-sans); font-weight: 600; font-size: 13px; line-height: 1; color: var(--brass-ink); transition: background .16s ease, color .16s ease; }
+  .dl-info:hover span, .dl-info[aria-expanded="true"] span { background: var(--brass-ink); color: var(--cream); }
+  /* A disclosure panel anchored to the line, not a floating tooltip: it can be dismissed, it is
+     reachable by keyboard, and it never covers its own trigger. */
+  .dl-note { display: none; flex-direction: column; gap: 10px; position: absolute; left: 0; right: 0; top: calc(100% + 12px); z-index: 40; padding: 16px 18px; background: var(--cream-3); border: 1px solid var(--sand-2); border-radius: 14px; text-align: left; box-shadow: 0 18px 40px -18px rgba(30, 58, 47, .42); }
+  .dl-note[data-open="true"] { display: flex; }
+  /* A rotated square carrying two of the panel's own borders, so the outline reads unbroken. */
+  .dl-note::after { content: ""; position: absolute; right: 16px; top: -7px; width: 12px; height: 12px; background: var(--cream-3); border-left: 1px solid var(--sand-2); border-top: 1px solid var(--sand-2); transform: rotate(45deg); }
+  .dl-note-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .dl-note-title { font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.25; color: var(--green-forest); }
+  .dl-note-x { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -12px -14px -12px 0; border: none; background: transparent; cursor: pointer; color: var(--green-forest); font-size: 22px; line-height: 1; transition: color .16s ease; }
+  .dl-note-x:hover { color: var(--terracotta-deep); }
+  .dl-note-def { font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); }
+
+  /* ---------- you might also like ---------- */
+  /* A band in the page flow on a phone; a cell in the left column from 1024 (see below). */
+  .at-related-wrap { max-width: 1280px; margin: 0 auto; padding: 24px 0 8px; }
+  .at-related-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+
+
+  /* Nutrition figures. MOBILE is a label/value list — nutrient left, figure right, hairline
+     between rows: a 2-column grid of centred figures left a dangling vertical rule beside the
+     orphaned seventh cell, and split the reading into two unrelated stacks.
+     From 640 there is room for the columned strip, which is the denser read. */
+  .at-nutri-grid { display: grid; grid-template-columns: minmax(0, 1fr); margin: 0; }
+  .at-nutri-cell { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 11px 0; }
+  .at-nutri-cell + .at-nutri-cell { border-top: 1px solid var(--sand-2); }
+  .at-nutri-cell dt { font-family: var(--font-sans); font-size: 16px; color: var(--brown); }
+  .at-nutri-cell dd { margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1; color: var(--green-forest); }
+  @media (min-width: 640px) {
+    /* Seven across in ONE row. A 4-column grid orphaned the seventh cell and left the row
+       divider stopping 201px short of the table's right edge, under the "Fat" column — the same
+       broken-table read the mobile relayout was done to remove. One row cannot orphan. */
+    .at-nutri-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+    /* column-reverse keeps dt before dd in the DOM while the figure reads above its label. */
+    .at-nutri-cell { flex-direction: column-reverse; align-items: center; justify-content: flex-end; gap: 6px; padding: 12px 4px; text-align: center; }
+    .at-nutri-cell + .at-nutri-cell { border-top: none; border-left: 1px solid var(--sand-2); }
+    .at-nutri-cell dt { font-size: 13px; }
+    .at-nutri-cell dd { font-size: 20px; }
+  }
+  @media (min-width: 1024px) {
+    .at-nutri-cell { padding: 12px 6px; }
+  }
+  /* Light/Full switch for the Nutrition panel — Add Dishes v2's .ad-seg, verbatim. */
+  .dl-seg { display: inline-flex; padding: 3px; border: 1px solid var(--sand-2); border-radius: 999px; background: var(--cream-3); }
+  .dl-seg button { min-height: 44px; padding: 0 16px; border: none; border-radius: 999px; background: transparent; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 14px; color: var(--green-forest); transition: background .16s ease, color .16s ease; }
+  .dl-seg button[aria-checked="true"] { background: var(--green-forest); color: var(--blush); }
+  @media (hover: hover) { .dl-seg button[aria-checked="false"]:hover { background: var(--sand); } }
+
+
+  .dl-top { position: fixed; z-index: 75; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: inline-flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 16px; border: 1px solid var(--sand-2); border-radius: var(--radius-pill); background: var(--cream-2); color: var(--green-forest); font-family: var(--font-sans); font-weight: 600; font-size: 14px; cursor: pointer; box-shadow: 0 6px 18px -10px rgba(30, 58, 47, .45); opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity .2s ease, transform .2s ease, background .16s ease, color .16s ease; }
+  .dl-top[data-on="true"] { opacity: 1; transform: translateY(0); pointer-events: auto; }
+  .dl-top[data-bar="true"] { bottom: calc(var(--at-bar-h, 85px) + 14px); }
+  .dl-top:hover { background: var(--cream); color: var(--terracotta-deep); }
+  .dl-top:active { filter: brightness(.96); }
+  @media (min-width: 1024px) { .dl-top { min-height: 40px; padding: 0 14px; font-size: 13.5px; right: 24px; bottom: 24px; } }
+
+
+  /* Portion radiogroup + macro strip (mockup). */
+  .dl-portions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .dl-portion { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; position: relative; min-height: 64px; padding: 10px 34px 10px 14px; border: 1.5px solid var(--sand-2); border-radius: 12px; background: var(--surface-dish); cursor: pointer; transition: background .16s ease, border-color .16s ease, color .16s ease; }
+  .dl-portion:hover { border-color: var(--green-forest); }
+  .dl-portion[data-on="true"] { background: var(--green-forest); border-color: var(--green-forest); }
+  .dl-portion-l { font-family: var(--font-sans); font-weight: 600; font-size: 16px; color: var(--green-forest); }
+  .dl-portion-g { font-family: var(--font-sans); font-size: 14px; color: var(--brown); }
+  .dl-portion-p { font-family: var(--font-sans); font-weight: 600; font-size: 14px; color: var(--terracotta-ink); }
+  .dl-portion[data-on="true"] .dl-portion-p { color: var(--brass-lift); }
+  .dl-portion[data-on="true"] .dl-portion-l, .dl-portion[data-on="true"] .dl-portion-g { color: var(--cream-2); }
+  .dl-portion-tick { position: absolute; right: 12px; top: 50%; margin-top: -9px; color: var(--cream-2); }
+  .dl-macros { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 16px 0 0; border-top: 1px solid var(--sand-2); }
+  /* column-reverse keeps dt before dd in the DOM while the figure reads above its label. */
+  .dl-macros > div { display: flex; flex-direction: column-reverse; align-items: center; gap: 4px; padding: 14px 6px 2px; }
+  .dl-macros > div + div { border-left: 1px solid var(--sand-2); }
+  .dl-macros dt { font-family: var(--font-sans); font-size: 14px; color: var(--brown); }
+  .dl-macros dd { margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 26px; line-height: 1; color: var(--green-forest); }
+
+  /* Sticky add-to-box bar, mobile only — the dish page's purchase control. 85px to match the
+     other fixed bottom bars, reached with padding rather than by scaling the content. */
+  /* Homepage purchase-bar treatment, exactly: cream-2 band, 1px sand top rule, text block on the
+     left and a 48px green-forest pill on the right in 18px of padding. 85px comes from the
+     padding, so both fixed bottom bars present the same edge from page to page. */
+  .dl-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 70; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 16px; background: var(--cream-2); border-top: 1px solid var(--sand); padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateY(100%); transition: transform .22s ease; }
+  .dl-bar[data-on="true"] { transform: translateY(0); }
+  .dl-bar-t { display: flex; flex-direction: column; min-width: 0; gap: 3px; font-family: var(--font-sans); font-weight: 500; font-size: 15px; line-height: 1.2; color: var(--brown); }
+  .dl-bar-s { font-weight: 600; font-size: 15px; color: var(--brown); }
+  .dl-bar-go { flex: 0 0 auto; min-width: max-content; display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 clamp(16px, 5vw, 24px); border: none; border-radius: var(--radius-pill); background: var(--green-forest); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; transition: background .16s ease; }
+  .dl-bar-go:hover { background: var(--green-deep); }
+  .dl-bar-go:active { filter: brightness(.94); }
+  .dl-bar :focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; box-shadow: none; }
+
+  .dl-rel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin: 0 0 18px; padding-top: 26px; border-top: 1px solid var(--sand-2); }
+  .dl-rel-head h2 { margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(26px, 7.4vw, 34px); line-height: 1.15; color: var(--green-forest); }
+  .dl-rel-all { display: inline-flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--green-forest); text-decoration: none; white-space: nowrap; }
+  .dl-rel-all span { display: inline-flex; align-items: center; gap: 8px; border-bottom: 1.5px solid var(--brass); padding-bottom: 2px; }
+  .dl-rel-all:hover { color: var(--terracotta-deep); }
+  @media (min-width: 1024px) {
+    .dl-bar { display: none; }
+    .dl-top[data-bar="true"] { bottom: 24px; }
+    .dl-portions { gap: 12px; }
+  }
+
+
+  /* Related card: image on top, tag pill, name, macros — the mockup's vertical card. The old
+     horizontal card truncated the dish name with an inline nowrap/ellipsis and relied on a hover
+     tooltip, which touch users could never reach. Names now wrap instead. */
+  /* var(--surface-dish) is the dish-card panel value used on the homepage and the menu — not a token yet,
+     which is why it is written literally on all three pages. Shadow rather than a hairline
+     border, so the card reads the same as the homepage's. */
+  .at-related { display: flex; flex-direction: column; height: 100%; background: var(--surface-dish); border-radius: 16px; overflow: hidden; text-decoration: none; box-shadow: var(--shadow-card); transition: transform .18s ease, box-shadow .18s ease; }
+  .at-rel-media { display: block; aspect-ratio: 4 / 3; background: var(--green-deep); }
+  .at-rel-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  /* Centred, and the body grows so the data row can be pinned to the bottom — that is what keeps
+     heat and the nutrition tags on the same line across all three cards whatever the name height. */
+  .at-rel-body { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 14px 16px 16px; }
+  .at-rel-tag { display: inline-flex; align-items: center; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--green-forest); background: var(--cream-3); border: 1px solid var(--sand-2); border-radius: var(--radius-pill); padding: 5px 12px; }
+  .at-rel-name { font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest); text-wrap: pretty; }
+  /* Truncation is POINTER-ONLY. On touch there is no hover, so a clipped name would be
+     unreadable with no way to reveal it — there the name simply wraps in full. */
+  .at-rel-namewrap { display: block; max-width: 100%; }
+  .at-rel-tip { display: none; }
+  @media (hover: hover) {
+    .at-rel-namewrap { position: relative; }
+    .at-rel-name { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    /* Same panel treatment as the delivery note: cream-3 ground, sand hairline, 14px radius,
+       and a rotated SQUARE carrying two of the panel's own borders so the outline reads unbroken
+       (a solid triangle sits on top of the 1px line and breaks it). Caret points down here,
+       so it takes the right and bottom edges. */
+    .at-rel-tip { display: block; position: absolute; left: 50%; bottom: calc(100% + 10px); z-index: 40; width: max-content; max-width: min(260px, 60vw); transform: translateX(-50%) translateY(5px); padding: 12px 14px; background: var(--cream-3); color: var(--green-forest); border: 1px solid var(--sand-2); border-radius: 14px; font-family: var(--font-sans); font-weight: 400; font-size: 16px; line-height: 1.45; text-align: left; white-space: normal; box-shadow: 0 18px 40px -18px rgba(30, 58, 47, .42); opacity: 0; pointer-events: none; transition: opacity .18s ease, transform .18s ease; }
+    .at-rel-tip::after { content: ""; position: absolute; left: 50%; bottom: -7px; width: 12px; height: 12px; margin-left: -6px; background: var(--cream-3); border-right: 1px solid var(--sand-2); border-bottom: 1px solid var(--sand-2); transform: rotate(45deg); }
+    .at-related:hover .at-can-tip .at-rel-tip, .at-related:focus-visible .at-can-tip .at-rel-tip { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) { .at-rel-tip { transition: none !important; } }
+  /* Heat on its own line, the two nutrition highlights on the next — the menu card's two fixed
+     rows rather than one that wraps at a different point on every card. */
+  .at-rel-data { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; margin-top: auto; padding-top: 14px; border-top: 1px solid var(--sand-2); }
+  /* The design-system NutritionTag ships 11px; the project's label floor is 13px. Overridden on
+     the row rather than by rebuilding the component. */
+  .at-rel-data > span:last-child * { font-size: 13px !important; }
+  .at-rel-heat { font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--brown); white-space: nowrap; }
+  /* The DS nutrition tag ships .16em tracking, right for an eyebrow but loose in a data row. */
+  .at-rel-data span[class*="nutrition"], .at-rel-data span { letter-spacing: inherit; }
+  /* Hover matches the menu card exactly: a lift, not a colour change. Cards are not buttons, so
+     the lift is the card affordance — pointer devices only, and off for reduced motion. */
+  @media (hover: hover) {
+    .at-related:hover { transform: translateY(-4px); box-shadow: 0 14px 28px rgba(30, 58, 47, 0.18); }
+    .at-related:active { transform: translateY(-1px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .at-related { transition: none !important; }
+    .at-related:hover, .at-related:active { transform: none !important; }
+  }
+
+  /* ---------- footer (canonical) ---------- */
+  .at-foot-news { text-align: center; }
+  .at-foot-head { justify-content: center; cursor: pointer; }
+  .at-foot-link { justify-content: center; transition: color .16s ease; }
+  .at-foot-links { align-items: stretch; display: none; flex-direction: column; }
+  .at-foot-link:hover { color: var(--brass) !important; }
+  .at-foot-legal a:hover { color: var(--brass) !important; }
+  .at-foot-col.is-open .at-foot-links { display: flex; }
+  .at-foot-col.is-open .at-foot-chevron { transform: rotate(180deg); }
+  .at-foot-chevron { transition: transform .18s ease; }
+  .at-foot-join { transition: background .16s ease; }
+  .at-foot-join:hover { background: var(--brass-deep) !important; }
+  .at-foot-input::placeholder { color: var(--green-sage); opacity: 1; }
+
+  /* ---------- 640 ---------- */
+  @media (min-width: 640px) {
+    .at-hdr-row { padding: 14px 34px !important; gap: 14px !important; }
+    .at-main { padding: 26px 34px 56px; }
+    .at-related-wrap { padding: 26px 0 8px; }
+    .at-pers-yn { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    /* Two across, matching the desktop composition. Three columns orphaned the fourth card on a
+       row of its own — the rule was written when the deck held three. */
+    .at-related-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .at-foot-form { flex-direction: row !important; align-items: stretch !important; gap: 0 !important; height: 52px !important; width: 340px; max-width: 100%; margin: 0 auto !important; border: 1px solid var(--green-mid); border-radius: var(--radius-pill); overflow: hidden; }
+    .at-foot-input { flex: 1 1 auto !important; min-width: 0 !important; border: none !important; border-radius: 0 !important; height: auto !important; }
+    .at-foot-join { border-radius: 0 !important; height: auto !important; width: auto !important; padding: 0 26px !important; }
+    .at-foot-inner { padding: 48px 34px 0 !important; }
+  }
+
+  /* ---------- 1024: two columns, inline options panel ---------- */
+  @media (min-width: 1024px) {
+    .at-burger { display: none !important; }
+    .at-nav, .at-login { display: flex !important; }
+    .at-hdr-row { grid-template-columns: auto 1fr auto auto !important; gap: 34px !important; padding: 18px 48px !important; }
+    .at-logo { justify-self: start !important; }
+    .at-login { margin-left: 12px !important; }
+    .at-hdr[data-hidden="true"] { transform: none !important; }
+
+    .at-main { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto 1fr; column-gap: 56px; row-gap: 0; padding: 34px 48px 64px; }
+    .dl-parts { font-size: 26px; }
+    /* Explicit rows, or the related cell auto-places into row 2 and drops below the whole first
+       row — the info column is far taller than the photograph, so it would sit ~1300px adrift
+       instead of directly under the image. The info column spans both rows instead. */
+    .at-col-img { grid-column: 1; grid-row: 1; }
+    .at-related-wrap { grid-column: 1; grid-row: 2; align-self: start; }
+    .at-col-info { grid-column: 2; grid-row: 1 / span 2; }
+    /* Under the photograph, in the left column. The cards are smaller here than the phone band:
+       two across a ~495px column, so the name drops to the 18px step and the media crop is
+       shallower. Four is the cap. */
+    .at-related-wrap { grid-column: 1; padding: 26px 0 0; }
+    .at-related-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .at-related-wrap .at-rel-media { aspect-ratio: 16 / 10; }
+    .at-related-wrap .at-rel-body { gap: 6px; padding: 12px 12px 14px; }
+    .at-related-wrap .at-rel-name { font-size: 18px; }
+    .at-related-wrap .at-rel-tag { font-size: 13px; padding: 4px 10px; }
+    .at-related-wrap .at-rel-data { gap: 8px; padding-top: 12px; }
+    .dl-rel-head { padding-top: 0; border-top: none; }
+    .dl-rel-head h2 { font-size: 26px; }
+    .at-dish-img { border-radius: 24px; }
+
+    .at-foot-inner { padding: 56px 48px 0 !important; }
+    .at-foot-grid { grid-template-columns: 1.4fr 3fr !important; gap: 48px !important; }
+    .at-foot-cols { grid-template-columns: repeat(3, 1fr) !important; gap: 48px !important; border-bottom: none !important; }
+    .at-foot-col { border-top: none !important; }
+    .at-foot-head { min-height: 0 !important; padding: 0 !important; cursor: default !important; justify-content: space-between !important; }
+    .at-foot-chevron { display: none !important; }
+    .at-foot-links { display: flex !important; margin-top: 16px !important; padding-bottom: 0 !important; }
+    .at-foot-link { justify-content: flex-start !important; }
+    .at-foot-bottom { grid-template-columns: 1fr auto 1fr !important; align-items: center !important; margin-top: 0 !important; }
+    .at-foot-logo { justify-self: start !important; }
+    .at-foot-follow { justify-self: end !important; align-items: flex-end !important; }
+    .at-foot-follow-row { flex-direction: row !important; align-items: center !important; gap: 12px !important; }
+    .at-foot-dash { display: inline !important; }
+    .at-foot-mark { width: 220px !important; height: 38px !important; }
+    .at-foot-legal { flex-direction: row !important; gap: 4px 24px !important; }
+    .at-foot-legal-row { gap: 24px !important; }
+    .at-foot-legal-sep { display: none !important; }
+    .at-foot-news { text-align: left !important; }
+    .at-foot-form { margin-left: 0 !important; margin-right: 0 !important; }
+    .at-foot-news p { max-width: 300px; }
+    .at-foot-rule { display: block !important; }
+  }
+</style>
+<style>
+  /* Sterling sign, site-wide. Playfair Display's £ has a double crossbar that reads as a euro, so
+     U+00A3 alone is drawn from a Figtree subset (1 KB, 400–700) prepended to the display and
+     accent stacks. Every other character is untouched. html:root outranks the token sheet. */
+  @font-face { font-family: "AT Sterling"; src: url("assets/fonts/at-sterling.woff2") format("woff2"); font-weight: 400 700; font-style: normal; font-display: block; unicode-range: U+00A3; }
+  html:root {
+    --font-display: "AT Sterling", "Playfair Display", ui-serif, Georgia, "Times New Roman", serif;
+    --font-accent: "AT Sterling", "Cormorant Garamond", ui-serif, Georgia, serif;
+  }
+</style>
+</helmet>
+
+<div style="background: var(--cream); overflow-x: clip;">
+
+  <header class="at-hdr" ref="{{ hdrRef }}" data-hidden="{{ hdrHidden }}" style="position: sticky; top: 0; z-index: 60; background: var(--cream-2); border-bottom: 1px solid var(--sand);">
+    <div class="at-hdr-row" style="display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 8px; max-width: 1280px; margin: 0 auto; padding: 10px 14px;">
+      <button class="at-burger" type="button" ref="{{ burgerRef }}" onClick="{{ openDrawer }}" aria-label="Open menu" aria-controls="dl-drawer" aria-expanded="{{ burgerExpanded }}" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-left: -10px; border: none; background: transparent; cursor: pointer;">
+        <span aria-hidden="true" style="display: block; width: 22px; height: 14px; border-top: 1.6px solid var(--green-forest); border-bottom: 1.6px solid var(--green-forest); position: relative;"><span style="position: absolute; left: 0; right: 0; top: 50%; margin-top: -0.8px; height: 1.6px; background: var(--green-forest);"></span></span>
+      </button>
+      <a class="at-logo" href="Abby's Table - Homepage v2.dc.html" aria-label="Abby&#8217;s Table &#8212; home" style="justify-self: center; display: block; text-decoration: none; min-width: 0;">
+        <span aria-hidden="true" style="display: block; width: clamp(108px, 36vw, 168px); aspect-ratio: 186 / 32; color: var(--green-forest);"><at-wordmark></at-wordmark></span>
+      </a>
+      <nav class="at-nav" aria-label="Main" style="display: none; justify-self: center; align-items: center; gap: 30px;">
+      <a class="at-nav-link" href="Abby's Table - Menu Landing v3.dc.html" aria-current="page" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Menu</a>
+      <a class="at-nav-link" href="Abby's Table - How It Works v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">How it works</a>
+      <a class="at-nav-link" href="Abby's Table - Abby's Story v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Abby’s Story</a>
+      <a class="at-nav-link" href="Abby's Table - Gifting v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Gifting</a>
+      <a class="at-nav-link" href="Abby's Table - Private Table v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Private Table</a>
+      </nav>
+      <a class="at-login" href="Abby's Table - Log in.dc.html" style="display: none; align-items: center; height: 44px; font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; transition: color .16s ease;"><span style="display: inline-block; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: border-color .16s ease;">Log in</span></a>
+      <a class="at-hdr-cta" href="Abby's Table - Choose Box v2.dc.html" style="display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 13px; border-radius: var(--radius-pill); background: var(--terracotta); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; text-decoration: none; white-space: nowrap;">Get started</a>
+    </div>
+  </header>
+
+  <!-- main -->
+  <div class="at-main">
+
+    <!-- left column: image glued to 'you might also like' -->
+    <div class="at-leftcol">
+
+    <!-- image column -->
+    <div class="at-col-img">
+      <a class="at-back" href="{{ menuHref }}" style="display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .02em; color: var(--green-forest); text-decoration: none; margin-bottom: 20px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+        Back
+      </a>
+
+      <div class="at-dish-img" style="position: relative; width: 100%; aspect-ratio: 1 / 1; border-radius: var(--radius-card); overflow: hidden; background: var(--green-deep); box-shadow: var(--shadow-card);">
+        <img src="assets/dish-lamb-shank-800.jpg" width="800" height="800" alt="Ata Dindin Lamb Shank &#8212; a braised lamb shank on rice with greens" style="width: 100%; height: 100%; object-fit: cover; display: block;" loading="eager" fetchpriority="high" decoding="async" />
+        <div class="sig-marks">
+          <span class="sig-pill">
+            <span class="sig-loz" aria-hidden="true">&#11045;</span>Signature
+            <button class="sig-note-btn" type="button" onClick="{{ toggleSigNote }}" aria-expanded="{{ sigNoteOpen }}" aria-controls="sig-note" aria-label="What Signature means"><span aria-hidden="true">i</span></button>
+          </span>
+          <span class="sig-pill">+&#163;4 upgrade</span>
+          <span class="sig-note" id="sig-note" data-open="{{ sigNoteOpen }}">One of Abby&#8217;s specials. This dish takes a little more time or uses premium cuts, so there&#8217;s a small upgrade.</span>
+        </div>
+
+      </div>
+    </div>
+
+
+
+    </div>
+
+    <!-- info column -->
+    <div class="at-col-info">
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
+        <span style="display: inline-flex; align-items: center; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--green-forest); background: var(--cream-3); border: 1px solid var(--sand-2); padding: 7px 14px; border-radius: var(--radius-pill);">Protein-led</span>
+        <span style="display: inline-flex; align-items: center; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--green-forest); background: var(--cream-3); border: 1px solid var(--sand-2); padding: 7px 14px; border-radius: var(--radius-pill);">Under 500 kcal</span>
+      </div>
+
+      <h1 class="at-h1" style="margin: 0 0 8px;">Ata Dindin Lamb Shank</h1>
+      <!-- Components line, the menu card's naming device: display face, middot-separated. No brass
+           divider — the rule in the mockup belongs to the card, not the page. -->
+      <p class="dl-parts">Sweet &amp; Spicy Ata Dindin &#183; Lime&#8209;Herb Purple Cabbage</p>
+
+      <p style="margin: 0 0 14px; font-family: var(--font-sans); font-size: 16px; line-height: 1.6; color: var(--brown); text-wrap: pretty;">Fall-off-the-bone lamb shank slow&#8209;cooked in a bold, peppery ata dindin sauce with native spices.</p>
+
+      <div style="display: flex; align-items: center; gap: 10px; padding-bottom: 18px; border-bottom: 1px solid var(--sand-2);">
+        <span style="display: inline-flex; gap: 4px; align-items: center;">
+          <sc-for list="{{ headPips }}" as="p" hint-placeholder-count="3">
+            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" style="display: block;"><path fill="{{ p.stem }}" d="M13.6 6.7c.5-1.9 2.1-3.2 4.1-3.4-.2 2-1.6 3.6-3.6 4z"/><path fill="{{ p.fill }}" d="M13.6 6.7C9.1 8.7 7 12.2 7.8 16.2c.4 2.2 1.4 4.3 2.7 6 1.3-1.8 2.8-4.2 4-6.8 1.1-2.5 1.1-5.8-.9-8.7z"/></svg>
+          </sc-for>
+        </span>
+        <span style="font-family: var(--font-sans); font-size: 16px; color: var(--brown);">Hot</span>
+      </div>
+
+      <div style="padding: 18px 0 22px;">
+        <p style="margin: 0 0 6px; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.25; color: var(--green-forest);">Flavour built properly.</p>
+        <p style="margin: 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; color: var(--brown); text-wrap: pretty;">Herbs, spices, aromatics and house-made stocks. No commercial seasoning blends or added MSG.</p>
+        <a class="dl-rel-all" href="Abby's Table - Standards v2.dc.html?from=dish" onClick="{{ onStandards }}"><span>See our standards<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="12" x2="19" y2="12"/><path d="M13 6l6 6-6 6"/></svg></span></a>
+      </div>
+
+      <!-- Portion card. A radiogroup, not two toggle buttons: the options are mutually exclusive,
+           so arrows and Home/End move the selection and the group has one tab stop. -->
+      <div style="background: var(--cream-3); border: 1px solid var(--sand-2); border-radius: 16px; padding: 20px; margin-bottom: 18px;">
+        <p style="margin: 0 0 12px; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest);">Choose your portion</p>
+        <div class="dl-portions" role="radiogroup" aria-label="Choose your portion" ref="{{ portionGroupRef }}">
+          <sc-for list="{{ portions }}" as="o" hint-placeholder-count="2">
+            <button class="dl-portion" type="button" role="radio" aria-checked="{{ o.checked }}" tabindex="{{ o.tabIndex }}" onClick="{{ o.onClick }}" onKeyDown="{{ o.onKeyDown }}" data-on="{{ o.checked }}">
+              <span class="dl-portion-l">{{ o.label }}</span>
+              <span class="dl-portion-g">{{ o.grams }}</span>
+              <sc-if value="{{ o.hasPrice }}" hint-placeholder-val="{{ false }}">
+                <span class="dl-portion-p">{{ o.priceLabel }}</span>
+              </sc-if>
+              <sc-if value="{{ o.selected }}" hint-placeholder-val="{{ false }}">
+                <svg class="dl-portion-tick" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+              </sc-if>
+            </button>
+          </sc-for>
+        </div>
+        <dl class="dl-macros">
+          <div><dt>kcal</dt><dd>{{ macroKcal }}</dd></div>
+          <div><dt>protein</dt><dd>{{ macroProtein }}</dd></div>
+          <div><dt>fibre</dt><dd>{{ macroFibre }}</dd></div>
+        </dl>
+      </div>
+
+      <button class="at-cta dl-add" type="button" ref="{{ addCtaRef }}" onClick="{{ goBox }}" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 12px; background: var(--green-forest); color: #fff; border: none; border-radius: var(--radius-pill); min-height: 54px; padding: 0 20px; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; text-transform: uppercase; letter-spacing: .12em; margin-bottom: 16px;">Add to your box</button>
+
+      <ul class="dl-meta">
+        <li class="dl-meta-i">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M3 8.5 12 4l9 4.5v7L12 20l-9-4.5Z"/><path d="m3 8.5 9 4.5 9-4.5"/><path d="M12 13v7"/></svg>
+          Minimum order: any 6 dishes.
+        </li>
+        <li class="dl-meta-i dl-deliv" onMouseLeave="{{ leaveDelivTip }}">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17"/><path d="M8 3.5v3"/><path d="M16 3.5v3"/></svg>
+          <span>Next deliveries: <span class="dl-deliv-date">6 August</span></span>
+          <button class="dl-info" type="button" onClick="{{ toggleDelivTip }}" onMouseEnter="{{ hoverDelivTip }}" onFocus="{{ hoverDelivTip }}" onBlur="{{ leaveDelivTip }}" aria-label="About delivery dates" aria-controls="dl-deliv-note" aria-expanded="{{ delivTipOpen }}"><span aria-hidden="true">?</span></button>
+          <div class="dl-note" id="dl-deliv-note" data-open="{{ delivTipOpen }}">
+            <span class="dl-note-top">
+              <span class="dl-note-title">About delivery dates</span>
+              <button class="dl-note-x" type="button" onClick="{{ closeDelivTip }}" aria-label="Close the delivery dates note">&#215;</button>
+            </span>
+            <span class="dl-note-def">We take a limited number of orders for each cooking run, so we can give every dish the care it deserves. The date shown is our next available run. <strong style="font-weight: 600; color: var(--green-forest);">Availability can change if a run fills before you complete checkout.</strong></span>
+          </div>
+        </li>
+      </ul>
+
+
+          <!-- info cards -->
+<div style="display: flex; flex-direction: column; gap: 16px;">
+
+        <!-- Full nutrition -->
+        <div ref="{{ nutSecRef }}" style="border: 1px solid var(--sand-2); border-radius: 16px; background: var(--surface-dish); overflow: hidden; scroll-margin-top: 96px;">
+          <button class="at-acc-head" type="button" onClick="{{ toggleNutrition }}" aria-expanded="{{ nutritionExp }}" aria-controls="dl-acc-nutrition" style="width: 100%; display: flex; align-items: center; gap: 14px; background: transparent; border: none; padding: 20px 24px; cursor: pointer; text-align: left;">
+            <svg class="at-acc-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex: 0 0 auto;"><path d="M3 20h18"/><path d="M6 20v-6"/><path d="M12 20V5"/><path d="M18 20v-9"/></svg>
+            <span class="at-acc-title" role="heading" aria-level="2" style="flex: 1 1 auto;">Nutrition</span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--taupe)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex: 0 0 auto; transform: {{ nutritionChevron }}; transition: transform .18s ease;"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <sc-if value="{{ nutritionOpen }}" hint-placeholder-val="{{ true }}">
+            <div id="dl-acc-nutrition" style="padding: 10px 24px 24px;">
+              <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-bottom: 14px;">
+                <span style="font-family: var(--font-sans); font-size: 14px; color: var(--brown);">{{ nutritionCaption }}</span>
+                <span class="dl-seg" role="radiogroup" aria-label="Show nutrition for">
+                  <sc-for list="{{ nutOpts }}" as="o" hint-placeholder-count="2"><button type="button" role="radio" aria-checked="{{ o.checked }}" tabindex="{{ o.tab }}" onClick="{{ o.pick }}" onKeyDown="{{ nutKeys }}">{{ o.label }}</button></sc-for>
+                </span>
+              </div>
+              <dl class="at-nutri-grid" aria-live="polite">
+                <sc-for list="{{ nutCells }}" as="c" hint-placeholder-count="7"><div class="at-nutri-cell"><dt>{{ c.label }}</dt><dd>{{ c.value }}</dd></div></sc-for>
+              </dl>
+            </div>
+          </sc-if>
+        </div>
+
+        <!-- Ingredients & allergens -->
+        <div ref="{{ ingrSecRef }}" style="border: 1px solid var(--sand-2); border-radius: 16px; background: var(--surface-dish); overflow: hidden; scroll-margin-top: 96px;">
+          <button class="at-acc-head" type="button" onClick="{{ toggleIngredients }}" aria-expanded="{{ ingredientsExp }}" aria-controls="dl-acc-ingredients" style="width: 100%; display: flex; align-items: center; gap: 14px; background: transparent; border: none; padding: 20px 24px; cursor: pointer; text-align: left;">
+            <svg class="at-acc-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex: 0 0 auto;"><path d="M12 21V8"/><path d="M12 8c0-2.2-1.4-4-3.2-4C8.8 6.2 10.2 8 12 8z"/><path d="M12 8c0-2.2 1.4-4 3.2-4C15.2 6.2 13.8 8 12 8z"/><path d="M12 14c0-2.2-1.4-4-3.2-4C8.8 12.2 10.2 14 12 14z"/><path d="M12 14c0-2.2 1.4-4 3.2-4C15.2 12.2 13.8 14 12 14z"/></svg>
+            <span class="at-acc-title" role="heading" aria-level="2" style="flex: 1 1 auto;">Ingredients &amp; allergens</span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--taupe)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex: 0 0 auto; transform: {{ ingredientsChevron }}; transition: transform .18s ease;"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <sc-if value="{{ ingredientsOpen }}" hint-placeholder-val="{{ true }}">
+            <div id="dl-acc-ingredients" style="padding: 10px 24px 24px;">
+              <p style="margin: 0 0 18px; font-family: var(--font-sans); font-size: 15px; line-height: 1.7; color: var(--brown);">Lamb shank, ata dindin sauce (scotch bonnet, red pepper, onion, tomato), purple cabbage, lime, fresh herbs, native spices, garlic, olive oil, sea salt.</p>
+              <div style="display: inline-flex; align-items: flex-start; gap: 12px; background: var(--cream-3); border: 1px solid var(--sand-2); border-radius: 12px; padding: 14px 18px; max-width: 100%;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex: 0 0 auto; margin-top: 1px;"><path d="M10.3 4.3 2.7 18a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                <span style="font-family: var(--font-sans); font-size: 14px; line-height: 1.55; color: var(--brown);"><strong style="color: var(--green-forest);">Allergens:</strong> to be confirmed for this dish. The menu records it as gluten-free.</span>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+
+        <!-- How to heat -->
+        <div ref="{{ heatSecRef }}" style="border: 1px solid var(--sand-2); border-radius: 16px; background: var(--surface-dish); overflow: hidden; scroll-margin-top: 96px;">
+          <button class="at-acc-head" type="button" onClick="{{ toggleHeat }}" aria-expanded="{{ heatExp }}" aria-controls="dl-acc-heating" style="width: 100%; display: flex; align-items: center; gap: 14px; background: transparent; border: none; padding: 20px 24px; cursor: pointer; text-align: left;">
+            <svg class="at-acc-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex: 0 0 auto;"><path d="M8 15c-1-1-1-2.4 0-3.4C9 10.6 9 9.2 8 8.2"/><path d="M12 15c-1-1-1-2.4 0-3.4 1-1 1-2.4 0-3.4"/><path d="M16 15c-1-1-1-2.4 0-3.4 1-1 1-2.4 0-3.4"/></svg>
+            <span class="at-acc-title" role="heading" aria-level="2" style="flex: 1 1 auto;">Heating &amp; storage</span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--taupe)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex: 0 0 auto; transform: {{ heatChevron }}; transition: transform .18s ease;"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <sc-if value="{{ heatOpen }}" hint-placeholder-val="{{ true }}">
+            <div id="dl-acc-heating" style="padding: 10px 24px 24px; display: flex; flex-direction: column; gap: 12px;">
+              <div style="display: flex; align-items: flex-start; gap: 16px; border: 1px solid var(--sand-2); border-radius: 12px; padding: 16px 18px;">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex: 0 0 auto; margin-top: 1px;"><rect x="2.5" y="5" width="19" height="14" rx="1.5"/><rect x="5" y="8" width="9.5" height="8" rx="1"/><path d="M18 8.5v7"/></svg>
+                <div>
+                  <div style="font-family: var(--font-sans); font-weight: 600; font-size: 15px; color: var(--green-forest); margin-bottom: 3px;">Microwave</div>
+                  <p style="margin: 0; font-family: var(--font-sans); font-size: 14px; line-height: 1.6; color: var(--brown);">Pierce film and heat on high for 4–5 mins. Stir halfway through and serve hot.</p>
+                </div>
+              </div>
+              <div style="display: flex; align-items: flex-start; gap: 16px; border: 1px solid var(--sand-2); border-radius: 12px; padding: 16px 18px;">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex: 0 0 auto; margin-top: 1px;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="2.3"/><circle cx="15.5" cy="8.5" r="2.3"/><circle cx="8.5" cy="15.5" r="2.3"/><circle cx="15.5" cy="15.5" r="2.3"/></svg>
+                <div>
+                  <div style="font-family: var(--font-sans); font-weight: 600; font-size: 15px; color: var(--green-forest); margin-bottom: 3px;">Hob / stovetop</div>
+                  <p style="margin: 0; font-family: var(--font-sans); font-size: 14px; line-height: 1.6; color: var(--brown);">Empty into a pan and heat on medium for 6–7 mins. Stir halfway through and serve hot.</p>
+                </div>
+              </div>
+              <div style="display: flex; align-items: flex-start; gap: 16px; border: 1px solid var(--sand-2); border-radius: 12px; padding: 16px 18px;">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="flex: 0 0 auto; margin-top: 1px;"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 8h18"/><rect x="6" y="11" width="12" height="7" rx="1"/><circle cx="7" cy="5.5" r=".5" fill="var(--green-forest)" stroke="none"/><circle cx="10" cy="5.5" r=".5" fill="var(--green-forest)" stroke="none"/></svg>
+                <div>
+                  <div style="font-family: var(--font-sans); font-weight: 600; font-size: 15px; color: var(--green-forest); margin-bottom: 3px;">Oven</div>
+                  <p style="margin: 0; font-family: var(--font-sans); font-size: 14px; line-height: 1.6; color: var(--brown);">Empty into an ovenproof dish and heat at 180°C for 15–18 mins. Stir halfway through and serve hot.</p>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+
+    </div>
+
+
+    <!-- Related dishes: a cell in the LEFT column under the photograph from 1024, a
+         full-width band below the dish on a phone. DOM order is unchanged (image, info,
+         related), so tab order still follows the visible order at both widths. -->
+    <div class="at-related-wrap">
+      <div class="dl-rel-head">
+        <h2>You might also like</h2>
+        <a class="dl-rel-all" href="Abby's Table - Menu Landing v3.dc.html"><span>View all dishes<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="12" x2="19" y2="12"/><path d="M13 6l6 6-6 6"/></svg></span></a>
+      </div>
+
+      <div class="at-related-grid">
+        <sc-for list="{{ related }}" as="r" hint-placeholder-count="3">
+          <a class="at-related" href="{{ menuHref }}">
+            <span class="at-rel-media"><img src="assets/dish-goat-efo-800.jpg" ref="{{ r.imgRef }}" alt="{{ r.title }}" decoding="async" /></span>
+            <span class="at-rel-body">
+              <span class="at-rel-tag">{{ r.tag }}</span>
+              <span class="at-rel-namewrap {{ r.truncCls }}">
+                <span class="at-rel-name" ref="{{ r.nameRef }}">{{ r.title }}</span>
+                <span class="at-rel-tip" role="tooltip" aria-hidden="true">{{ r.title }}</span>
+              </span>
+              <span class="at-rel-data">
+                <span role="img" aria-label="{{ r.heatLabel }}" style="display: inline-flex; align-items: center; gap: 9px;">
+                  <span aria-hidden="true" style="display: inline-flex; gap: 3px; align-items: center;">
+                    <sc-for list="{{ r.pips }}" as="p" hint-placeholder-count="3">
+                      <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" style="display: block;"><path fill="{{ p.stem }}" d="M13.6 6.7c.5-1.9 2.1-3.2 4.1-3.4-.2 2-1.6 3.6-3.6 4z"></path><path fill="{{ p.fill }}" d="M13.6 6.7C9.1 8.7 7 12.2 7.8 16.2c.4 2.2 1.4 4.3 2.7 6 1.3-1.8 2.8-4.2 4-6.8 1.1-2.5 1.1-5.8-.9-8.7z"></path></svg>
+                    </sc-for>
+                  </span>
+                  <span aria-hidden="true" class="at-rel-heat">{{ r.heatWord }}</span>
+                </span>
+                <span style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 14px;">
+                  <sc-for list="{{ r.nutrition }}" as="n" hint-placeholder-count="2">
+                    <x-import component-from-global-scope="AbbySTableDesignSystem_c3ba5a.NutritionTag" dot="{{ n.dot }}" hint-size="auto,16px">{{ n.label }}</x-import>
+                  </sc-for>
+                </span>
+              </span>
+            </span>
+          </a>
+        </sc-for>
+      </div>
+    </div>
+
+  </div>
+
+
+
+
+  <footer ref="{{ footRef }}" style="background: var(--green-deep);">
+    <div aria-hidden="true" style="height: 2px; background: var(--brass);"></div>
+    <div class="at-foot-inner" style="max-width: 1280px; margin: 0 auto; padding: 40px 22px 0;">
+      <div class="at-foot-grid" style="display: grid; gap: 36px;">
+        <div class="at-foot-news">
+          <p style="margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">Join the table</p>
+          <p style="margin: 12px 0 18px; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; color: var(--blush);">Kitchen notes and offers from Abby, monthly.</p>
+          <sc-if value="{{ subscribed }}" hint-placeholder-val="{{ false }}">
+            <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.3; color: var(--blush);">Thank you for joining the table.</p>
+          </sc-if>
+          <sc-if value="{{ notSubscribed }}" hint-placeholder-val="{{ true }}">
+            <form class="at-foot-form" onSubmit="{{ onJoinTable }}" style="display: flex; flex-direction: column; gap: 10px;">
+              <label for="dl-foot-email" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);">Email address</label>
+              <input class="at-foot-input" id="dl-foot-email" name="email" type="email" required autocomplete="email" placeholder="Enter your email address" style="height: 52px; box-sizing: border-box; min-width: 0; border: 1px solid var(--green-mid); border-radius: var(--radius-pill); background: transparent; padding: 0 20px; font-family: var(--font-sans); font-size: 16px; color: var(--blush);" />
+              <button type="submit" class="at-foot-join" style="height: 48px; width: 100%; border: none; cursor: pointer; border-radius: var(--radius-pill); background: var(--brass); color: var(--green-deep); font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase;">Join</button>
+            </form>
+            <p class="at-foot-consent" style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 13px; line-height: 1.5; color: var(--sand-2);">We use your email for kitchen notes and offers only. Unsubscribe any time. See our <a class="at-foot-link" href="Abby's Table - Privacy Policy.dc.html" style="color: var(--sand-2); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-skip-ink: none;">Privacy Policy</a>.</p>
+          </sc-if>
+        </div>
+        <div class="at-foot-cols" style="display: grid; border-bottom: 1px solid var(--green-mid);">
+        <div class="at-foot-col {{ shopCls }}" style="border-top: 1px solid var(--green-mid);">
+          <button class="at-foot-head" type="button" onClick="{{ toggleShop }}" aria-expanded="{{ shopExp }}" aria-controls="dl-foot-shop" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 0; background: transparent; border: none; text-align: left; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">
+            <span>Shop</span>
+            <svg class="at-foot-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          <div class="at-foot-links" id="dl-foot-shop" style="padding-bottom: 8px;">
+            <a class="at-foot-link" href="Abby's Table - Menu Landing v3.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Menu</a>
+            <a class="at-foot-link" href="Abby's Table - Gifting v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Gifting</a>
+            <a class="at-foot-link" href="Abby's Table - Private Table v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Private Table</a>
+          </div>
+        </div>
+        <div class="at-foot-col {{ learnCls }}" style="border-top: 1px solid var(--green-mid);">
+          <button class="at-foot-head" type="button" onClick="{{ toggleLearn }}" aria-expanded="{{ learnExp }}" aria-controls="dl-foot-learn" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 0; background: transparent; border: none; text-align: left; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">
+            <span>Learn</span>
+            <svg class="at-foot-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          <div class="at-foot-links" id="dl-foot-learn" style="padding-bottom: 8px;">
+            <a class="at-foot-link" href="Abby's Table - Abby's Story v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Abby’s Story</a>
+            <a class="at-foot-link" href="Abby's Table - How It Works v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">How it works</a>
+            <a class="at-foot-link" href="Abby's Table - Standards v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Our standards</a>
+          </div>
+        </div>
+        <div class="at-foot-col {{ infoCls }}" style="border-top: 1px solid var(--green-mid);">
+          <button class="at-foot-head" type="button" onClick="{{ toggleInfo }}" aria-expanded="{{ infoExp }}" aria-controls="dl-foot-info" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 0; background: transparent; border: none; text-align: left; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">
+            <span>Information</span>
+            <svg class="at-foot-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          <div class="at-foot-links" id="dl-foot-info" style="padding-bottom: 8px;">
+            <a class="at-foot-link" href="Abby's Table - Delivery and FAQs.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Delivery & FAQs</a>
+            <a class="at-foot-link" href="Abby's Table - Allergens.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Allergens</a>
+            <a class="at-foot-link" href="Abby's Table - Contact Us.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Contact us</a>
+          </div>
+        </div>
+        </div>
+      </div>
+      <div class="at-foot-rule" aria-hidden="true" style="display: none; height: 1px; background: var(--green-mid); margin: 32px 0 26px;"></div>
+      <div class="at-foot-bottom" style="display: grid; gap: 26px; justify-items: center; margin-top: 30px;">
+        <a class="at-foot-logo" href="Abby's Table - Homepage v2.dc.html" aria-label="Abby&#8217;s Table &#8212; home" style="display: block; text-decoration: none;">
+          <span class="at-foot-mark" aria-hidden="true" style="display: block; width: 176px; height: 30px; color: var(--blush);"><at-wordmark></at-wordmark></span>
+        </a>
+        <span style="font-family: var(--font-display); font-style: italic; font-size: 25px; line-height: 1; color: var(--terracotta);">Abby x</span>
+        <div class="at-foot-follow" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+          <span style="font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--green-sage);">Follow the table</span>
+          <div class="at-foot-follow-row" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+            <a href="https://www.instagram.com/fromabbystable" target="_blank" rel="noopener" aria-label="Instagram" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07zM12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.31-1.46.72-2.12 1.38A5.86 5.86 0 0 0 .63 4.13c-.3.76-.5 1.64-.56 2.91C.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.31.79.72 1.46 1.38 2.12.66.66 1.33 1.07 2.12 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.86 5.86 0 0 0 2.12-1.38 5.86 5.86 0 0 0 1.38-2.12c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.86 5.86 0 0 0-1.38-2.12A5.86 5.86 0 0 0 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84A6.16 6.16 0 1 0 12 18.16 6.16 6.16 0 0 0 12 5.84zm0 10.16A4 4 0 1 1 12 8a4 4 0 0 1 0 8zm6.41-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z" /></svg></a>
+            <a href="https://www.tiktok.com/@fromabbystable" target="_blank" rel="noopener" aria-label="TikTok" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 11.5 11.4" fill="var(--blush)" style="display: block;"><path d="M6.95 0v6.9A2.66 2.66 0 1 1 4.3 4.85c.35 0 .7.07 1 .21V3.15a4.5 4.5 0 0 0-1-.1A4.2 4.2 0 1 0 8.75 6.9V3.3a4.55 4.55 0 0 0 2.75 1.1V2.55A2.73 2.73 0 0 1 8.75 0Z" /></svg></a>
+            <a href="https://www.facebook.com/fromabbystable/" target="_blank" rel="noopener" aria-label="Facebook" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 6.15 11.15" fill="var(--blush)" style="display: block;"><path d="M4.05 11.15V6h1.7l.3-1.95h-2V2.8c0-.55.25-.95 1-.95h1.1V.1A14.6 14.6 0 0 0 4.55 0C2.85 0 1.75 1.05 1.75 2.6v1.45H0V6h1.75v5.15Z" /></svg></a>
+            <a href="https://x.com/fromabbystable" target="_blank" rel="noopener" aria-label="X" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg></a>
+            </div>
+            <span class="at-foot-dash" aria-hidden="true" style="display: none; color: var(--green-sage); font-size: 13px; line-height: 1;">&#8211;</span>
+            <span style="display: flex; align-items: center; padding: 4px 0; font-family: var(--font-sans); font-size: 16px; color: var(--blush);">@FromAbbysTable</span>
+          </div>
+        </div>
+      </div>
+      <div class="at-foot-legal" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0 24px; margin-top: 20px; padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));">
+        <span style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--green-sage);">&#169; 2026 Abby&#8217;s Table</span>
+        <div class="at-foot-legal-row" style="display: flex; align-items: center; gap: 12px;">
+          <a href="Abby's Table - Privacy Policy.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--sand-2); text-decoration: none; transition: color .16s ease;">Privacy Policy</a>
+          <span class="at-foot-legal-sep" aria-hidden="true" style="color: var(--green-mid); font-size: 13px; line-height: 1;">|</span>
+          <a href="Abby's Table - Terms of Sale.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--sand-2); text-decoration: none; transition: color .16s ease;">Terms</a>
+        </div>
+        <a href="Abby's Table - Privacy Policy.dc.html#cookies" data-consent-open style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--sand-2); text-decoration: none; transition: color .16s ease;">Cookie preferences</a>
+      </div>
+    </div>
+  </footer>
+
+  <div class="at-drawer-wrap {{ drawerCls }}">
+    <div class="at-drawer-scrim" onClick="{{ closeDrawer }}" style="position: fixed; inset: 0; z-index: 90; background: rgba(21,41,31,.5);"></div>
+    <aside id="dl-drawer" class="at-drawer-panel" ref="{{ panelRef }}" role="dialog" aria-modal="true" aria-label="Main menu" style="position: fixed; top: 0; left: 0; bottom: 0; z-index: 95; display: flex; flex-direction: column; width: min(300px, 84vw); background: var(--green-forest); padding: 18px 22px 26px; overflow-y: auto;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+        <a class="at-logo" href="Abby's Table - Homepage v2.dc.html" aria-label="Abby&#8217;s Table &#8212; home" style="display: flex; align-items: center; min-height: 44px; text-decoration: none;">
+          <span aria-hidden="true" style="display: block; width: 142px; aspect-ratio: 186 / 32; color: var(--blush);"><at-wordmark></at-wordmark></span>
+        </a>
+        <button type="button" onClick="{{ closeDrawer }}" aria-label="Close menu" style="flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-right: -10px; border: none; background: transparent; color: var(--blush); font-size: 24px; line-height: 1; cursor: pointer;">&#215;</button>
+      </div>
+      <a class="at-drawer-link" href="Abby's Table - Log in.dc.html" style="display: flex; align-items: center; min-height: 48px; margin-top: 20px; font-family: var(--font-sans); font-weight: 600; font-size: 16.5px; color: var(--blush); text-decoration: none;">Log in</a>
+      <span aria-hidden="true" style="display: block; height: 1px; background: var(--green-mid); margin: 4px 0 6px;"></span>
+      <nav aria-label="Main" style="display: flex; flex-direction: column;">
+      <a class="at-drawer-link" href="Abby's Table - Menu Landing v3.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none;">Menu</a>
+      <a class="at-drawer-link" href="Abby's Table - How It Works v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none;">How it works</a>
+      <a class="at-drawer-link" href="Abby's Table - Abby's Story v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none;">Abby’s Story</a>
+      <a class="at-drawer-link" href="Abby's Table - Gifting v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none;">Gifting</a>
+      <a class="at-drawer-link" href="Abby's Table - Private Table v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none;">Private Table</a>
+      </nav>
+      <a class="at-drawer-cta" href="Abby's Table - Choose Box v2.dc.html" style="display: flex; align-items: center; justify-content: center; min-height: 54px; margin-top: 26px; border-radius: var(--radius-pill); background: var(--terracotta); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; text-decoration: none;">Build a Box</a>
+      <div style="margin-top: auto; border-top: 1px solid var(--green-mid); padding-top: 22px; display: flex; gap: 20px; align-items: center;">
+            <a class="at-social" href="https://www.instagram.com/fromabbystable" target="_blank" rel="noopener" aria-label="Instagram" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07zM12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.31-1.46.72-2.12 1.38A5.86 5.86 0 0 0 .63 4.13c-.3.76-.5 1.64-.56 2.91C.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.31.79.72 1.46 1.38 2.12.66.66 1.33 1.07 2.12 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.86 5.86 0 0 0 2.12-1.38 5.86 5.86 0 0 0 1.38-2.12c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.86 5.86 0 0 0-1.38-2.12A5.86 5.86 0 0 0 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84A6.16 6.16 0 1 0 12 18.16 6.16 6.16 0 0 0 12 5.84zm0 10.16A4 4 0 1 1 12 8a4 4 0 0 1 0 8zm6.41-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z" /></svg></a>
+            <a class="at-social" href="https://www.tiktok.com/@fromabbystable" target="_blank" rel="noopener" aria-label="TikTok" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px;"><svg width="20" height="20" viewBox="0 0 11.5 11.4" fill="var(--blush)" style="display: block;"><path d="M6.95 0v6.9A2.66 2.66 0 1 1 4.3 4.85c.35 0 .7.07 1 .21V3.15a4.5 4.5 0 0 0-1-.1A4.2 4.2 0 1 0 8.75 6.9V3.3a4.55 4.55 0 0 0 2.75 1.1V2.55A2.73 2.73 0 0 1 8.75 0Z" /></svg></a>
+            <a class="at-social" href="https://www.facebook.com/fromabbystable/" target="_blank" rel="noopener" aria-label="Facebook" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px;"><svg width="20" height="20" viewBox="0 0 6.15 11.15" fill="var(--blush)" style="display: block;"><path d="M4.05 11.15V6h1.7l.3-1.95h-2V2.8c0-.55.25-.95 1-.95h1.1V.1A14.6 14.6 0 0 0 4.55 0C2.85 0 1.75 1.05 1.75 2.6v1.45H0V6h1.75v5.15Z" /></svg></a>
+            <a class="at-social" href="https://x.com/fromabbystable" target="_blank" rel="noopener" aria-label="X" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg></a>
+      </div>
+    </aside>
+  </div>
+
+  <button class="dl-top" type="button" onClick="{{ goTopPage }}" data-on="{{ topOn }}" data-bar="{{ topBar }}" aria-label="Back to top of page">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block;"><path d="M12 19V5" /><path d="m5 12 7-7 7 7" /></svg>
+    <span>Top</span>
+  </button>
+
+  <div class="dl-bar" ref="{{ barRef }}" data-on="{{ barOn }}">
+    <span class="dl-bar-t">Add to your box<span class="dl-bar-s">{{ barSub }}</span></span>
+    <button class="dl-bar-go" type="button" onClick="{{ goBox }}">Add to box</button>
+  </div>
+
+  <!-- toast -->
+  <div style="position: fixed; left: 50%; bottom: 28px; background: var(--green-forest); color: var(--blush); padding: 14px 22px; border-radius: var(--radius-pill); font-size: 16px; letter-spacing: .01em; box-shadow: var(--shadow-raised); z-index: 110; transition: transform .28s ease; transform: translateX(-50%) {{ toastTranslate }};">{{ toastText }}</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  // ---- Return from Our Standards (see Standards v2 "Back to dish") ------------------------------
+  // The dish's own choices travel in sessionStorage, keyed to THIS page's URL, and are applied only
+  // when the customer is genuinely coming back: the Standards link set `returning`, or the browser
+  // reports a back/forward navigation. A fresh visit never inherits an old selection. If the page
+  // comes back from the back-forward cache nothing is reapplied — it was never torn down.
+  _readReturn() {
+    try {
+      const r = JSON.parse(sessionStorage.getItem("at-dish-return-v1") || "null");
+      if (!r || typeof r !== "object" || r.v !== 1) return null;
+      if (r.page !== location.pathname + location.search) return null;
+      if (!(Date.now() - r.t < 6 * 3600e3)) return null;
+      let nav = "";
+      try { nav = ((performance.getEntriesByType("navigation") || [])[0] || {}).type || ""; } catch (_) {}
+      return (r.returning || nav === "back_forward") ? r : null;
+    } catch (_) { return null; }
+  }
+  _restored(k, def, ok) {
+    const s = this._ret && this._ret.s;
+    return (s && ok(s[k])) ? s[k] : def;
+  }
+  _saveReturn = () => {
+    // Never blocks the navigation: a storage failure just means no return link on Standards.
+    try {
+      sessionStorage.setItem("at-dish-return-v1", JSON.stringify({
+        v: 1, t: Date.now(), page: location.pathname + location.search, hl: history.length,
+        y: Math.round(window.scrollY || 0), returning: false,
+        s: { portion: this.state.portion, nutrition: this.state.nutrition,
+             ingredients: this.state.ingredients, heatAcc: this.state.heatAcc },
+      }));
+    } catch (_) {}
+  };
+  _clearReturning() {
+    try {
+      const r = JSON.parse(sessionStorage.getItem("at-dish-return-v1") || "null");
+      if (r && r.returning) { r.returning = false; sessionStorage.setItem("at-dish-return-v1", JSON.stringify(r)); }
+    } catch (_) {}
+  }
+  // Settle-then-scroll (CLAUDE.md pattern): wait for two consecutive frames with the same document
+  // height, scroll, then confirm it landed.
+  _restoreScroll() {
+    const r = this._ret;
+    this._clearReturning();
+    if (!r || typeof r.y !== "number" || r.y <= 0) return;
+    let last = -1, stable = 0, n = 0;
+    const tick = () => {
+      const h = document.documentElement.scrollHeight;
+      stable = h === last ? stable + 1 : 0; last = h; n++;
+      if (stable >= 2 || n > 90) {
+        const y = Math.max(0, Math.min(r.y, h - window.innerHeight));
+        window.scrollTo(0, y);
+        requestAnimationFrame(() => { if (Math.abs(window.scrollY - y) > 2) window.scrollTo(0, y); });
+        return;
+      }
+      this._restoreRaf = requestAnimationFrame(tick);
+    };
+    this._restoreRaf = requestAnimationFrame(tick);
+  }
+  _ret = this._readReturn();
+
+  state = {
+    persOpen: true,
+    portion: this._restored("portion", "light", (v) => v === "light" || v === "full"),
+    // Nutrition panel's own Light/Full view. null = follow the chosen portion (Add Dishes v2's rule).
+    nutP: null,
+    // Nutrition, ingredients and heating start OPEN: the detail is the reason people are on a
+    // dish page, so it is shown rather than hidden behind three taps.
+    nutrition: this._restored("nutrition", true, (v) => typeof v === "boolean"),
+    ingredients: this._restored("ingredients", true, (v) => typeof v === "boolean"),
+    heatAcc: this._restored("heatAcc", true, (v) => typeof v === "boolean"),
+    infoOpen: false,
+    drawer: false,
+    dirDown: false,
+    topOn: false,
+    delivTip: false,
+    // Opened by hover it closes when the pointer leaves; opened by CLICK it is pinned and only
+    // the × (or Esc / a click outside) dismisses it — otherwise the panel vanishes the moment
+    // someone moves towards it to read.
+    delivPinned: false,
+    sigNote: false,
+    ctaPast: false,
+    footNear: false,
+    subscribed: false,
+    footOpen: {},
+    toast: ""
+  };
+  toastTimer = null;
+
+  goTopPage = () => {
+    const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+    const h1 = document.querySelector(".at-h1");
+    if (h1) { h1.setAttribute("tabindex", "-1"); h1.focus({ preventScroll: true }); }
+  };
+  backToTopPage = (e) => { if (e && e.stopPropagation) e.stopPropagation(); window.scrollTo({ top: 0, behavior: "smooth" }); };
+
+  flash = (msg) => {
+    this.setState({ toast: msg });
+    clearTimeout(this.toastTimer);    this.toastTimer = setTimeout(() => this.setState({ toast: "" }), 2400);
+  };
+
+
+  // ---- canonical chrome: header auto-hide, drawer focus management, footer semantics ----
+  hdrRef = (el) => { this._hdr = el; };
+  burgerRef = (el) => { this._burger = el; };
+  panelRef = (el) => { this._panel = el; };
+  footRef = (el) => { this._foot = el; if (el) this._footSemantics(); };
+
+  // Column heads are accordion buttons on mobile and labels from 1024. Attributes cannot be
+  // swapped in CSS; the original ARIA is captured into data- attributes first, because React only
+  // rewrites an attribute when its value changes and so will not restore them on the way back.
+  _footSemantics = () => {
+    if (!this._foot) return;
+    const label = window.innerWidth >= 1024;
+    Array.prototype.forEach.call(this._foot.querySelectorAll(".at-foot-head"), (b) => {
+      if (label) {
+        if (!b.dataset.ctrl) b.dataset.ctrl = b.getAttribute("aria-controls") || "";
+        if (!b.dataset.exp) b.dataset.exp = b.getAttribute("aria-expanded") || "false";
+        b.removeAttribute("aria-expanded"); b.removeAttribute("aria-controls");
+        b.setAttribute("role", "heading"); b.setAttribute("aria-level", "3"); b.setAttribute("tabindex", "-1");
+      } else {
+        b.removeAttribute("role"); b.removeAttribute("aria-level"); b.removeAttribute("tabindex");
+        if (b.dataset.ctrl) b.setAttribute("aria-controls", b.dataset.ctrl);
+        if (!b.hasAttribute("aria-expanded")) b.setAttribute("aria-expanded", b.dataset.exp || "false");
+      }
+    });
+  };
+
+  _footToggle = (k) => {
+    if (window.innerWidth >= 1024) return;
+    this.setState((st) => { const o = Object.assign({}, st.footOpen); o[k] = !o[k]; return { footOpen: o }; });
+  };
+  toggleShopCol = () => this._footToggle("shop");
+  toggleLearnCol = () => this._footToggle("learn");
+  toggleInfoCol = () => this._footToggle("info");
+
+  _onScroll = () => {
+    this._updateFootSuppress();
+    const y = window.scrollY, last = this._lastY || 0;
+    const vh = window.innerHeight || 1;
+    const on = this.state.topOn ? y > vh * 0.6 : y > vh * 1.2;   // two thresholds, so it cannot flicker
+    if (on !== this.state.topOn) this.setState({ topOn: on });
+    if (Math.abs(y - last) < 8) return;
+    const down = y > last && y > 120;
+    this._lastY = y;
+    if (down && this._hdr && this._hdr.contains(document.activeElement)) return;
+    if (down !== this.state.dirDown) this.setState({ dirDown: down });
+  };
+  _onResize = () => { this._footSemantics(); (this._relChecks || []).forEach((fn) => fn && fn()); };
+
+  _drawerPanel = () => this._panel || document.getElementById("dl-drawer");
+  _canFocus = (el) => !!el && el.offsetParent !== null && getComputedStyle(el).visibility !== "hidden";
+  focusables = () => {
+    const p = this._drawerPanel();
+    return p ? Array.from(p.querySelectorAll("a[href], button")).filter((el) => el.offsetParent !== null) : [];
+  };
+  trap = (e) => {
+    const els = this.focusables(); if (!els.length) return;
+    const first = els[0], last = els[els.length - 1], p = this._drawerPanel();
+    if (p && !p.contains(document.activeElement)) { e.preventDefault(); (e.shiftKey ? last : first).focus(); return; }
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  };
+  // Focus is taken here, not in a lifecycle hook: the panel is always mounted and closed with
+  // display:none, so focus() is a no-op until the flip lands. Poll on a frame AND a timer against
+  // a wall-clock budget — a frame can be throttled, a timer cannot.
+  _takeDrawerFocus = () => {
+    cancelAnimationFrame(this._drawerRaf); clearTimeout(this._drawerTo);
+    const start = Date.now();
+    const take = () => {
+      const p = this._drawerPanel();
+      const btn = p && p.querySelector('button[aria-label="Close menu"]');
+      const t = this._canFocus(btn) ? btn : this.focusables()[0];
+      if (t) { t.focus(); return; }
+      if (Date.now() - start < 3000) { this._drawerRaf = requestAnimationFrame(take); this._drawerTo = setTimeout(take, 50); }
+    };
+    take();
+  };
+  openDrawerFull = () => { document.body.style.overflow = "hidden"; this.setState({ drawer: true }); this._takeDrawerFocus(); };
+  closeDrawerFull = () => {
+    this.setState({ drawer: false });
+    document.body.style.overflow = "";
+    cancelAnimationFrame(this._drawerRaf); clearTimeout(this._drawerTo);
+    if (this._canFocus(this._burger)) this._burger.focus();
+  };
+
+  componentDidMount() {
+    window.addEventListener("scroll", this._onScroll, { passive: true });
+    window.addEventListener("resize", this._onResize);
+    this._onKey = (e) => {
+      if (e.key === "Escape" && this.state.sigNote) { this.setState({ sigNote: false }); }
+      if (e.key === "Escape" && this.state.delivTip) { this.setState({ delivTip: false, delivPinned: false }); }
+      if (!this.state.drawer) return;
+      if (e.key === "Escape") { e.preventDefault(); this.closeDrawerFull(); return; }
+      if (e.key === "Tab") this.trap(e);
+    };
+    document.addEventListener("keydown", this._onKey);
+    // Anything outside the note or its trigger closes it — the menu page's behaviour.
+    this._onDocClick = (e) => {
+      if (this.state.sigNote && e.target.closest && !e.target.closest(".sig-marks")) this.setState({ sigNote: false });
+      if (!this.state.delivTip) return;
+      if (e.target.closest && (e.target.closest(".dl-note") || e.target.closest(".dl-info"))) return;
+      this.setState({ delivTip: false, delivPinned: false });
+    };
+    document.addEventListener("click", this._onDocClick);
+    requestAnimationFrame(this._updateFootSuppress);
+    setTimeout(this._updateFootSuppress, 500);
+    // Re-measure the related names once layout and webfonts have settled: the first-frame
+    // measurement runs before the grid has resolved its column width, so a name that will clip
+    // does not report as clipped yet.
+    this._recheckNames = () => (this._relChecks || []).forEach((fn) => fn && fn());
+    setTimeout(this._recheckNames, 300);
+    setTimeout(this._recheckNames, 1200);
+    this._restoreScroll();
+    // Back-forward cache: the page returns exactly as it was left, so only the flag is cleared.
+    this._onPageShow = (e) => { if (e.persisted) this._clearReturning(); };
+    window.addEventListener("pageshow", this._onPageShow);
+  }
+  componentWillUnmount() {
+    window.removeEventListener("pageshow", this._onPageShow);
+    cancelAnimationFrame(this._restoreRaf);
+    window.removeEventListener("scroll", this._onScroll);
+    window.removeEventListener("resize", this._onResize);
+    document.removeEventListener("keydown", this._onKey);
+    document.removeEventListener("click", this._onDocClick);
+    if (this._ctaIo) this._ctaIo.disconnect();
+    cancelAnimationFrame(this._drawerRaf); clearTimeout(this._drawerTo);
+    clearTimeout(this.toastTimer);
+    document.body.style.overflow = "";
+  }
+
+
+  // The inline CTA leaving the viewport is what reveals the sticky bar — one purchase control
+  // visible at a time, the same rule the marketing bar follows.
+  addCtaRef = (el) => {
+    if (this._ctaIo) { this._ctaIo.disconnect(); this._ctaIo = null; }
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    this._ctaIo = new IntersectionObserver(([e]) => {
+      // "Below the fold, not yet reached" and "scrolled past" both report isIntersecting: false,
+      // so the bar has to test WHICH side the CTA is on. boundingClientRect.top < 0 means the CTA
+      // is above the viewport — genuinely scrolled past. Without it the bar returned at the top
+      // of the page, where the inline CTA is simply still below the fold.
+      const past = !e.isIntersecting && e.boundingClientRect.top < 0;
+      if (past !== this.state.ctaPast) this.setState({ ctaPast: past });
+    }, { threshold: 0 });
+    this._ctaIo.observe(el);
+  };
+
+  // The bar's height is content-dependent and the "↑ Top" control needs it to clear the bar.
+  // Measured, never restated; never writes a zero, since at ref-commit time it has not laid out.
+  barRef = (el) => {
+    if (this._barRO) { this._barRO.disconnect(); this._barRO = null; }
+    if (!el) return;
+    const write = () => {
+      const h = el.offsetHeight;
+      if (!h || h === this._barH) return;
+      this._barH = h;
+      document.documentElement.style.setProperty("--at-bar-h", h + "px");
+    };
+    write();
+    requestAnimationFrame(write);
+    setTimeout(write, 500);
+    if (typeof ResizeObserver !== "undefined") {
+      this._barRO = new ResizeObserver(() => { cancelAnimationFrame(this._barRaf); this._barRaf = requestAnimationFrame(write); });
+      this._barRO.observe(el);
+    }
+  };
+
+  // The footer is on the named suppression list in its own right — the page has ended, and the
+  // bar was covering the legal strip, including the consent trigger.
+  _updateFootSuppress = () => {
+    if (!this._foot) return;
+    const on = this._foot.getBoundingClientRect().top < window.innerHeight * 0.75;
+    if (on !== this.state.footNear) this.setState({ footNear: on });
+  };
+  portionGroupRef = (el) => { this._portionGroup = el; };
+  _movePortion = (dir) => {
+    const keys = ["light", "full"];
+    const i = keys.indexOf(this.state.portion);
+    const next = dir === "home" ? 0 : dir === "end" ? keys.length - 1 : (i + (dir === "next" ? 1 : -1) + keys.length) % keys.length;
+    this.setState({ portion: keys[next], nutP: null });
+    const g = this._portionGroup;
+    if (g) requestAnimationFrame(() => { const b = g.querySelectorAll('[role="radio"]')[next]; if (b) b.focus(); });
+  };
+
+  renderVals() {
+    const HOME = "Abby's Table - Homepage v2.dc.html";
+    const STORY = "Abby's Table - Abby's Story v2.dc.html";
+    const HIW = "Abby's Table - How It Works v2.dc.html";
+    // "Abby's Story" and "How it works" are their own pages now, not bands on the homepage.
+    const dest = (hash) => (hash === "#founder" ? STORY : hash === "#howitworks" ? HIW : HOME + hash);
+    const NAV = [
+      ["Menu", "#menu"], ["How it works", "#howitworks"], ["Abby's Boxes", "#boxes"],
+      ["Gifting", "#gifting"], ["Private Table", "#private"], ["Our Standards", "#standards"],
+      ["Abby's Story", "#founder"], ["Contact", "#contact"],
+    ];
+    const footOpen = this.state.footOpen || {};
+
+    const __res = (typeof window !== "undefined" && window.__resources) || {};
+    const __imgMap = { "assets/dish-goat-efo-800.jpg": __res.dishGoat, "assets/dish-fish-peppersoup-800.jpg": __res.dishFish };
+    const __img = (p) => __imgMap[p] || p;
+    const HEAT_WORD = { 0: "None", 1: "Mild", 2: "Medium", 3: "Hot" };
+    const related = [
+      { image: __img("assets/dish-goat-efo-800.jpg"), tag: "Protein-led", title: "Suya Salmon, Kale, Quinoa", heat: 1, proteinG: 32, fibre: 9 },
+      { image: __img("assets/dish-fish-peppersoup-800.jpg"), tag: "Balanced", title: "Jollof Quinoa Bowl", heat: 2, proteinG: 24, fibre: 9 },
+      { image: __img("assets/dish-goat-efo-800.jpg"), tag: "Protein-led", title: "Turkey Ayamase with Greens", heat: 2, proteinG: 30, fibre: 9 },
+      { image: __img("assets/dish-fish-peppersoup-800.jpg"), tag: "Protein-led", title: "Royal Seafood Okra", heat: 2, proteinG: 32, fibre: 9 },
+    ].map((r, i) => ({
+      ...r,
+      imgRef: (el) => { if (el && r.image) el.src = r.image; },
+      // The tooltip is only offered where the name actually clips — measured after layout and
+      // again once webfonts land, since Playfair changes the width. Index-keyed so a card that
+      // fits never gets a tooltip repeating text already fully visible.
+      truncCls: (this.state.relTrunc || {})[i] ? "at-can-tip" : "",
+      nameRef: (el) => {
+        if (!el) return;
+        const check = () => {
+          const clipped = el.scrollWidth > el.clientWidth + 1;
+          const now = !!(this.state.relTrunc || {})[i];
+          if (clipped !== now) this.setState((s) => {
+            const o = Object.assign({}, s.relTrunc);
+            o[i] = clipped;
+            return { relTrunc: o };
+          });
+        };
+        requestAnimationFrame(check);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => requestAnimationFrame(check));
+        this._relChecks = this._relChecks || [];
+        this._relChecks[i] = check;
+      },
+      // Same device as the menu card: pips carry the level as a graphic and the WORD states it,
+      // wrapped in ONE labelled group so a screen reader hears "Heat level: Medium" once.
+      heatLabel: "Heat level: " + (HEAT_WORD[r.heat] || "None"),
+      heatWord: HEAT_WORD[r.heat] || "None",
+      pips: [0, 1, 2].map((i) => (i < r.heat
+        ? { fill: "var(--chilli)", stem: "var(--green-mid)" }
+        : { fill: "var(--green-mist)", stem: "var(--green-mist)" })),
+      nutrition: [
+        { dot: "var(--brass-ink)", label: "Protein " + r.proteinG + "g" },
+        // green-forest is so dark at dot size that it reads as black; green-mid reads green.
+        { dot: "var(--green-mid)", label: "Fibre " + r.fibre + "g" },
+      ],
+    }));
+
+    const headPips = [0, 1, 2].map((i) => (i < 3
+      ? { fill: "var(--terracotta)", stem: "var(--green-forest)" }
+      : { fill: "var(--green-mist)", stem: "var(--green-mist)" }));
+
+    const PORTIONS = [
+      { key: "light", label: "Light Table", grams: "225g", price: 0, abby: true },
+      { key: "full", label: "Full Table", grams: "450g", price: 5 },
+    ];
+
+    // Macros are a property of the portion, so the strip in the card updates with it. Example
+    // figures carried over from the old page — NOT confirmed against a recipe.
+    const MACROS = { light: { kcal: "620", protein: "38g", fibre: "8g" }, full: { kcal: "930", protein: "57g", fibre: "12g" } };
+    const anySelected = PORTIONS.some((p) => this.state.portion === p.key);
+    const portions = PORTIONS.map((p, idx) => {
+      const selected = this.state.portion === p.key;
+      return {
+        label: p.label,
+        grams: p.grams,
+        priceLabel: p.price > 0 ? "+\u00a3" + p.price : "",
+        hasPrice: p.price > 0,
+        selected,
+        checked: selected ? "true" : "false",
+        // roving tabindex; with nothing selected the FIRST option stays tabbable
+        tabIndex: selected || (!anySelected && idx === 0) ? 0 : -1,
+        onClick: () => this.setState({ portion: p.key, nutP: null }),
+        onKeyDown: (e) => {
+          const k = e.key;
+          if (k === "ArrowRight" || k === "ArrowDown") { e.preventDefault(); this._movePortion("next"); }
+          else if (k === "ArrowLeft" || k === "ArrowUp") { e.preventDefault(); this._movePortion("prev"); }
+          else if (k === "Home") { e.preventDefault(); this._movePortion("home"); }
+          else if (k === "End") { e.preventDefault(); this._movePortion("end"); }
+        },
+      };
+    });
+    const macros = MACROS[this.state.portion] || MACROS.light;
+
+    const curPortion = PORTIONS.find((p) => p.key === this.state.portion) || PORTIONS[0];
+    // Full-panel figures per portion. Light = the figures this page already carried; Full agrees
+    // with MACROS.full (930 / 57g / 12g) and scales the rest by the same ratio. ALL holding text —
+    // replaced with confirmed values before launch (see CLAUDE.md).
+    const NUTRI = {
+      light: [["kcal", "620"], ["Protein", "38g"], ["Carbs", "20g"], ["Fat", "28g"], ["Fibre", "8g"], ["Sugars", "9g"], ["Salt", "1.4g"]],
+      full: [["kcal", "930"], ["Protein", "57g"], ["Carbs", "30g"], ["Fat", "42g"], ["Fibre", "12g"], ["Sugars", "14g"], ["Salt", "2.1g"]],
+    };
+    const NUT_LABEL = { light: "Light Table", full: "Full Table" };
+    const np = this.state.nutP === "light" || this.state.nutP === "full" ? this.state.nutP : (this.state.portion === "full" ? "full" : "light");
+    const npGrams = (PORTIONS.find((p) => p.key === np) || PORTIONS[0]).grams;
+    const nutritionCaption = "Per serving \u00B7 " + NUT_LABEL[np] + " " + npGrams;
+    const nutCells = NUTRI[np].map((c) => ({ label: c[0], value: c[1] }));
+    const nutOpts = ["light", "full"].map((k) => ({ label: NUT_LABEL[k], checked: np === k ? "true" : "false", tab: np === k ? "0" : "-1", pick: () => this.setState({ nutP: k }) }));
+    const nutKeys = (e) => {
+      if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) return;
+      e.preventDefault();
+      const g = e.currentTarget.parentNode;
+      this.setState({ nutP: np === "light" ? "full" : "light" }, () => { const b = g && g.querySelector('[aria-checked="true"]'); if (b) b.focus(); });
+    };
+
+    return {
+      hdrRef: this.hdrRef,
+      hdrHidden: (this.state.dirDown && !this.state.drawer) ? "true" : "false",
+      burgerRef: this.burgerRef,
+      burgerExpanded: this.state.drawer ? "true" : "false",
+      panelRef: this.panelRef,
+      drawerCls: this.state.drawer ? "is-open" : "",
+      footRef: this.footRef,
+      toggleShop: this.toggleShopCol,
+      toggleLearn: this.toggleLearnCol,
+      toggleInfo: this.toggleInfoCol,
+      shopCls: footOpen.shop ? "is-open" : "",
+      learnCls: footOpen.learn ? "is-open" : "",
+      infoCls: footOpen.info ? "is-open" : "",
+      shopExp: footOpen.shop ? "true" : "false",
+      learnExp: footOpen.learn ? "true" : "false",
+      infoExp: footOpen.info ? "true" : "false",
+      homeHref: HOME,
+      menuHref: "Abby's Table - Menu Landing v3.dc.html",
+      loginHref: HOME + "#contact",
+      related, headPips, portions, nutritionCaption, nutCells, nutOpts, nutKeys,
+      nutritionOpen: this.state.nutrition,
+      ingredientsOpen: this.state.ingredients,
+      heatOpen: this.state.heatAcc,
+      // String variants for aria-expanded, as the footer columns do — the booleans above drive
+      // the sc-ifs, and an attribute needs "true"/"false".
+      nutritionExp: this.state.nutrition ? "true" : "false",
+      ingredientsExp: this.state.ingredients ? "true" : "false",
+      heatExp: this.state.heatAcc ? "true" : "false",
+      nutritionChevron: this.state.nutrition ? "rotate(180deg)" : "rotate(0deg)",
+      ingredientsChevron: this.state.ingredients ? "rotate(180deg)" : "rotate(0deg)",
+      heatChevron: this.state.heatAcc ? "rotate(180deg)" : "rotate(0deg)",
+      infoOpen: this.state.infoOpen,
+      infoExpanded: this.state.infoOpen ? "true" : "false",
+      toggleInfo: () => this.setState((s) => ({ infoOpen: !s.infoOpen })),
+      closeInfo: () => this.setState({ infoOpen: false }),
+      toggleNutrition: () => this.setState((s) => ({ nutrition: !s.nutrition })),
+      toggleIngredients: () => this.setState((s) => ({ ingredients: !s.ingredients })),
+      toggleHeat: () => this.setState((s) => ({ heatAcc: !s.heatAcc })),
+      nutSecRef: (el) => { this._nutSec = el; },
+      ingrSecRef: (el) => { this._ingrSec = el; },
+      heatSecRef: (el) => { this._heatSec = el; },
+      addCtaRef: this.addCtaRef,
+      sigNoteOpen: this.state.sigNote ? "true" : "false",
+      toggleSigNote: (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.setState((st) => ({ sigNote: !st.sigNote })); },
+      delivTipOpen: this.state.delivTip ? "true" : "false",
+      hoverDelivTip: () => { if (!this.state.delivTip) this.setState({ delivTip: true, delivPinned: false }); },
+      // Leaving the whole line, not just the "?", so the pointer can travel into the panel.
+      leaveDelivTip: () => { if (this.state.delivTip && !this.state.delivPinned) this.setState({ delivTip: false }); },
+      toggleDelivTip: (e) => {
+        if (e && e.stopPropagation) e.stopPropagation();
+        this.setState((s) => (s.delivTip && s.delivPinned)
+          ? { delivTip: false, delivPinned: false }
+          : { delivTip: true, delivPinned: true });
+      },
+      closeDelivTip: (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.setState({ delivTip: false, delivPinned: false }); },
+      portionGroupRef: this.portionGroupRef,
+      macroKcal: macros.kcal,
+      macroProtein: macros.protein,
+      macroFibre: macros.fibre,
+      barOn: (this.state.ctaPast && !this.state.drawer && !this.state.footNear) ? "true" : "false",
+      barRef: this.barRef,
+      barSub: curPortion.label + " \u00b7 " + curPortion.grams,
+      backToTopPage: this.backToTopPage,
+      goTopPage: this.goTopPage,
+      topOn: (this.state.topOn && !this.state.drawer) ? "true" : "false",
+      // Clearance follows the bar's real state, so the two fixed controls never overlap.
+      topBar: (this.state.ctaPast && !this.state.drawer && !this.state.footNear) ? "true" : "false",
+      openDrawer: this.openDrawerFull,
+      closeDrawer: this.closeDrawerFull,
+      drawerTransform: this.state.drawer ? "translateX(0)" : "translateX(-100%)",
+      overlayOpacity: this.state.drawer ? 1 : 0,
+      overlayPE: this.state.drawer ? "auto" : "none",
+      subscribed: this.state.subscribed,
+      notSubscribed: !this.state.subscribed,
+      onJoinTable: (e) => { if (e && e.preventDefault) e.preventDefault(); this.setState({ subscribed: true }); },
+      goMenu: () => { window.location.href = HOME + "#menu"; },
+      // Carries the dish into step 1, which starts empty without it. Step 1 only models Seafood
+      // Okra today, so this slug is the one it can honour — see its DISHES map.
+      onStandards: this._saveReturn,
+      goBox: () => { window.location.href = "Abby's Table - Choose Box v2.dc.html?dish=seafood-okra"; },
+      toastText: this.state.toast,
+      toastTranslate: this.state.toast ? "translateY(0)" : "translateY(calc(100% + 48px))",
+    };
+  }
+}
+</script>
+</body>
+</html>

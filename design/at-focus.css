@@ -1,0 +1,29 @@
+/* Abby's Table — focus standard (site-wide). Loaded by every live page; never re-declare per page.
+   1. CONTROLS: one shared :focus-visible ring — the design system's --shadow-focus (brass, 3px),
+      plus a transparent outline so Windows High Contrast / forced-colors still draws a ring.
+      :where() keeps specificity at zero, so a component that needs a different shape (e.g. an
+      inset ring inside a clipped card) can still refine it with an ordinary class rule.
+   2. NON-CONTROLS: elements given tabindex="-1" only so script can move focus to them (a skip
+      target, a panel heading) are not controls and get NO ring. This is what stops the browser's
+      default blue outline appearing "sometimes" — :focus-visible on programmatic focus depends on
+      whether the customer last used the keyboard.
+   Focus outlines are never removed globally: rule 2 applies only to tabindex="-1". */
+:where(a[href], button, input, select, textarea, summary, [contenteditable="true"],
+  [role="button"], [role="link"], [role="radio"], [role="checkbox"], [role="switch"],
+  [role="tab"], [role="option"], [role="menuitem"], [role="combobox"], [role="slider"],
+  [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  box-shadow: var(--shadow-focus, 0 0 0 3px rgba(194, 142, 60, .4));
+}
+/* Controls whose box-shadow is owned by an inline style (a live value — elevation, a selected
+   state) cannot show the shared ring, because an inline declaration outranks any rule. They get
+   the same brass as a solid outline instead. !important only to beat page-level outline resets. */
+:where(a[href], button, input, select, textarea, [role="button"], [role="radio"])[style*="box-shadow"]:focus-visible {
+  outline: 2px solid var(--focus-ring, #C28E3C) !important;
+  outline-offset: 2px;
+}
+[tabindex="-1"]:focus, [tabindex="-1"]:focus-visible { outline: none; box-shadow: none; }
+@media (forced-colors: active) {
+  :where(a[href], button, input, select, textarea, summary, [role], [tabindex]:not([tabindex="-1"])):focus-visible { outline-color: Highlight; }
+}

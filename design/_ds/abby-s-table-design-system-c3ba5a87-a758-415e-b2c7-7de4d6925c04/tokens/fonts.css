@@ -1,0 +1,8 @@
+/* Abby's Table — Fonts
+   Three families, all available on Google Fonts:
+   - Playfair Display  → display headings (serif, high contrast)
+   - Cormorant Garamond → editorial accent line (light serif)
+   - Figtree           → all UI, body, eyebrows, buttons (humanist sans)
+   If you have licensed binaries, swap these @imports for local @font-face. */
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,500&family=Figtree:wght@400;500;600;700&display=swap');

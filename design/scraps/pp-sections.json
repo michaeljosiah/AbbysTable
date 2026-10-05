@@ -1,0 +1,81 @@
+{
+ "SEC": [
+  [
+   1,
+   "who-we-are",
+   "Who we are"
+  ],
+  [
+   2,
+   "what-we-collect",
+   "What information we collect"
+  ],
+  [
+   3,
+   "how-and-why",
+   "How and why we use your information"
+  ],
+  [
+   4,
+   "sensitive-information",
+   "Allergies and sensitive information"
+  ],
+  [
+   5,
+   "who-we-share-with",
+   "Who we share information with"
+  ],
+  [
+   6,
+   "marketing-private-table",
+   "Marketing and Private Table"
+  ],
+  [
+   7,
+   "cookies",
+   "Cookies and similar technologies"
+  ],
+  [
+   8,
+   "how-long-we-keep-it",
+   "How long we keep your information"
+  ],
+  [
+   9,
+   "your-rights",
+   "Your rights"
+  ],
+  [
+   10,
+   "security-transfers",
+   "Security and international transfers"
+  ],
+  [
+   11,
+   "questions-complaints",
+   "Questions and complaints"
+  ]
+ ],
+ "GROUPS": [
+  [
+   "Your privacy",
+   1,
+   3
+  ],
+  [
+   "How we use your information",
+   4,
+   7
+  ],
+  [
+   "Keeping your information",
+   8,
+   10
+  ],
+  [
+   "Need help?",
+   11,
+   11
+  ]
+ ]
+}

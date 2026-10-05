@@ -1,0 +1,1672 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>html, body { background-color: #F7F1E8; color-scheme: light; }</style>
+<!-- ↑ First-paint ground: FIRST in the head so it is in the first bytes the parser sees.
+     Dependency-free literal of --cream (no tokens, no runtime); see CLAUDE.md head standard. -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Focus standard. In the real <head>, before the runtime, so it is parser-inserted and
+     render-blocking: it exists before first paint and before any script can move focus. A
+     <helmet> link is injected by the runtime AFTER render, which is what let the browser's blue
+     outline flash first. -->
+<!-- Shared stylesheets: ONE authoritative load path, in the real head. In <helmet> they were
+     applied from the raw template, torn down when the runtime consumed it, then re-added —
+     the transparent gap on every full load and on back navigation. -->
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/colors.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/typography.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/styles.css">
+<link rel="stylesheet" href="at-focus.css">
+<script src="at-logo.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<!-- Order in progress: swaps "Get started" for VIEW BOX and the purchase bar for a box
+     summary once step 1 has been started. Self-initialising; no page-local code. -->
+<script src="at-order-state.js"></script>
+<!-- Signed in: "Log in" reads "My Account" in the header and drawer. Self-initialising. -->
+<script src="at-account-state.js"></script>
+  <script src="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/_ds_bundle.js"></script>
+  <!-- Unpack splash / no-JS fallback for the standalone export: brass-on-green, a sign-in card. -->
+  <template id="__bundler_thumbnail" data-bg-color="#1E3A2F">
+    <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+      <rect width="1200" height="800" fill="#1E3A2F"/>
+      <rect x="400" y="250" width="400" height="300" rx="18" fill="#F7F1E8"/>
+      <circle cx="600" cy="330" r="34" fill="none" stroke="#C28E3C" stroke-width="4"/>
+      <path d="M552 400h96M552 440h96" stroke="#86755F" stroke-width="6" stroke-linecap="round"/>
+      <rect x="520" y="480" width="160" height="34" rx="17" fill="#1E3A2F"/>
+    </svg>
+  </template>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background: var(--cream); }
+    a { color: var(--green-forest); }
+    a:hover { color: var(--terracotta-deep); }
+    :focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; border-radius: 3px; }
+    /* Brass is only 1.9:1 on green-deep, so dark grounds get a cream ring with a gold outer edge. */
+    .at-drawer-panel :focus-visible { outline-color: #FBF8F1; outline-offset: 0; box-shadow: 0 0 0 3px var(--gold); }
+    @keyframes at-drawer-in { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+    @keyframes at-fade-in { from { opacity: 0; } to { opacity: 1; } }
+    /* Closed with display: none rather than unmounted, so aria-controls always resolves, the
+       panel stays out of the accessibility tree and tab order, and the animation replays on open. */
+    .at-drawer-wrap { display: none; }
+    .at-drawer-wrap.is-open { display: block; }
+    .at-drawer-panel { animation: at-drawer-in .2s ease; }
+    .at-drawer-scrim { animation: at-fade-in .2s ease; }
+    /* Pending token overrides, same values and status as Homepage v2 / How It Works v2: page-local
+       until the components they belong to are approved and propagated.
+       --terracotta      sampled from the approved mockup (#B7554E); the shipped #B45F5A reads dull.
+       --gold            bright accent, DARK GROUNDS ONLY (9.3:1 on green-deep, 1.45:1 on cream).
+       --brass-ink       brass for SMALL TEXT on light grounds (4.96:1 on cream, ~4.8:1 on blush).
+       --terracotta-ink  terracotta as TYPE on light grounds (6.2:1 on cream) — the "Clear all"
+                         links. Plain --terracotta is 3.55:1 there and only ever passed at
+                         headline scale, which is what the old menu page used it at 13px.
+       --brass-lift      brass for TYPE on --green-forest, the mirror of --brass-ink: plain --brass
+                         is 4.25:1 there, which carries a mark but not a 14px figure, and this is
+                         4.97:1 while still reading bronze rather than yellow. It carries the gift
+                         card's VALUE, the ringed step numerals and the two panel labels.
+       --chilli and --sage are NOT declared: they belong to components this page does not have, and
+       the convention is to declare only what the page uses. */
+    :root { --terracotta: #B7554E; --terracotta-deep: #9C433D; --gold: #F6C33B; --brass-ink: #8A5F1F;
+            --terracotta-ink: #943E38; --brass-lift: #D09B45; }
+
+    html { scroll-behavior: smooth; }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+    .at-nav-link:hover { color: var(--terracotta-deep) !important; border-bottom-color: var(--brass) !important; }
+    /* Current page. aria-current was already on the right link in every header but nothing styled
+       it, so on desktop there was no way to tell where you were. Three signals, not colour alone:
+       green-forest ink, semibold, and the brass underline made persistent — the same underline the
+       hover uses, so the language is one. Hover still wins over it, which is correct: the pointer
+       is reporting what it is over, not where you are. */
+    .at-nav-link[aria-current="page"] { color: var(--green-forest) !important; font-weight: 600; border-bottom-color: var(--brass) !important; }
+    .at-login:hover { color: var(--terracotta-deep) !important; }
+    .at-login:hover span { border-bottom-color: var(--brass) !important; }
+    .at-drawer-link:hover { color: var(--brass) !important; }
+    /* No hover lift: fades and colour shifts, press is a colour deepen. The colour is re-stated on
+       hover because the global `a:hover` rule (0,1,1) outranks the button class (0,1,0). */
+    .at-cta, .at-drawer-cta { transition: background .16s ease; }
+    .at-cta:hover, .at-drawer-cta:hover { background: var(--terracotta-deep) !important; color: #fff !important; }
+    .at-cta:active, .at-drawer-cta:active { background: var(--terracotta-deep) !important; filter: brightness(.94); }
+    .at-logo { transition: opacity .16s ease; }
+    .at-logo:hover { opacity: .78; }
+    .at-burger span, .at-burger span span { transition: background .16s ease, border-color .16s ease; }
+    .at-burger:hover span { border-color: var(--terracotta-deep) !important; }
+    .at-burger:hover span span { background: var(--terracotta-deep) !important; }
+    .at-hdr { transition: transform .22s ease; }
+    .at-hdr[data-hidden="true"] { transform: translateY(-100%); }
+    /* Canonical mobile purchase bar, copied verbatim from Homepage v2. */
+    .at-mobbar { transform: translateY(100%); transition: transform .22s ease; }
+    .at-mobbar[data-on="true"] { transform: translateY(0); }
+    .at-mobbar-cta:hover { background: var(--green-deep) !important; }
+    .at-mobbar-cta:active { filter: brightness(.94); }
+    @media (prefers-reduced-motion: reduce) {
+      .at-cta, .at-drawer-cta, .at-hdr, .at-mobbar { transition: none !important; }
+    }
+
+    /* Footer, canonical. Mobile-first: the accordion IS the mobile design and is switched off at
+       1024. All type on --green-deep clears AA: brass 5.2:1, green-sage 5.4:1, sand-2 9.9:1. */
+    .at-foot-news { text-align: center; }
+    .at-foot-head { justify-content: center; cursor: pointer; }
+    .at-foot-link { justify-content: center; transition: color .16s ease; }
+    .at-foot-links { align-items: stretch; display: none; flex-direction: column; }
+    .at-foot-link:hover { color: var(--brass) !important; }
+    .at-foot-legal a:hover { color: var(--brass) !important; }
+    .at-foot-col.is-open .at-foot-links { display: flex; }
+    .at-foot-col.is-open .at-foot-chevron { transform: rotate(180deg); }
+    .at-foot-chevron { transition: transform .18s ease; }
+    .at-social svg { transition: fill .16s ease; }
+    .at-social:hover svg { fill: var(--brass); }
+    .at-foot-join { transition: background .16s ease; }
+    .at-foot-join:hover { background: var(--brass-deep) !important; }
+    .at-foot-join:active { filter: brightness(.94); }
+    .at-foot-input::placeholder { color: var(--green-sage); opacity: 1; }
+    /* Cream ring with a gold outer edge, offset 0: two crisp bands, not a glow. */
+    .at-foot-inner a:focus-visible, .at-foot-inner button:focus-visible, .at-foot-input:focus-visible {
+      outline: 2px solid var(--cream); outline-offset: 0; box-shadow: 0 0 0 3px var(--gold);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .at-foot-chevron, .at-foot-link, .at-foot-join, .at-social svg { transition: none !important; }
+    }
+
+    /* --- My Account. Mobile is the base; 640 and 1024 add compositions, never overrides. --- */
+    :root { --sage: #E1E2D2; --chilli: #B8431C; }
+    .ac-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .ac-hero { padding: 36px 0 26px; }
+    .ac-hero-grid { display: grid; gap: 24px; align-items: start; }
+    .ac-lede { margin: 10px 0 0; font-family: var(--font-sans); font-size: 18px; line-height: 1.55; color: var(--brown); text-wrap: pretty; }
+    /* Box in progress: the marketing chrome's VIEW BOX, restated where a returning customer looks first. */
+    .ac-wip { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; margin-top: 20px; padding: 14px 16px; background: var(--cream-3); border: 1px solid var(--sand); border-radius: 14px; }
+    .ac-wip-t { display: flex; flex-direction: column; gap: 2px; font-family: var(--font-sans); font-size: 16px; line-height: 1.35; color: var(--brown); }
+    .ac-wip-t b { font-weight: 600; color: var(--green-forest); }
+    .ac-pill { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 22px; border-radius: var(--radius-pill); background: var(--green-forest); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; text-decoration: none; border: none; cursor: pointer; white-space: nowrap; transition: background .16s ease; }
+    .ac-pill:hover { background: var(--green-deep); color: #fff; }
+    .ac-pill:active { filter: brightness(.94); }
+    .ac-pill-o { background: transparent; color: var(--green-forest); border: 1px solid var(--green-forest); }
+    .ac-pill-o:hover { background: var(--green-forest); color: #fff; }
+    /* Next delivery: the one forest-green object on the page, because it is the one thing a
+       customer comes here to check. Type on green: cream/blush, --brass-lift for the label. */
+    .ac-next { background: var(--green-forest); border-radius: 18px; padding: 22px 20px 20px; color: var(--cream); }
+    .ac-next-l { margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass-lift); }
+    .ac-next-s { margin: 10px 0 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 26px; line-height: 1.2; color: var(--cream); }
+    .ac-next-d { margin: 8px 0 0; font-family: var(--font-sans); font-weight: 600; font-size: 17px; line-height: 1.4; color: var(--cream); }
+    .ac-next-a { margin: 4px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.45; color: var(--blush); }
+    .ac-track { list-style: none; margin: 22px 0 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .ac-track li { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+    .ac-track li + li::before { content: ""; position: absolute; top: 6px; right: 50%; width: 100%; height: 2px; background: var(--green-mid); }
+    .ac-track li[data-s="done"]::before, .ac-track li[data-s="now"]::before { background: var(--brass-lift); }
+    .ac-dot { position: relative; z-index: 1; width: 14px; height: 14px; border-radius: 50%; background: var(--green-forest); border: 2px solid var(--green-mid); }
+    .ac-track li[data-s="done"] .ac-dot { background: var(--brass-lift); border-color: var(--brass-lift); }
+    .ac-track li[data-s="now"] .ac-dot { background: var(--green-forest); border-color: var(--gold); box-shadow: 0 0 0 3px rgba(246,195,59,.25); }
+    .ac-tl { font-family: var(--font-sans); font-size: 13px; line-height: 1.3; color: var(--blush); }
+    .ac-track li[data-s="now"] .ac-tl { color: var(--cream); font-weight: 600; }
+    .ac-next-link { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-top: 14px; font-family: var(--font-sans); font-size: 16px; color: var(--cream); text-decoration: none; }
+    .ac-next-link span:first-child { border-bottom: 1.5px solid var(--brass-lift); padding-bottom: 2px; }
+    .ac-next-link:hover { color: var(--gold); }
+    .ac-next :focus-visible { outline: 2px solid var(--cream) !important; outline-offset: 2px; box-shadow: 0 0 0 4px var(--gold); }
+
+    .ac-body { padding: 6px 0 64px; }
+    .ac-layout { display: grid; gap: 28px; align-items: start; }
+    /* The account menu IS the mobile overview; inside a section it gives way to a back link.
+       One element, shown or hidden — from 1024 it is a permanent sidebar. */
+    .ac-nav { display: none; }
+    .ac-layout[data-view="overview"] .ac-nav { display: block; }
+    .ac-nav-card { background: var(--cream-3); border: 1px solid var(--sand); border-radius: 18px; overflow: hidden; }
+    .ac-nav-h { margin: 0; padding: 18px 20px 6px; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass-ink); }
+    .ac-nav ul { list-style: none; margin: 0; padding: 0; }
+    .ac-nav li + li { border-top: 1px solid var(--sand); }
+    .ac-nav-ovw { display: none; }
+    .ac-nav-a { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 12px; min-height: 64px; padding: 12px 20px; width: 100%; box-sizing: border-box; text-decoration: none; background: transparent; border: none; text-align: left; cursor: pointer; transition: background .16s ease; }
+    .ac-nav-a:hover { background: var(--cream-2); }
+    .ac-nav-t { font-family: var(--font-sans); font-weight: 600; font-size: 17px; color: var(--green-forest); }
+    .ac-nav-m { grid-column: 1; font-family: var(--font-sans); font-size: 14px; line-height: 1.35; color: var(--brown); }
+    .ac-nav-c { grid-column: 2; grid-row: 1 / span 2; color: var(--brass); }
+    .ac-nav-out { border-top: 1px solid var(--sand); }
+    .ac-nav-out .ac-nav-a { min-height: 56px; }
+    .ac-nav-out .ac-nav-t { font-weight: 500; color: var(--terracotta-ink); }
+    .ac-back { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--green-forest); text-decoration: none; }
+    .ac-back span:last-child { border-bottom: 1.5px solid var(--brass); padding-bottom: 2px; }
+    .ac-back:hover { color: var(--terracotta-deep); }
+
+    .ac-main { min-width: 0; display: flex; flex-direction: column; gap: 28px; }
+    .ac-sec { display: flex; flex-direction: column; gap: 18px; }
+    .ac-h2 { margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(30px, 8.4vw, 40px); line-height: 1.1; letter-spacing: -0.01em; color: var(--green-forest); }
+    .ac-h2:focus { outline: none; }
+    .ac-sub { margin: -8px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; color: var(--brown); text-wrap: pretty; }
+    .ac-h3 { margin: 8px 0 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass-ink); }
+    .ac-h3:focus { outline: none; }
+    .ac-card { background: var(--cream-3); border: 1px solid var(--sand); border-radius: 18px; padding: 20px; }
+    .ac-card-t { margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.25; color: var(--green-forest); }
+    .ac-p { margin: 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); text-wrap: pretty; }
+    .ac-p-s { margin: 0; font-family: var(--font-sans); font-size: 14px; line-height: 1.45; color: var(--brown); }
+    .ac-list { display: grid; gap: 14px; }
+    .ac-empty { background: transparent; border: 1px dashed var(--sand-2); border-radius: 18px; padding: 22px 20px; display: grid; gap: 12px; justify-items: start; }
+
+    /* Orders */
+    .ac-ord-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+    .ac-ord-no { font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass-ink); }
+    .ac-status { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 12px; border-radius: var(--radius-pill); font-family: var(--font-sans); font-weight: 600; font-size: 13px; }
+    .ac-status[data-k="live"] { background: var(--sage); color: var(--green-forest); }
+    .ac-status[data-k="done"] { background: var(--sand); color: var(--brown); }
+    .ac-ord-body { display: grid; gap: 6px; margin-top: 10px; }
+    .ac-ord-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; font-family: var(--font-sans); font-size: 16px; color: var(--brown); }
+    .ac-ord-meta b { font-weight: 600; color: var(--green-forest); }
+    .ac-gift { display: flex; align-items: flex-start; gap: 8px; margin: 4px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--blush); font-family: var(--font-sans); font-size: 16px; line-height: 1.45; color: var(--brown); }
+    .ac-disc { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; margin-top: 8px; padding: 0; border: none; background: transparent; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; color: var(--green-forest); }
+    .ac-disc svg { transition: transform .18s ease; }
+    .ac-disc[aria-expanded="true"] svg { transform: rotate(180deg); }
+    .ac-dishes { list-style: none; margin: 0 0 4px; padding: 0; display: grid; border-top: 1px solid var(--sand); }
+    .ac-dishes li { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--sand); font-family: var(--font-sans); font-size: 16px; line-height: 1.4; color: var(--brown); }
+    .ac-dishes b { font-weight: 600; color: var(--green-forest); }
+    .ac-sig { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: var(--radius-pill); background: var(--navy); color: var(--cream); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; vertical-align: 2px; }
+    .ac-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-top: 14px; }
+    .ac-tlink { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--green-forest); text-decoration: none; }
+    .ac-tlink span:first-child { border-bottom: 1.5px solid var(--brass); padding-bottom: 2px; transition: border-color .16s ease; }
+    .ac-tlink:hover { color: var(--terracotta-deep); }
+    .ac-tlink:hover span:first-child { border-bottom-color: var(--terracotta-deep); }
+    /* In-place actions (Edit, Remove, Resend): sentence case, no arrow, 44px. */
+    .ac-act { display: inline-flex; align-items: center; min-height: 44px; padding: 0; border: none; background: transparent; cursor: pointer; font-family: var(--font-sans); font-weight: 600; font-size: 16px; color: var(--green-forest); text-decoration: underline; text-decoration-color: var(--brass); text-decoration-thickness: 1.5px; text-underline-offset: 5px; text-decoration-skip-ink: none; }
+    .ac-act:hover { color: var(--terracotta-deep); text-decoration-color: var(--terracotta-deep); }
+    .ac-act-rm { color: var(--terracotta-ink); }
+    .ac-ok { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--sage); font-family: var(--font-sans); font-size: 16px; line-height: 1.45; color: var(--green-forest); }
+
+    /* Points */
+    .ac-pts { background: var(--blush); border: 1px solid var(--sand-2); border-radius: 18px; padding: 22px 20px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 14px; align-items: center; }
+    .ac-pts-ic { grid-row: 1 / span 2; }
+    .ac-pts-n { font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 40px; line-height: 1; color: var(--green-forest); }
+    .ac-pts-l { font-family: var(--font-sans); font-size: 16px; line-height: 1.45; color: var(--brown); }
+    .ac-hist { list-style: none; margin: 0; padding: 0 20px; background: var(--cream-3); border: 1px solid var(--sand); border-radius: 18px; }
+    .ac-hist li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 14px; padding: 14px 0; }
+    .ac-hist li + li { border-top: 1px solid var(--sand); }
+    .ac-hist-t { font-family: var(--font-sans); font-weight: 600; font-size: 16px; color: var(--green-forest); }
+    .ac-hist-d { grid-column: 1; font-family: var(--font-sans); font-size: 14px; color: var(--brown); }
+    .ac-hist-v { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-family: var(--font-sans); font-weight: 600; font-size: 17px; color: var(--green-forest); }
+
+    /* Points: balance + value, milestone line, how it works, calculator, history in points and £. */
+    .ac-pts-v { font-family: var(--font-sans); font-weight: 600; font-size: 17px; color: var(--green-forest); }
+    .ac-pts-bal { background: var(--blush); border: 1px solid var(--sand-2); border-radius: 18px; padding: 22px 20px; display: grid; gap: 14px; }
+    .ac-pts-top { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 14px; align-items: center; }
+    .ac-pts-top .ac-pts-ic { grid-row: 1 / span 2; }
+    .ac-ms { display: grid; gap: 8px; }
+    /* A £5 mark passed since the last visit: one quiet line in place of the progress bar. */
+    .ac-ms-hit { display: flex; align-items: center; gap: 8px; margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.4; color: var(--green-forest); }
+    .ac-ms-track { position: relative; height: 6px; border-radius: 3px; background: rgba(30,58,47,.14); overflow: hidden; }
+    .ac-ms-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--brass-ink); transition: width .4s ease; }
+    .ac-ms-row { display: flex; justify-content: space-between; gap: 12px; font-family: var(--font-sans); font-size: 14px; color: var(--brown); }
+    .ac-ms-row b { font-weight: 600; color: var(--green-forest); }
+    .ac-how { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; counter-reset: how; }
+    .ac-how li { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 14px; align-items: start; }
+    .ac-how-n { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; border: 1.5px solid var(--brass); font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 20px; color: var(--green-forest); }
+    .ac-how-t { display: block; margin-top: 2px; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 20px; line-height: 1.25; color: var(--green-forest); }
+    .ac-how-d { display: block; margin-top: 3px; font-family: var(--font-sans); font-size: 16px; line-height: 1.45; color: var(--brown); }
+    .ac-calc { display: grid; gap: 16px; }
+    .ac-seg { display: flex; flex-wrap: wrap; gap: 8px; }
+    .ac-seg button { min-height: 44px; min-width: 64px; padding: 0 16px; border-radius: var(--radius-pill); border: 1px solid var(--taupe); background: var(--white); font-family: var(--font-sans); font-weight: 600; font-size: 16px; color: var(--green-forest); cursor: pointer; transition: background .16s ease, border-color .16s ease, color .16s ease; }
+    .ac-seg button:hover { border-color: var(--green-forest); }
+    .ac-seg button[aria-pressed="true"] { background: var(--green-forest); border-color: var(--green-forest); color: #fff; }
+    .ac-calc-own { display: flex; align-items: center; gap: 10px; font-family: var(--font-sans); font-size: 16px; color: var(--brown); }
+    .ac-calc-own .at-field { width: 84px; text-align: center; }
+    .ac-calc-out { display: grid; gap: 10px; padding: 18px; border-radius: 14px; background: var(--cream-2); border: 1px solid var(--sand); }
+    .ac-calc-big { margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 26px; line-height: 1.2; color: var(--green-forest); text-wrap: pretty; }
+    .ac-calc-pts { color: var(--brass-ink); }
+    .ac-calc-out[data-stale="true"] { display: none; }
+    .ac-hist-r { grid-column: 2; font-family: var(--font-sans); font-size: 14px; color: var(--brown); text-align: right; }
+    .ac-hist li { grid-template-columns: minmax(0, 1fr) auto; }
+    .ac-hist-v { grid-row: 1; }
+    .ac-hist-v small { font-weight: 500; font-size: 14px; color: var(--brown); }
+    @media (prefers-reduced-motion: reduce) { .ac-ms-fill, .ac-seg button { transition: none !important; } }
+
+    /* Addresses */
+    .ac-addr-grid { display: grid; gap: 14px; }
+    .ac-addr { display: flex; flex-direction: column; gap: 4px; }
+    .ac-addr-top { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .ac-addr-l { font-family: var(--font-sans); font-weight: 600; font-size: 17px; color: var(--green-forest); }
+    .ac-def { display: inline-flex; align-items: center; min-height: 26px; padding: 0 10px; border-radius: var(--radius-pill); background: var(--sage); font-family: var(--font-sans); font-weight: 600; font-size: 13px; color: var(--green-forest); }
+    .ac-confirm { display: grid; gap: 8px; margin-top: 10px; padding: 12px 14px; border-radius: 12px; background: var(--cream-2); border: 1px solid var(--sand); }
+    .ac-form { display: grid; gap: 16px; }
+    .ac-form-row { display: grid; gap: 16px; }
+    .ac-label { display: block; margin-bottom: 7px; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass-ink); }
+    .ac-label i { font-style: normal; font-weight: 500; letter-spacing: .04em; text-transform: none; color: var(--brown); }
+    .ac-hint { margin: 7px 0 0; font-family: var(--font-sans); font-size: 14px; line-height: 1.45; color: var(--brown); }
+    .at-field { width: 100%; box-sizing: border-box; min-height: 52px; border: 1px solid var(--taupe); border-radius: 12px; background: var(--white); padding: 13px 16px; font-family: var(--font-sans); font-size: 16px; line-height: 1.4; color: var(--brown); transition: border-color .16s ease; }
+    .at-field:hover { border-color: var(--brown); }
+    .at-field:focus-visible { border-color: var(--green-forest); outline: 2px solid var(--brass); outline-offset: 2px; }
+    .at-field[aria-invalid="true"] { border-color: var(--chilli); }
+    textarea.at-field { min-height: 96px; resize: vertical; }
+    .ac-err { display: flex; align-items: flex-start; gap: 6px; margin: 7px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.45; color: var(--chilli); }
+    .ac-check { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 12px; align-items: start; min-height: 44px; cursor: pointer; font-family: var(--font-sans); font-size: 16px; line-height: 1.45; color: var(--brown); }
+    .ac-check input { width: 22px; height: 22px; margin: 1px 0 0; accent-color: var(--green-forest); cursor: pointer; }
+    .ac-submit { display: inline-flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; padding: 0 30px; border: none; border-radius: var(--radius-pill); background: var(--green-forest); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; text-decoration: none; cursor: pointer; transition: background .16s ease; }
+    .ac-submit:hover { background: var(--green-deep); color: #fff; }
+    .ac-submit:active { filter: brightness(.94); }
+    .ac-form-acts { display: grid; gap: 6px; justify-items: center; }
+    .ac-pt { background: var(--navy); border-radius: 18px; padding: 22px 20px; display: grid; gap: 8px; }
+    .ac-pt .ac-card-t, .ac-pt .ac-p { color: var(--cream); }
+    .ac-pt-l { margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--blush); }
+    .ac-pt a { color: var(--cream); }
+    .ac-pt a span:first-child { border-bottom-color: var(--blush); }
+    .ac-pt :focus-visible { outline: 2px solid var(--cream) !important; outline-offset: 2px; box-shadow: 0 0 0 4px var(--gold); }
+
+    /* Desktop-only overview panel: on a phone the menu above carries the same summaries. */
+    .ac-ovw { display: none; }
+    .ac-ovw-grid { display: grid; gap: 14px; }
+    /* Recent order row: details + price stacked on the left (as in Orders), Order again on the right. */
+    .ac-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; }
+    .ac-row + .ac-row { border-top: 1px solid var(--sand); }
+    .ac-row-main { min-width: 0; display: flex; flex-direction: column; gap: 2px; text-decoration: none; }
+    .ac-row-t { font-family: var(--font-sans); font-weight: 600; font-size: 16px; color: var(--green-forest); }
+    .ac-row-d { font-family: var(--font-sans); font-size: 14px; color: var(--brown); }
+    .ac-row-v { margin-top: 4px; font-family: var(--font-sans); font-weight: 600; font-size: 16px; color: var(--green-forest); }
+    .ac-row-main:hover .ac-row-t { color: var(--terracotta-deep); }
+    .ac-row .ac-pill { flex: 0 0 auto; }
+
+    /* "Need help → Contact us" panel: the shared module, 52px CTA. */
+    .ac-help { background: var(--cream-2); border: 1px solid var(--sand); border-radius: 18px; padding: 24px 20px; display: grid; gap: 10px; text-align: center; justify-items: center; }
+    .ac-help .ac-submit { margin-top: 8px; }
+
+
+    /* Order again: bottom sheet on a phone, centred dialog from 640. Content-rich, so focus goes to
+       the heading (tabindex -1). Every dish starts ticked: the whole box is one tap. */
+    .ac-ro-wrap { position: fixed; inset: 0; z-index: 100; }
+    .ac-ro-scrim { position: absolute; inset: 0; background: rgba(21,41,31,.5); animation: at-fade-in .2s ease; }
+    .ac-ro { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; max-height: 90dvh; background: var(--cream); border-radius: 18px 18px 0 0; box-shadow: 0 -12px 36px rgba(21,41,31,.22); }
+    .ac-ro-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px 4px; }
+    .ac-ro-h { margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 28px; line-height: 1.15; color: var(--green-forest); }
+    .ac-ro-h:focus { outline: none; }
+    .ac-ro-x { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-right: -10px; border: none; background: transparent; color: var(--green-forest); cursor: pointer; }
+    .ac-ro-x:hover { color: var(--terracotta-deep); }
+    .ac-ro-body { flex: 1 1 auto; overflow-y: auto; padding: 0 20px 6px; display: flex; flex-direction: column; gap: 12px; }
+    .ac-ro-wip { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--sage); font-family: var(--font-sans); font-size: 16px; line-height: 1.45; color: var(--green-forest); }
+    .ac-ro-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--sand); }
+    .ac-ro-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--sand); }
+    .ac-ro-pick { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 12px; align-items: start; min-height: 44px; padding: 4px 0; cursor: pointer; }
+    .ac-ro-pick input { width: 22px; height: 22px; margin: 2px 0 0; accent-color: var(--green-forest); cursor: pointer; }
+    .ac-ro-pick input:disabled { cursor: not-allowed; }
+    .ac-ro-name { display: flex; flex-direction: column; gap: 2px; font-family: var(--font-sans); font-size: 16px; line-height: 1.35; color: var(--green-forest); font-weight: 600; }
+    .ac-ro-meta { font-weight: 400; font-size: 14px; color: var(--brown); }
+    .ac-ro-row[data-off="true"] .ac-ro-name { color: var(--brown); font-weight: 500; }
+    .ac-ro-row[data-na="true"] .ac-ro-pick { cursor: default; }
+    .ac-ro-step { display: inline-flex; align-items: center; gap: 4px; }
+    .ac-ro-step button { position: relative; width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid var(--brass); background: transparent; color: var(--brass-ink); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: background .16s ease, color .16s ease; }
+    .ac-ro-step button::before { content: ""; position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; transform: translate(-50%, -50%); }
+    .ac-ro-step button:hover:not(:disabled) { background: var(--brass); color: var(--white); }
+    .ac-ro-step button:disabled { opacity: .4; cursor: not-allowed; }
+    .ac-ro-q { min-width: 26px; text-align: center; font-family: var(--font-sans); font-weight: 600; font-size: 16px; color: var(--green-forest); }
+    .ac-ro-foot { flex: 0 0 auto; display: grid; gap: 6px; padding: 14px 20px calc(16px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--sand-2); background: var(--cream-2); }
+    .ac-ro-sum { margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.45; color: var(--green-forest); text-wrap: pretty; }
+    .ac-ro-sum:focus { outline: none; }
+    .ac-ro-sum[data-err="true"] { color: var(--chilli); }
+    .ac-ro-foot .ac-submit { margin-top: 6px; }
+    .ac-ro-cancel { justify-self: center; }
+    @media (min-width: 640px) {
+      .ac-ro { left: 50%; right: auto; top: 50%; bottom: auto; transform: translate(-50%, -50%); width: min(560px, calc(100% - 48px)); max-height: min(720px, calc(100dvh - 64px)); border-radius: 18px; box-shadow: 0 24px 60px rgba(21,41,31,.28); }
+      .ac-ro-head { padding: 22px 28px 6px; }
+      .ac-ro-body { padding: 0 28px 8px; }
+      .ac-ro-foot { padding: 16px 28px 20px; border-radius: 0 0 18px 18px; }
+      .ac-ro-foot .ac-submit { width: 100%; }
+    }
+    @media (prefers-reduced-motion: reduce) { .ac-ro-scrim { animation: none; } .ac-ro-step button { transition: none !important; } }
+    .ac-out { padding: 56px 0 64px; min-height: calc(100dvh - 210px); }
+    .ac-out-card { max-width: 520px; margin: 26px auto 0; background: var(--cream-3); border: 1px solid var(--sand); border-radius: 18px; padding: 26px 22px; display: grid; gap: 14px; text-align: center; }
+    @media (prefers-reduced-motion: reduce) {
+      .ac-pill, .ac-nav-a, .ac-submit, .ac-disc svg, .at-field, .ac-tlink span { transition: none !important; }
+    }
+
+    /* --- 640px: more measure, so the controls sit on one row and the grid splits --- */
+    @media (min-width: 640px) {
+      .at-hdr-row { padding: 14px 34px !important; gap: 14px !important; }
+      .at-cta { font-size: 13px !important; letter-spacing: .1em !important; padding: 0 20px !important; }
+      .at-foot-form { flex-direction: row !important; align-items: stretch !important; gap: 0 !important; height: 52px !important; width: 340px; max-width: 100%; margin-left: auto !important; margin-right: auto !important; border: 1px solid var(--green-mid); border-radius: var(--radius-pill); overflow: hidden; }
+      .at-foot-input { flex: 1 1 auto !important; min-width: 0 !important; border: none !important; border-radius: 0 !important; height: auto !important; }
+      .at-foot-join { border-radius: 0 !important; height: auto !important; width: auto !important; padding: 0 26px !important; }
+      .at-foot-inner { padding: 48px 34px 0 !important; }
+      .at-page-inner { padding: 0 34px !important; }
+
+      .ac-hero { padding: 44px 0 30px; }
+      .ac-next { padding: 26px 28px 22px; }
+      .ac-card, .ac-pts, .ac-help, .ac-empty { padding: 24px 26px; }
+      .ac-hist { padding: 0 26px; }
+      .ac-addr-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .ac-form-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .ac-submit { width: auto; }
+      .ac-form-acts { justify-items: start; grid-auto-flow: column; justify-content: start; gap: 18px; align-items: center; }
+      .ac-help .ac-submit { padding: 0 40px; }
+      .ac-ovw-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    /* --- 1024px: desktop composition — nav in the header, filters inline, three cards across --- */
+    @media (min-width: 1024px) {
+      .at-burger { display: none !important; }
+      .at-nav, .at-login { display: flex !important; }
+      .at-hdr-row { padding: 18px 48px !important; grid-template-columns: auto 1fr auto auto !important; gap: 34px !important; }
+      .at-logo { justify-self: start !important; }
+      .at-login { margin-left: 12px !important; }
+      .at-foot-inner { padding: 56px 48px 0 !important; }
+      .at-foot-grid { grid-template-columns: 1.4fr 3fr !important; gap: 48px !important; }
+      .at-foot-cols { grid-template-columns: repeat(3, 1fr) !important; gap: 48px !important; border-bottom: none !important; }
+      .at-foot-col { border-top: none !important; }
+      .at-foot-head { min-height: 0 !important; padding: 0 !important; cursor: default !important; justify-content: space-between !important; }
+      .at-foot-chevron { display: none !important; }
+      .at-foot-links { display: flex !important; margin-top: 16px !important; padding-bottom: 0 !important; }
+      .at-foot-link { justify-content: flex-start !important; }
+      .at-foot-bottom { grid-template-columns: 1fr auto 1fr !important; align-items: center !important; margin-top: 0 !important; }
+      .at-foot-logo { justify-self: start !important; }
+      .at-foot-follow { justify-self: end !important; align-items: flex-end !important; }
+      .at-foot-follow-row { flex-direction: row !important; align-items: center !important; gap: 12px !important; }
+      .at-foot-dash { display: inline !important; }
+      .at-foot-mark { width: 220px !important; height: 38px !important; }
+      .at-foot-legal { flex-direction: row !important; gap: 4px 24px !important; }
+      .at-foot-legal-row { gap: 24px !important; }
+      .at-foot-legal-sep { display: none !important; }
+      .at-foot-rule { display: block !important; }
+      .at-foot-news { text-align: left !important; }
+      .at-foot-form { margin-left: 0 !important; margin-right: 0 !important; }
+      .at-foot-news p { max-width: 300px; }
+      .at-foot-consent { max-width: 340px; }
+      .at-mobbar { display: none !important; }
+      .at-hdr[data-hidden="true"] { transform: none !important; }
+      .at-page-inner { padding: 0 48px !important; }
+      .at-h1 { font-size: 56px !important; }
+
+      .ac-hero { padding: 60px 0 40px; }
+      .ac-hero-grid { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 48px; align-items: center; }
+      .ac-next-s { font-size: 30px; }
+      .ac-tl { font-size: 14px; }
+      .ac-body { padding: 8px 0 88px; }
+      .ac-layout { grid-template-columns: 272px minmax(0, 1fr); gap: 48px; }
+      .ac-nav { display: block; position: sticky; top: 100px; }
+      .ac-nav-ovw { display: list-item; }
+      .ac-nav-a { min-height: 50px; padding: 10px 20px; }
+      .ac-nav-m, .ac-nav-c { display: none; }
+      .ac-nav-t { font-weight: 500; font-size: 16px; color: var(--brown); }
+      .ac-nav-a[aria-current="page"] { background: var(--sage); }
+      .ac-nav-a[aria-current="page"] .ac-nav-t { font-weight: 600; color: var(--green-forest); }
+      .ac-nav-out .ac-nav-a { min-height: 50px; }
+      .ac-back { display: none; }
+      .ac-ovw { display: flex; flex-direction: column; gap: 18px; }
+      .ac-h2 { font-size: 40px; }
+    }
+
+  </style>
+<style>
+  /* Sterling sign, site-wide. Playfair Display's £ has a double crossbar that reads as a euro, so
+     U+00A3 alone is drawn from a Figtree subset (1 KB, 400–700) prepended to the display and
+     accent stacks. Every other character is untouched. html:root outranks the token sheet. */
+  @font-face { font-family: "AT Sterling"; src: url("assets/fonts/at-sterling.woff2") format("woff2"); font-weight: 400 700; font-style: normal; font-display: block; unicode-range: U+00A3; }
+  html:root {
+    --font-display: "AT Sterling", "Playfair Display", ui-serif, Georgia, "Times New Roman", serif;
+    --font-accent: "AT Sterling", "Cormorant Garamond", ui-serif, Georgia, serif;
+  }
+</style>
+</helmet>
+
+<header class="at-hdr" ref="{{ hdrRef }}" data-hidden="{{ hdrHidden }}" style="position: sticky; top: 0; z-index: 60; background: var(--cream-2); border-bottom: 1px solid var(--sand);">
+  <div class="at-hdr-row" style="display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 8px; max-width: 1280px; margin: 0 auto; padding: 10px 14px;">
+
+    <button class="at-burger" type="button" ref="{{ burgerRef }}" onClick="{{ openDrawer }}" aria-label="Open menu" aria-controls="at-drawer" aria-expanded="{{ burgerExpanded }}" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-left: -10px; border: none; background: transparent; cursor: pointer;">
+      <span aria-hidden="true" style="display: block; width: 22px; height: 14px; border-top: 1.6px solid var(--green-forest); border-bottom: 1.6px solid var(--green-forest); position: relative;"><span style="position: absolute; left: 0; right: 0; top: 50%; margin-top: -0.8px; height: 1.6px; background: var(--green-forest);"></span></span>
+    </button>
+
+    <a class="at-logo" href="Abby's Table - Homepage v2.dc.html" aria-label="Abby&#8217;s Table &#8212; home" style="justify-self: center; display: block; text-decoration: none; min-width: 0;">
+      <span aria-hidden="true" style="display: block; width: clamp(108px, 36vw, 168px); aspect-ratio: 186 / 32; color: var(--green-forest);"><at-wordmark></at-wordmark></span>
+    </a>
+
+    <nav class="at-nav" aria-label="Main" style="display: none; justify-self: center; align-items: center; gap: 30px;">
+      <a class="at-nav-link" href="Abby's Table - Menu Landing v3.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Menu</a>
+      <a class="at-nav-link" href="Abby's Table - How It Works v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">How it works</a>
+      <a class="at-nav-link" href="Abby's Table - Abby's Story v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Abby&#8217;s Story</a>
+      <a class="at-nav-link" href="Abby's Table - Gifting v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Gifting</a>
+      <a class="at-nav-link" href="Abby's Table - Private Table v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Private Table</a>
+    </nav>
+
+    <a class="at-login" href="{{ acctHref }}" aria-current="{{ acctCur }}" style="display: none; align-items: center; height: 44px; font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; transition: color .16s ease;"><span style="display: inline-block; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: border-color .16s ease;">{{ acctLabel }}</span></a>
+
+    <a class="at-cta" href="Abby's Table - Choose Box v2.dc.html" style="display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 13px; border-radius: var(--radius-pill); background: var(--terracotta); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; text-decoration: none; white-space: nowrap;">Get started</a>
+  </div>
+</header>
+
+<main>
+  <sc-if value="{{ signedOut }}" hint-placeholder-val="{{ false }}">
+    <section class="ac-out" data-screen-label="My Account (signed out)" style="background: var(--cream);">
+      <div class="at-page-inner" style="max-width: 1280px; margin: 0 auto; padding: 0 22px; text-align: center;">
+        <h1 class="at-h1" tabindex="-1" style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(38px, 11.6vw, 56px); line-height: 1.04; letter-spacing: -0.015em; color: var(--green-forest);">You&#8217;re signed out</h1>
+        <div class="ac-out-card">
+          <p class="ac-p">Log in to see your orders, points and saved details.</p>
+          <a class="ac-submit" href="Abby's Table - Log in.dc.html" style="width: 100%;">Log in</a>
+        </div>
+      </div>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{ signedIn }}" hint-placeholder-val="{{ true }}">
+  <section class="ac-hero" data-screen-label="My Account" style="background: var(--cream);">
+    <div class="at-page-inner" style="max-width: 1280px; margin: 0 auto; padding: 0 22px;">
+      <div class="ac-hero-grid">
+        <div>
+          <h1 class="at-h1" id="ac-h1" ref="{{ h1Ref }}" tabindex="-1" style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(38px, 11.6vw, 56px); line-height: 1.04; letter-spacing: -0.015em; color: var(--green-forest); text-wrap: pretty;">Hello, {{ firstName }}</h1>
+          <p class="ac-lede">Your orders, points and saved details, all in one place.</p>
+          <sc-if value="{{ wipOn }}" hint-placeholder-val="{{ false }}">
+            <div class="ac-wip">
+              <span class="ac-wip-t"><b>You have a box in progress</b><span>{{ wipLabel }} &#183; {{ wipTotal }}</span></span>
+              <a class="ac-pill" href="Abby's Table - Choose Box v2.dc.html?resume=1">View box</a>
+            </div>
+          </sc-if>
+        </div>
+
+        <sc-if value="{{ nextOn }}" hint-placeholder-val="{{ true }}">
+          <div class="ac-next" role="group" aria-labelledby="ac-next-l">
+            <p class="ac-next-l" id="ac-next-l">Next delivery</p>
+            <p class="ac-next-s">We&#8217;re preparing your box</p>
+            <p class="ac-next-d">Thursday 8 October &#183; 7am &#8211; 6pm</p>
+            <p class="ac-next-a">Order AT-10517 &#183; 12 High Street, Dartford DA1 1AA</p>
+            <ol class="ac-track" aria-label="Delivery progress">
+              <li data-s="done"><span class="ac-dot" aria-hidden="true"></span><span class="ac-tl"><span class="ac-sr">Completed: </span>Confirmed</span></li>
+              <li data-s="now" aria-current="step"><span class="ac-dot" aria-hidden="true"></span><span class="ac-tl"><span class="ac-sr">Current: </span>Cooking</span></li>
+              <li data-s="todo"><span class="ac-dot" aria-hidden="true"></span><span class="ac-tl">Out for delivery</span></li>
+              <li data-s="todo"><span class="ac-dot" aria-hidden="true"></span><span class="ac-tl">Delivered</span></li>
+            </ol>
+            <a class="ac-next-link" href="#orders"><span>View order details</span><span aria-hidden="true">&#8594;</span></a>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </section>
+
+  <section class="ac-body" style="background: var(--cream);">
+    <div class="at-page-inner" style="max-width: 1280px; margin: 0 auto; padding: 0 22px;">
+      <div class="ac-layout" data-view="{{ view }}">
+
+        <nav class="ac-nav" aria-label="Account">
+          <div class="ac-nav-card">
+            <p class="ac-nav-h">Your account</p>
+            <ul>
+              <li class="ac-nav-ovw"><a class="ac-nav-a" href="#" aria-current="{{ cur.overview }}"><span class="ac-nav-t">Overview</span></a></li>
+              <li><a class="ac-nav-a" href="#orders" aria-current="{{ cur.orders }}"><span class="ac-nav-t">Orders</span><span class="ac-nav-m">{{ meta.orders }}</span><span class="ac-nav-c"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg></span></a></li>
+              <li><a class="ac-nav-a" href="#points" aria-current="{{ cur.points }}"><span class="ac-nav-t">Points</span><span class="ac-nav-m">{{ meta.points }}</span><span class="ac-nav-c"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg></span></a></li>
+              <li><a class="ac-nav-a" href="#gifts" aria-current="{{ cur.gifts }}"><span class="ac-nav-t">Gift cards</span><span class="ac-nav-m">{{ meta.gifts }}</span><span class="ac-nav-c"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg></span></a></li>
+              <li><a class="ac-nav-a" href="#addresses" aria-current="{{ cur.addresses }}"><span class="ac-nav-t">Addresses</span><span class="ac-nav-m">{{ meta.addresses }}</span><span class="ac-nav-c"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg></span></a></li>
+              <li><a class="ac-nav-a" href="#details" aria-current="{{ cur.details }}"><span class="ac-nav-t">Details &amp; preferences</span><span class="ac-nav-m">{{ meta.details }}</span><span class="ac-nav-c"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg></span></a></li>
+            </ul>
+            <div class="ac-nav-out"><button class="ac-nav-a" type="button" onClick="{{ signOut }}"><span class="ac-nav-t">Sign out</span></button></div>
+          </div>
+        </nav>
+
+        <div class="ac-main">
+          <sc-if value="{{ inSection }}" hint-placeholder-val="{{ false }}">
+            <a class="ac-back" href="#"><span aria-hidden="true">&#8592;</span><span>Back to My Account</span></a>
+          </sc-if>
+
+          <sc-if value="{{ vOverview }}" hint-placeholder-val="{{ true }}">
+            <div class="ac-ovw">
+              <h2 class="ac-h2">Overview</h2>
+              <div class="ac-ovw-grid">
+                <div class="ac-pts">
+                  <span class="ac-pts-ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="var(--brass)" aria-hidden="true"><path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3-4.6-4.4 6.3-.9z" /></svg></span>
+                  <span class="ac-pts-n">{{ pt.bal }} points</span>
+                  <span class="ac-pts-l"><sc-if value="{{ pt.reached }}" hint-placeholder-val="{{ false }}"><span class="ac-ms-hit" style="margin: 0 0 4px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><circle cx="12" cy="12" r="9.5" /><path d="M7.5 12.3l3 3 6-6.3" /></svg><span>Your points are now worth {{ pt.hitVal }}</span></span></sc-if><b class="ac-pts-v">Worth {{ pt.value }}</b> off your next order. Use any amount at checkout. <a class="ac-tlink" href="#points" style="min-height: 0;"><span>How points work</span><span aria-hidden="true">&#8594;</span></a></span>
+                </div>
+                <div class="ac-card" style="display: grid; gap: 4px;">
+                  <p class="ac-h3" style="margin: 0 0 6px;">Delivering to</p>
+                  <sc-if value="{{ hasDefAddr }}" hint-placeholder-val="{{ true }}">
+                    <p class="ac-p"><b style="color: var(--green-forest); font-weight: 600;">{{ defAddr.name }}</b><br>{{ defAddr.lines }}</p>
+                  </sc-if>
+                  <sc-if value="{{ noDefAddr }}" hint-placeholder-val="{{ false }}"><p class="ac-p">No saved address yet.</p></sc-if>
+                  <a class="ac-tlink" href="#addresses"><span>Manage addresses</span><span aria-hidden="true">&#8594;</span></a>
+                </div>
+              </div>
+              <div class="ac-card" style="padding-top: 16px; padding-bottom: 8px;">
+                <p class="ac-h3" style="margin: 0;">Recent orders</p>
+                <div>
+                  <sc-for list="{{ recent }}" as="r" hint-placeholder-count="3">
+                    <div class="ac-row">
+                      <a class="ac-row-main" href="#orders"><span class="ac-row-t">{{ r.dateLong }}</span><span class="ac-row-d">{{ r.no }} &#183; {{ r.box }} &#183; {{ r.status }}</span><span class="ac-row-v">{{ r.total }}</span></a>
+                      <sc-if value="{{ r.canAgain }}" hint-placeholder-val="{{ true }}"><button class="ac-pill ac-pill-o" type="button" onClick="{{ r.again }}" aria-haspopup="dialog" aria-label="{{ r.againLabel }}">Order again</button></sc-if>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ vOrders }}" hint-placeholder-val="{{ false }}">
+            <section class="ac-sec" aria-labelledby="ac-h-orders">
+              <h2 class="ac-h2" id="ac-h-orders" tabindex="-1">Orders</h2>
+              <h3 class="ac-h3">Upcoming</h3>
+              <sc-if value="{{ noUpcoming }}" hint-placeholder-val="{{ false }}">
+                <div class="ac-empty"><p class="ac-p">No deliveries on the way.</p><a class="ac-pill" href="Abby's Table - Choose Box v2.dc.html">Build a box</a></div>
+              </sc-if>
+              <div class="ac-list">
+                <sc-for list="{{ upcoming }}" as="o" hint-placeholder-count="1">
+                  <article class="ac-card" aria-labelledby="{{ o.hid }}">
+                    <div class="ac-ord-top"><span class="ac-ord-no">Order {{ o.no }}</span><span class="ac-status" data-k="{{ o.kind }}">{{ o.status }}</span></div>
+                    <div class="ac-ord-body">
+                      <h4 class="ac-card-t" id="{{ o.hid }}">{{ o.dateLong }}</h4>
+                      <p class="ac-p">{{ o.window }} &#183; {{ o.addr }}</p>
+                      <p class="ac-ord-meta"><span>{{ o.box }}</span><b>{{ o.total }}</b></p>
+                      <sc-if value="{{ o.isGift }}" hint-placeholder-val="{{ false }}"><p class="ac-gift"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto; margin-top: 2px;"><rect x="3.5" y="8.5" width="17" height="12" rx="1.5" /><path d="M3.5 12.5h17M12 8.5v12M12 8.5c-1.5-3-5-3.6-5-1.2 0 1.6 2.6 1.2 5 1.2zm0 0c1.5-3 5-3.6 5-1.2 0 1.6-2.6 1.2-5 1.2z" /></svg><span>{{ o.gift }}</span></p></sc-if>
+                    </div>
+                    <button class="ac-disc" type="button" onClick="{{ o.toggle }}" aria-expanded="{{ o.exp }}" aria-controls="{{ o.lid }}">{{ o.discLabel }} <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg></button>
+                    <sc-if value="{{ o.open }}" hint-placeholder-val="{{ false }}">
+                      <ul class="ac-dishes" id="{{ o.lid }}">
+                        <sc-for list="{{ o.dishes }}" as="d" hint-placeholder-count="3"><li><b>{{ d.q }}&#215;</b><span>{{ d.name }}<sc-if value="{{ d.sig }}" hint-placeholder-val="{{ false }}"><span class="ac-sig">Signature</span></sc-if></span></li></sc-for>
+                      </ul>
+                    </sc-if>
+                    <div class="ac-acts"><button class="ac-pill ac-pill-o" type="button" onClick="{{ o.again }}" aria-haspopup="dialog" aria-label="{{ o.againLabel }}">Order again</button><a class="ac-tlink" href="Abby's Table - Contact Us.dc.html"><span>Need to change this delivery? Contact us</span><span aria-hidden="true">&#8594;</span></a></div>
+                  </article>
+                </sc-for>
+              </div>
+
+              <h3 class="ac-h3">Past orders</h3>
+              <sc-if value="{{ noPast }}" hint-placeholder-val="{{ false }}">
+                <div class="ac-empty"><p class="ac-p">Delivered orders will appear here, ready to order again.</p></div>
+              </sc-if>
+              <div class="ac-list">
+                <sc-for list="{{ past }}" as="o" hint-placeholder-count="3">
+                  <article class="ac-card" aria-labelledby="{{ o.hid }}">
+                    <div class="ac-ord-top"><span class="ac-ord-no">Order {{ o.no }}</span><span class="ac-status" data-k="{{ o.kind }}">{{ o.status }}</span></div>
+                    <div class="ac-ord-body">
+                      <h4 class="ac-card-t" id="{{ o.hid }}">{{ o.dateLong }}</h4>
+                      <p class="ac-p">{{ o.addr }}</p>
+                      <p class="ac-ord-meta"><span>{{ o.box }}</span><b>{{ o.total }}</b></p>
+                      <sc-if value="{{ o.isGift }}" hint-placeholder-val="{{ false }}"><p class="ac-gift"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto; margin-top: 2px;"><rect x="3.5" y="8.5" width="17" height="12" rx="1.5" /><path d="M3.5 12.5h17M12 8.5v12M12 8.5c-1.5-3-5-3.6-5-1.2 0 1.6 2.6 1.2 5 1.2zm0 0c1.5-3 5-3.6 5-1.2 0 1.6-2.6 1.2-5 1.2z" /></svg><span>{{ o.gift }}</span></p></sc-if>
+                    </div>
+                    <button class="ac-disc" type="button" onClick="{{ o.toggle }}" aria-expanded="{{ o.exp }}" aria-controls="{{ o.lid }}">{{ o.discLabel }} <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg></button>
+                    <sc-if value="{{ o.open }}" hint-placeholder-val="{{ false }}">
+                      <ul class="ac-dishes" id="{{ o.lid }}">
+                        <sc-for list="{{ o.dishes }}" as="d" hint-placeholder-count="3"><li><b>{{ d.q }}&#215;</b><span>{{ d.name }}<sc-if value="{{ d.sig }}" hint-placeholder-val="{{ false }}"><span class="ac-sig">Signature</span></sc-if></span></li></sc-for>
+                      </ul>
+                    </sc-if>
+                    <div class="ac-acts"><button class="ac-pill ac-pill-o" type="button" onClick="{{ o.again }}" aria-haspopup="dialog" aria-label="{{ o.againLabel }}">Order again</button></div>
+                  </article>
+                </sc-for>
+              </div>
+            </section>
+          </sc-if>
+
+          <sc-if value="{{ vPoints }}" hint-placeholder-val="{{ false }}">
+            <section class="ac-sec" aria-labelledby="ac-h-points">
+              <h2 class="ac-h2" id="ac-h-points" tabindex="-1">Points</h2>
+
+              <div class="ac-pts-bal">
+                <div class="ac-pts-top">
+                  <span class="ac-pts-ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="var(--brass)" aria-hidden="true"><path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3-4.6-4.4 6.3-.9z" /></svg></span>
+                  <span class="ac-pts-n">{{ pt.bal }} points</span>
+                  <span class="ac-pts-l"><b class="ac-pts-v">Worth {{ pt.value }}</b> off your next order. Use any amount at checkout, up to 20% of an order.</span>
+                </div>
+                <sc-if value="{{ pt.reached }}" hint-placeholder-val="{{ false }}">
+                  <p class="ac-ms-hit" role="status"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><circle cx="12" cy="12" r="9.5" /><path d="M7.5 12.3l3 3 6-6.3" /></svg><span>Your points are now worth {{ pt.hitVal }}</span></p>
+                </sc-if>
+                <sc-if value="{{ pt.notReached }}" hint-placeholder-val="{{ true }}">
+                  <div class="ac-ms">
+                    <div class="ac-ms-track" aria-hidden="true"><span class="ac-ms-fill" style="width: {{ pt.pct }};"></span></div>
+                    <div class="ac-ms-row"><span><b>{{ pt.toGo }} points</b> until your points are worth {{ pt.nextVal }}</span><span aria-hidden="true">{{ pt.nextVal }}</span></div>
+                  </div>
+                </sc-if>
+              </div>
+
+              <div class="ac-card">
+                <h3 class="ac-card-t" style="margin-bottom: 16px;">How points work</h3>
+                <ol class="ac-how">
+                  <li><span class="ac-how-n" aria-hidden="true">1</span><span><span class="ac-how-t">Earn 2 points for every &#163;1 spent</span><span class="ac-how-d">Earn points on dishes, Signature upgrades, extras and gift cards you buy. Delivery and personalised greeting cards don&#8217;t earn points.</span></span></li>
+                  <li><span class="ac-how-n" aria-hidden="true">2</span><span><span class="ac-how-t">100 points = &#163;1 off</span><span class="ac-how-d">Use your points towards up to 20% of an order. There&#8217;s no minimum amount to redeem, and your points never expire.</span></span></li>
+                  <li><span class="ac-how-n" aria-hidden="true">3</span><span><span class="ac-how-t">Use your points at checkout</span><span class="ac-how-d">Your points are added once your order is confirmed, ready to use next time. If an order is cancelled or refunded, the points earned on the refunded amount will be adjusted accordingly.</span></span></li>
+                </ol>
+              </div>
+
+              <div class="ac-card ac-calc">
+                <div>
+                  <h3 class="ac-card-t">What could your next box earn?</h3>
+                  <p class="ac-p-s" style="margin-top: 6px;">Choose a box size.</p>
+                </div>
+                <div class="ac-seg" role="group" aria-label="Box size">
+                  <sc-for list="{{ pt.sizes }}" as="z" hint-placeholder-count="4"><button type="button" aria-pressed="{{ z.on }}" onClick="{{ z.pick }}">{{ z.label }}</button></sc-for>
+                </div>
+                <sc-if value="{{ pt.ownOn }}" hint-placeholder-val="{{ false }}">
+                  <div>
+                    <label class="ac-calc-own" for="ac-calc-n"><input class="at-field" id="ac-calc-n" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" autocomplete="off" value="{{ pt.ownVal }}" onChange="{{ pt.ownType }}" aria-describedby="ac-calc-e" /><span>dishes (6 to 99)</span></label>
+                    <sc-if value="{{ pt.ownErrOn }}" hint-placeholder-val="{{ false }}"><p class="ac-err" id="ac-calc-e"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--chilli)" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" style="flex: 0 0 auto; margin-top: 3px;"><path d="M12 3.5l8.5 16h-17z" /><path d="M12 10v4M12 16.8h.01" /></svg><span>Choose between 6 and 99 dishes.</span></p></sc-if>
+                  </div>
+                </sc-if>
+                <div class="ac-calc-out" aria-live="polite" data-stale="{{ pt.stale }}">
+                  <p class="ac-calc-big">A {{ pt.cN }}-dish box earns <span class="ac-calc-pts">{{ pt.cPts }} points</span></p>
+                  <p class="ac-p">That&#8217;s {{ pt.cVal }} off a future order.</p>
+                  <p class="ac-p">Your {{ pt.bal }} points could take <b style="font-weight: 600; color: var(--green-forest);">{{ pt.cUse }}</b> off this box.{{ pt.cCapNote }}</p>
+                </div>
+                <p class="ac-p-s">Based on today&#8217;s box prices, before extras and upgrades.</p>
+              </div>
+
+              <h3 class="ac-h3">History</h3>
+              <ul class="ac-hist">
+                <sc-for list="{{ hist }}" as="h" hint-placeholder-count="4">
+                  <li><span class="ac-hist-t">{{ h.title }}</span><span class="ac-hist-v">+{{ h.pts }} <small>&#183; {{ h.val }}</small></span><span class="ac-hist-d">{{ h.date }}</span><span class="ac-hist-r">Balance {{ h.run }}</span></li>
+                </sc-for>
+              </ul>
+            </section>
+          </sc-if>
+
+          <sc-if value="{{ vGifts }}" hint-placeholder-val="{{ false }}">
+            <section class="ac-sec" aria-labelledby="ac-h-gifts">
+              <h2 class="ac-h2" id="ac-h-gifts" tabindex="-1">Gift cards</h2>
+              <p class="ac-sub">Gift cards you&#8217;ve sent. Gift boxes are listed in <a class="ac-tlink" href="#orders" style="min-height: 0; display: inline;"><span>Orders</span></a>.</p>
+              <sc-if value="{{ noGifts }}" hint-placeholder-val="{{ false }}">
+                <div class="ac-empty"><p class="ac-p">You haven&#8217;t sent a gift card yet.</p><a class="ac-pill" href="Abby's Table - Gifting v2.dc.html">Send a gift</a></div>
+              </sc-if>
+              <div class="ac-list">
+                <sc-for list="{{ gifts }}" as="g" hint-placeholder-count="2">
+                  <article class="ac-card" aria-labelledby="{{ g.hid }}">
+                    <div class="ac-ord-top"><span class="ac-ord-no">{{ g.route }}</span><span class="ac-status" data-k="done">{{ g.status }}</span></div>
+                    <div class="ac-ord-body">
+                      <h3 class="ac-card-t" id="{{ g.hid }}">{{ g.value }} gift card</h3>
+                      <p class="ac-p">To {{ g.to }}</p>
+                      <p class="ac-p-s">{{ g.detail }}</p>
+                    </div>
+                    <sc-if value="{{ g.canResend }}" hint-placeholder-val="{{ false }}">
+                      <div class="ac-acts"><button class="ac-act" type="button" onClick="{{ g.resend }}">Resend email</button></div>
+                    </sc-if>
+                    <sc-if value="{{ g.isPost }}" hint-placeholder-val="{{ false }}">
+                      <div class="ac-acts"><a class="ac-tlink" href="Abby's Table - Contact Us.dc.html"><span>Not arrived? Contact us</span><span aria-hidden="true">&#8594;</span></a></div>
+                    </sc-if>
+                    <div role="status" aria-live="polite"><sc-if value="{{ g.resent }}" hint-placeholder-val="{{ false }}"><p class="ac-ok" style="margin-top: 10px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto; margin-top: 3px;"><path d="M5 12.5l4.2 4.2L19 7" /></svg><span>Sent again to {{ g.email }}.</span></p></sc-if></div>
+                  </article>
+                </sc-for>
+              </div>
+              <div class="ac-card" style="display: grid; gap: 6px;">
+                <p class="ac-p"><b style="color: var(--green-forest); font-weight: 600;">Received a gift card?</b> Enter its code at checkout.</p>
+                <a class="ac-tlink" href="Abby's Table - Gifting v2.dc.html"><span>Send another gift</span><span aria-hidden="true">&#8594;</span></a>
+              </div>
+            </section>
+          </sc-if>
+
+          <sc-if value="{{ vAddresses }}" hint-placeholder-val="{{ false }}">
+            <section class="ac-sec" aria-labelledby="ac-h-addresses">
+              <h2 class="ac-h2" id="ac-h-addresses" tabindex="-1">Addresses</h2>
+              <p class="ac-sub">Saved addresses are offered at checkout. Your default is filled in first.</p>
+              <div role="status" aria-live="polite"><sc-if value="{{ addrSaidOn }}" hint-placeholder-val="{{ false }}"><p class="ac-ok"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto; margin-top: 3px;"><path d="M5 12.5l4.2 4.2L19 7" /></svg><span>{{ addrSaid }}</span></p></sc-if></div>
+
+              <sc-if value="{{ formOn }}" hint-placeholder-val="{{ false }}">
+                <div class="ac-card">
+                  <h3 class="ac-card-t" id="ac-af-h" tabindex="-1" style="margin-bottom: 18px;">{{ formTitle }}</h3>
+                  <form class="ac-form" onSubmit="{{ saveAddr }}" novalidate aria-labelledby="ac-af-h">
+                    <div><label class="ac-label" for="af-label">Label <i>(optional)</i></label>
+            <input class="at-field" id="af-label" name="label" type="text" autocomplete="off" value="{{ af.label }}" onChange="{{ afIn }}" aria-invalid="{{ ae.labelInv }}" aria-describedby="af-label-e" />
+          </div>
+                    <div><label class="ac-label" for="af-name">Full name</label>
+            <input class="at-field" id="af-name" name="name" type="text" autocomplete="name" value="{{ af.name }}" onChange="{{ afIn }}" aria-invalid="{{ ae.nameInv }}" aria-describedby="af-name-e" />
+            <sc-if value="{{ ae.nameOn }}" hint-placeholder-val="{{ false }}"><p class="ac-err" id="af-name-e"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--chilli)" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" style="flex: 0 0 auto; margin-top: 3px;"><path d="M12 3.5l8.5 16h-17z" /><path d="M12 10v4M12 16.8h.01" /></svg><span>{{ ae.name }}</span></p></sc-if>
+          </div>
+                    <div><label class="ac-label" for="af-l1">Address line 1</label>
+            <input class="at-field" id="af-l1" name="l1" type="text" autocomplete="address-line1" value="{{ af.l1 }}" onChange="{{ afIn }}" aria-invalid="{{ ae.l1Inv }}" aria-describedby="af-l1-e" />
+            <sc-if value="{{ ae.l1On }}" hint-placeholder-val="{{ false }}"><p class="ac-err" id="af-l1-e"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--chilli)" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" style="flex: 0 0 auto; margin-top: 3px;"><path d="M12 3.5l8.5 16h-17z" /><path d="M12 10v4M12 16.8h.01" /></svg><span>{{ ae.l1 }}</span></p></sc-if>
+          </div>
+                    <div><label class="ac-label" for="af-l2">Address line 2 <i>(optional)</i></label>
+            <input class="at-field" id="af-l2" name="l2" type="text" autocomplete="address-line2" value="{{ af.l2 }}" onChange="{{ afIn }}" aria-invalid="{{ ae.l2Inv }}" aria-describedby="af-l2-e" />
+          </div>
+                    <div class="ac-form-row">
+                      <div><label class="ac-label" for="af-town">Town or city</label>
+            <input class="at-field" id="af-town" name="town" type="text" autocomplete="address-level2" value="{{ af.town }}" onChange="{{ afIn }}" aria-invalid="{{ ae.townInv }}" aria-describedby="af-town-e" />
+            <sc-if value="{{ ae.townOn }}" hint-placeholder-val="{{ false }}"><p class="ac-err" id="af-town-e"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--chilli)" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" style="flex: 0 0 auto; margin-top: 3px;"><path d="M12 3.5l8.5 16h-17z" /><path d="M12 10v4M12 16.8h.01" /></svg><span>{{ ae.town }}</span></p></sc-if>
+          </div>
+                      <div><label class="ac-label" for="af-pc">Postcode</label>
+            <input class="at-field" id="af-pc" name="pc" type="text" autocomplete="postal-code" value="{{ af.pc }}" onChange="{{ afIn }}" aria-invalid="{{ ae.pcInv }}" aria-describedby="af-pc-e" />
+            <sc-if value="{{ ae.pcOn }}" hint-placeholder-val="{{ false }}"><p class="ac-err" id="af-pc-e"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--chilli)" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" style="flex: 0 0 auto; margin-top: 3px;"><path d="M12 3.5l8.5 16h-17z" /><path d="M12 10v4M12 16.8h.01" /></svg><span>{{ ae.pc }}</span></p></sc-if>
+          </div>
+                    </div>
+                    <div><label class="ac-label" for="af-phone">Phone</label>
+            <input class="at-field" id="af-phone" name="phone" type="tel" autocomplete="tel" value="{{ af.phone }}" onChange="{{ afIn }}" aria-invalid="{{ ae.phoneInv }}" aria-describedby="af-phone-e" />
+            <sc-if value="{{ ae.phoneOn }}" hint-placeholder-val="{{ false }}"><p class="ac-err" id="af-phone-e"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--chilli)" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" style="flex: 0 0 auto; margin-top: 3px;"><path d="M12 3.5l8.5 16h-17z" /><path d="M12 10v4M12 16.8h.01" /></svg><span>{{ ae.phone }}</span></p></sc-if>
+          </div>
+                    <div><label class="ac-label" for="af-notes">Delivery notes <i>(optional)</i></label>
+            <textarea class="at-field" id="af-notes" name="notes" rows="3" value="{{ af.notes }}" onChange="{{ afIn }}" placeholder="e.g. Leave with a neighbour"></textarea>
+          </div>
+                    <label class="ac-check"><input type="checkbox" checked="{{ af.def }}" onChange="{{ afDef }}" /><span>Make this my default address</span></label>
+                    <div class="ac-form-acts">
+                      <button class="ac-submit" type="submit">Save address</button>
+                      <button class="ac-act" type="button" onClick="{{ cancelAddr }}">Cancel</button>
+                    </div>
+                  </form>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ noAddrs }}" hint-placeholder-val="{{ false }}">
+                <div class="ac-empty"><p class="ac-p">No saved addresses yet.</p></div>
+              </sc-if>
+              <div class="ac-addr-grid">
+                <sc-for list="{{ addrs }}" as="a" hint-placeholder-count="2">
+                  <article class="ac-card ac-addr" aria-labelledby="{{ a.hid }}">
+                    <div class="ac-addr-top"><h3 class="ac-addr-l" id="{{ a.hid }}" style="margin: 0;">{{ a.title }}</h3><sc-if value="{{ a.def }}" hint-placeholder-val="{{ false }}"><span class="ac-def">Default</span></sc-if></div>
+                    <p class="ac-p">{{ a.name }}<br>{{ a.lines }}</p>
+                    <p class="ac-p-s">{{ a.phone }}</p>
+                    <sc-if value="{{ a.hasNotes }}" hint-placeholder-val="{{ false }}"><p class="ac-p-s">Note: {{ a.notes }}</p></sc-if>
+                    <sc-if value="{{ a.notConfirming }}" hint-placeholder-val="{{ true }}">
+                      <div class="ac-acts" style="margin-top: 8px;">
+                        <button class="ac-act" type="button" onClick="{{ a.edit }}" aria-label="{{ a.editLabel }}">Edit</button>
+                        <sc-if value="{{ a.notDef }}" hint-placeholder-val="{{ false }}"><button class="ac-act" type="button" onClick="{{ a.setDef }}">Set as default</button></sc-if>
+                        <button class="ac-act ac-act-rm" type="button" onClick="{{ a.askRm }}" aria-label="{{ a.rmLabel }}">Remove</button>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ a.confirming }}" hint-placeholder-val="{{ false }}">
+                      <div class="ac-confirm" role="group" aria-label="Confirm removal">
+                        <p class="ac-p">Remove this address?</p>
+                        <div class="ac-acts" style="margin-top: 0;"><button class="ac-act ac-act-rm" type="button" onClick="{{ a.doRm }}">Remove</button><button class="ac-act" type="button" onClick="{{ a.keep }}">Keep it</button></div>
+                      </div>
+                    </sc-if>
+                  </article>
+                </sc-for>
+              </div>
+              <sc-if value="{{ formOff }}" hint-placeholder-val="{{ true }}">
+                <div><button class="ac-pill ac-pill-o" type="button" onClick="{{ addAddr }}">Add an address</button></div>
+              </sc-if>
+            </section>
+          </sc-if>
+
+          <sc-if value="{{ vDetails }}" hint-placeholder-val="{{ false }}">
+            <section class="ac-sec" aria-labelledby="ac-h-details">
+              <h2 class="ac-h2" id="ac-h-details" tabindex="-1">Details &amp; preferences</h2>
+
+              <div class="ac-card">
+                <h3 class="ac-card-t" style="margin-bottom: 18px;">Your details</h3>
+                <form class="ac-form" onSubmit="{{ saveDet }}" novalidate>
+                  <div class="ac-form-row">
+                    <div><label class="ac-label" for="dt-first">First name</label><input class="at-field" id="dt-first" name="first" autocomplete="given-name" value="{{ dt.first }}" onChange="{{ dtIn }}" aria-invalid="{{ de.firstInv }}" aria-describedby="dt-first-e" /><sc-if value="{{ de.firstOn }}" hint-placeholder-val="{{ false }}"><p class="ac-err" id="dt-first-e"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--chilli)" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" style="flex: 0 0 auto; margin-top: 3px;"><path d="M12 3.5l8.5 16h-17z" /><path d="M12 10v4M12 16.8h.01" /></svg><span>{{ de.first }}</span></p></sc-if></div>
+                    <div><label class="ac-label" for="dt-last">Last name</label><input class="at-field" id="dt-last" name="last" autocomplete="family-name" value="{{ dt.last }}" onChange="{{ dtIn }}" /></div>
+                  </div>
+                  <div><label class="ac-label" for="dt-email">Email address</label><input class="at-field" id="dt-email" name="email" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" value="{{ dt.email }}" onChange="{{ dtIn }}" aria-invalid="{{ de.emailInv }}" aria-describedby="dt-email-h dt-email-e" /><p class="ac-hint" id="dt-email-h">If you change it, we&#8217;ll email a link to confirm the new address.</p><sc-if value="{{ de.emailOn }}" hint-placeholder-val="{{ false }}"><p class="ac-err" id="dt-email-e"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--chilli)" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" style="flex: 0 0 auto; margin-top: 3px;"><path d="M12 3.5l8.5 16h-17z" /><path d="M12 10v4M12 16.8h.01" /></svg><span>{{ de.email }}</span></p></sc-if></div>
+                  <div><label class="ac-label" for="dt-phone">Phone</label><input class="at-field" id="dt-phone" name="phone" type="tel" autocomplete="tel" value="{{ dt.phone }}" onChange="{{ dtIn }}" aria-describedby="dt-phone-h" /><p class="ac-hint" id="dt-phone-h">Used only for delivery updates.</p></div>
+                  <div class="ac-form-acts"><button class="ac-submit" type="submit">Save changes</button></div>
+                  <div role="status" aria-live="polite"><sc-if value="{{ detSaid }}" hint-placeholder-val="{{ false }}"><p class="ac-ok"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto; margin-top: 3px;"><path d="M5 12.5l4.2 4.2L19 7" /></svg><span>Your details have been saved.</span></p></sc-if></div>
+                </form>
+              </div>
+
+              <div class="ac-card" style="display: grid; gap: 12px; justify-items: start;">
+                <h3 class="ac-card-t">Password</h3>
+                <p class="ac-p">We&#8217;ll email you a secure link to set a new password.</p>
+                <button class="ac-pill ac-pill-o" type="button" onClick="{{ sendReset }}">Send reset link</button>
+                <div role="status" aria-live="polite"><sc-if value="{{ resetSaid }}" hint-placeholder-val="{{ false }}"><p class="ac-ok"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto; margin-top: 3px;"><path d="M5 12.5l4.2 4.2L19 7" /></svg><span>Link sent to {{ dt.email }}. It expires in an hour.</span></p></sc-if></div>
+              </div>
+
+              <div class="ac-card" style="display: grid; gap: 10px;">
+                <h3 class="ac-card-t">Emails &amp; cookies</h3>
+                <label class="ac-check"><input type="checkbox" checked="{{ news }}" onChange="{{ toggleNews }}" /><span>Kitchen notes and offers from Abby, monthly</span></label>
+                <p class="ac-p-s">Order and delivery emails are always sent.</p>
+                <a class="ac-tlink" href="Abby's Table - Privacy Policy.dc.html#cookies" data-consent-open><span>Cookie preferences</span><span aria-hidden="true">&#8594;</span></a>
+              </div>
+
+              <sc-if value="{{ waitlist }}" hint-placeholder-val="{{ false }}">
+                <div class="ac-pt">
+                  <p class="ac-pt-l">Abby&#8217;s Private Table</p>
+                  <h3 class="ac-card-t">You&#8217;re on the waitlist</h3>
+                  <p class="ac-p">We&#8217;ll email you when consultations open.</p>
+                  <a class="ac-tlink" href="Abby's Table - Private Table v2.dc.html"><span>About Private Table</span><span aria-hidden="true">&#8594;</span></a>
+                </div>
+              </sc-if>
+
+              <p class="ac-p">To close your account and delete your data, <a href="Abby's Table - Contact Us.dc.html" style="text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-skip-ink: none;">contact us</a>.</p>
+            </section>
+          </sc-if>
+
+          <div class="ac-help">
+            <h2 class="ac-card-t">Need help with an order?</h2>
+            <p class="ac-p">Get in touch and we&#8217;ll sort it out.</p>
+            <a class="ac-submit" href="Abby's Table - Contact Us.dc.html">Contact us</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  </sc-if>
+</main>
+
+<sc-if value="{{ roOn }}" hint-placeholder-val="{{ false }}">
+  <div class="ac-ro-wrap">
+    <div class="ac-ro-scrim" onClick="{{ roClose }}"></div>
+    <div class="ac-ro" id="ac-ro" role="dialog" aria-modal="true" aria-labelledby="ac-ro-h" aria-describedby="ac-ro-from" onKeyDown="{{ roKeys }}">
+      <div class="ac-ro-head">
+        <h2 class="ac-ro-h" id="ac-ro-h" tabindex="-1">Order again</h2>
+        <button class="ac-ro-x" type="button" onClick="{{ roClose }}" aria-label="Close Order again"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg></button>
+      </div>
+      <div class="ac-ro-body">
+        <p class="ac-p" id="ac-ro-from">From your {{ ro.date }} order. Untick anything you&#8217;d rather leave out.</p>
+        <sc-if value="{{ ro.upcoming }}" hint-placeholder-val="{{ false }}"><p class="ac-p" style="font-weight: 600; color: var(--green-forest);">This starts a new box. Your {{ ro.date }} delivery won&#8217;t change.</p></sc-if>
+        <sc-if value="{{ ro.wipOn }}" hint-placeholder-val="{{ false }}"><p class="ac-ro-wip"><svg width="18" height="18" viewBox="0 0 44 44" fill="none" stroke="var(--green-forest)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto; margin-top: 2px;"><path d="M9 17h26l-2 16a2 2 0 0 1-2 1.8H13a2 2 0 0 1-2-1.8z" /><path d="M15 17l4-8M29 17l-4-8" /></svg><span>Adding to your box in progress &#183; {{ ro.wipText }}</span></p></sc-if>
+        <ul class="ac-ro-list">
+          <sc-for list="{{ ro.rows }}" as="r" hint-placeholder-count="3">
+            <li class="ac-ro-row" data-off="{{ r.off }}" data-na="{{ r.na }}">
+              <label class="ac-ro-pick"><input type="checkbox" checked="{{ r.on }}" disabled="{{ r.unavail }}" onChange="{{ r.toggle }}" /><span class="ac-ro-name"><span>{{ r.name }}<sc-if value="{{ r.sig }}" hint-placeholder-val="{{ false }}"><span class="ac-sig">Signature</span></sc-if></span><span class="ac-ro-meta">{{ r.meta }}</span></span></label>
+              <sc-if value="{{ r.avail }}" hint-placeholder-val="{{ true }}">
+                <span class="ac-ro-step" role="group" aria-label="{{ r.group }}">
+                  <button type="button" onClick="{{ r.dec }}" disabled="{{ r.decDis }}" aria-label="{{ r.decLabel }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14" /></svg></button>
+                  <span class="ac-ro-q" aria-live="polite">{{ r.q }}</span>
+                  <button type="button" onClick="{{ r.inc }}" disabled="{{ r.incDis }}" aria-label="{{ r.incLabel }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14" /><path d="M5 12h14" /></svg></button>
+                </span>
+              </sc-if>
+            </li>
+          </sc-for>
+        </ul>
+        <sc-if value="{{ ro.noneAvail }}" hint-placeholder-val="{{ false }}"><a class="ac-tlink" href="Abby's Table - Menu Landing v3.dc.html"><span>Browse the menu</span><span aria-hidden="true">&#8594;</span></a></sc-if>
+      </div>
+      <div class="ac-ro-foot">
+        <p class="ac-ro-sum" id="ac-ro-sum" tabindex="-1" data-err="{{ ro.err }}" aria-live="polite">{{ ro.sum }}</p>
+        <p class="ac-p-s">Prices are today&#8217;s. You&#8217;ll see your total on the next step.</p>
+        <button class="ac-submit" type="button" onClick="{{ roGo }}" aria-describedby="ac-ro-sum">{{ ro.cta }}</button>
+        <button class="ac-act ac-ro-cancel" type="button" onClick="{{ roClose }}">Cancel</button>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<footer id="contact" ref="{{ footRef }}" style="background: var(--green-deep);">
+  <div aria-hidden="true" style="height: 2px; background: var(--brass);"></div>
+  <div class="at-foot-inner" style="max-width: 1280px; margin: 0 auto; padding: 40px 22px 0;">
+
+    <div class="at-foot-grid" style="display: grid; gap: 36px;">
+      <div class="at-foot-news">
+        <p style="margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">Join the table</p>
+        <p style="margin: 12px 0 18px; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; color: var(--blush);">Kitchen notes and offers from Abby, monthly.</p>
+
+        <sc-if value="{{ subscribed }}" hint-placeholder-val="{{ false }}">
+          <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.3; color: var(--blush);">Thank you for joining the table.</p>
+        </sc-if>
+
+        <sc-if value="{{ notSubscribed }}" hint-placeholder-val="{{ true }}">
+          <form class="at-foot-form" onSubmit="{{ onJoin }}" style="display: flex; flex-direction: column; gap: 10px;">
+            <label for="at-foot-email" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);">Email address</label>
+            <input class="at-foot-input" id="at-foot-email" name="email" type="email" required autocomplete="email" placeholder="Enter your email address" style="height: 52px; box-sizing: border-box; min-width: 0; border: 1px solid var(--green-mid); border-radius: var(--radius-pill); background: transparent; padding: 0 20px; font-family: var(--font-sans); font-size: 16px; color: var(--blush);" />
+            <button type="submit" class="at-foot-join" style="height: 48px; width: 100%; border: none; cursor: pointer; border-radius: var(--radius-pill); background: var(--brass); color: var(--green-deep); font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase;">Join</button>
+          </form>
+          <p class="at-foot-consent" style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 13px; line-height: 1.5; color: var(--sand-2);">We use your email for kitchen notes and offers only. Unsubscribe any time. See our <a href="Abby's Table - Privacy Policy.dc.html" class="at-foot-link" style="color: var(--sand-2); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-skip-ink: none;">Privacy Policy</a>.</p>
+        </sc-if>
+      </div>
+
+      <div class="at-foot-cols" style="display: grid; border-bottom: 1px solid var(--green-mid);">
+        <div class="at-foot-col {{ shopCls }}" style="border-top: 1px solid var(--green-mid);">
+          <button class="at-foot-head" type="button" onClick="{{ toggleShop }}" aria-expanded="{{ shopExp }}" aria-controls="at-foot-shop" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 0; background: transparent; border: none; text-align: left; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">
+            <span>Shop</span>
+            <svg class="at-foot-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          <div class="at-foot-links" id="at-foot-shop" style="padding-bottom: 8px;">
+            <a class="at-foot-link" href="Abby's Table - Menu Landing v3.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Menu</a>
+            <a class="at-foot-link" href="Abby's Table - Gifting v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Gifting</a>
+            <a class="at-foot-link" href="Abby's Table - Private Table v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Private Table</a>
+          </div>
+        </div>
+
+        <div class="at-foot-col {{ learnCls }}" style="border-top: 1px solid var(--green-mid);">
+          <button class="at-foot-head" type="button" onClick="{{ toggleLearn }}" aria-expanded="{{ learnExp }}" aria-controls="at-foot-learn" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 0; background: transparent; border: none; text-align: left; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">
+            <span>Learn</span>
+            <svg class="at-foot-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          <div class="at-foot-links" id="at-foot-learn" style="padding-bottom: 8px;">
+            <a class="at-foot-link" href="Abby's Table - Abby's Story v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Abby&#8217;s Story</a>
+            <a class="at-foot-link" href="Abby's Table - How It Works v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">How it works</a>
+            <a class="at-foot-link" href="Abby's Table - Standards v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Our standards</a>
+          </div>
+        </div>
+
+        <div class="at-foot-col {{ infoCls }}" style="border-top: 1px solid var(--green-mid);">
+          <button class="at-foot-head" type="button" onClick="{{ toggleInfo }}" aria-expanded="{{ infoExp }}" aria-controls="at-foot-info" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 0; background: transparent; border: none; text-align: left; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">
+            <span>Information</span>
+            <svg class="at-foot-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          <div class="at-foot-links" id="at-foot-info" style="padding-bottom: 8px;">
+            <a class="at-foot-link" href="Abby's Table - Delivery and FAQs.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Delivery &amp; FAQs</a>
+            <a class="at-foot-link" href="Abby's Table - Allergens.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Allergens</a>
+            <a class="at-foot-link" href="Abby's Table - Contact Us.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Contact us</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="at-foot-rule" aria-hidden="true" style="display: none; height: 1px; background: var(--green-mid); margin: 32px 0 26px;"></div>
+
+    <div class="at-foot-bottom" style="display: grid; gap: 26px; justify-items: center; margin-top: 30px;">
+      <a class="at-foot-logo" href="Abby's Table - Homepage v2.dc.html" aria-label="Abby&#8217;s Table &#8212; home" style="display: block; text-decoration: none;">
+        <span class="at-foot-mark" aria-hidden="true" style="display: block; width: 176px; height: 30px; color: var(--blush);"><at-wordmark></at-wordmark></span>
+      </a>
+
+      <span class="at-foot-sig" style="font-family: var(--font-display); font-style: italic; font-size: 25px; line-height: 1; color: var(--terracotta);">Abby x</span>
+
+      <div class="at-foot-follow" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+        <span style="font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--green-sage);">Follow the table</span>
+        <div class="at-foot-follow-row" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <a href="https://www.instagram.com/fromabbystable" target="_blank" rel="noopener" aria-label="Instagram" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07zM12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.31-1.46.72-2.12 1.38A5.86 5.86 0 0 0 .63 4.13c-.3.76-.5 1.64-.56 2.91C.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.31.79.72 1.46 1.38 2.12.66.66 1.33 1.07 2.12 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.86 5.86 0 0 0 2.12-1.38 5.86 5.86 0 0 0 1.38-2.12c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.86 5.86 0 0 0-1.38-2.12A5.86 5.86 0 0 0 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84A6.16 6.16 0 1 0 12 18.16 6.16 6.16 0 0 0 12 5.84zm0 10.16A4 4 0 1 1 12 8a4 4 0 0 1 0 8zm6.41-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z" /></svg></a>
+            <a href="https://www.tiktok.com/@fromabbystable" target="_blank" rel="noopener" aria-label="TikTok" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 11.5 11.4" fill="var(--blush)" style="display: block;"><path d="M6.95 0v6.9A2.66 2.66 0 1 1 4.3 4.85c.35 0 .7.07 1 .21V3.15a4.5 4.5 0 0 0-1-.1A4.2 4.2 0 1 0 8.75 6.9V3.3a4.55 4.55 0 0 0 2.75 1.1V2.55A2.73 2.73 0 0 1 8.75 0Z" /></svg></a>
+            <a href="https://www.facebook.com/fromabbystable/" target="_blank" rel="noopener" aria-label="Facebook" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 6.15 11.15" fill="var(--blush)" style="display: block;"><path d="M4.05 11.15V6h1.7l.3-1.95h-2V2.8c0-.55.25-.95 1-.95h1.1V.1A14.6 14.6 0 0 0 4.55 0C2.85 0 1.75 1.05 1.75 2.6v1.45H0V6h1.75v5.15Z" /></svg></a>
+            <a href="https://x.com/fromabbystable" target="_blank" rel="noopener" aria-label="X" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg></a>
+          </div>
+          <span class="at-foot-dash" aria-hidden="true" style="display: none; color: var(--green-sage); font-size: 13px; line-height: 1;">&#8211;</span>
+          <span style="display: flex; align-items: center; padding: 4px 0; font-family: var(--font-sans); font-size: 16px; color: var(--blush);">@FromAbbysTable</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="at-foot-legal" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0 24px; margin-top: 20px; padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));">
+      <span style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--green-sage);">&#169; 2026 Abby&#8217;s Table</span>
+      <div class="at-foot-legal-row" style="display: flex; align-items: center; gap: 12px;">
+        <a href="Abby's Table - Privacy Policy.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--sand-2); text-decoration: none; transition: color .16s ease;">Privacy Policy</a>
+        <span class="at-foot-legal-sep" aria-hidden="true" style="color: var(--green-mid); font-size: 13px; line-height: 1;">|</span>
+        <a href="Abby's Table - Terms of Sale.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--sand-2); text-decoration: none; transition: color .16s ease;">Terms</a>
+      </div>
+      <!-- Canonical consent trigger: a REAL link to the Privacy Policy's cookie section, which is
+           what a customer gets with no JS or if the manager fails to initialise. The manager is
+           mounted once globally in production, not per page; it binds one delegated listener on
+           [data-consent-open] and adds aria-haspopup="dialog" itself. -->
+      <a href="Abby's Table - Privacy Policy.dc.html#cookies" data-consent-open style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--sand-2); text-decoration: none; transition: color .16s ease;">Cookie preferences</a>
+    </div>
+  </div>
+</footer>
+
+<!-- Canonical mobile purchase bar, copied verbatim from Homepage v2 (markup, values and copy).
+     This page has no Private Table band, so the FOOTER is tracked directly for suppression — it is
+     on the named suppression list in its own right ("the page has ended"), via the same
+     75%-of-viewport test and the footer ref that already exists. The open filter sheet suppresses
+     it too: a bottom sheet and a bottom bar are two fixed layers competing for the same edge, the
+     same reason the drawer and the consent layer suppress it.
+     No bottom clearance spacer, for the homepage's reason: the bar cannot be visible at the end of
+     this page, so a spacer would only show as a strip of page ground. The measured --at-bar-h is
+     still published, because the bar itself reads it. -->
+<div class="at-mobbar" ref="{{ barRef }}" data-on="{{ barOn }}" style="position: fixed; left: 0; right: 0; bottom: 0; z-index: 70; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 16px; background: var(--cream-2); border-top: 1px solid var(--sand); padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px));">
+  <span style="display: flex; flex-direction: column; min-width: 0; gap: 3px; font-family: var(--font-sans); font-size: 15px; line-height: 1.2; color: var(--brown);">
+    <span style="font-weight: 500;">Minimum 6 dishes</span>
+    <span style="font-weight: 600;">From &#163;158</span>
+  </span>
+  <a class="at-mobbar-cta" href="Abby's Table - Choose Box v2.dc.html" style="flex: 0 0 auto; min-width: max-content; display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 clamp(16px, 5vw, 24px); border-radius: var(--radius-pill); background: var(--green-forest); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; text-decoration: none; transition: background .16s ease;">Build a Box</a>
+</div>
+
+<div class="at-drawer-wrap {{ drawerCls }}">
+  <div class="at-drawer-scrim" onClick="{{ closeDrawer }}" style="position: fixed; inset: 0; z-index: 90; background: rgba(21,41,31,.5);"></div>
+  <aside id="at-drawer" class="at-drawer-panel" ref="{{ panelRef }}" role="dialog" aria-modal="true" aria-label="Main menu" style="position: fixed; top: 0; left: 0; bottom: 0; z-index: 95; display: flex; flex-direction: column; width: min(300px, 84vw); background: var(--green-forest); padding: 18px 22px 26px; overflow-y: auto;">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+      <a class="at-logo" href="Abby's Table - Homepage v2.dc.html" aria-label="Abby&#8217;s Table &#8212; home" style="display: flex; align-items: center; min-height: 44px; text-decoration: none;">
+        <span aria-hidden="true" style="display: block; width: 142px; aspect-ratio: 186 / 32; color: var(--blush);"><at-wordmark></at-wordmark></span>
+      </a>
+      <button type="button" onClick="{{ closeDrawer }}" aria-label="Close menu" style="flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-right: -10px; border: none; background: transparent; color: var(--blush); font-size: 24px; line-height: 1; cursor: pointer;">&#215;</button>
+    </div>
+
+    <a class="at-drawer-link" href="{{ acctHref }}" aria-current="{{ acctCur }}" style="display: flex; align-items: center; min-height: 48px; margin-top: 20px; font-family: var(--font-sans); font-weight: 600; font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">{{ acctLabel }}</a>
+    <span aria-hidden="true" style="display: block; height: 1px; background: var(--green-mid); margin: 4px 0 6px;"></span>
+
+    <nav aria-label="Main" style="display: flex; flex-direction: column;">
+      <a class="at-drawer-link" href="Abby's Table - Menu Landing v3.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Menu</a>
+      <a class="at-drawer-link" href="Abby's Table - How It Works v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">How it works</a>
+      <a class="at-drawer-link" href="Abby's Table - Abby's Story v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Abby&#8217;s Story</a>
+      <a class="at-drawer-link" href="Abby's Table - Gifting v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Gifting</a>
+      <a class="at-drawer-link" href="Abby's Table - Private Table v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Private Table</a>
+    </nav>
+
+    <a class="at-drawer-cta" href="Abby's Table - Choose Box v2.dc.html" style="display: flex; align-items: center; justify-content: center; min-height: 54px; margin-top: 26px; border-radius: var(--radius-pill); background: var(--terracotta); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; text-decoration: none;">Build a Box</a>
+
+    <div style="margin-top: auto; border-top: 1px solid var(--green-mid); padding-top: 22px; display: flex; gap: 20px; align-items: center;">
+      <a class="at-social" href="https://www.instagram.com/fromabbystable" target="_blank" rel="noopener" aria-label="Instagram" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07zM12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.31-1.46.72-2.12 1.38A5.86 5.86 0 0 0 .63 4.13c-.3.76-.5 1.64-.56 2.91C.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.31.79.72 1.46 1.38 2.12.66.66 1.33 1.07 2.12 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.86 5.86 0 0 0 2.12-1.38 5.86 5.86 0 0 0 1.38-2.12c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.86 5.86 0 0 0-1.38-2.12A5.86 5.86 0 0 0 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84A6.16 6.16 0 1 0 12 18.16 6.16 6.16 0 0 0 12 5.84zm0 10.16A4 4 0 1 1 12 8a4 4 0 0 1 0 8zm6.41-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z" /></svg></a>
+      <a class="at-social" href="https://www.tiktok.com/@fromabbystable" target="_blank" rel="noopener" aria-label="TikTok" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px;"><svg width="20" height="20" viewBox="0 0 11.5 11.4" fill="var(--blush)" style="display: block;"><path d="M6.95 0v6.9A2.66 2.66 0 1 1 4.3 4.85c.35 0 .7.07 1 .21V3.15a4.5 4.5 0 0 0-1-.1A4.2 4.2 0 1 0 8.75 6.9V3.3a4.55 4.55 0 0 0 2.75 1.1V2.55A2.73 2.73 0 0 1 8.75 0Z" /></svg></a>
+      <a class="at-social" href="https://www.facebook.com/fromabbystable/" target="_blank" rel="noopener" aria-label="Facebook" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px;"><svg width="20" height="20" viewBox="0 0 6.15 11.15" fill="var(--blush)" style="display: block;"><path d="M4.05 11.15V6h1.7l.3-1.95h-2V2.8c0-.55.25-.95 1-.95h1.1V.1A14.6 14.6 0 0 0 4.55 0C2.85 0 1.75 1.05 1.75 2.6v1.45H0V6h1.75v5.15Z" /></svg></a>
+      <a class="at-social" href="https://x.com/fromabbystable" target="_blank" rel="noopener" aria-label="X" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg></a>
+    </div>
+  </aside>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:900},&quot;accountState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Signed in (preview)&quot;,&quot;Follow sign-in flag&quot;,&quot;Signed out&quot;],&quot;default&quot;:&quot;Signed in (preview)&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Account&quot;},&quot;customer&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Returning customer&quot;,&quot;First order on its way&quot;],&quot;default&quot;:&quot;Returning customer&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Account&quot;},&quot;privateTableWaitlist&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Account&quot;},&quot;cookieUnresolved&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Fixed UI&quot;},&quot;reorderUnavailable&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Account&quot;},&quot;showMilestone&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Account&quot;}}">
+class Component extends DCLogic {
+  state = { drawer: false, dirDown: false, heroOut: false, footInView: false,
+            footOpen: {}, subscribed: false,
+            view: "overview", ordOpen: {}, addrs: null, af: null, afEditing: "", ae: {}, rmId: "", addrSaid: "",
+            resent: {}, dt: null, de: {}, detSaid: false, resetSaid: false, news: true, wip: null,
+            ro: "", roSel: {}, roTried: false, calc: "12", calcOwn: "9", calcOwnValid: 9, calcErr: false, msHit: 0 };
+
+  // ---- footer (canonical) ----
+  footRef = (el) => {
+    this._foot = el;
+    if (el) {
+      this._footSemantics();
+      // Doubles as the purchase bar's suppressor — see the bar's markup comment. One ref, because
+      // a second one bound to the same element is the half-wired-ref failure CLAUDE.md records.
+      requestAnimationFrame(this._updateFootSuppress);
+    }
+  };
+
+  // Same 75%-of-viewport test and the same continuous behaviour as the homepage's Private Table
+  // rule: once the footer has meaningfully entered view the bar stays down through the rest of the
+  // page, and scrolling back up releases it so the direction rule decides again on the next
+  // downward scroll. Releasing never FORCES the bar back.
+  _updateFootSuppress = () => {
+    const el = this._foot;
+    if (!el) return;
+    const on = el.getBoundingClientRect().top < window.innerHeight * 0.75;
+    if (on !== this.state.footInView) this.setState({ footInView: on });
+  };
+
+  // The footer column heads are accordion BUTTONS on mobile and non-interactive LABELS from 1024,
+  // where the toggle is inert and the chevron is hidden. Attributes cannot be swapped in CSS, so
+  // the semantics are set here — one element, no duplicated markup.
+  _footSemantics = () => {
+    if (!this._foot) return;
+    const label = window.innerWidth >= 1024;
+    Array.prototype.forEach.call(this._foot.querySelectorAll(".at-foot-head"), (b) => {
+      if (label) {
+        // Captured before the first desktop pass strips them: React only rewrites an attribute
+        // when its value changes, so it will not restore these on the way back to mobile.
+        if (!b.dataset.ctrl) b.dataset.ctrl = b.getAttribute("aria-controls") || "";
+        if (!b.dataset.exp) b.dataset.exp = b.getAttribute("aria-expanded") || "false";
+        b.removeAttribute("aria-expanded");
+        b.removeAttribute("aria-controls");
+        b.setAttribute("role", "heading");
+        b.setAttribute("aria-level", "3");
+        b.setAttribute("tabindex", "-1");
+      } else {
+        b.removeAttribute("role");
+        b.removeAttribute("aria-level");
+        b.removeAttribute("tabindex");
+        if (b.dataset.ctrl) b.setAttribute("aria-controls", b.dataset.ctrl);
+        if (!b.hasAttribute("aria-expanded")) b.setAttribute("aria-expanded", b.dataset.exp || "false");
+      }
+    });
+  };
+
+  _footToggle = (k) => {
+    if (window.innerWidth >= 1024) return;   // inert at desktop: the head is a label there
+    this.setState((s) => {
+      const o = Object.assign({}, s.footOpen);
+      o[k] = !o[k];
+      return { footOpen: o };
+    });
+  };
+  toggleShop = () => this._footToggle("shop");
+  toggleLearn = () => this._footToggle("learn");
+  toggleInfo = () => this._footToggle("info");
+  onJoin = (e) => { e.preventDefault(); this.setState({ subscribed: true }); };
+
+  // ---- header + bar ----
+  hdrRef = (el) => { this._hdr = el; };
+
+  // The bar's height is content-dependent (the price label wraps at 320px), so the value is
+  // measured and published rather than restated. Deduped and deferred out of the observer
+  // callback: writing from inside it changes page height, which can flip the scrollbar, which
+  // resizes this full-width fixed bar and re-fires the observer.
+  barRef = (el) => {
+    if (this._barRO) { this._barRO.disconnect(); this._barRO = null; }
+    if (!el) return;
+    const write = () => {
+      const h = el.offsetHeight;
+      if (!h || h === this._barH) return;
+      this._barH = h;
+      document.documentElement.style.setProperty("--at-bar-h", h + "px");
+    };
+    write();
+    requestAnimationFrame(write);
+    setTimeout(write, 500);
+    if (typeof ResizeObserver !== "undefined") {
+      this._barRO = new ResizeObserver(() => {
+        cancelAnimationFrame(this._barRaf);
+        this._barRaf = requestAnimationFrame(write);
+      });
+      this._barRO.observe(el);
+    }
+  };
+
+  // The bar appears only once the hero has left the viewport. This page has no hero CTA to track —
+  // the title band is the equivalent, so the hero BAND is observed instead.
+  heroRef = (el) => {
+    if (this._io) { this._io.disconnect(); this._io = null; }
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    this._io = new IntersectionObserver(([e]) => this.setState({ heroOut: !e.isIntersecting }), { threshold: 0 });
+    this._io.observe(el);
+  };
+
+  _onScroll = () => {
+    // Ahead of the movement threshold and the focus guard: suppression must track position even
+    // when the direction state is deliberately not updating.
+    this._updateFootSuppress();
+    const y = window.scrollY;
+    const last = this._lastY || 0;
+    if (Math.abs(y - last) < 8) return;
+    const down = y > last && y > 120;
+    this._lastY = y;
+    if (down && this._hdr && this._hdr.contains(document.activeElement)) return;
+    if (down !== this.state.dirDown) this.setState({ dirDown: down });
+  };
+
+  componentDidMount() {
+    // Always-mounted elements, so these are read directly rather than through a ref that could be
+    // left half-wired. The hero band is what the purchase bar tracks: this page has no hero CTA.
+    this._h1 = document.querySelector(".at-h1");
+    this.heroRef(document.querySelector(".ac-hero"));
+    this.setState({ view: this._readView() });
+    window.addEventListener("hashchange", this._onHash);
+    this._readWip();
+    window.addEventListener("pageshow", this._readWip);
+    this._checkMilestone();
+
+    window.addEventListener("scroll", this._onScroll, { passive: true });
+    this._onResize = () => {
+      this._footSemantics();
+      this._updateFootSuppress();
+    };
+    window.addEventListener("resize", this._onResize);
+
+    // The h1 is always mounted, so it is read directly rather than through a ref that could be
+    // left half-wired; same for the hero band the bar tracks.
+    this._onKey = (ev) => {
+      if (!this.state.drawer) return;
+      if (ev.key === "Escape") { ev.preventDefault(); this.close(); return; }
+      if (ev.key === "Tab") { ev._root = this._panel; this._trapIn(this.focusables(), ev); }
+    };
+    document.addEventListener("keydown", this._onKey);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener("scroll", this._onScroll);
+    window.removeEventListener("resize", this._onResize);
+    window.removeEventListener("hashchange", this._onHash);
+    window.removeEventListener("pageshow", this._readWip);
+    clearTimeout(this._hT);
+    clearTimeout(this._roT);
+    document.removeEventListener("keydown", this._onKey);
+    if (this._io) this._io.disconnect();
+    if (this._barRO) this._barRO.disconnect();
+    cancelAnimationFrame(this._barRaf);
+    cancelAnimationFrame(this._drawerRaf);
+    clearTimeout(this._drawerTo);
+    cancelAnimationFrame(this._sheetRaf);
+    document.body.style.overflow = "";
+  }
+
+  // ---- drawer (canonical) ----
+  // The panel is always mounted under a known id, so it is read from the document rather than
+  // through a ref: ref attach timing was the unreliable part.
+  _drawerPanel = () => this._panel || document.getElementById("at-drawer");
+
+  // Both were CALLED by close() and the Tab handler on this page but never defined, so closing the
+  // drawer threw and Tab never trapped. Verbatim from Homepage v2 / Menu Landing v3.
+  _canFocus = (el) => !!el && el.offsetParent !== null && getComputedStyle(el).visibility !== "hidden";
+
+  _trapIn = (els, e) => {
+    if (!els.length) return;
+    const first = els[0], last = els[els.length - 1];
+    const root = e._root;
+    if (root && !root.contains(document.activeElement)) {
+      e.preventDefault();
+      (e.shiftKey ? last : first).focus();
+      return;
+    }
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  };
+
+  // Stable class fields, NOT arrows created inside renderVals(): a ref rebuilt on every render is
+  // detached with null each time, and renderVals() runs on scroll here (header auto-hide), so the
+  // handles were unreliable exactly when open()/close() read them.
+  panelRef = (el) => { this._panel = el; };
+  burgerRef = (el) => { this._burger = el; };
+  h1Ref = (el) => { this._h1 = el; };
+
+  focusables = () => {
+    const panel = this._drawerPanel();
+    if (!panel) return [];
+    return Array.from(panel.querySelectorAll("a[href], button")).filter((el) => el.offsetParent !== null);
+  };
+
+  // Canonical, from Homepage v2 (build-handoff.md § 3x). Focus moves here rather than in a
+  // lifecycle hook or a setState callback: this runtime calls neither, so a callback-based move
+  // never ran at all. Poll for the panel becoming focusable on BOTH a frame and a timer (a frame
+  // can be throttled, a timer cannot), bounded by 1s of wall clock rather than a frame count — the
+  // old 20-frame budget could expire before the display: none -> flex flip had landed, leaving
+  // focus on the burger with no error. Target is the Close button, a fixed position in the panel.
+  _takeDrawerFocus = () => {
+    cancelAnimationFrame(this._drawerRaf);
+    clearTimeout(this._drawerTo);
+    const start = Date.now();
+    const take = () => {
+      const panel = this._drawerPanel();
+      const btn = panel && panel.querySelector('button[aria-label="Close menu"]');
+      const t = this._canFocus(btn) ? btn : this.focusables()[0];
+      if (t) { t.focus(); return; }
+      if (Date.now() - start < 3000) {
+        this._drawerRaf = requestAnimationFrame(take);
+        this._drawerTo = setTimeout(take, 50);
+      }
+    };
+    take();
+  };
+
+  open = () => {
+    this.setState({ drawer: true });
+    document.body.style.overflow = "hidden";
+    this._takeDrawerFocus();
+  };
+
+  close = () => {
+    this.setState({ drawer: false });
+    document.body.style.overflow = "";
+    cancelAnimationFrame(this._drawerRaf);
+    clearTimeout(this._drawerTo);
+    const t = this._canFocus(this._burger) ? this._burger : this._canFocus(this._h1) ? this._h1 : null;
+    if (t) t.focus();
+  };
+
+  // ---- account ----
+  _views = ["overview", "orders", "points", "gifts", "addresses", "details"];
+  _readView = () => { const h = (window.location.hash || "").replace("#", ""); return this._views.indexOf(h) > 0 ? h : "overview"; };
+
+  // Sections are hash links, so Back/Forward and a shared link land on the same section. Focus
+  // moves to the section heading (tabindex -1, no ring) as a reading start; the overview returns
+  // focus to the h1.
+  _onHash = () => {
+    const v = this._readView();
+    if (v === this.state.view) return;
+    this.setState({ view: v, rmId: "", af: null, afEditing: "", addrSaid: "" });
+    clearTimeout(this._hT);
+    this._hT = setTimeout(() => {
+      const t = document.getElementById(v === "overview" ? "ac-h1" : "ac-h-" + v);
+      const top = document.querySelector(v === "overview" ? ".ac-hero" : ".ac-layout");
+      if (top) {
+        const y = top.getBoundingClientRect().top + window.scrollY - (v === "overview" ? 0 : 90);
+        if (v === "overview" || top.getBoundingClientRect().top < 0 || window.innerWidth < 1024) window.scrollTo(0, Math.max(0, y));
+      }
+      if (t) { try { t.focus({ preventScroll: true }); } catch (e) { t.focus(); } }
+    }, 40);
+  };
+
+  _readWip = () => {
+    let wip = null;
+    try { const O = window.ATOrder, o = O && O.read(); if (O && O.isActive(o)) wip = { label: o.label, total: o.total, count: O.dishCount(o) || 0, size: Math.max(6, parseInt(o.boxSize, 10) || 6) }; } catch (e) {}
+    this.setState({ wip });
+  };
+
+  // £5 marks (500 points). Prototype record of the highest mark the customer has SEEN, so the
+  // "now worth £X" line shows once per mark, on the first visit after crossing it. No record ⇒
+  // recorded silently (nothing to celebrate on a first look). Production: the server owns this.
+  _MS_KEY = "at-points-seen-v1";
+  _checkMilestone = () => {
+    const mark = Math.floor(this._balance() / 500);
+    if (this.props.showMilestone) { if (mark > 0) this.setState({ msHit: mark }); return; }
+    let seen = null;
+    try { const r = JSON.parse(window.localStorage.getItem(this._MS_KEY) || "null"); if (r && r.v === 1 && typeof r.mark === "number") seen = r.mark; } catch (e) {}
+    if (seen != null && mark > seen && mark > 0) this.setState({ msHit: mark });
+    if (seen == null || mark > seen) { try { window.localStorage.setItem(this._MS_KEY, JSON.stringify({ v: 1, mark })); } catch (e) {} }
+  };
+  _balance = () => {
+    const { up, past } = this._orders();
+    return up.concat(past).reduce((t, o) => t + Math.floor(o.eligible * 2), 0) + (this._isNew() ? 0 : 250);
+  };
+  _isNew = () => this.props.customer === "First order on its way";
+
+  _orders = () => {
+    const up = [{ no: "AT-10517", dateLong: "Thursday 8 October 2026", window: "7am \u2013 6pm", addr: "12 High Street, Dartford DA1 1AA",
+      status: "Cooking", kind: "live", box: "6-dish box", total: 117, eligible: 117, paid: "1 October 2026",
+      dishes: [{ q: 2, name: "Royal Seafood Okra", sig: true }, { q: 2, name: "Jollof Quinoa Bowl" }, { q: 2, name: "Turkey Ayamase with Greens" }] }];
+    if (this._isNew()) return { up, past: [] };
+    const past = [
+      { no: "AT-10482", dateLong: "Thursday 6 August 2026", addr: "12 High Street, Dartford DA1 1AA", status: "Delivered", kind: "done", box: "6-dish box", total: 109, eligible: 109, paid: "30 July 2026",
+        dishes: [{ q: 2, name: "Wild Rice, Goat Efo" }, { q: 2, name: "Fish Peppersoup Bone Broth" }, { q: 2, name: "Suya Salmon, Kale, Quinoa", portion: "full" }] },
+      { no: "AT-10391", dateLong: "Thursday 9 July 2026", addr: "Kemi Adeyemi, 27 Elm Road, Sevenoaks TN13 1AB", status: "Delivered", kind: "done", box: "6-dish box", total: 126, eligible: 123, paid: "2 July 2026",
+        gift: "Gift for Kemi Adeyemi \u00b7 prices hidden \u00b7 greeting card",
+        dishes: [{ q: 2, name: "Ata Dindin Lamb Shank", sig: true }, { q: 2, name: "Chicken Egusi with Cauliflower Rice, Spinach & Pepper Sauce" }, { q: 2, name: "Jollof Quinoa Bowl" }] },
+      { no: "AT-10244", dateLong: "Friday 12 June 2026", addr: "12 High Street, Dartford DA1 1AA", status: "Delivered", kind: "done", box: "6-dish box", total: 109, eligible: 109, paid: "5 June 2026",
+        dishes: [{ q: 2, name: "Turkey Ayamase with Greens" }, { q: 2, name: "Wild Rice, Goat Efo" }, { q: 2, name: "Fish Peppersoup Bone Broth" }] },
+    ];
+    return { up, past };
+  };
+
+  // ---- Order again ----
+  // Menu slugs, so step 2 can match each dish. A name the menu does not carry is "no longer on the
+  // menu" — the reorderUnavailable tweak takes one dish off to review that state.
+  _SLUG = { "Wild Rice, Goat Efo": "wild-rice-goat-efo", "Ata Dindin Lamb Shank": "ata-dindin-lamb-shank", "Fish Peppersoup Bone Broth": "fish-peppersoup-bone-broth",
+    "Royal Seafood Okra": "royal-seafood-okra", "Suya Salmon, Kale, Quinoa": "suya-salmon-kale-quinoa", "Jollof Quinoa Bowl": "jollof-quinoa-bowl",
+    "Turkey Ayamase with Greens": "turkey-ayamase-with-greens", "Chicken Egusi with Cauliflower Rice, Spinach & Pepper Sauce": "chicken-egusi-cauliflower-rice" };
+  _MAX = 99;
+  _onMenu = (name) => !!this._SLUG[name] && !(this.props.reorderUnavailable && name === "Fish Peppersoup Bone Broth");
+  _roOrder = () => { const { up, past } = this._orders(); return up.concat(past).find((o) => o.no === this.state.ro) || null; };
+  openRo = (no, trigger) => {
+    const { up, past } = this._orders(); const o = up.concat(past).find((x) => x.no === no); if (!o) return;
+    const sel = {}; o.dishes.forEach((d, i) => { const av = this._onMenu(d.name); sel[i] = { on: av, q: d.q }; });
+    this._roTrigger = trigger || document.activeElement;
+    this._readWip();
+    this.setState({ ro: no, roSel: sel, roTried: false });
+    document.body.style.overflow = "hidden";
+    clearTimeout(this._roT);
+    const start = Date.now();
+    const take = () => { const h = document.getElementById("ac-ro-h"); if (h) { h.focus(); return; } if (Date.now() - start < 1500) this._roT = setTimeout(take, 30); };
+    this._roT = setTimeout(take, 30);
+  };
+  closeRo = () => {
+    this.setState({ ro: "", roTried: false });
+    document.body.style.overflow = "";
+    const t = this._roTrigger; this._roTrigger = null;
+    setTimeout(() => { if (t && t.isConnected) t.focus(); }, 40);
+  };
+  roKeys = (e) => {
+    if (e.key === "Escape") { e.preventDefault(); this.closeRo(); return; }
+    if (e.key !== "Tab") return;
+    const box = document.getElementById("ac-ro"); if (!box) return;
+    const els = Array.from(box.querySelectorAll("a[href], button:not([disabled]), input:not([disabled])")).filter((el) => el.offsetParent !== null);
+    if (!els.length) return;
+    const first = els[0], last = els[els.length - 1];
+    if (e.shiftKey && (document.activeElement === first || !box.contains(document.activeElement) || document.activeElement.id === "ac-ro-h")) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  };
+  _roSet = (i, patch) => this.setState((st) => ({ roTried: false, roSel: Object.assign({}, st.roSel, { [i]: Object.assign({}, st.roSel[i], patch) }) }));
+  // One calculation for the summary line and the hand-off. Exact count: the box becomes precisely
+  // what is in it (minimum 6, maximum 99) and never shrinks a box in progress.
+  _roCalc = () => {
+    const o = this._roOrder(), s = this.state; if (!o) return null;
+    const w = s.wip;
+    let n = 0, avail = 0; const picks = [];
+    o.dishes.forEach((d, i) => { const av = this._onMenu(d.name); if (av) avail++; const r = s.roSel[i] || {}; if (av && r.on) { n += r.q; picks.push({ slug: this._SLUG[d.name], q: r.q, portion: d.portion === "full" ? "full" : "light" }); } });
+    const ex = w ? w.count : 0, base = w ? w.size : 6, total = ex + n, size = Math.max(base, total, 6);
+    return { o, n, avail, picks, ex, base, total, size, w };
+  };
+  _roSummary = (c) => {
+    const dn = (k) => k + (k === 1 ? " dish" : " dishes");
+    if (!c.avail) return { err: true, sum: "None of these dishes are on the menu right now." };
+    if (!c.n) return { err: this.state.roTried, sum: this.state.roTried ? "Choose at least one dish to continue." : "No dishes selected." };
+    if (c.total > this._MAX) return { err: true, sum: "Boxes hold up to " + this._MAX + " dishes. Remove " + dn(c.total - this._MAX) + " to continue." };
+    if (c.w) {
+      const left = c.size - c.total;
+      return { err: false, sum: "Adding " + dn(c.n) + " to your " + c.base + "-dish box." + (c.total > c.base ? " Your box will grow to " + c.total + " dishes." : left > 0 ? " " + left + (left === 1 ? " space" : " spaces") + " left." : " Your box will be full.") };
+    }
+    return { err: false, sum: c.n < 6 ? dn(c.n) + " \u00b7 6-dish box. You\u2019ll choose " + (6 - c.n) + " more on the next step." : dn(c.n) + " \u00b7 " + c.n + "-dish box." };
+  };
+  roGo = () => {
+    const c = this._roCalc(); if (!c) return;
+    if (!c.avail || !c.n || c.total > this._MAX) {
+      this.setState({ roTried: true });
+      setTimeout(() => { const el = document.getElementById("ac-ro-sum"); if (el) el.focus(); }, 40);
+      return;
+    }
+    const p = c.o.dateLong.split(" ").slice(1, 3).join(" ");
+    const q = (c.w ? "resume=1&" : "") + "reorder=" + encodeURIComponent(c.picks.map((x) => x.slug + "." + x.q + "." + x.portion).join(",")) + "&fromd=" + encodeURIComponent(p);
+    document.body.style.overflow = "";
+    window.location.href = "Abby's Table - Add Dishes v2.dc.html?" + q;
+  };
+  _roVals = () => {
+    const s = this.state, c = this._roCalc();
+    if (!c) return { roOn: false, ro: { rows: [], date: "", wipOn: false, wipText: "", noneAvail: false, sum: "", err: "false", cta: "Build a box", upcoming: false }, roClose: this.closeRo, roKeys: this.roKeys, roGo: this.roGo };
+    const sm = this._roSummary(c);
+    const rows = c.o.dishes.map((d, i) => {
+      const av = this._onMenu(d.name), r = s.roSel[i] || { on: false, q: d.q }, por = d.portion === "full" ? "Full Table" : "Light Table";
+      return { name: d.name, sig: !!d.sig, on: !!(av && r.on), unavail: !av, avail: av, na: av ? "false" : "true", off: av && r.on ? "false" : "true",
+        meta: av ? por : "No longer on the menu", q: String(r.q),
+        group: "Quantity of " + d.name, decLabel: "Fewer " + d.name, incLabel: "More " + d.name,
+        decDis: !r.on || r.q <= 1, incDis: !r.on || r.q >= this._MAX,
+        toggle: (e) => this._roSet(i, { on: e.target.checked }),
+        dec: () => this._roSet(i, { q: Math.max(1, r.q - 1) }), inc: () => this._roSet(i, { q: Math.min(this._MAX, r.q + 1) }) };
+    });
+    return {
+      roOn: true, roClose: this.closeRo, roKeys: this.roKeys, roGo: this.roGo,
+      ro: { rows, date: c.o.dateLong.replace(/ \d{4}$/, ""), wipOn: !!c.w, wipText: c.w ? (c.w.count + (c.w.count === 1 ? " dish" : " dishes") + " in a " + c.w.size + "-dish box") : "",
+        noneAvail: !c.avail, sum: sm.sum, err: sm.err ? "true" : "false", cta: c.w ? "Add to your box" : "Build a box", upcoming: c.o.kind === "live" },
+    };
+  };
+
+  _defaultAddrs = () => {
+    const home = { id: "a1", label: "Home", name: "Funmi Adeyemi", l1: "12 High Street", l2: "", town: "Dartford", pc: "DA1 1AA", phone: "07700 900123", notes: "Leave with the neighbour at no. 14 if we\u2019re out.", def: true };
+    if (this._isNew()) return [home];
+    return [home, { id: "a2", label: "Work", name: "Funmi Adeyemi", l1: "Unit 3, Riverside Court", l2: "Crayford Road", town: "Crayford", pc: "DA1 4AL", phone: "07700 900123", notes: "Reception closes at 5pm.", def: false }];
+  };
+  _addrs = () => this.state.addrs || this._defaultAddrs();
+  _dt = () => this.state.dt || { first: "Funmi", last: "Adeyemi", email: (window.ATAccount && window.ATAccount.email()) || "funmi@example.com", phone: "07700 900123" };
+
+  _focusId = (id) => { clearTimeout(this._fT); this._fT = setTimeout(() => { const el = document.getElementById(id); if (el) el.focus(); }, 40); };
+
+  addAddr = () => { this.setState({ af: { label: "", name: this._dt().first + " " + this._dt().last, l1: "", l2: "", town: "", pc: "", phone: this._dt().phone, notes: "", def: this._addrs().length === 0 }, afEditing: "", ae: {}, addrSaid: "", rmId: "" }); this._focusId("ac-af-h"); };
+  _editAddr = (a) => { this.setState({ af: Object.assign({}, a), afEditing: a.id, ae: {}, addrSaid: "", rmId: "" }); this._focusId("ac-af-h"); };
+  cancelAddr = () => { this.setState({ af: null, afEditing: "", ae: {} }); this._focusId("ac-h-addresses"); };
+  afIn = (e) => { const n = e.target.name, v = e.target.value; this.setState((s) => ({ af: Object.assign({}, s.af, { [n]: v }), ae: Object.assign({}, s.ae, { [n]: "" }) })); };
+  afDef = (e) => { const v = e.target.checked; this.setState((s) => ({ af: Object.assign({}, s.af, { def: v }) })); };
+
+  saveAddr = (e) => {
+    e.preventDefault();
+    const f = this.state.af, ae = {};
+    if (!f.name.trim()) ae.name = "Enter the name of the person receiving the delivery.";
+    if (!f.l1.trim()) ae.l1 = "Enter the first line of the address.";
+    if (!f.town.trim()) ae.town = "Enter a town or city.";
+    if (!f.pc.trim()) ae.pc = "Enter a postcode.";
+    else if (!/^[A-Za-z]{1,2}\d[A-Za-z\d]?\s*\d[A-Za-z]{2}$/.test(f.pc.trim())) ae.pc = "Enter a UK postcode, like DA1 1AA.";
+    if (!f.phone.trim()) ae.phone = "Enter a phone number for delivery updates.";
+    const first = ["name", "l1", "town", "pc", "phone"].find((k) => ae[k]);
+    if (first) { this.setState({ ae }); const map = { name: "af-name", l1: "af-l1", town: "af-town", pc: "af-pc", phone: "af-phone" }; this._focusId(map[first]); return; }
+    let list = this._addrs().slice();
+    const rec = Object.assign({}, f, { pc: f.pc.trim().toUpperCase() });
+    if (this.state.afEditing) list = list.map((a) => a.id === this.state.afEditing ? Object.assign(rec, { id: a.id }) : a);
+    else list.push(Object.assign(rec, { id: "a" + Date.now() }));
+    if (rec.def) list = list.map((a) => Object.assign({}, a, { def: a.id === rec.id }));
+    if (!list.some((a) => a.def) && list.length) list[0] = Object.assign({}, list[0], { def: true });
+    this.setState({ addrs: list, af: null, afEditing: "", ae: {}, addrSaid: "Address saved." });
+    this._focusId("ac-h-addresses");
+  };
+  _rmAddr = (id) => {
+    let list = this._addrs().filter((a) => a.id !== id);
+    if (list.length && !list.some((a) => a.def)) list[0] = Object.assign({}, list[0], { def: true });
+    this.setState({ addrs: list, rmId: "", addrSaid: "Address removed." });
+    this._focusId("ac-h-addresses");
+  };
+  _setDef = (id) => this.setState({ addrs: this._addrs().map((a) => Object.assign({}, a, { def: a.id === id })), addrSaid: "Default address updated." });
+
+  dtIn = (e) => { const n = e.target.name, v = e.target.value; this.setState((s) => ({ dt: Object.assign({}, s.dt || this._dt(), { [n]: v }), de: Object.assign({}, s.de, { [n]: "" }), detSaid: false })); };
+  saveDet = (e) => {
+    e.preventDefault();
+    const d = this._dt(), de = {};
+    if (!d.first.trim()) de.first = "Enter your first name.";
+    if (!d.email.trim()) de.email = "Enter your email address.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.email.trim())) de.email = "Enter an email address in the format name@example.com.";
+    if (de.first || de.email) { this.setState({ de, detSaid: false }); this._focusId(de.first ? "dt-first" : "dt-email"); return; }
+    this.setState({ de: {}, detSaid: true });
+  };
+  sendReset = () => this.setState({ resetSaid: true });
+  toggleNews = (e) => this.setState({ news: e.target.checked });
+
+  // Sign out lives here and only here (CLAUDE.md, 1 Oct 2026). Clears the prototype flag, then
+  // leaves the account area: there is nothing on this page for a signed-out customer.
+  signOut = () => {
+    try { if (window.ATAccount) window.ATAccount.signOut(); } catch (e) {}
+    window.location.href = "Abby's Table - Homepage v2.dc.html";
+  };
+
+  _signedIn = () => {
+    const p = this.props.accountState || "Signed in (preview)";
+    if (p === "Signed out") return false;
+    if (p === "Follow sign-in flag") { try { return !!(window.ATAccount && window.ATAccount.signedIn()); } catch (e) { return false; } }
+    return true;
+  };
+
+  _acctVals = () => {
+    const s = this.state, v = s.view;
+    const gbp = (n) => "\u00a3" + n;
+    const { up, past } = this._orders();
+    const mapO = (o) => {
+      const open = !!s.ordOpen[o.no], n = o.dishes.reduce((t, d) => t + d.q, 0);
+      return Object.assign({}, o, {
+        total: gbp(o.total), hid: "ac-o-" + o.no, lid: "ac-ol-" + o.no, isGift: !!o.gift, open, exp: open ? "true" : "false",
+        discLabel: (open ? "Hide dishes" : "Show dishes") + " (" + n + ")",
+        againLabel: "Order again: dishes from " + o.dateLong,
+        again: (e) => this.openRo(o.no, e && e.currentTarget),
+        dishes: o.dishes.map((d) => ({ q: d.q, name: d.name, sig: !!d.sig })),
+        toggle: () => this.setState((st) => ({ ordOpen: Object.assign({}, st.ordOpen, { [o.no]: !st.ordOpen[o.no] }) })),
+      });
+    };
+    const all = up.concat(past);
+    const gifts = this._isNew() ? [] : [
+      { id: "g1", value: "\u00a350", route: "By email", to: "Kemi Adeyemi", email: "kemi@example.com", detail: "Emailed to kemi@example.com \u00b7 21 September 2026", status: "Sent", canResend: true },
+      { id: "g2", value: "\u00a375", route: "By post", to: "Tunde Bello", detail: "Posted to Sevenoaks \u00b7 3 September 2026", status: "Posted", isPost: true },
+    ].map((g) => Object.assign({}, g, { hid: "ac-g-" + g.id, canResend: !!g.canResend, isPost: !!g.isPost, resent: !!s.resent[g.id],
+        resend: () => this.setState((st) => ({ resent: Object.assign({}, st.resent, { [g.id]: true }) })) }));
+    // ---- points (2 per £1 of eligible spend; 100 = £1; max 20% of an order; never expire) ----
+    const fmt = (n) => n.toLocaleString("en-GB");
+    const pv = (p) => "\u00a3" + (p / 100).toFixed(2);
+    const earn = all.map((o, i) => ({ title: "Order " + o.no, date: "Paid " + o.paid, pts: Math.floor(o.eligible * 2), t: Date.parse(o.paid) || 0 }));
+    if (!this._isNew()) {
+      earn.push({ title: "\u00a350 gift card for Kemi", date: "Paid 21 September 2026", pts: 100, t: Date.parse("21 September 2026") });
+      earn.push({ title: "\u00a375 gift card for Tunde", date: "Paid 3 September 2026", pts: 150, t: Date.parse("3 September 2026") });
+    }
+    earn.sort((a, b) => b.t - a.t);
+    const bal = earn.reduce((t, e) => t + e.pts, 0);
+    let run = bal;
+    const hist = earn.map((e) => { const r = { title: e.title, date: e.date, pts: fmt(e.pts), val: pv(e.pts), run: fmt(run) }; run -= e.pts; return r; });
+    const step = 500, next = (Math.floor(bal / step) + 1) * step;
+    const BOX = { "6": 95, "12": 170, "18": 240 };
+    const ownN = parseInt(s.calcOwn, 10);
+    const cN = s.calc === "own" ? (ownN >= 6 && ownN <= 99 ? ownN : s.calcOwnValid) : parseInt(s.calc, 10);
+    const cPrice = BOX[String(cN)] || cN * 17;
+    const cPts = cPrice * 2, cap = Math.round(cPrice * 20), cUseP = Math.min(bal, cap);
+    const money = (p) => "\u00a3" + (p % 100 === 0 ? String(p / 100) : (p / 100).toFixed(2));
+    const pt = {
+      reached: !!s.msHit, notReached: !s.msHit, hitVal: "\u00a3" + (s.msHit * 5),
+      bal: fmt(bal), value: pv(bal), pct: (((bal % step) / step) * 100).toFixed(1) + "%", toGo: fmt(next - bal), nextVal: "\u00a3" + next / 100,
+      sizes: [["6", "6"], ["12", "12"], ["18", "18"], ["own", "Your own"]].map(([k, l]) => ({ label: l, on: s.calc === k ? "true" : "false", pick: () => this.setState({ calc: k, calcErr: false }) })),
+      ownOn: s.calc === "own", ownVal: s.calcOwn, ownErrOn: s.calc === "own" && !!s.calcErr, stale: s.calc === "own" && s.calcErr ? "true" : "false",
+      ownType: (e) => { const v = String(e.target.value || "").replace(/\D/g, "").slice(0, 2), n = parseInt(v, 10); const ok = n >= 6 && n <= 99; this.setState((st) => ({ calcOwn: v, calcErr: !ok, calcOwnValid: ok ? n : st.calcOwnValid })); },
+      cN: String(cN), cPts: fmt(cPts), cVal: money(cPts), cUse: money(cUseP),
+      cCapNote: bal > cap ? " That\u2019s the 20% maximum for a " + money(cPrice * 100) + " box." : "",
+    };
+    const addrs = this._addrs().map((a) => ({
+      hid: "ac-a-" + a.id, title: a.label || "Address", name: a.name, def: !!a.def, notDef: !a.def,
+      lines: [a.l1, a.l2, a.town, a.pc].filter(Boolean).join(", "), phone: a.phone, notes: a.notes, hasNotes: !!a.notes,
+      confirming: s.rmId === a.id, notConfirming: s.rmId !== a.id,
+      editLabel: "Edit " + (a.label || "address"), rmLabel: "Remove " + (a.label || "address"),
+      edit: () => this._editAddr(a), setDef: () => this._setDef(a.id),
+      askRm: () => this.setState({ rmId: a.id, addrSaid: "" }), doRm: () => this._rmAddr(a.id), keep: () => this.setState({ rmId: "" }),
+    }));
+    const def = addrs.find((a) => a.def);
+    const ae = s.ae || {}, aeV = {};
+    ["name", "l1", "town", "pc", "phone"].forEach((k) => { aeV[k] = ae[k] || ""; aeV[k + "On"] = !!ae[k]; aeV[k + "Inv"] = ae[k] ? "true" : "false"; });
+    const de = s.de || {};
+    const dt = this._dt();
+    const cur = {}; this._views.forEach((k) => { cur[k] = v === k ? "page" : "false"; });
+    return {
+      signedIn: this._signedIn(), signedOut: !this._signedIn(),
+      acctLabel: this._signedIn() ? "My Account" : "Log in",
+      acctHref: this._signedIn() ? "Abby's Table - My Account.dc.html" : "Abby's Table - Log in.dc.html",
+      acctCur: this._signedIn() ? "page" : "false",
+      firstName: dt.first || "there",
+      view: v, cur, inSection: v !== "overview",
+      vOverview: v === "overview", vOrders: v === "orders", vPoints: v === "points", vGifts: v === "gifts", vAddresses: v === "addresses", vDetails: v === "details",
+      nextOn: v === "overview" && up.length > 0,
+      wipOn: !!s.wip, wipLabel: s.wip ? s.wip.label : "", wipTotal: s.wip ? s.wip.total : "",
+      meta: {
+        orders: up.length ? "Next delivery Thursday 8 October" : "No deliveries on the way",
+        points: fmt(bal) + " points \u00b7 " + pv(bal) + " to spend",
+        gifts: gifts.length ? gifts.length + " gift cards sent" : "Send and resend gift cards",
+        addresses: addrs.length === 1 ? "1 saved address" : addrs.length + " saved addresses",
+        details: dt.email,
+      },
+      upcoming: up.map(mapO), past: past.map(mapO), noUpcoming: !up.length, noPast: !past.length,
+      recent: all.slice(0, 3).map((o) => { return { no: o.no, dateLong: o.dateLong, box: o.box, status: o.status, total: gbp(o.total),
+        canAgain: true, againLabel: "Order again: dishes from " + o.dateLong, again: (e) => this.openRo(o.no, e && e.currentTarget) }; }),
+      pt, hist,
+      gifts, noGifts: !gifts.length,
+      addrs, noAddrs: !addrs.length, hasDefAddr: !!def, noDefAddr: !def, defAddr: def || { name: "", lines: "" },
+      addrSaidOn: !!s.addrSaid, addrSaid: s.addrSaid,
+      formOn: !!s.af, formOff: !s.af, formTitle: s.afEditing ? "Edit address" : "Add an address",
+      af: s.af || { label: "", name: "", l1: "", l2: "", town: "", pc: "", phone: "", notes: "", def: false },
+      ae: aeV, afIn: this.afIn, afDef: this.afDef, saveAddr: this.saveAddr, cancelAddr: this.cancelAddr, addAddr: this.addAddr,
+      dt, dtIn: this.dtIn, saveDet: this.saveDet, detSaid: !!s.detSaid,
+      de: { first: de.first || "", firstOn: !!de.first, firstInv: de.first ? "true" : "false", email: de.email || "", emailOn: !!de.email, emailInv: de.email ? "true" : "false" },
+      sendReset: this.sendReset, resetSaid: !!s.resetSaid, news: !!s.news, toggleNews: this.toggleNews,
+      waitlist: this.props.privateTableWaitlist ?? true,
+      signOut: this.signOut,
+      ...this._roVals(),
+    };
+  };
+
+  renderVals() {
+    const s = this.state;
+    return {
+      ...this._acctVals(),
+
+      hdrRef: this.hdrRef,
+      hdrHidden: (s.dirDown && !s.drawer) ? "true" : "false",
+      barRef: this.barRef,
+      barOn: (s.heroOut && s.dirDown && !s.drawer && !s.ro && !s.footInView && !this.props.cookieUnresolved) ? "true" : "false",
+
+      drawerCls: s.drawer ? "is-open" : "",
+      burgerExpanded: s.drawer ? "true" : "false",
+      openDrawer: this.open,
+      closeDrawer: this.close,
+      panelRef: this.panelRef,
+      burgerRef: this.burgerRef,
+      h1Ref: this.h1Ref,
+
+      subscribed: !!s.subscribed,
+      notSubscribed: !s.subscribed,
+      onJoin: this.onJoin,
+      footRef: this.footRef,
+      toggleShop: this.toggleShop,
+      toggleLearn: this.toggleLearn,
+      toggleInfo: this.toggleInfo,
+      shopCls: s.footOpen.shop ? "is-open" : "",
+      learnCls: s.footOpen.learn ? "is-open" : "",
+      infoCls: s.footOpen.info ? "is-open" : "",
+      shopExp: s.footOpen.shop ? "true" : "false",
+      learnExp: s.footOpen.learn ? "true" : "false",
+      infoExp: s.footOpen.info ? "true" : "false",
+    };
+  }
+}
+</script>
+</body>
+</html>

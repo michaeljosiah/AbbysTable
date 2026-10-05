@@ -1,0 +1,17 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Review at phone widths</title>
+<style>body{margin:0;background:#ddd;font:13px system-ui;display:flex;gap:16px;padding:16px;align-items:flex-start}
+figure{margin:0}figcaption{margin-bottom:6px}iframe{border:0;background:#fff;height:900px}</style></head>
+<body>
+<figure><figcaption>320</figcaption><iframe id="a" width="320" src=""></iframe></figure>
+<figure><figcaption>375</figcaption><iframe id="b" width="375" src=""></iframe></figure>
+<figure><figcaption>430</figcaption><iframe id="c" width="430" src=""></iframe></figure>
+<script>
+const PAGE = new URLSearchParams(location.search).get("page") || "Abby's Table - Review v2.dc.html";
+document.querySelectorAll('iframe').forEach(f => { f.src = "../" + PAGE; });
+document.querySelectorAll('iframe').forEach(f => f.addEventListener('load', () => {
+  const go = () => { try { const d = f.contentDocument, h = d.getElementById('rv-d-h'); if (!h) return setTimeout(go, 300); f.contentWindow.scrollTo(0, h.getBoundingClientRect().top + f.contentWindow.scrollY - 150); } catch (e) {} };
+  setTimeout(go, 1200);
+}));
+</script>
+</body></html>

@@ -1,0 +1,69 @@
+/* Abby's Table — Color tokens
+   Derived from the homepage Figma. A warm, editorial palette:
+   deep Nigerian-greens, brass, terracotta, and toasted creams. */
+
+:root {
+  /* ----- Brand greens ----- */
+  --green-forest: #1E3A2F;   /* primary brand green — headings, top bar, dark CTAs */
+  --green-deep:   #15291F;   /* darkest — footer ground */
+  --green-mid:    #456052;   /* hairline borders on dark, muted dark-surface lines */
+  --green-sage:   #8FA096;   /* muted sage text */
+  --green-mist:   #AEB8B1;   /* lightest sage — disabled / faint UI text */
+
+  /* ----- Accents ----- */
+  --brass:        #C28E3C;   /* gold accent — eyebrows, rules, join button */
+  --brass-deep:   #A9762C;   /* pressed / hover brass */
+  --terracotta:   #B45F5A;   /* rust — primary buttons, accent display text */
+  --terracotta-deep: #96474A;/* pressed terracotta */
+  --navy:         #28365C;   /* private-table section ground */
+
+  /* ----- Toasted neutrals (surfaces) ----- */
+  --cream:        #F7F1E8;   /* page ground */
+  --cream-2:      #F7F2E8;   /* header / standards band */
+  --cream-3:      #FBF8F1;   /* dishes band — lightest cream */
+  --white:        #FFFFFF;
+  --blush:        #E9CDB8;   /* peach — founder band, light-on-dark text */
+  --sand:         #E0D8C8;   /* card surface, hairline borders on light */
+  --sand-2:       #D6D0C6;   /* faint cream text on dark */
+
+  /* ----- Text ----- */
+  --brown:        #3B2C22;   /* primary body text on light */
+  --taupe:        #86755F;   /* secondary / supporting text */
+
+  /* ===================================================================
+     Semantic aliases — prefer these in components
+     =================================================================== */
+
+  /* Surfaces */
+  --surface-page:      var(--cream);
+  --surface-raised:    var(--cream-2);
+  --surface-bright:    var(--cream-3);
+  --surface-card:      var(--sand);
+  --surface-blush:     var(--blush);
+  --surface-dark:      var(--green-forest);
+  --surface-darker:    var(--green-deep);
+  --surface-navy:      var(--navy);
+
+  /* Text */
+  --text-heading:      var(--green-forest);
+  --text-body:         var(--brown);
+  --text-muted:        var(--taupe);
+  --text-on-dark:      var(--blush);
+  --text-on-dark-soft: var(--sand-2);
+  --text-inverse:      var(--white);
+  --text-accent:       var(--terracotta);
+  --text-eyebrow:      var(--brass);
+
+  /* Lines & borders */
+  --border-light:      var(--sand);
+  --border-dark:       var(--green-mid);
+  --rule-brass:        var(--brass);
+
+  /* Interactive */
+  --action-primary:        var(--terracotta);
+  --action-primary-hover:  var(--terracotta-deep);
+  --action-dark:           var(--green-forest);
+  --action-brass:          var(--brass);
+  --action-brass-hover:    var(--brass-deep);
+  --focus-ring:            var(--brass);
+}

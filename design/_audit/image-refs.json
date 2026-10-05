@@ -1,0 +1,563 @@
+{
+ "dish-goat-efo.png": {
+  "pages": [
+   "Abby's Boxes",
+   "Add Dishes",
+   "Choose Box",
+   "Dish Landing",
+   "Extras",
+   "Homepage v2",
+   "Homepage-print-x04o7s",
+   "How It Works",
+   "Review"
+  ],
+  "how": [
+   "JS",
+   "HTML"
+  ],
+  "loading": [
+   "-",
+   "eager"
+  ]
+ },
+ "dish-fish-peppersoup.png": {
+  "pages": [
+   "Abby's Boxes",
+   "Add Dishes",
+   "Choose Box",
+   "Dish Landing",
+   "Extras",
+   "Homepage v2",
+   "Homepage-print-x04o7s",
+   "How It Works",
+   "Review"
+  ],
+  "how": [
+   "JS",
+   "HTML"
+  ],
+  "loading": [
+   "-",
+   "eager"
+  ]
+ },
+ "dish-lamb-shank.png": {
+  "pages": [
+   "Abby's Boxes",
+   "Add Dishes",
+   "Extras",
+   "Homepage v2",
+   "How It Works",
+   "Review"
+  ],
+  "how": [
+   "JS"
+  ],
+  "loading": [
+   "-"
+  ]
+ },
+ "favicon-180.png": {
+  "pages": [
+   "Abby's Boxes",
+   "Add Dishes",
+   "Checkout",
+   "Choose Box",
+   "Dish Landing",
+   "Extras",
+   "Homepage-print-x04o7s",
+   "How It Works",
+   "Private Table",
+   "Review",
+   "Standards v2"
+  ],
+  "how": [
+   "JS"
+  ],
+  "loading": [
+   "-"
+  ]
+ },
+ "hero-mobile.png": {
+  "pages": [
+   "Abby's Boxes",
+   "How It Works"
+  ],
+  "how": [
+   "CSS"
+  ],
+  "loading": [
+   "-"
+  ]
+ },
+ "floral-monogram-gold.png": {
+  "pages": [
+   "Abby's Boxes",
+   "Add Dishes",
+   "Dish Landing",
+   "Menu Landing v3",
+   "Private Table",
+   "Review"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "eager",
+   "lazy"
+  ]
+ },
+ "hiw-delivery.png": {
+  "pages": [
+   "Abby's Boxes",
+   "How It Works"
+  ],
+  "how": [
+   "JS",
+   "HTML"
+  ],
+  "loading": [
+   "-",
+   "eager"
+  ]
+ },
+ "story-hero.jpg": {
+  "pages": [
+   "Abby's Story v2"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "eager+hi"
+  ]
+ },
+ "mrsj-logo.png": {
+  "pages": [
+   "Abby's Story v2"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "eager"
+  ]
+ },
+ "bellefull-logo-sm.png": {
+  "pages": [
+   "Abby's Story v2"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "lazy"
+  ]
+ },
+ "polaroid-mrsj-menu.jpg": {
+  "pages": [
+   "Abby's Story v2"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "lazy"
+  ]
+ },
+ "polaroid-jollof-bowls.jpg": {
+  "pages": [
+   "Abby's Story v2"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "lazy"
+  ]
+ },
+ "polaroid-bf-pouches.jpg": {
+  "pages": [
+   "Abby's Story v2"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "lazy"
+  ]
+ },
+ "polaroid-bf-boxes.jpg": {
+  "pages": [
+   "Abby's Story v2"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "lazy"
+  ]
+ },
+ "story-chapter-01.jpg": {
+  "pages": [
+   "Abby's Story v2"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "lazy"
+  ]
+ },
+ "story-chapter-02.jpg": {
+  "pages": [
+   "Abby's Story v2"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "lazy"
+  ]
+ },
+ "story-chapter-03.jpg": {
+  "pages": [
+   "Abby's Story v2"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "lazy"
+  ]
+ },
+ "story-diagnosis.jpg": {
+  "pages": [
+   "Abby's Story v2"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "lazy"
+  ]
+ },
+ "cert-harvard.jpg": {
+  "pages": [
+   "Abby's Story v2"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "lazy"
+  ]
+ },
+ "cert-cnm.jpg": {
+  "pages": [
+   "Abby's Story v2"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "lazy"
+  ]
+ },
+ "story-video-still.jpg": {
+  "pages": [
+   "Abby's Story v2"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "lazy"
+  ]
+ },
+ "whatsapp-qr-placeholder.png": {
+  "pages": [
+   "Contact Us"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "eager"
+  ]
+ },
+ "gifting-box.jpg": {
+  "pages": [
+   "Gifting v2"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "lazy"
+  ]
+ },
+ "hero-landscape.png": {
+  "pages": [
+   "Homepage v2"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "eager"
+  ]
+ },
+ "hero-portrait.png": {
+  "pages": [
+   "Homepage v2"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "eager"
+  ]
+ },
+ "hiw-poster-mobile.jpg": {
+  "pages": [
+   "Homepage v2"
+  ],
+  "how": [
+   "JS"
+  ],
+  "loading": [
+   "-"
+  ]
+ },
+ "founder.png": {
+  "pages": [
+   "Homepage v2",
+   "Homepage-print-x04o7s"
+  ],
+  "how": [
+   "JS",
+   "HTML",
+   "CSS"
+  ],
+  "loading": [
+   "-",
+   "eager"
+  ]
+ },
+ "hiw-poster-desktop.jpg": {
+  "pages": [
+   "Homepage v2"
+  ],
+  "how": [
+   "JS"
+  ],
+  "loading": [
+   "-"
+  ]
+ },
+ "hero.png": {
+  "pages": [
+   "Homepage-print-x04o7s"
+  ],
+  "how": [
+   "CSS"
+  ],
+  "loading": [
+   "-"
+  ]
+ },
+ "floral-monogram.png": {
+  "pages": [
+   "Homepage-print-x04o7s",
+   "Private Table"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "eager"
+  ]
+ },
+ "hw-hero.jpg": {
+  "pages": [
+   "How It Works v2"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "eager+hi"
+  ]
+ },
+ "hw-scratch.jpg": {
+  "pages": [
+   "How It Works v2",
+   "Menu Landing v3"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "lazy"
+  ]
+ },
+ "hw-delivery.jpg": {
+  "pages": [
+   "How It Works v2"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "lazy"
+  ]
+ },
+ "hw-heat.jpg": {
+  "pages": [
+   "How It Works v2"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "lazy"
+  ]
+ },
+ "hiw-hero.png": {
+  "pages": [
+   "How It Works"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "eager"
+  ]
+ },
+ "hiw-scratch.png": {
+  "pages": [
+   "How It Works"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "eager"
+  ]
+ },
+ "hiw-heat.png": {
+  "pages": [
+   "How It Works"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "eager"
+  ]
+ },
+ "dish-goat-efo-800.jpg": {
+  "pages": [
+   "Menu Landing v3"
+  ],
+  "how": [
+   "HTML",
+   "JS"
+  ],
+  "loading": [
+   "lazy",
+   "-"
+  ]
+ },
+ "dish-lamb-shank-800.jpg": {
+  "pages": [
+   "Menu Landing v3"
+  ],
+  "how": [
+   "JS"
+  ],
+  "loading": [
+   "-"
+  ]
+ },
+ "dish-fish-peppersoup-800.jpg": {
+  "pages": [
+   "Menu Landing v3"
+  ],
+  "how": [
+   "JS"
+  ],
+  "loading": [
+   "-"
+  ]
+ },
+ "private-table-hero.png": {
+  "pages": [
+   "Private Table v2",
+   "Private Table"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "eager+hi",
+   "eager"
+  ]
+ },
+ "std2-hero.jpg": {
+  "pages": [
+   "Standards v2"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "eager+hi"
+  ]
+ },
+ "std2-ingredients.jpg": {
+  "pages": [
+   "Standards v2"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "lazy"
+  ]
+ },
+ "std2-spices.jpg": {
+  "pages": [
+   "Standards v2"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "lazy"
+  ]
+ },
+ "std2-nutrition.jpg": {
+  "pages": [
+   "Standards v2"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "lazy"
+  ]
+ },
+ "std2-delivery.jpg": {
+  "pages": [
+   "Standards v2"
+  ],
+  "how": [
+   "HTML"
+  ],
+  "loading": [
+   "lazy"
+  ]
+ }
+}

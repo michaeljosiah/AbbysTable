@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>html, body { background-color: #F7F1E8; color-scheme: light; }</style>
+<!-- ↑ First-paint ground: FIRST in the head so it is in the first bytes the parser sees.
+     Dependency-free literal of --cream (no tokens, no runtime); see CLAUDE.md head standard. -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Focus standard. In the real <head>, before the runtime, so it is parser-inserted and
+     render-blocking: it exists before first paint and before any script can move focus. A
+     <helmet> link is injected by the runtime AFTER render, which is what let the browser's blue
+     outline flash first. -->
+<!-- Shared stylesheets: ONE authoritative load path, in the real head. In <helmet> they were
+     applied from the raw template, torn down when the runtime consumed it, then re-added —
+     the transparent gap on every full load and on back navigation. -->
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/colors.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/typography.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/styles.css">
+<link rel="stylesheet" href="at-focus.css">
+<script src="at-logo.js"></script>
+<script src="at-desktop-header.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<!-- Order in progress: swaps "Get started" for VIEW BOX and the purchase bar for a box
+     summary once step 1 has been started. Self-initialising; no page-local code. -->
+<script src="at-order-state.js"></script>
+<!-- Signed in: "Log in" reads "My Account" in the header and drawer. Self-initialising. -->
+<script src="at-account-state.js"></script>
+  <!-- Plain, unversioned design-system URLs, identical to every other page. A ?v=1 cache-bust was
+       carried here for part of one session while the preview host was failing these exact URLs;
+       the fault stopped reproducing and the query was removed. See build-handoff.md before
+       changing these paths. -->
+  <script src="_ds/abby-s-table-design-system-c3ba5a87-a758-415e-b2c7-7de4d6925c04/_ds_bundle.js"></script>
+  <!-- Unpack splash / no-JS fallback for the standalone export. Same brass-on-green language as the
+       other snapshots: a gift card with a brass rule, not a literal of any page content. -->
+  <template id="__bundler_thumbnail" data-bg-color="#1E3A2F">
+    <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+      <rect width="1200" height="800" fill="#1E3A2F"/>
+      <rect x="360" y="290" width="480" height="300" rx="18" fill="#28402F" stroke="#C28E3C" stroke-width="3"/>
+      <rect x="360" y="352" width="480" height="8" fill="#C28E3C"/>
+      <rect x="576" y="290" width="48" height="300" fill="#C28E3C" opacity=".55"/>
+      <circle cx="600" cy="356" r="30" fill="none" stroke="#E9CDB8" stroke-width="3"/>
+    </svg>
+  </template>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background: var(--cream); }
+    a { color: var(--green-forest); }
+    a:hover { color: var(--terracotta-deep); }
+    :focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; border-radius: 3px; }
+    /* Brass is only 1.9:1 on green-deep, so dark grounds get a cream ring with a gold outer edge. */
+    .at-drawer-panel :focus-visible { outline-color: #FBF8F1; outline-offset: 0; box-shadow: 0 0 0 3px var(--gold); }
+    @keyframes at-drawer-in { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+    @keyframes at-fade-in { from { opacity: 0; } to { opacity: 1; } }
+    /* Closed with display: none rather than unmounted, so aria-controls always resolves, the
+       panel stays out of the accessibility tree and tab order, and the animation replays on open. */
+    .at-drawer-wrap { display: none; }
+    .at-drawer-wrap.is-open { display: block; }
+    .at-drawer-panel { animation: at-drawer-in .2s ease; }
+    .at-drawer-scrim { animation: at-fade-in .2s ease; }
+    /* Pending token overrides, same values and status as Homepage v2 / How It Works v2: page-local
+       until the components they belong to are approved and propagated.
+       --terracotta      sampled from the approved mockup (#B7554E); the shipped #B45F5A reads dull.
+       --gold            bright accent, DARK GROUNDS ONLY (9.3:1 on green-deep, 1.45:1 on cream).
+       --brass-ink       brass for SMALL TEXT on light grounds (4.96:1 on cream, ~4.8:1 on blush).
+       --terracotta-ink  terracotta as TYPE on light grounds (6.2:1 on cream) — the "Clear all"
+                         links. Plain --terracotta is 3.55:1 there and only ever passed at
+                         headline scale, which is what the old menu page used it at 13px.
+       --brass-lift      brass for TYPE on --green-forest, the mirror of --brass-ink: plain --brass
+                         is 4.25:1 there, which carries a mark but not a 14px figure, and this is
+                         4.97:1 while still reading bronze rather than yellow. It carries the gift
+                         card's VALUE, the ringed step numerals and the two panel labels.
+       --sage is now used: the step-3 price mark sits on it. green-forest is 9.4:1 there.
+       --chilli is still NOT declared: it belongs to a component this page does not have, and the
+       convention is to declare only what the page uses. */
+    :root { --terracotta: #B7554E; --terracotta-deep: #9C433D; --gold: #F6C33B; --brass-ink: #8A5F1F;
+            --terracotta-ink: #943E38; --brass-lift: #D09B45; --sage: #E1E2D2; }
+
+    html { scroll-behavior: smooth; }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+    .at-nav-link:hover { color: var(--terracotta-deep) !important; border-bottom-color: var(--brass) !important; }
+    /* Current page. aria-current was already on the right link in every header but nothing styled
+       it, so on desktop there was no way to tell where you were. Three signals, not colour alone:
+       green-forest ink, semibold, and the brass underline made persistent — the same underline the
+       hover uses, so the language is one. Hover still wins over it, which is correct: the pointer
+       is reporting what it is over, not where you are. */
+    .at-nav-link[aria-current="page"] { color: var(--green-forest) !important; font-weight: 600; border-bottom-color: var(--brass) !important; }
+    .at-login:hover { color: var(--terracotta-deep) !important; }
+    .at-login:hover span { border-bottom-color: var(--brass) !important; }
+    .at-drawer-link:hover { color: var(--brass) !important; }
+    /* No hover lift: fades and colour shifts, press is a colour deepen. The colour is re-stated on
+       hover because the global `a:hover` rule (0,1,1) outranks the button class (0,1,0). */
+    .at-cta, .at-drawer-cta { transition: background .16s ease; }
+    .at-cta:hover, .at-drawer-cta:hover { background: var(--terracotta-deep) !important; color: #fff !important; }
+    .at-cta:active, .at-drawer-cta:active { background: var(--terracotta-deep) !important; filter: brightness(.94); }
+    .at-logo { transition: opacity .16s ease; }
+    .at-logo:hover { opacity: .78; }
+    .at-burger span, .at-burger span span { transition: background .16s ease, border-color .16s ease; }
+    .at-burger:hover span { border-color: var(--terracotta-deep) !important; }
+    .at-burger:hover span span { background: var(--terracotta-deep) !important; }
+    .at-hdr { transition: transform .22s ease; }
+    .at-hdr[data-hidden="true"] { transform: translateY(-100%); }
+    @media (prefers-reduced-motion: reduce) {
+      .at-cta, .at-drawer-cta, .at-hdr { transition: none !important; }
+    }
+
+    /* "↑ Top" utility control, from Menu Landing v3. A navigation utility, not a CTA: cream ground,
+       green-forest ink, sand hairline, restrained shadow — never a filled or terracotta treatment,
+       so it stays subordinate to Build a Box. z-index 75, above the page, below the drawer, and
+       suppressed while the drawer is open. It stays visible over the footer, which is where it is
+       most useful. This page has no purchase bar, so it sits at the viewport edge at every width
+       and carries no --at-bar-h clearance state. */
+    .gf-top { position: fixed; z-index: 75; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: inline-flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 16px; border: 1px solid var(--sand-2); border-radius: var(--radius-pill); background: var(--cream-2); color: var(--green-forest); font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .01em; cursor: pointer; box-shadow: 0 6px 18px -10px rgba(30, 58, 47, .45); opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity .2s ease, transform .2s ease, background .16s ease, color .16s ease; }
+    .gf-top[data-on="true"] { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    .gf-top:hover { background: var(--cream); color: var(--terracotta-deep); }
+    .gf-top:active { filter: brightness(.96); }
+    .gf-top:focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
+    @media (prefers-reduced-motion: reduce) { .gf-top { transition: none !important; } }
+
+    /* Footer, canonical. Mobile-first: the accordion IS the mobile design and is switched off at
+       1024. All type on --green-deep clears AA: brass 5.2:1, green-sage 5.4:1, sand-2 9.9:1. */
+    .at-foot-news { text-align: center; }
+    .at-foot-head { justify-content: center; cursor: pointer; }
+    .at-foot-link { justify-content: center; transition: color .16s ease; }
+    .at-foot-links { align-items: stretch; display: none; flex-direction: column; }
+    .at-foot-link:hover { color: var(--brass) !important; }
+    .at-foot-legal a:hover { color: var(--brass) !important; }
+    .at-foot-col.is-open .at-foot-links { display: flex; }
+    .at-foot-col.is-open .at-foot-chevron { transform: rotate(180deg); }
+    .at-foot-chevron { transition: transform .18s ease; }
+    .at-social svg { transition: fill .16s ease; }
+    .at-social:hover svg { fill: var(--brass); }
+    .at-foot-join { transition: background .16s ease; }
+    .at-foot-join:hover { background: var(--brass-deep) !important; }
+    .at-foot-join:active { filter: brightness(.94); }
+    .at-foot-input::placeholder { color: var(--green-sage); opacity: 1; }
+    /* Cream ring with a gold outer edge, offset 0: two crisp bands, not a glow. */
+    .at-foot-inner a:focus-visible, .at-foot-inner button:focus-visible, .at-foot-input:focus-visible {
+      outline: 2px solid var(--cream); outline-offset: 0; box-shadow: 0 0 0 3px var(--gold);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .at-foot-chevron, .at-foot-link, .at-foot-join, .at-social svg { transition: none !important; }
+    }
+
+    /* --- Gifting. Mobile is the base; 640 and 1024 add compositions, never overrides. --- */
+    /* Canonical band padding (44-48 -> 56-60 -> 72-76). The hero and the food-box band are ONE
+       cream run, so the transition between them is heading and spacing, never a divider. */
+    .gf-sec { padding: 44px 0 48px; }
+    .gf-hero { padding-bottom: 10px; text-align: center; }
+    /* Unfinished-gift banner. Blush panel, 1px sand rule, the panel radius; green-forest type.
+       Stacked on a phone: icon + copy + dismiss, then a full-width 48px CTA, then the edit link.
+       One row from 1024. The CTA is green-forest, not terracotta: terracotta starts a purchase,
+       green-forest continues one (the VIEW BOX rule). */
+    .gf-resume-wrap { max-width: 1280px; margin: 0 auto; padding: 16px 22px 0; box-sizing: border-box; }
+    .gf-resume { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 14px; row-gap: 14px; align-items: start; padding: 16px 16px 10px; background: var(--blush); border: 1px solid var(--sand); border-radius: 18px; }
+    .gf-resume-ic { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; background: var(--cream-2); }
+    .gf-resume-txt { padding-right: 36px; align-self: center; }
+    .gf-resume-h { margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest); text-wrap: pretty; }
+    .gf-resume-p { margin: 4px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.45; color: var(--green-forest); text-wrap: pretty; }
+    .gf-resume-act { grid-column: 1 / -1; display: grid; justify-items: center; gap: 2px; }
+    .gf-resume-cta { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 48px; padding: 0 24px; box-sizing: border-box; border-radius: var(--radius-pill); background: var(--green-forest); color: var(--blush); font-family: var(--font-sans); font-weight: 600; font-size: 15px; letter-spacing: .12em; text-transform: uppercase; text-decoration: none; transition: background .16s ease; }
+    .gf-resume-cta:hover { background: var(--green-deep); color: var(--blush); }
+    .gf-resume-edit { display: inline-flex; align-items: center; min-height: 44px; text-decoration: none; }
+    .gf-resume-edit > span { display: inline-flex; align-items: center; gap: 6px; border-bottom: 1.5px solid var(--brass); padding-bottom: 2px; font-family: var(--font-sans); font-weight: 600; font-size: 16px; color: var(--green-forest); transition: color .16s ease, border-color .16s ease; }
+    .gf-resume-edit:hover > span { color: var(--terracotta-deep); border-bottom-color: var(--terracotta-deep); }
+    .gf-resume-x { position: absolute; top: 8px; right: 8px; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: none; border-radius: 50%; background: transparent; color: var(--green-forest); cursor: pointer; transition: background .16s ease; }
+    .gf-resume-x:hover { background: rgba(30, 58, 47, .08); }
+    .gf-step-sec { scroll-margin-top: 72px; }
+    .gf-h2 { margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(30px, 8.6vw, 40px); line-height: 1.08; letter-spacing: -0.01em; color: var(--green-forest); text-wrap: pretty; }
+    /* Page lede and section intro are 18px at EVERY width — they do not scale up on desktop. */
+    .gf-lede { margin: 14px 0 0; font-family: var(--font-sans); font-size: 18px; line-height: 1.55; color: var(--brown); text-wrap: pretty; }
+    /* Every section intro carries the same 620px measure and stays FLUSH with its heading. The auto
+       margins are the hero's treatment alone, where the whole band is centred: applied inside a
+       left-aligned section they centred the measure under a flush-left heading, which read as an
+       accidental 118px indent. Declared in this order so the hero's margins win. */
+    .gf-sec .gf-lede { max-width: 620px; }
+    .gf-hero .gf-lede { margin-left: auto; margin-right: auto; }
+
+    /* Route cards: a full-bleed swipe track below 1024, side by side from 1024. The track overflows
+       the content grid on the RIGHT so the second route peeks in — that peek is the affordance, and
+       it replaces the old "swipe to compare" hint. Its left padding is the 1280 grid line, never
+       the viewport edge, so the first card lines up with the h1 above it; scroll-padding-left
+       matches so snapping agrees. Same pattern and values as the homepage dish carousel. */
+    .at-noscroll { scrollbar-width: none; -ms-overflow-style: none; }
+    .at-noscroll::-webkit-scrollbar { display: none; }
+    .gf-routes { display: flex; gap: 18px; overflow-x: auto; margin-top: 26px; padding: 4px 22px 14px; scroll-snap-type: x proximity; scroll-padding-left: 22px; text-align: left; }
+    .gf-route { flex: 0 0 auto; width: min(360px, 82vw); scroll-snap-align: start; display: flex; flex-direction: column; border-radius: 24px; overflow: hidden; background: var(--blush); box-shadow: var(--shadow-card); }
+    /* Position only: no click, no keyboard, no 44px target, aria-hidden. Navigation is the track
+       itself — swipe and drag, trackpad, and Tab through the two cards' links, which scrolls
+       natively. A 3px hairline cannot be made to look grabbable, so it is not made draggable. */
+    /* Whether there is anything to swipe is CONTENT-dependent, not a breakpoint: the 360px card cap
+       means the two routes both fit from about 812px up, so between there and 1024 the track has no
+       overflow. Both of these are driven by the measurement updateRouteNav() already takes — the
+       rail comes off when it could only ever sit full and still, and the cards centre instead of
+       hanging left under a centred title. */
+    .gf-routes.is-static { justify-content: center; }
+    .gf-rail.is-off { display: none; }
+    .gf-rail { position: relative; width: min(240px, 62%); height: 3px; margin: 18px auto 0; border-radius: 3px; background: var(--sand-2); }
+    .gf-rail span { position: absolute; top: 0; left: 0; height: 3px; width: 50%; border-radius: 3px; background: var(--green-forest); transition: transform .12s ease, width .12s ease; }
+    @media (prefers-reduced-motion: reduce) { .gf-rail span { transition: none; } }
+    .gf-route-media { position: relative; aspect-ratio: 16 / 11; overflow: hidden; background: var(--green-deep); }
+    .gf-route-media img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .gf-route-body { flex: 1 1 auto; display: flex; flex-direction: column; padding: 24px 22px 26px; }
+    .gf-route-h { margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest); }
+    .gf-route-p { margin: 10px 0 20px; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; color: var(--brown); text-wrap: pretty; }
+    .gf-route-ctas { margin-top: auto; display: grid; gap: 12px; justify-items: center; }
+    /* Both media boxes keep the SAME 16/11 ratio (set on .gf-route-media above), so the two route
+       cards' titles, copy and CTAs sit on the same lines at every width. */
+    .gf-route-dark { background: var(--green-forest); }
+    .gf-route-dark .gf-route-h { color: var(--cream); }
+    .gf-route-dark .gf-route-p { color: var(--sand-2); }
+    /* Brass is 1.9:1 on these dark grounds, so they take the cream ring with a gold outer edge. */
+    .gf-route-dark :focus-visible, .gf-panel :focus-visible { outline-color: #FBF8F1; outline-offset: 0; box-shadow: 0 0 0 3px var(--gold); }
+
+    /* CTA ladder: 52px for every in-page CTA, full width inside the gutters on a phone and
+       intrinsic from 640 — only the width is responsive. Fill by ROLE: terracotta is reserved for
+       the header pill and the drawer, so these are green-forest, or cream on the dark grounds. */
+    .gf-cta { display: inline-flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; padding: 0 30px; border: none; border-radius: var(--radius-pill); background: var(--green-forest); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; text-decoration: none; cursor: pointer; transition: background .16s ease; }
+    /* The colour is re-stated on hover because the global `a:hover` rule (0,1,1) outranks the
+       button class (0,1,0) — without it a white label takes the link colour on a fill of it. */
+    .gf-cta:hover { background: var(--green-deep); color: #fff; }
+    .gf-cta:active { filter: brightness(.94); }
+    .gf-cta-light { background: var(--cream); color: var(--green-forest); }
+    .gf-cta-light:hover { background: var(--blush); color: var(--green-forest); }
+    .gf-link { display: inline-flex; align-items: center; min-height: 44px; text-decoration: none; }
+    .gf-link span { display: inline-flex; align-items: center; gap: 8px; border-bottom: 1.5px solid var(--brass); padding-bottom: 3px; font-family: var(--font-sans); font-size: 16px; color: var(--green-forest); transition: color .16s ease, border-color .16s ease; }
+    .gf-link:hover span { color: var(--terracotta-deep); border-bottom-color: var(--terracotta-deep); }
+    .gf-route-dark .gf-link span { color: var(--cream); border-bottom-color: var(--gold); }
+    .gf-route-dark .gf-link:hover span { color: var(--blush); border-bottom-color: var(--blush); }
+    @media (prefers-reduced-motion: reduce) { .gf-cta, .gf-link span { transition: none !important; } }
+
+    /* The gift card and the greeting card are PRODUCT previews, not decoration — the card is the
+       thing being bought. Sized against their container, never in viewport units, so they reflow:
+       at 320 the gift card is 168px across and still reads. */
+    /* Centred and capped at 480px, not 300: the routes are full-width cards until 1024, so a 300px
+       cap stopped the card scaling exactly where its container got wide — at 924 it filled 12% of
+       the panel and sat pinned right, with 537px of empty green beside it. 56% keeps the mobile
+       size unchanged (218px at 390) and lets it grow with the band. */
+    .gf-mock { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-3deg); box-sizing: border-box; width: min(56%, 480px); aspect-ratio: 1.6 / 1; border-radius: 10px; background: var(--green-forest); border: 1px solid var(--brass); box-shadow: 0 18px 34px rgba(0, 0, 0, .4); padding: 12px 14px; display: flex; flex-direction: column; justify-content: space-between; }
+    /* Clamped like its siblings, not a fixed 9.5px: the card mock scales with the band, so a fixed
+       wordmark shrank against a growing card at desktop. Inside an aria-hidden decorative mock, so
+       these sizes are artwork rather than UI copy and the type floors do not apply. */
+    .gf-mock-brand { font-family: var(--font-sans); font-weight: 600; font-size: clamp(9.5px, 2.4vw, 12px); letter-spacing: .2em; text-transform: uppercase; color: var(--blush); }
+    .gf-mock-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+    .gf-mock-line { font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(15px, 4.2vw, 22px); line-height: 1.1; color: var(--cream); }
+    .gf-mock-val { font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(14px, 3.6vw, 20px); line-height: 1.1; color: var(--brass-lift); white-space: nowrap; }
+
+    /* Food box: photograph and panel are one card on a phone (image on top, panel beneath) and a
+       50/50 split from 1024. One set of content either way. */
+    .gf-split > .gf-media { position: relative; margin-top: 22px; border-radius: 24px 24px 0 0; overflow: hidden; aspect-ratio: 4 / 3; background: var(--cream-3); }
+    .gf-media img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .gf-panel { background: var(--green-forest); border-radius: 0 0 24px 24px; padding: 26px 22px 28px; }
+    .gf-panel-h { margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--cream); }
+    .gf-steps { margin: 18px 0 0; padding: 0; list-style: none; border-top: 1px solid var(--green-mid); }
+    .gf-step { display: grid; grid-template-columns: 34px minmax(0, 1fr); column-gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--green-mid); }
+    /* The ringed numeral used on How It Works and Abby's Story. --brass-lift, not --brass: brass is
+       4.25:1 on green-forest, under what a 14px figure needs; this is 4.97:1 and still reads bronze. */
+    .gf-step-n { grid-row: 1 / span 2; display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--brass-lift); font-family: var(--font-sans); font-weight: 600; font-size: 14px; line-height: 1; color: var(--brass-lift); }
+    .gf-step h4 { margin: 4px 0 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--cream); text-wrap: pretty; }
+    .gf-step p { margin: 6px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; color: var(--sand-2); text-wrap: pretty; }
+    .gf-panel .gf-cta { margin-top: 22px; }
+
+    /* Gift card: the page's one coloured band. Type on it is cream and sand-2 (9.9:1); brass is
+       1.9:1 there, so every brass mark inside the band is on the cream panel, not the ground. */
+    .gf-dark { background: var(--green-forest); }
+    .gf-dark .gf-h2 { color: var(--cream); }
+    .gf-dark .gf-lede { color: var(--sand-2); }
+    .gf-order { margin-top: 24px; background: var(--cream-2); border-radius: 18px; overflow: hidden; }
+    .gf-order-head { padding: 22px; border-bottom: 1px solid var(--sand); }
+    .gf-preview { box-sizing: border-box; position: relative; width: 100%; max-width: 320px; aspect-ratio: 1.6 / 1; border-radius: 12px; background: var(--green-forest); border: 1px solid var(--brass); padding: 16px 18px; display: flex; flex-direction: column; justify-content: space-between; }
+    .gf-order-h { margin: 18px 0 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.2; color: var(--green-forest); }
+    .gf-order-p { margin: 8px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; color: var(--brown); text-wrap: pretty; }
+    .gf-cols { display: grid; }
+    .gf-col { padding: 20px 22px 24px; border-top: 1px solid var(--sand); }
+    .gf-cols > .gf-col:first-child { border-top: none; }
+    .gf-col-head { display: flex; align-items: center; gap: 10px; }
+    .gf-col-n { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: var(--green-forest); color: var(--cream); font-family: var(--font-sans); font-weight: 600; font-size: 13px; line-height: 1; }
+    .gf-col-t { font-family: var(--font-sans); font-weight: 600; font-size: 16px; color: var(--green-forest); }
+    .gf-values { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+    .gf-chip { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 14px; border: 1.5px solid var(--sand-2); border-radius: 14px; background: var(--white); font-family: var(--font-sans); font-weight: 600; font-size: 16px; color: var(--green-forest); cursor: pointer; transition: background .16s ease, border-color .16s ease, color .16s ease; }
+    .gf-chip:hover { border-color: var(--green-forest); }
+    .gf-chip[aria-pressed="true"] { background: var(--green-forest); border-color: var(--green-forest); color: #fff; }
+    .gf-chip:active { filter: brightness(.94); }
+    /* 16px minimum on the field: anything under it triggers a zoom on iOS. align-self: stretch so
+       the whole 48px pill is the target, not just the text line. */
+    .gf-custom { display: flex; align-items: center; gap: 8px; min-height: 48px; margin-top: 10px; padding: 0 16px; border: 1px solid var(--sand-2); border-radius: 14px; background: var(--white); transition: border-color .16s ease; }
+    .gf-custom:focus-within { border-color: var(--green-forest); }
+    .gf-custom > span { font-family: var(--font-sans); font-size: 16px; color: var(--green-forest); }
+    .gf-custom input { flex: 1 1 auto; align-self: stretch; min-width: 0; border: none; outline: none; background: transparent; font-family: var(--font-sans); font-size: 16px; color: var(--brown); }
+    .gf-opts { display: grid; gap: 10px; margin-top: 14px; }
+    /* font-family/-size declared because a button does NOT inherit them: without these the element
+       sat at the UA default (Arial 13.33px). Every label inside is in a span with its own size, so
+       nothing rendered wrong — but any text added directly to the button would have. */
+    .gf-opt { display: block; width: 100%; box-sizing: border-box; text-align: left; min-height: 44px; padding: 13px 15px; font-family: var(--font-sans); font-size: 16px; border: 1.5px solid var(--sand-2); border-radius: 14px; background: var(--white); cursor: pointer; transition: border-color .16s ease, background .16s ease; }
+    .gf-opt:hover { border-color: var(--green-forest); }
+    .gf-opt:active { filter: brightness(.96); }
+    .gf-opt[aria-checked="true"] { border-color: var(--green-forest); background: rgba(233, 205, 184, .28); }
+    .gf-opt-top { display: flex; align-items: center; gap: 10px; }
+    .gf-dot { flex: 0 0 auto; width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--taupe); }
+    .gf-opt[aria-checked="true"] .gf-dot { border-color: var(--green-forest); background: var(--green-forest); box-shadow: inset 0 0 0 3px var(--white); }
+    .gf-opt-t { font-family: var(--font-sans); font-weight: 600; font-size: 16px; color: var(--green-forest); }
+    /* --terracotta-ink, not --terracotta: 3.3:1 on blush at this size, and this is small text. */
+    .gf-fast { margin-left: auto; background: var(--blush); color: var(--terracotta-ink); font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; padding: 4px 10px; border-radius: var(--radius-pill); white-space: nowrap; }
+    .gf-opt-b { display: block; margin-top: 6px; padding-left: 26px; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); }
+    /* Third line inside an arrival option: what the greeting card costs on that route. Same 16px as
+       the body above it rather than a third size 2px away from it — green-forest carries the
+       distinction instead. */
+    .gf-opt-sub { display: block; margin-top: 4px; padding-left: 26px; font-family: var(--font-sans); font-weight: 500; font-size: 16px; line-height: 1.45; color: var(--green-forest); }
+    /* Price/inclusion mark in the step head. Sage ground: green-forest is 9.4:1 on it. */
+    .gf-col-mark { flex: 0 0 auto; margin-left: auto; padding: 4px 10px; border-radius: var(--radius-pill); background: var(--sage); color: var(--green-forest); font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .06em; white-space: nowrap; }
+    .gf-msg-lead { margin: 12px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; color: var(--brown); }
+    /* A paid extra, so it is a real checkbox-role control at the 52px panel height, never a
+       pre-ticked line of copy. */
+    .gf-check { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; margin-top: 14px; padding: 0 14px; border: 1.5px solid var(--sand-2); border-radius: 14px; background: var(--white); cursor: pointer; text-align: left; transition: border-color .16s ease, background .16s ease; }
+    .gf-check[aria-checked="true"] { border-color: var(--green-forest); background: var(--cream-2); }
+    .gf-check:hover { border-color: var(--green-forest); }
+    .gf-check:active { filter: brightness(.96); }
+    .gf-check:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+    .gf-box { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: 1.5px solid var(--green-forest); border-radius: 7px; background: var(--white); color: transparent; }
+    .gf-check[aria-checked="true"] .gf-box { background: var(--green-forest); color: #fff; }
+    .gf-check-t { font-family: var(--font-sans); font-weight: 600; font-size: 16px; color: var(--green-forest); }
+    .gf-check-p { margin-left: auto; font-family: var(--font-sans); font-weight: 600; font-size: 16px; color: var(--brass-ink); }
+    /* Counter only — the visible sentence above the field describes it, and the field carries its
+       own accessible name, so there is no second label to sit beside. */
+    .gf-msg-meta { display: flex; justify-content: flex-end; margin-top: 12px; }
+    .gf-msg-count { flex: 0 0 auto; font-family: var(--font-sans); font-size: 14px; color: var(--brown); white-space: nowrap; }
+    .gf-msg { width: 100%; box-sizing: border-box; margin-top: 8px; resize: vertical; background: var(--white); border: 1px solid var(--sand-2); border-radius: 14px; padding: 13px 15px; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); }
+    .gf-msg:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+    /* Actionable helper text, so 16px like every other piece of supporting copy — 14px is for
+       tertiary metadata only (the character counter beside it). */
+    .gf-msg-note { margin: 10px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); }
+    .gf-sum { background: var(--blush); border-top: 1px solid var(--sand); padding: 20px 22px 24px; }
+    .gf-sum-rows { display: flex; flex-wrap: wrap; gap: 14px 26px; }
+    .gf-sum-l { display: block; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brown); }
+    .gf-sum-v { display: block; margin-top: 3px; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.15; color: var(--green-forest); }
+    /* The total is the one figure that has to read first: a heavier label and one step up in
+       display size, not a rule or a border — those float as segments once the row wraps. */
+    .gf-sum-tot .gf-sum-l { color: var(--green-forest); }
+    .gf-sum-tot .gf-sum-v { font-size: 26px; }
+    .gf-sum-note { margin: 14px 0 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--brown); }
+    .gf-sum .gf-cta { margin-top: 16px; }
+    /* The prototype has no basket, so the button reports what it did rather than pretending to
+       navigate. Announced politely — nothing else on screen says it worked. */
+    .gf-said { margin: 12px 0 0; font-family: var(--font-sans); font-weight: 600; font-size: 16px; line-height: 1.5; color: var(--green-forest); }
+    @media (prefers-reduced-motion: reduce) { .gf-chip, .gf-opt, .gf-custom, .gf-check { transition: none !important; } }
+
+    /* --- 640px: more measure, so the controls sit on one row and the grid splits --- */
+    @media (min-width: 640px) {
+      .at-hdr-row { padding: 14px 34px !important; gap: 14px !important; }
+      .at-cta { font-size: 13px !important; letter-spacing: .1em !important; padding: 0 20px !important; }
+      .at-foot-form { flex-direction: row !important; align-items: stretch !important; gap: 0 !important; height: 52px !important; width: 340px; max-width: 100%; margin-left: auto !important; margin-right: auto !important; border: 1px solid var(--green-mid); border-radius: var(--radius-pill); overflow: hidden; }
+      .at-foot-input { flex: 1 1 auto !important; min-width: 0 !important; border: none !important; border-radius: 0 !important; height: auto !important; }
+      .at-foot-join { border-radius: 0 !important; height: auto !important; width: auto !important; padding: 0 26px !important; }
+      .at-foot-inner { padding: 48px 34px 0 !important; }
+      .at-page-inner { padding: 0 34px !important; }
+
+      .gf-sec { padding: 56px 0 60px; }
+      .gf-hero { padding-bottom: 12px; }
+      .gf-resume-wrap { padding: 20px 34px 0; }
+      .gf-resume-act { grid-template-columns: auto auto; justify-content: start; align-items: center; column-gap: 22px; padding-left: 58px; }
+      .gf-resume-cta { width: auto; }
+      /* Intrinsic and centred from 640, per the CTA ladder — only the width changes, never the
+         height. The card CTA and its link sit side by side once there is measure for both. */
+      .gf-cta { width: auto; }
+      .gf-route-ctas { grid-auto-flow: column; justify-content: start; align-items: center; gap: 22px; }
+      .gf-routes { gap: 24px; padding-left: 34px; padding-right: 34px; scroll-padding-left: 34px; }
+      .gf-route-body { padding: 26px 26px 28px; }
+      .gf-split > .gf-media { aspect-ratio: 16 / 10; }
+      .gf-panel { padding: 28px 26px 30px; }
+      .gf-values { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .gf-order-head { display: grid; grid-template-columns: 300px minmax(0, 1fr); align-items: center; gap: 26px; padding: 26px; }
+      .gf-order-h { margin-top: 0; }
+      /* Summary rows and the button on one line, the checkout note beneath them. Placed explicitly
+         rather than left to auto-placement, which would have put the note beside the rows. */
+      .gf-sum { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 14px 26px; padding: 22px 26px; }
+      .gf-sum-rows { grid-column: 1; grid-row: 1; }
+      .gf-sum-note { grid-column: 1; grid-row: 2; margin-top: 0; }
+      .gf-sum .gf-cta { grid-column: 2; grid-row: 1 / span 2; margin-top: 0; }
+      .gf-said { grid-column: 1 / -1; grid-row: 3; }
+    }
+
+    /* --- 1024px: desktop composition — nav in the header, filters inline, three cards across --- */
+    @media (min-width: 1024px) {
+      .at-burger { display: none !important; }
+      .at-nav, .at-login { display: flex !important; }
+      .at-hdr-row { padding: 18px 48px !important; grid-template-columns: auto 1fr auto auto !important; gap: 34px !important; }
+      .at-logo { justify-self: start !important; }
+      .at-login { margin-left: 12px !important; }
+      .at-foot-inner { padding: 56px 48px 0 !important; }
+      .at-foot-grid { grid-template-columns: 1.4fr 3fr !important; gap: 48px !important; }
+      .at-foot-cols { grid-template-columns: repeat(3, 1fr) !important; gap: 48px !important; border-bottom: none !important; }
+      .at-foot-col { border-top: none !important; }
+      .at-foot-head { min-height: 0 !important; padding: 0 !important; cursor: default !important; justify-content: space-between !important; }
+      .at-foot-chevron { display: none !important; }
+      .at-foot-links { display: flex !important; margin-top: 16px !important; padding-bottom: 0 !important; }
+      .at-foot-link { justify-content: flex-start !important; }
+      .at-foot-bottom { grid-template-columns: 1fr auto 1fr !important; align-items: center !important; margin-top: 0 !important; }
+      .at-foot-logo { justify-self: start !important; }
+      .at-foot-follow { justify-self: end !important; align-items: flex-end !important; }
+      .at-foot-follow-row { flex-direction: row !important; align-items: center !important; gap: 12px !important; }
+      .at-foot-dash { display: inline !important; }
+      .at-foot-mark { width: 220px !important; height: 38px !important; }
+      .at-foot-legal { flex-direction: row !important; gap: 4px 24px !important; }
+      .at-foot-legal-row { gap: 24px !important; }
+      .at-foot-legal-sep { display: none !important; }
+      .at-foot-rule { display: block !important; }
+      .at-foot-news { text-align: left !important; }
+      .at-foot-form { margin-left: 0 !important; margin-right: 0 !important; }
+      .at-foot-news p { max-width: 300px; }
+      .at-foot-consent { max-width: 340px; }
+      .at-hdr[data-hidden="true"] { transform: none !important; }
+      /* Compacter with a pointer — no thumb target to hold — and 24px from both edges. */
+      .gf-top { min-height: 40px; padding: 0 14px; font-size: 13.5px; right: 24px; bottom: 24px; }
+      .at-page-inner { padding: 0 48px !important; }
+      .at-h1 { font-size: 56px !important; }
+
+      .gf-sec { padding: 72px 0 76px; }
+      .gf-hero { padding-bottom: 16px; }
+      .gf-resume-wrap { padding: 24px 48px 0; }
+      .gf-resume { grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; column-gap: 18px; padding: 14px 18px; }
+      .gf-resume-txt { padding-right: 0; }
+      .gf-resume-act { grid-column: auto; padding-left: 0; }
+      .gf-resume-x { position: static; }
+      .gf-resume-act, .gf-resume-x { border-left: 1px solid rgba(30, 58, 47, .18); padding-left: 18px; }
+      .gf-resume-x { width: 62px; border-radius: 0; }
+      .gf-resume-x:hover { background: transparent; color: var(--terracotta-deep); }
+      /* Named measure exception, desktop only: both section intros are a single sentence of ~80
+         characters, and the 620px measure broke each onto a second line carrying three words. 720
+         holds them on one line at 18px and is still a readable measure. One value for every lede
+         on the page, not a per-section override. */
+      .gf-sec .gf-lede { max-width: 720px; }
+      .gf-h2 { font-size: 48px; }
+      /* Desktop: both routes visible at once, so the track goes back to being a grid and the
+         position indicator has nothing to report. It sits OUTSIDE .at-page-inner so it can bleed on
+         mobile, which means it has to carry the 1280 shell itself here — with padding: 0 it had
+         neither cap nor gutter and the two cards ran the full viewport. */
+      .gf-routes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; overflow: visible; max-width: 1280px; margin-left: auto; margin-right: auto; padding: 0 48px; }
+      .gf-route { width: auto; }
+      .gf-rail { display: none; }
+      .gf-route-body { padding: 30px 30px 32px; }
+      .gf-route-h { font-size: 26px; }
+      /* Desktop composition: photograph and panel side by side as one card, not the mobile stack
+         at a wider measure. The media stretches to the panel's height rather than keeping a ratio,
+         so the two columns always end level. */
+      .gf-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: stretch; margin-top: 26px; border-radius: 24px; overflow: hidden; box-shadow: var(--shadow-card); }
+      .gf-split > .gf-media { margin-top: 0; border-radius: 0; aspect-ratio: auto; height: 100%; }
+      .gf-split > .gf-panel { border-radius: 0; padding: 40px 38px 42px; }
+      .gf-panel-h, .gf-step h4, .gf-order-h { font-size: 26px; }
+      .gf-cols { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .gf-col { border-top: none; border-left: 1px solid var(--sand); padding: 26px 24px 30px; }
+      .gf-cols > .gf-col:first-child { border-left: none; }
+      .gf-sum { padding: 24px 28px; }
+      /* No rules between the figures: spacing separates them. The row stays a content-width
+         four-column grid so the figures group at the left and cannot reflow. */
+      .gf-sum-rows { display: grid; grid-template-columns: repeat(4, max-content); justify-content: start; align-items: start; gap: 0 36px; }
+    }
+
+  </style>
+<style>
+  /* Sterling sign, site-wide. Playfair Display's £ has a double crossbar that reads as a euro, so
+     U+00A3 alone is drawn from a Figtree subset (1 KB, 400–700) prepended to the display and
+     accent stacks. Every other character is untouched. html:root outranks the token sheet. */
+  @font-face { font-family: "AT Sterling"; src: url("assets/fonts/at-sterling.woff2") format("woff2"); font-weight: 400 700; font-style: normal; font-display: block; unicode-range: U+00A3; }
+  html:root {
+    --font-display: "AT Sterling", "Playfair Display", ui-serif, Georgia, "Times New Roman", serif;
+    --font-accent: "AT Sterling", "Cormorant Garamond", ui-serif, Georgia, serif;
+  }
+</style>
+</helmet>
+
+<header class="at-hdr" data-at-desk-hdr="marketing" ref="{{ hdrRef }}" data-hidden="{{ hdrHidden }}" style="position: sticky; top: 0; z-index: 60; background: var(--cream-2); border-bottom: 1px solid var(--sand);">
+  <div class="at-hdr-row" style="display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 8px; max-width: 1280px; margin: 0 auto; padding: 10px 14px;">
+
+    <button class="at-burger" type="button" ref="{{ burgerRef }}" onClick="{{ openDrawer }}" aria-label="Open menu" aria-controls="at-drawer" aria-expanded="{{ burgerExpanded }}" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-left: -10px; border: none; background: transparent; cursor: pointer;">
+      <span aria-hidden="true" style="display: block; width: 22px; height: 14px; border-top: 1.6px solid var(--green-forest); border-bottom: 1.6px solid var(--green-forest); position: relative;"><span style="position: absolute; left: 0; right: 0; top: 50%; margin-top: -0.8px; height: 1.6px; background: var(--green-forest);"></span></span>
+    </button>
+
+    <a class="at-logo" href="Abby's Table - Homepage v2.dc.html" aria-label="Abby&#8217;s Table &#8212; home" style="justify-self: center; display: block; text-decoration: none; min-width: 0;">
+      <span aria-hidden="true" style="display: block; width: clamp(108px, 36vw, 168px); aspect-ratio: 186 / 32; color: var(--green-forest);"><at-wordmark></at-wordmark></span>
+    </a>
+
+    <nav class="at-nav" aria-label="Main" style="display: none; justify-self: center; align-items: center; gap: 30px;">
+      <a class="at-nav-link" href="Abby's Table - Menu Landing v3.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Menu</a>
+      <a class="at-nav-link" href="Abby's Table - How It Works v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">How it works</a>
+      <a class="at-nav-link" href="Abby's Table - Abby's Story v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Abby&#8217;s Story</a>
+      <a class="at-nav-link" href="Abby's Table - Gifting v2.dc.html" aria-current="page" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Gifting</a>
+      <a class="at-nav-link" href="Abby's Table - Private Table v2.dc.html" style="font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: color .16s ease, border-color .16s ease;">Private Table</a>
+    </nav>
+
+    <a class="at-login" href="Abby's Table - Log in.dc.html" style="display: none; align-items: center; height: 44px; font-family: var(--font-sans); font-size: 15px; color: var(--brown); text-decoration: none; white-space: nowrap; transition: color .16s ease;"><span style="display: inline-block; padding-bottom: 2px; border-bottom: 1.5px solid transparent; transition: border-color .16s ease;">Log in</span></a>
+
+    <a class="at-cta" href="Abby's Table - Choose Box v2.dc.html" style="display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 13px; border-radius: var(--radius-pill); background: var(--terracotta); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; text-decoration: none; white-space: nowrap;">Get started</a>
+  </div>
+</header>
+
+<!-- Gifting, rebuilt mobile-first. Header, drawer and footer are copied verbatim from the canonical
+     Homepage v2 (by way of Menu Landing v3); the type scale, the 1280/22-34-48 shell, band
+     paddings, button ladder and hover/focus language come from it too.
+     The page keeps what it offered before — send a food box, or send a gift card — and the gift-card
+     order panel keeps its three steps. What changed is geometry, type, hit areas and fill-by-role.
+     Dropped: every eyebrow (rebuilt pages carry none), the 58px/50px display sizes, the 1440 shell,
+     the "swipe to compare" hint (the peeking second card is the affordance now), the floating toast
+     — the add-to-basket button reports its result in place — and the canonical mobile purchase bar,
+     removed on this page by decision: a fixed "Build a Box" pushes one of the two gifting routes
+     over the other, and both routes carry their own 52px CTA.
+     Photography is AI placeholder (photography-shot-list.md); the gift card and greeting card are
+     rendered previews, not photographs, and both are on the shot list. -->
+<main>
+  <!-- Unfinished gift. Shown ONLY when a standalone gift has reached the gift-card checkout and was
+       neither paid for nor dismissed (at-gift-checkout-v1 — written by the checkout, never by this
+       page's configurator). Browsing, picking a value, writing a message or choosing a route here
+       never creates it. Separate from the food-box order state: it never touches the header pill.
+       Read before first paint, so it is there from the first frame or not at all. Not a modal. -->
+  <sc-if value="{{ resumeOn }}" hint-placeholder-val="{{ false }}">
+    <div class="gf-resume-wrap">
+      <section class="gf-resume" aria-labelledby="gf-resume-h">
+        <span class="gf-resume-ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--brass-ink)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11h16v9H4zM3 7.5h18V11H3zM12 7.5V20" /><path d="M12 7.5S10.8 4 8.6 4a2.3 2.3 0 0 0 0 3.5zM12 7.5S13.2 4 15.4 4a2.3 2.3 0 0 1 0 3.5z" /></svg></span>
+        <div class="gf-resume-txt">
+          <h2 id="gf-resume-h" class="gf-resume-h">You have an unfinished gift</h2>
+          <p class="gf-resume-p">{{ resumeLine }}</p>
+        </div>
+        <div class="gf-resume-act">
+          <a class="gf-resume-cta" href="{{ resumeHref }}">Continue your gift</a>
+          <a class="gf-resume-edit" href="#gift-card" onClick="{{ onResumeEdit }}"><span>Edit gift details<span aria-hidden="true">&#8595;</span></span></a>
+        </div>
+        <button class="gf-resume-x" type="button" onClick="{{ onResumeDismiss }}" aria-label="Dismiss unfinished gift reminder">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+        </button>
+      </section>
+    </div>
+  </sc-if>
+  <section class="gf-sec gf-hero" data-screen-label="Gifting — title and routes" style="background: var(--cream);">
+    <div class="at-page-inner" style="max-width: 1280px; margin: 0 auto; padding: 0 22px;">
+      <h1 class="at-h1" ref="{{ h1Ref }}" tabindex="-1" style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: clamp(38px, 11.6vw, 56px); line-height: 1.04; letter-spacing: -0.015em; color: var(--green-forest); text-wrap: pretty;">Give an Abby&#8217;s Table gift</h1>
+      <p class="gf-lede">Choose their dishes and send a food box, or send a gift card and let them choose.</p>
+    </div>
+
+    <!-- Only the TRACK bleeds: the title, the intro and the position indicator stay on the
+         ordinary 1280 grid, which is why the scroller sits outside .at-page-inner and carries the
+         gutter as its own left padding. -->
+    <div class="gf-routes at-noscroll {{ routesCls }}" ref="{{ routeScrollerRef }}" onScroll="{{ onRouteScroll }}">
+        <article class="gf-route">
+          <div class="gf-route-media">
+            <img src="assets/gifting-box.jpg" loading="lazy" decoding="async" alt="An Abby&#8217;s Table box packed with chilled dishes" />
+          </div>
+          <div class="gf-route-body">
+            <h2 class="gf-route-h">Send a food box - you choose their dishes</h2>
+            <p class="gf-route-p">Build a box from the menu, add a personalised greeting card if you like, and send it straight to their door.</p>
+            <div class="gf-route-ctas">
+              <a class="gf-cta" href="{{ buildHref }}">Build their box</a>
+              <a class="gf-link" href="#food-box"><span>How it works<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="12" x2="19" y2="12"/><path d="M13 6l6 6-6 6"/></svg></span></a>
+            </div>
+          </div>
+        </article>
+
+        <article class="gf-route gf-route-dark">
+          <div class="gf-route-media">
+            <!-- The gift card itself. A rendered preview rather than a photograph: it is the
+                 product, and the value on it tracks the picker further down the page. -->
+            <div class="gf-mock" aria-hidden="true">
+              <span class="gf-mock-brand">Abby&#8217;s Table</span>
+              <span class="gf-mock-row">
+                <span class="gf-mock-line">A gift for<br />your table.</span>
+                <span class="gf-mock-val">{{ priceLabel }}</span>
+              </span>
+            </div>
+          </div>
+          <div class="gf-route-body">
+            <h2 class="gf-route-h">Send a gift card - they choose their dishes</h2>
+            <p class="gf-route-p">Choose a value and send it by email, by post, or inside a food box. They can use it towards any Abby&#8217;s Table order.</p>
+            <div class="gf-route-ctas">
+              <a class="gf-cta gf-cta-light" href="#gift-card">Order a gift card</a>
+              <a class="gf-link" href="#gift-card"><span>See the options<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="12" x2="19" y2="12"/><path d="M13 6l6 6-6 6"/></svg></span></a>
+            </div>
+          </div>
+        </article>
+    </div>
+
+    <div class="gf-rail {{ railCls }}" aria-hidden="true" ref="{{ routeTrackRef }}"><span ref="{{ routeThumbRef }}"></span></div>
+  </section>
+
+  <section class="gf-sec gf-step-sec" id="food-box" data-screen-label="Send a food box" style="background: var(--cream);">
+    <div class="at-page-inner" style="max-width: 1280px; margin: 0 auto; padding: 0 22px;">
+      <h2 class="gf-h2">Send a food box</h2>
+      <p class="gf-lede">Add a personalised greeting card if you like, and we&#8217;ll send everything straight to their door.</p>
+
+      <div class="gf-split">
+        <div class="gf-media">
+          <img src="assets/gifting-box.jpg" loading="lazy" decoding="async" alt="A packed Abby&#8217;s Table box, insulated and ready for the fridge" />
+        </div>
+        <div class="gf-panel">
+          <h3 class="gf-panel-h">A food box, made personal.</h3>
+          <ol class="gf-steps">
+            <sc-for list="{{ boxSteps }}" as="s" hint-placeholder-count="3">
+              <li class="gf-step">
+                <span class="gf-step-n" aria-hidden="true">{{ s.n }}</span>
+                <h4>{{ s.title }}</h4>
+                <p>{{ s.body }}</p>
+              </li>
+            </sc-for>
+          </ol>
+
+          <a class="gf-cta gf-cta-light" href="{{ buildHref }}">Build their box</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="gf-sec gf-dark gf-step-sec" id="gift-card" data-screen-label="Send a gift card">
+    <div class="at-page-inner" style="max-width: 1280px; margin: 0 auto; padding: 0 22px;">
+      <h2 class="gf-h2">Send a gift card</h2>
+      <p class="gf-lede">Choose the credit to add, how it arrives, and the message that makes it theirs.</p>
+
+      <div class="gf-order">
+        <div class="gf-order-head">
+          <div class="gf-preview" aria-hidden="true">
+            <span class="gf-mock-brand">Abby&#8217;s Table</span>
+            <span class="gf-mock-row">
+              <span class="gf-mock-line">A gift for<br />your table.</span>
+              <span class="gf-mock-val">{{ priceLabel }}</span>
+            </span>
+          </div>
+          <div>
+            <h3 class="gf-order-h">Make it theirs.</h3>
+            <p class="gf-order-p">Usable towards any Abby&#8217;s Table order.</p>
+          </div>
+        </div>
+
+        <div class="gf-cols">
+          <div class="gf-col">
+            <div class="gf-col-head">
+              <span class="gf-col-n" aria-hidden="true">1</span>
+              <span class="gf-col-t" id="gf-l-value">Choose a value</span>
+            </div>
+            <div class="gf-values" role="group" aria-labelledby="gf-l-value">
+              <sc-for list="{{ values }}" as="v" hint-placeholder-count="4">
+                <button class="gf-chip" type="button" onClick="{{ v.onPick }}" aria-pressed="{{ v.pressed }}">{{ v.label }}</button>
+              </sc-for>
+            </div>
+            <div class="gf-custom">
+              <span aria-hidden="true">&#163;</span>
+              <input type="text" inputmode="numeric" aria-label="Custom gift card amount in pounds" placeholder="Custom amount" value="{{ customVal }}" onInput="{{ onCustom }}" />
+            </div>
+          </div>
+
+          <div class="gf-col">
+            <div class="gf-col-head">
+              <span class="gf-col-n" aria-hidden="true">2</span>
+              <span class="gf-col-t" id="gf-l-arrive">How it arrives</span>
+            </div>
+            <!-- A real radio group, not three toggle buttons: the options are mutually exclusive and
+                 carry radio dots, so aria-pressed announced them as "pressed" buttons and told a
+                 screen-reader user nothing about the choice. Arrow keys move the selection and only
+                 the selected radio is in the tab order, as the pattern requires. -->
+            <div class="gf-opts" role="radiogroup" aria-labelledby="gf-l-arrive" onKeyDown="{{ onArriveKeys }}">
+              <sc-for list="{{ deliveries }}" as="d" hint-placeholder-count="3">
+                <button class="gf-opt" type="button" role="radio" onClick="{{ d.onPick }}" aria-checked="{{ d.pressed }}" tabindex="{{ d.tab }}">
+                  <span class="gf-opt-top">
+                    <span class="gf-dot" aria-hidden="true"></span>
+                    <span class="gf-opt-t">{{ d.title }}</span>
+                    <sc-if value="{{ d.fastest }}" hint-placeholder-val="">
+                      <span class="gf-fast">Fastest</span>
+                    </sc-if>
+                  </span>
+                  <span class="gf-opt-b">{{ d.shortBody }}</span>
+                  <span class="gf-opt-sub">{{ d.subBody }}</span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+
+          <div class="gf-col">
+            <div class="gf-col-head">
+              <span class="gf-col-n" aria-hidden="true">3</span>
+              <span class="gf-col-t">{{ cardHead }}</span>
+              <!-- The mark only appears when the route actually charges for something (+£3 for the
+                   greeting card). On the email route there is nothing to price, and "Included"
+                   beside a heading that already says "optional" read as a contradiction. -->
+              <sc-if value="{{ cardMark }}" hint-placeholder-val="">
+                <span class="gf-col-mark">{{ cardMark }}</span>
+              </sc-if>
+            </div>
+            <p class="gf-msg-lead" id="gf-msg-lead">{{ cardLead }}</p>
+
+            <sc-if value="{{ cardOptional }}" hint-placeholder-val="{{ true }}">
+              <button class="gf-check" type="button" role="checkbox" aria-checked="{{ cardOn }}" onClick="{{ onToggleCard }}">
+                <span class="gf-box" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display: block;"><path d="M20 6L9 17l-5-5" /></svg>
+                </span>
+                <span class="gf-check-t">Add greeting card</span>
+                <span class="gf-check-p">+&#163;3</span>
+              </button>
+            </sc-if>
+
+            <!-- The message only exists on something: by post and in a box it is printed inside the
+                 card, so the field appears with the card rather than sitting there disabled. -->
+            <sc-if value="{{ showMsg }}" hint-placeholder-val="{{ true }}">
+              <div class="gf-msg-meta">
+                <span class="gf-msg-count" aria-hidden="true">{{ giftCount }}</span>
+              </div>
+              <textarea class="gf-msg" id="gf-msg" maxlength="240" rows="5" aria-label="Your personal message" aria-describedby="gf-msg-lead" placeholder="Write something they&#8217;ll want to keep" value="{{ giftMsg }}" onInput="{{ onGiftMsg }}"></textarea>
+              <sc-if value="{{ cardNote }}" hint-placeholder-val="">
+                <p class="gf-msg-note">{{ cardNote }}</p>
+              </sc-if>
+            </sc-if>
+          </div>
+        </div>
+
+        <div class="gf-sum">
+          <div class="gf-sum-rows">
+            <sc-for list="{{ summary }}" as="row" hint-placeholder-count="4">
+              <span class="{{ row.cls }}">
+                <span class="gf-sum-l">{{ row.label }}</span>
+                <span class="gf-sum-v">{{ row.value }}</span>
+              </span>
+            </sc-for>
+          </div>
+          <p class="gf-sum-note">{{ checkoutNote }}</p>
+          <!-- Email and post bypass the food-box flow entirely and go to the gift-card checkout, so
+               that control is a real anchor: middle-click, copy-link and a no-JS load all work, and
+               it carries the chosen value in the query so the checkout opens on the right amount.
+               "In a food box" is NOT a navigation — the card joins an order being built, so it stays
+               a button that reports what it did. -->
+          <sc-if value="{{ giftIsBox }}" hint-placeholder-val="{{ false }}">
+            <button class="gf-cta" type="button" onClick="{{ onAddGift }}">{{ giftCta }}</button>
+          </sc-if>
+          <!-- In a food box with NO box yet: a navigation to step 1, so a real anchor. The gift is
+               saved on the way out; nothing is bought or checked out here. -->
+          <sc-if value="{{ giftIsBuild }}" hint-placeholder-val="{{ false }}">
+            <a class="gf-cta" href="{{ buildBoxHref }}" onClick="{{ onBuildBox }}">{{ giftCta }}</a>
+          </sc-if>
+          <sc-if value="{{ giftIsCheckout }}" hint-placeholder-val="{{ true }}">
+            <a class="gf-cta" href="{{ giftHref }}" onClick="{{ onGiftGo }}">{{ giftCta }}</a>
+          </sc-if>
+          <p class="gf-said" role="status" aria-live="polite">{{ saidText }}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer id="contact" ref="{{ footRef }}" style="background: var(--green-deep);">
+  <div aria-hidden="true" style="height: 2px; background: var(--brass);"></div>
+  <div class="at-foot-inner" style="max-width: 1280px; margin: 0 auto; padding: 40px 22px 0;">
+
+    <div class="at-foot-grid" style="display: grid; gap: 36px;">
+      <div class="at-foot-news">
+        <p style="margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">Join the table</p>
+        <p style="margin: 12px 0 18px; font-family: var(--font-sans); font-size: 16px; line-height: 1.55; color: var(--blush);">Kitchen notes and offers from Abby, monthly.</p>
+
+        <sc-if value="{{ subscribed }}" hint-placeholder-val="{{ false }}">
+          <p style="margin: 0; font-family: var(--font-display); font-weight: var(--weight-medium); font-size: 22px; line-height: 1.3; color: var(--blush);">Thank you for joining the table.</p>
+        </sc-if>
+
+        <sc-if value="{{ notSubscribed }}" hint-placeholder-val="{{ true }}">
+          <form class="at-foot-form" onSubmit="{{ onJoin }}" style="display: flex; flex-direction: column; gap: 10px;">
+            <label for="at-foot-email" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);">Email address</label>
+            <input class="at-foot-input" id="at-foot-email" name="email" type="email" required autocomplete="email" placeholder="Enter your email address" style="height: 52px; box-sizing: border-box; min-width: 0; border: 1px solid var(--green-mid); border-radius: var(--radius-pill); background: transparent; padding: 0 20px; font-family: var(--font-sans); font-size: 16px; color: var(--blush);" />
+            <button type="submit" class="at-foot-join" style="height: 48px; width: 100%; border: none; cursor: pointer; border-radius: var(--radius-pill); background: var(--brass); color: var(--green-deep); font-family: var(--font-sans); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase;">Join</button>
+          </form>
+          <p class="at-foot-consent" style="margin: 14px 0 0; font-family: var(--font-sans); font-size: 13px; line-height: 1.5; color: var(--sand-2);">We use your email for kitchen notes and offers only. Unsubscribe any time. See our <a href="Abby's Table - Privacy Policy.dc.html" class="at-foot-link" style="color: var(--sand-2); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-skip-ink: none;">Privacy Policy</a>.</p>
+        </sc-if>
+      </div>
+
+      <div class="at-foot-cols" style="display: grid; border-bottom: 1px solid var(--green-mid);">
+        <div class="at-foot-col {{ shopCls }}" style="border-top: 1px solid var(--green-mid);">
+          <button class="at-foot-head" type="button" onClick="{{ toggleShop }}" aria-expanded="{{ shopExp }}" aria-controls="at-foot-shop" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 0; background: transparent; border: none; text-align: left; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">
+            <span>Shop</span>
+            <svg class="at-foot-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          <div class="at-foot-links" id="at-foot-shop" style="padding-bottom: 8px;">
+            <a class="at-foot-link" href="Abby's Table - Menu Landing v3.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Menu</a>
+            <a class="at-foot-link" href="Abby's Table - Gifting v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Gifting</a>
+            <a class="at-foot-link" href="Abby's Table - Private Table v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Private Table</a>
+          </div>
+        </div>
+
+        <div class="at-foot-col {{ learnCls }}" style="border-top: 1px solid var(--green-mid);">
+          <button class="at-foot-head" type="button" onClick="{{ toggleLearn }}" aria-expanded="{{ learnExp }}" aria-controls="at-foot-learn" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 0; background: transparent; border: none; text-align: left; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">
+            <span>Learn</span>
+            <svg class="at-foot-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          <div class="at-foot-links" id="at-foot-learn" style="padding-bottom: 8px;">
+            <a class="at-foot-link" href="Abby's Table - Abby's Story v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Abby&#8217;s Story</a>
+            <a class="at-foot-link" href="Abby's Table - How It Works v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">How it works</a>
+            <a class="at-foot-link" href="Abby's Table - Standards v2.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Our standards</a>
+          </div>
+        </div>
+
+        <div class="at-foot-col {{ infoCls }}" style="border-top: 1px solid var(--green-mid);">
+          <button class="at-foot-head" type="button" onClick="{{ toggleInfo }}" aria-expanded="{{ infoExp }}" aria-controls="at-foot-info" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 0; background: transparent; border: none; text-align: left; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--brass);">
+            <span>Information</span>
+            <svg class="at-foot-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto;"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          <div class="at-foot-links" id="at-foot-info" style="padding-bottom: 8px;">
+            <a class="at-foot-link" href="Abby's Table - Delivery and FAQs.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Delivery &amp; FAQs</a>
+            <a class="at-foot-link" href="Abby's Table - Allergens.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Allergens</a>
+            <a class="at-foot-link" href="Abby's Table - Contact Us.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 16px; color: var(--blush); text-decoration: none;">Contact us</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="at-foot-rule" aria-hidden="true" style="display: none; height: 1px; background: var(--green-mid); margin: 32px 0 26px;"></div>
+
+    <div class="at-foot-bottom" style="display: grid; gap: 26px; justify-items: center; margin-top: 30px;">
+      <a class="at-foot-logo" href="Abby's Table - Homepage v2.dc.html" aria-label="Abby&#8217;s Table &#8212; home" style="display: block; text-decoration: none;">
+        <span class="at-foot-mark" aria-hidden="true" style="display: block; width: 176px; height: 30px; color: var(--blush);"><at-wordmark></at-wordmark></span>
+      </a>
+
+      <span class="at-foot-sig" style="font-family: var(--font-display); font-style: italic; font-size: 25px; line-height: 1; color: var(--terracotta);">Abby x</span>
+
+      <div class="at-foot-follow" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+        <span style="font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--green-sage);">Follow the table</span>
+        <div class="at-foot-follow-row" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <a href="https://www.instagram.com/fromabbystable" target="_blank" rel="noopener" aria-label="Instagram" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07zM12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.31-1.46.72-2.12 1.38A5.86 5.86 0 0 0 .63 4.13c-.3.76-.5 1.64-.56 2.91C.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.31.79.72 1.46 1.38 2.12.66.66 1.33 1.07 2.12 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.86 5.86 0 0 0 2.12-1.38 5.86 5.86 0 0 0 1.38-2.12c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.86 5.86 0 0 0-1.38-2.12A5.86 5.86 0 0 0 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84A6.16 6.16 0 1 0 12 18.16 6.16 6.16 0 0 0 12 5.84zm0 10.16A4 4 0 1 1 12 8a4 4 0 0 1 0 8zm6.41-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z" /></svg></a>
+            <a href="https://www.tiktok.com/@fromabbystable" target="_blank" rel="noopener" aria-label="TikTok" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 11.5 11.4" fill="var(--blush)" style="display: block;"><path d="M6.95 0v6.9A2.66 2.66 0 1 1 4.3 4.85c.35 0 .7.07 1 .21V3.15a4.5 4.5 0 0 0-1-.1A4.2 4.2 0 1 0 8.75 6.9V3.3a4.55 4.55 0 0 0 2.75 1.1V2.55A2.73 2.73 0 0 1 8.75 0Z" /></svg></a>
+            <a href="https://www.facebook.com/fromabbystable/" target="_blank" rel="noopener" aria-label="Facebook" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 6.15 11.15" fill="var(--blush)" style="display: block;"><path d="M4.05 11.15V6h1.7l.3-1.95h-2V2.8c0-.55.25-.95 1-.95h1.1V.1A14.6 14.6 0 0 0 4.55 0C2.85 0 1.75 1.05 1.75 2.6v1.45H0V6h1.75v5.15Z" /></svg></a>
+            <a href="https://x.com/fromabbystable" target="_blank" rel="noopener" aria-label="X" class="at-social" style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg></a>
+          </div>
+          <span class="at-foot-dash" aria-hidden="true" style="display: none; color: var(--green-sage); font-size: 13px; line-height: 1;">&#8211;</span>
+          <span style="display: flex; align-items: center; padding: 4px 0; font-family: var(--font-sans); font-size: 16px; color: var(--blush);">@FromAbbysTable</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="at-foot-legal" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0 24px; margin-top: 20px; padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));">
+      <span style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--green-sage);">&#169; 2026 Abby&#8217;s Table</span>
+      <div class="at-foot-legal-row" style="display: flex; align-items: center; gap: 12px;">
+        <a href="Abby's Table - Privacy Policy.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--sand-2); text-decoration: none; transition: color .16s ease;">Privacy Policy</a>
+        <span class="at-foot-legal-sep" aria-hidden="true" style="color: var(--green-mid); font-size: 13px; line-height: 1;">|</span>
+        <a href="Abby's Table - Terms of Sale.dc.html" style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--sand-2); text-decoration: none; transition: color .16s ease;">Terms</a>
+      </div>
+      <!-- Canonical consent trigger: a REAL link to the Privacy Policy's cookie section, which is
+           what a customer gets with no JS or if the manager fails to initialise. The manager is
+           mounted once globally in production, not per page; it binds one delegated listener on
+           [data-consent-open] and adds aria-haspopup="dialog" itself. -->
+      <a href="Abby's Table - Privacy Policy.dc.html#cookies" data-consent-open style="display: flex; align-items: center; min-height: 44px; font-family: var(--font-sans); font-size: 13px; color: var(--sand-2); text-decoration: none; transition: color .16s ease;">Cookie preferences</a>
+    </div>
+  </div>
+</footer>
+
+<!-- Visibility is derived from scroll POSITION with two thresholds so it cannot flicker, never
+     from a section count. Mobile: shown once the page has passed ~1.75 viewport heights, hidden
+     under ~0.9. Desktop: shown once the route track has left the viewport, hidden once it is back.
+     Scrolls to the page heading less the sticky header's height — never scrollY = 0 — and moves
+     focus to the h1, so a keyboard user is put back at the heading. -->
+<button class="gf-top" type="button" onClick="{{ goTop }}" data-on="{{ topOn }}" aria-label="Back to top of page">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block;"><path d="M12 19V5" /><path d="M5 12l7-7 7 7" /></svg>
+  <span>Top</span>
+</button>
+
+<!-- No mobile purchase bar on this page (user's call). Gifting is a two-route choice — send food
+     or send credit — and a persistent "Build a Box" pushes one of those routes over the other from
+     a fixed layer. Both routes already carry their own 52px CTA, and the header pill is still
+     there. This is a deliberate departure from the canonical bar, not an omission: the bar, its
+     hero/footer suppression tracking and the published --at-bar-h all come off with it, since
+     nothing on the page reads that height. -->
+
+<div class="at-drawer-wrap {{ drawerCls }}">
+  <div class="at-drawer-scrim" onClick="{{ closeDrawer }}" style="position: fixed; inset: 0; z-index: 90; background: rgba(21,41,31,.5);"></div>
+  <aside id="at-drawer" class="at-drawer-panel" ref="{{ panelRef }}" role="dialog" aria-modal="true" aria-label="Main menu" style="position: fixed; top: 0; left: 0; bottom: 0; z-index: 95; display: flex; flex-direction: column; width: min(300px, 84vw); background: var(--green-forest); padding: 18px 22px 26px; overflow-y: auto;">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+      <a class="at-logo" href="Abby's Table - Homepage v2.dc.html" aria-label="Abby&#8217;s Table &#8212; home" style="display: flex; align-items: center; min-height: 44px; text-decoration: none;">
+        <span aria-hidden="true" style="display: block; width: 142px; aspect-ratio: 186 / 32; color: var(--blush);"><at-wordmark></at-wordmark></span>
+      </a>
+      <button type="button" onClick="{{ closeDrawer }}" aria-label="Close menu" style="flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-right: -10px; border: none; background: transparent; color: var(--blush); font-size: 24px; line-height: 1; cursor: pointer;">&#215;</button>
+    </div>
+
+    <a class="at-drawer-link" href="Abby's Table - Log in.dc.html" style="display: flex; align-items: center; min-height: 48px; margin-top: 20px; font-family: var(--font-sans); font-weight: 600; font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Log in</a>
+    <span aria-hidden="true" style="display: block; height: 1px; background: var(--green-mid); margin: 4px 0 6px;"></span>
+
+    <nav aria-label="Main" style="display: flex; flex-direction: column;">
+      <a class="at-drawer-link" href="Abby's Table - Menu Landing v3.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Menu</a>
+      <a class="at-drawer-link" href="Abby's Table - How It Works v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">How it works</a>
+      <a class="at-drawer-link" href="Abby's Table - Abby's Story v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Abby&#8217;s Story</a>
+      <a class="at-drawer-link" href="Abby's Table - Gifting v2.dc.html" aria-current="page" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Gifting</a>
+      <a class="at-drawer-link" href="Abby's Table - Private Table v2.dc.html" style="display: flex; align-items: center; min-height: 48px; font-family: var(--font-sans); font-size: 16.5px; color: var(--blush); text-decoration: none; transition: color .16s ease;">Private Table</a>
+    </nav>
+
+    <a class="at-drawer-cta" href="Abby's Table - Choose Box v2.dc.html" style="display: flex; align-items: center; justify-content: center; min-height: 54px; margin-top: 26px; border-radius: var(--radius-pill); background: var(--terracotta); color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; text-decoration: none;">Build a Box</a>
+
+    <div style="margin-top: auto; border-top: 1px solid var(--green-mid); padding-top: 22px; display: flex; gap: 20px; align-items: center;">
+      <a class="at-social" href="https://www.instagram.com/fromabbystable" target="_blank" rel="noopener" aria-label="Instagram" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07zM12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.31-1.46.72-2.12 1.38A5.86 5.86 0 0 0 .63 4.13c-.3.76-.5 1.64-.56 2.91C.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.31.79.72 1.46 1.38 2.12.66.66 1.33 1.07 2.12 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.86 5.86 0 0 0 2.12-1.38 5.86 5.86 0 0 0 1.38-2.12c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.86 5.86 0 0 0-1.38-2.12A5.86 5.86 0 0 0 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84A6.16 6.16 0 1 0 12 18.16 6.16 6.16 0 0 0 12 5.84zm0 10.16A4 4 0 1 1 12 8a4 4 0 0 1 0 8zm6.41-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z" /></svg></a>
+      <a class="at-social" href="https://www.tiktok.com/@fromabbystable" target="_blank" rel="noopener" aria-label="TikTok" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px;"><svg width="20" height="20" viewBox="0 0 11.5 11.4" fill="var(--blush)" style="display: block;"><path d="M6.95 0v6.9A2.66 2.66 0 1 1 4.3 4.85c.35 0 .7.07 1 .21V3.15a4.5 4.5 0 0 0-1-.1A4.2 4.2 0 1 0 8.75 6.9V3.3a4.55 4.55 0 0 0 2.75 1.1V2.55A2.73 2.73 0 0 1 8.75 0Z" /></svg></a>
+      <a class="at-social" href="https://www.facebook.com/fromabbystable/" target="_blank" rel="noopener" aria-label="Facebook" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px;"><svg width="20" height="20" viewBox="0 0 6.15 11.15" fill="var(--blush)" style="display: block;"><path d="M4.05 11.15V6h1.7l.3-1.95h-2V2.8c0-.55.25-.95 1-.95h1.1V.1A14.6 14.6 0 0 0 4.55 0C2.85 0 1.75 1.05 1.75 2.6v1.45H0V6h1.75v5.15Z" /></svg></a>
+      <a class="at-social" href="https://x.com/fromabbystable" target="_blank" rel="noopener" aria-label="X" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="var(--blush)" style="display: block;"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg></a>
+    </div>
+  </aside>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:900}}">
+// Gift-card options, carried over from the current Gifting page unchanged in substance. Every one
+// of them is a LAUNCH DEPENDENCY, not a design decision: the values, the three delivery routes and
+// the 240-character message limit have to be confirmed against what the gift-card system can
+// actually do (frontend-backend-contract.md). Nothing here is invented beyond what the old page
+// already stated.
+const VALUES = [50, 75, 100, 150];
+
+// The greeting card is a paid extra on the two physical routes and inherent to the emailed one —
+// an email has nothing to print on, so its message costs nothing. Every string that differs by
+// route is a field on the route, so step 3 has one implementation and cannot fall out of step with
+// what was chosen in step 2.
+const CARD_PRICE = 3;
+
+// Money is whole pounds everywhere except postage, so the formatter drops ".00" rather than
+// printing "£100.00" beside "£3.95". One function, so every figure on the page agrees.
+const money = (n) => "\u00A3" + (Math.round(n * 100) % 100 === 0 ? String(Math.round(n)) : n.toFixed(2));
+
+const DELIVERY = [
+  {
+    id: "email", title: "Email", fastest: true, summary: "By email", fee: 0,
+    shortBody: "Sent directly to their inbox.",
+    subBody: "No delivery charge.",
+    checkoutNote: "Add their email address at checkout.",
+    cardOptional: false,
+    cardHead: "Personal message - optional",
+    cardMark: "",
+    cardLead: "Your message will be included in the gift email.",
+    cardNote: "",
+    sumLabel: "Message",
+    cta: "Buy gift card",
+  },
+  {
+    id: "post", title: "By post", summary: "By post", fee: 3.95,
+    shortBody: "Posted directly to their address.",
+    subBody: "+\u00A33.95 delivery.",
+    checkoutNote: "Provide their delivery address and choose the delivery date at checkout.",
+    cardOptional: true,
+    cardHead: "Greeting card + message",
+    cardMark: "+\u00A33",
+    cardLead: "Add an Abby\u2019s Table greeting card with your personal message printed inside, and we\u2019ll send it with their gift card to their address.",
+    cardNote: "Your message will be printed inside the card, then sent with the gift card to their address.",
+    sumLabel: "Greeting card",
+    cta: "Buy gift card",
+  },
+  {
+    id: "box", title: "In a food box", summary: "In a food box", fee: 0,
+    shortBody: "Included with your food box order.",
+    subBody: "No extra delivery charge.",
+    checkoutNote: "Delivered inside your food box to the same delivery address.",
+    cardOptional: true,
+    cardHead: "Greeting card + message",
+    cardMark: "+\u00A33",
+    cardLead: "Add an Abby\u2019s Table greeting card with your personal message printed inside. We\u2019ll include it with their gift card in your food box.",
+    cardNote: "We\u2019ll place the card inside your food box with the gift card.",
+    sumLabel: "Greeting card",
+    // The gift card joins an existing food box order rather than being bought on its own, so the
+    // control says what it actually does on this route.
+    cta: "Add to food box",
+  },
+];
+
+// The food-box steps: what the customer actually does, in the order the checkout asks for it.
+const BOX_STEPS = [
+  { n: "1", title: "Build their box", body: "Choose six or more dishes from the menu, just as you would for any Abby\u2019s Table order." },
+  { n: "2", title: "Make it a gift", body: "At checkout, choose \u201CIs this box a gift?\u201D. You can hide prices and add a personalised greeting card with your message for \u00A33." },
+  { n: "3", title: "Send it to them", body: "Enter their delivery address, choose an available delivery date, and we\u2019ll send it straight to their door." },
+];
+// Fallback only if at-order-state.js has not loaded: the same ACTIVE BOX rule as ATOrder.isActive.
+function atIsActiveG(o) { if (!o || !o.label || !o.total) return false; if (o.boxCommitted === true) return true; const sn = o.snap || {}; const ks = ["s2", "s4", "s3", "s5"]; for (let i = 0; i < ks.length; i++) { const x = sn[ks[i]]; if (x && Array.isArray(x.lines)) return x.lines.some((l) => (parseInt(l.qty, 10) || 0) > 0); } return !!(sn.s1 && sn.s1.okraIn); }
+class Component extends DCLogic {
+  // canRoute starts true because mobile is the base state and the track does scroll there; the
+  // first measurement corrects it on anything wider.
+  // ---- Unfinished gift (see Gift Card Checkout: _giftSave) ----------------------------------------
+  // Written ONLY by the gift-card checkout, once a standalone gift is actually in it; cleared there on
+  // payment. Invalid, expired, unparseable or dismissed ⇒ no banner — the page just sells as normal.
+  // anyDismissed: the checkout's own Edit links load the gift even if the reminder was dismissed —
+  // dismissing hides a reminder, it does not refuse to edit the gift.
+  _readResume(anyDismissed) {
+    try {
+      const r = JSON.parse(sessionStorage.getItem("at-gift-checkout-v1") || "null");
+      // A gift removed at checkout is only restorable there — never an unfinished gift here.
+      if (!r || typeof r !== "object" || r.v !== 1 || r.removed === true || (r.dismissed && !anyDismissed)) return null;
+      if (!(Date.now() - r.t < 24 * 3600e3)) return null;
+      if (!(Number.isFinite(r.value) && r.value > 0 && r.value <= 1000)) return null;
+      if (r.route !== "email" && r.route !== "post") return null;
+      return r;
+    } catch (_) { return null; }
+  }
+  // The saved gift as the order panel's fields. Shared by the banner's "Edit gift details" and by
+  // arriving from the checkout's Edit (?edit=1), so both load exactly the same thing.
+  _loadedFrom(r, cur) {
+    const preset = VALUES.indexOf(r.value) >= 0;
+    return { giftValue: preset ? r.value : cur.giftValue, customVal: preset ? "" : String(r.value),
+             delivery: r.route, giftMsg: typeof r.msg === "string" ? r.msg.slice(0, 240) : cur.giftMsg,
+             giftCard: cur.giftCard };
+  }
+  _editArrival = (() => { try { return new URLSearchParams(location.search).get("edit") === "1"; } catch (_) { return false; } })();
+  _editRec = this._editArrival ? this._readResume(true) : null;
+  _resume = this._editRec || this._readResume();
+  _editInit = this._editRec ? this._loadedFrom(this._editRec, { giftValue: 100, giftMsg: "", giftCard: false }) : null;
+  // Gift saved for a food box (see Choose Box v2: readGiftBox). Restored into the panel whenever it
+  // exists; `?edit=box` (step 1's Edit links) also puts the panel in edit mode.
+  _gbRec = (() => {
+    try {
+      const r = JSON.parse(sessionStorage.getItem("at-gift-box-v1") || "null");
+      if (!r || typeof r !== "object" || r.v !== 1 || !(Date.now() - r.t < 24 * 3600e3)) return null;
+      if (!(Number.isFinite(r.value) && r.value > 0 && r.value <= 1000)) return null;
+      if (r.stage !== "saved" && r.stage !== "added") return null;
+      return r;
+    } catch (_) { return null; }
+  })();
+  _gbArrival = (() => { try { return new URLSearchParams(location.search).get("edit") === "box"; } catch (_) { return false; } })();
+  _gbInit = this._gbRec && !this._editInit ? {
+    giftValue: VALUES.indexOf(this._gbRec.value) >= 0 ? this._gbRec.value : 100,
+    customVal: VALUES.indexOf(this._gbRec.value) >= 0 ? "" : String(this._gbRec.value),
+    delivery: "box", giftCard: !!this._gbRec.card,
+    giftMsg: typeof this._gbRec.msg === "string" ? this._gbRec.msg.slice(0, 240) : "" } : null;
+  // Arriving from the checkout's Edit: the panel starts already loaded, in edit mode, before first
+  // paint — no flash of the default £100. The banner stays hidden: they are already editing, and
+  // _honourHash takes them to #gift-card.
+  state = { resumeOn: !!this._resume && !this._editRec && !this._gbArrival, canRoute: true, drawer: false, dirDown: false, topOn: false,
+            footOpen: {}, subscribed: false,
+            // giftCard starts OFF: it is a £3 extra, and pre-ticking a paid add-on charges for
+            // something the customer never chose.
+            giftValue: 100, customVal: "", delivery: "email", giftCard: false, giftMsg: "", said: "", editBase: null,
+            ...(this._editInit ? Object.assign({}, this._editInit, { editBase: this._editInit }) : {}),
+            ...(this._gbInit ? Object.assign({}, this._gbInit, this._gbArrival ? { editBase: this._gbInit } : {}) : {}) };
+
+  // ---- footer (canonical) ----
+  footRef = (el) => {
+    this._foot = el;
+    if (el) this._footSemantics();
+  };
+
+  // The footer column heads are accordion BUTTONS on mobile and non-interactive LABELS from 1024,
+  // where the toggle is inert and the chevron is hidden. Attributes cannot be swapped in CSS, so
+  // the semantics are set here — one element, no duplicated markup.
+  _footSemantics = () => {
+    if (!this._foot) return;
+    const label = window.innerWidth >= 1024;
+    Array.prototype.forEach.call(this._foot.querySelectorAll(".at-foot-head"), (b) => {
+      if (label) {
+        // Captured before the first desktop pass strips them: React only rewrites an attribute
+        // when its value changes, so it will not restore these on the way back to mobile.
+        if (!b.dataset.ctrl) b.dataset.ctrl = b.getAttribute("aria-controls") || "";
+        if (!b.dataset.exp) b.dataset.exp = b.getAttribute("aria-expanded") || "false";
+        b.removeAttribute("aria-expanded");
+        b.removeAttribute("aria-controls");
+        b.setAttribute("role", "heading");
+        b.setAttribute("aria-level", "3");
+        b.setAttribute("tabindex", "-1");
+      } else {
+        b.removeAttribute("role");
+        b.removeAttribute("aria-level");
+        b.removeAttribute("tabindex");
+        if (b.dataset.ctrl) b.setAttribute("aria-controls", b.dataset.ctrl);
+        if (!b.hasAttribute("aria-expanded")) b.setAttribute("aria-expanded", b.dataset.exp || "false");
+      }
+    });
+  };
+
+  _footToggle = (k) => {
+    if (window.innerWidth >= 1024) return;   // inert at desktop: the head is a label there
+    this.setState((s) => {
+      const o = Object.assign({}, s.footOpen);
+      o[k] = !o[k];
+      return { footOpen: o };
+    });
+  };
+  toggleShop = () => this._footToggle("shop");
+  toggleLearn = () => this._footToggle("learn");
+  toggleInfo = () => this._footToggle("info");
+  onJoin = (e) => { e.preventDefault(); this.setState({ subscribed: true }); };
+
+  // ---- route track (canonical carousel pattern, from the homepage dish scroller) ----
+  // Ref callbacks rather than componentDidUpdate: this runtime never calls it, and the track must
+  // be measured as soon as it exists.
+  routeScrollerRef = (el) => { this._rsc = el; if (el) { requestAnimationFrame(this.updateRouteNav); setTimeout(this.updateRouteNav, 500); } };
+  routeTrackRef = (el) => { this._rtrack = el; requestAnimationFrame(this.updateRouteNav); };
+  routeThumbRef = (el) => { this._rthumb = el; requestAnimationFrame(this.updateRouteNav); };
+  onRouteScroll = () => this.updateRouteNav();
+
+  updateRouteNav = () => {
+    const sc = this._rsc, track = this._rtrack, thumb = this._rthumb;
+    if (!sc) return;
+    // Measured, not restated: the rail and the track's justification follow actual overflow, so
+    // they are right at every width instead of at a guessed one. Deduped — this also runs on
+    // scroll. Deferred by every caller (rAF/timeout/scroll), so it never sets state mid-render.
+    const can = sc.scrollWidth - sc.clientWidth > 2;
+    if (can !== this.state.canRoute) this.setState({ canRoute: can });
+    if (!track || !thumb) return;
+    const max = sc.scrollWidth - sc.clientWidth;
+    const tw = track.clientWidth;
+    const ratio = sc.scrollWidth > 0 ? Math.min(1, sc.clientWidth / sc.scrollWidth) : 1;
+    const w = Math.max(28, tw * ratio);
+    const frac = max > 0 ? Math.min(1, Math.max(0, sc.scrollLeft / max)) : 0;
+    thumb.style.width = w + "px";
+    thumb.style.transform = "translateX(" + (frac * (tw - w)) + "px)";
+  };
+
+  // ---- header + bar ----
+  hdrRef = (el) => { this._hdr = el; };
+
+  // Radiogroup keyboard pattern: arrows move the selection (and the focus with it), Home/End jump
+  // to the ends. Reading the buttons off the group's own event target rather than holding three
+  // refs that could fall out of step with the list.
+  onArriveKeys = (e) => {
+    const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
+    if (step === undefined && e.key !== "Home" && e.key !== "End") return;
+    e.preventDefault();
+    const i = DELIVERY.map((d) => d.id).indexOf(this.state.delivery);
+    const n = e.key === "Home" ? 0
+      : e.key === "End" ? DELIVERY.length - 1
+      : (i + step + DELIVERY.length) % DELIVERY.length;
+    // said is cleared with every change to the order — see onAddGift's note.
+    this.setState({ delivery: DELIVERY[n].id, said: "" });
+    const btns = e.currentTarget.querySelectorAll(".gf-opt");
+    if (btns[n]) btns[n].focus();
+  };
+
+  _isDesktop = () => window.innerWidth >= 1024;
+
+  // Position-derived, with two thresholds so the control cannot flicker around a single line.
+  // MOBILE: shown once the hero's top has passed ~1.75 viewport heights, hidden again under ~0.9.
+  // DESKTOP: shown once the route track has left the viewport — measured from the track, so it
+  // holds whatever the card height turns out to be — and hidden once it is back in view.
+  _updateTop = () => {
+    const hero = document.querySelector(".gf-hero");
+    if (!hero) return;
+    const was = this.state.topOn;
+    let on = was;
+    if (this._isDesktop()) {
+      if (!this._rsc) return;
+      const b = this._rsc.getBoundingClientRect().bottom;
+      if (b < 0) on = true; else if (b > 140) on = false;
+    } else {
+      const past = -hero.getBoundingClientRect().top;
+      const vh = window.innerHeight || 1;
+      if (past > vh * 1.75) on = true; else if (past < vh * 0.9) on = false;
+    }
+    if (on !== was) this.setState({ topOn: on });
+  };
+
+  // The heading, not window 0: the sticky header sits above the page, so the top of the page is the
+  // h1 less the header's height. Focus follows the scroll.
+  goTop = () => {
+    const hero = document.querySelector(".gf-hero");
+    const hdr = this._hdr ? this._hdr.offsetHeight : 72;
+    const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const y = hero ? Math.max(0, hero.getBoundingClientRect().top + window.scrollY - hdr) : 0;
+    window.scrollTo({ top: y, behavior: reduce ? "auto" : "smooth" });
+    if (this._h1) { this._h1.setAttribute("tabindex", "-1"); this._h1.focus({ preventScroll: true }); }
+  };
+
+  _onScroll = () => {
+    // Ahead of the movement threshold: the control tracks position even when the header's
+    // direction state is deliberately not updating.
+    this._updateTop();
+    const y = window.scrollY;
+    const last = this._lastY || 0;
+    if (Math.abs(y - last) < 8) return;
+    const down = y > last && y > 120;
+    this._lastY = y;
+    if (down && this._hdr && this._hdr.contains(document.activeElement)) return;
+    if (down !== this.state.dirDown) this.setState({ dirDown: down });
+  };
+
+  // A cross-page link to #gift-card lands at the top of the page: the browser resolves the hash
+  // before this component has rendered, so the target does not exist yet and the jump is dropped.
+  // Poll for it and scroll once it is there, allowing for the sticky header. Bounded, and
+  // cancelled on unmount. Only runs when a hash is actually present, so ordinary loads are
+  // untouched, and it never fights the user — it bails the moment they scroll themselves.
+  _honourHash = () => {
+    const id = (location.hash || "").replace("#", "");
+    if (!id) return;
+    const start = Date.now();
+    let userMoved = false;
+    const note = () => { userMoved = true; };
+    window.addEventListener("wheel", note, { passive: true, once: true });
+    window.addEventListener("touchstart", note, { passive: true, once: true });
+    const land = () => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const hdr = document.querySelector(".at-hdr");
+      const off = hdr ? hdr.getBoundingClientRect().height : 0;
+      window.scrollTo({ top: Math.max(0, window.scrollY + el.getBoundingClientRect().top - off - 8), behavior: "auto" });
+    };
+    const go = () => {
+      if (userMoved) return;
+      const el = document.getElementById(id);
+      if (el && el.getClientRects().length) {
+        land();
+        // One re-assert after the layout settles: the first landing happens within ~60ms, before
+        // lazy images above the target have reserved their space, which leaves it ~90px low.
+        this._hashTo2 = setTimeout(() => { if (!userMoved) land(); }, 450);
+        return;
+      }
+      if (Date.now() - start < 2000) this._hashTo = setTimeout(go, 60);
+    };
+    this._hashTo = setTimeout(go, 60);
+  };
+
+  componentDidMount() {
+    this._honourHash();
+    // Always mounted, so it is read directly rather than through a ref that could be left
+    // half-wired. Only the header auto-hide reads scroll now; there is no purchase bar to track.
+    this._h1 = document.querySelector(".at-h1");
+
+    window.addEventListener("scroll", this._onScroll, { passive: true });
+    this._onResize = () => {
+      this._footSemantics();
+      this.updateRouteNav();
+      this._updateTop();
+    };
+    window.addEventListener("resize", this._onResize);
+
+    this._onKey = (ev) => {
+      if (!this.state.drawer) return;
+      if (ev.key === "Escape") { ev.preventDefault(); this.close(); return; }
+      if (ev.key === "Tab") { ev._root = this._panel; this._trapIn(this.focusables(), ev); }
+    };
+    document.addEventListener("keydown", this._onKey);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener("scroll", this._onScroll);
+    window.removeEventListener("resize", this._onResize);
+    document.removeEventListener("keydown", this._onKey);
+    cancelAnimationFrame(this._drawerRaf);
+    clearTimeout(this._drawerTo);
+    clearTimeout(this._hashTo);
+    clearTimeout(this._hashTo2);
+    document.body.style.overflow = "";
+  }
+
+  // ---- drawer (canonical) ----
+  // The panel is always mounted under a known id, so it is read from the document rather than
+  // through a ref: ref attach timing was the unreliable part.
+  _drawerPanel = () => this._panel || document.getElementById("at-drawer");
+
+  focusables = () => {
+    const panel = this._drawerPanel();
+    if (!panel) return [];
+    return Array.from(panel.querySelectorAll("a[href], button")).filter((el) => el.offsetParent !== null);
+  };
+
+  // Both were used by close() and the Tab handler but had not come across with them, so closing
+  // the drawer threw and Tab never trapped. Verbatim from Menu Landing v3.
+  _canFocus = (el) => !!el && el.offsetParent !== null && getComputedStyle(el).visibility !== "hidden";
+
+  _trapIn = (els, e) => {
+    if (!els.length) return;
+    const first = els[0], last = els[els.length - 1];
+    const root = e._root;
+    if (root && !root.contains(document.activeElement)) {
+      e.preventDefault();
+      (e.shiftKey ? last : first).focus();
+      return;
+    }
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  };
+
+  // Stable class fields, NOT arrows created inside renderVals(): a ref rebuilt on every render is
+  // detached with null each time, and renderVals() runs on scroll here (header auto-hide), so
+  // this._panel was unreliable exactly when open() read it.
+  panelRef = (el) => { this._panel = el; };
+  burgerRef = (el) => { this._burger = el; };
+  h1Ref = (el) => { this._h1 = el; };
+
+  open = () => {
+    document.body.style.overflow = "hidden";
+    this.setState({ drawer: true });
+    this._takeDrawerFocus();
+  };
+
+  // Canonical implementation, from Homepage v2. Focus moves here rather than in a lifecycle hook
+  // or a setState callback: this runtime calls neither, so a callback-based move never ran at all
+  // and no focus event was ever fired. So: poll for the panel becoming focusable, on BOTH a frame
+  // and a timer (a frame can be throttled, a timer cannot), against a 1s wall-clock budget rather
+  // than a frame count — the old 20-frame budget could expire before the display: none -> flex
+  // flip had landed. Target is the Close button, a fixed position in the panel rather than
+  // whichever link happens to be first. Both handles are cancelled on close and on unmount.
+  _takeDrawerFocus = () => {
+    cancelAnimationFrame(this._drawerRaf);
+    clearTimeout(this._drawerTo);
+    const start = Date.now();
+    const take = () => {
+      const panel = this._drawerPanel();
+      const btn = panel && panel.querySelector('button[aria-label="Close menu"]');
+      const t = this._canFocus(btn) ? btn : this.focusables()[0];
+      if (t) { t.focus(); return; }
+      if (Date.now() - start < 3000) {
+        this._drawerRaf = requestAnimationFrame(take);
+        this._drawerTo = setTimeout(take, 50);
+      }
+    };
+    take();
+  };
+
+  close = () => {
+    this.setState({ drawer: false });
+    document.body.style.overflow = "";
+    cancelAnimationFrame(this._drawerRaf);
+    clearTimeout(this._drawerTo);
+    const t = this._canFocus(this._burger) ? this._burger : this._canFocus(this._h1) ? this._h1 : null;
+    if (t) t.focus();
+  };
+
+  renderVals() {
+    const s = this.state;
+    // A typed custom amount wins over the picked chip while it holds a number, so the two controls
+    // cannot disagree about what the card is worth.
+    const typed = parseInt((s.customVal || "").replace(/[^0-9]/g, ""), 10);
+    const value = s.customVal !== "" && !isNaN(typed) ? typed : s.giftValue;
+    const chosen = DELIVERY.filter((d) => d.id === s.delivery)[0] || DELIVERY[0];
+    // On email the card is inherent, so the message field is always there and costs nothing; on the
+    // physical routes it exists only once the extra is added. One derivation, so the field, the
+    // note, the summary row and the total can never disagree.
+    const cardOn = chosen.cardOptional ? !!s.giftCard : true;
+    const cardCost = chosen.cardOptional && s.giftCard ? CARD_PRICE : 0;
+    // Postage is a property of the arrival route, so it moves with step 2 and is stated in the
+    // route's own option before it ever appears in the total.
+    const total = (value || 0) + cardCost + chosen.fee;
+    // "In a food box" means two things. With a box already in progress the card joins it (the
+    // existing button). With none — or a gift already saved for one — the customer builds a box
+    // first, so the option, CTA and note say so.
+    // One active food box at a time. If one is in progress (or the gift is already in it), the card
+    // is ATTACHED to it and the customer returns to the exact step they left. Read from storage
+    // directly — the shared order script may not have run by first render.
+    const activeOrder = (() => { try { const o = JSON.parse(sessionStorage.getItem("at-order-v1") || "null"); return window.ATOrder && window.ATOrder.isActive ? (window.ATOrder.isActive(o) ? o : null) : atIsActiveG(o) ? o : null; } catch (_) { return null; } })();
+    const gbAdded = !!(this._gbRec && this._gbRec.stage === "added");
+    const attachRoute = !!activeOrder || gbAdded;
+    const buildRoute = !attachRoute;
+    const isBuild = chosen.id === "box" && buildRoute;
+    const isAttach = chosen.id === "box" && attachRoute;
+    const returnHref = activeOrder && typeof activeOrder.href === "string" && activeOrder.href.indexOf("Abby's Table - ") === 0
+      ? activeOrder.href : (gbAdded ? "Abby's Table - Add Dishes v2.dc.html?resume=1" : "Abby's Table - Choose Box v2.dc.html");
+    const boxNote = isAttach
+      ? "Your " + money(value || 0) + " gift card" + (s.giftCard ? " and greeting card" : "") + " will be added to your food box. The gift card does not count towards your dish minimum."
+      : "Your " + money(value || 0) + " gift card" + (s.giftCard ? " and greeting card" : "") + " will be saved while you build the food box. Recipient details come at checkout.";
+
+    return {
+      routesCls: s.canRoute ? "" : "is-static",
+      railCls: s.canRoute ? "" : "is-off",
+      routeScrollerRef: this.routeScrollerRef,
+      routeTrackRef: this.routeTrackRef,
+      routeThumbRef: this.routeThumbRef,
+      onRouteScroll: this.onRouteScroll,
+
+      // Always step 1 (box size first): a new gift order with no order yet, or — with an order in
+      // progress — that SAME order, converted to a gift and opened for editing (?resume=1&gift=1).
+      buildHref: activeOrder ? "Abby's Table - Choose Box v2.dc.html?resume=1&gift=1" : "Abby's Table - Choose Box v2.dc.html?gift=1",
+      boxSteps: BOX_STEPS,
+      priceLabel: "\u00A3" + (value || 0),
+
+      values: VALUES.map((v) => ({
+        label: "\u00A3" + v,
+        pressed: (s.customVal === "" && s.giftValue === v) ? "true" : "false",
+        // Picking a preset clears the custom field, or the field would keep overriding the chip
+        // the customer just pressed.
+        onPick: () => this.setState({ giftValue: v, customVal: "", said: "" }),
+      })),
+      customVal: s.customVal,
+      onCustom: (e) => this.setState({ customVal: e.target.value.replace(/[^0-9]/g, "").slice(0, 3), said: "" }),
+
+      deliveries: DELIVERY.map((d) => ({
+        title: d.title,
+        shortBody: d.id !== "box" ? d.shortBody : buildRoute ? "We\u2019ll save your gift card while you build a food box." : "We\u2019ll add this gift card to the food box you\u2019re already building.",
+        subBody: d.subBody,
+        fastest: d.fastest ? "1" : "",
+        pressed: d.id === s.delivery ? "true" : "false",
+        // Only the selected radio is tabbable; arrows move within the group.
+        tab: d.id === s.delivery ? "0" : "-1",
+        onPick: () => this.setState({ delivery: d.id, said: "" }),
+      })),
+      onArriveKeys: this.onArriveKeys,
+
+      // What happens at checkout differs per arrival method, so the note is a VALUE on the record
+      // beside its label, not a literal in the template.
+      checkoutNote: chosen.id === "box" ? boxNote : chosen.checkoutNote,
+      // Editing a returning gift: Continue while nothing has changed, Save changes once anything has.
+      // Applies on every route, including In a food box.
+      giftCta: s.editBase
+        ? (["giftValue", "customVal", "delivery", "giftMsg", "giftCard"].some((k) => s[k] !== s.editBase[k]) ? "Save changes" : "Continue")
+        : (isBuild ? "Build a food box" : chosen.cta),
+      // The gift-card checkout serves the email and post routes. The box route has no checkout of
+      // its own — the card is added to a food box order — so it keeps the in-place button.
+      resumeOn: s.resumeOn,
+      resumeLine: this._resume ? ((this._resume.qty > 1 ? this._resume.qty + " \u00D7 " : "") + "£" + this._resume.value + " gift card" + (this._resume.qty > 1 ? "s " : " ")) + (this._resume.route === "post" ? "by post" : "by email") + ". Pick up where you left off, or make changes before sending." : "",
+      resumeHref: this._resume ? "Abby's Table - Gift Card Checkout.dc.html?value=" + this._resume.value + "&route=" + this._resume.route + "&resume=1" : "",
+      // Loads the saved gift into this page's own order panel and jumps to it. The link's href is
+      // the panel's anchor, so it still lands there with no JS.
+      onResumeEdit: (e) => {
+        const r = this._resume; if (!r) return;
+        if (e && (e.metaKey || e.ctrlKey || e.shiftKey || e.button > 0)) return;
+        e && e.preventDefault();
+        const loaded = this._loadedFrom(r, this.state);
+        // editBase is the saved gift as loaded. While it is set the panel is EDITING an existing
+        // gift, so its CTA never says "Buy gift card": "Continue" until a field differs from the
+        // base, then "Save changes". Compared field by field, so changing a value and changing it
+        // back reads as unchanged again.
+        this.setState(Object.assign({}, loaded, { editBase: loaded, said: "" }), () => {
+          const el = document.getElementById("gift-card"); if (!el) return;
+          const hdr = this._hdr ? this._hdr.offsetHeight : 72;
+          window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - hdr, behavior: "smooth" });
+          const h = el.querySelector("h2"); if (h) { h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: true }); }
+        });
+      },
+      // Dismissing hides the reminder for this session; the gift stays in its checkout.
+      onResumeDismiss: () => {
+        try { const r = JSON.parse(sessionStorage.getItem("at-gift-checkout-v1") || "null"); if (r) { r.dismissed = true; sessionStorage.setItem("at-gift-checkout-v1", JSON.stringify(r)); } } catch (_) {}
+        this.setState({ resumeOn: false }, () => { if (this._h1) this._h1.focus({ preventScroll: true }); });
+      },
+      giftIsBox: false,
+      giftIsBuild: chosen.id === "box",
+      // After step 1 has committed a box the gift is already in it, so returning goes to step 2.
+      buildBoxHref: isAttach ? returnHref : "Abby's Table - Choose Box v2.dc.html",
+      buildNote: "Your " + money(value || 0) + " gift card" + (s.giftCard ? " and greeting card" : "") + " will be saved while you build the food box. Recipient details come at checkout.",
+      // Saves the gift and step 1's state together; nothing is bought here. If storage is
+      // unavailable the link still goes to step 1 and the box starts without the gift.
+      onBuildBox: () => {
+        try {
+          const prev = this._gbRec || {};
+          const next = Object.assign({ sel: "6", qty: 6, stage: "saved" }, prev, {
+            v: 1, t: Date.now(), value: value || 0, card: !!s.giftCard, msg: s.giftCard ? (s.giftMsg || "") : "",
+          });
+          delete next.notice;
+          if (isAttach) {
+            // Attached to the box in progress; the step they return to confirms it once.
+            next.stage = "added";
+            if (!gbAdded && activeOrder) next.via = "order";
+            const changed = s.editBase && ["giftValue", "customVal", "delivery", "giftMsg", "giftCard"].some((k) => s[k] !== s.editBase[k]);
+            if (!gbAdded) next.notice = "added"; else if (changed) next.notice = "updated";
+          }
+          sessionStorage.setItem("at-gift-box-v1", JSON.stringify(next));
+        } catch (_) {}
+      },
+      giftIsCheckout: chosen.id !== "box",
+      // value and route travel in the query rather than being re-picked at checkout. The post route
+      // is still to build, so both currently land on the same page; splitting them later is a change
+      // to this one string.
+      giftHref: "Abby's Table - Gift Card Checkout.dc.html?value=" + (value || 0) + "&route=" + chosen.id,
+      // The message travels in sessionStorage, NOT in the query: it is something personal the
+      // customer wrote, and a query string lands in browser history, server logs and any copied
+      // link. Written on the way out so the checkout can prefill it; if storage is unavailable the
+      // anchor still navigates and the customer simply retypes, which is the right failure.
+      onGiftGo: () => {
+        try {
+          sessionStorage.setItem("at-gift-draft-v1", JSON.stringify({
+            v: 1, value: value || 0, route: chosen.id, msg: s.giftMsg || "",
+          }));
+          // Sent on its own now, so it is no longer waiting inside a food box.
+          sessionStorage.removeItem("at-gift-box-v1");
+          // An unfinished checkout picks up the edits made here, so Continue and the checkout
+          // itself can never disagree with what the customer just changed.
+          const r = JSON.parse(sessionStorage.getItem("at-gift-checkout-v1") || "null");
+          // A new gift supersedes one removed at checkout: its restorable record ends here.
+          if (r && r.removed === true) sessionStorage.removeItem("at-gift-checkout-v1");
+          else if (r && r.v === 1) {
+            r.value = value || 0; r.route = chosen.id; r.msg = s.giftMsg || ""; r.dismissed = false; r.t = Date.now();
+            sessionStorage.setItem("at-gift-checkout-v1", JSON.stringify(r));
+          }
+        } catch (e) { /* private mode or storage full — the link still works */ }
+      },
+      cardHead: chosen.cardHead,
+      cardMark: chosen.cardMark,
+      cardLead: chosen.cardLead,
+      cardNote: cardOn ? chosen.cardNote : "",
+      cardOptional: chosen.cardOptional,
+      cardOn: cardOn ? "true" : "false",
+      onToggleCard: () => this.setState((st) => ({ giftCard: !st.giftCard, said: "" })),
+      showMsg: cardOn,
+      giftMsg: s.giftMsg,
+      giftCount: s.giftMsg.length + "/240",
+      onGiftMsg: (e) => this.setState({ giftMsg: e.target.value.slice(0, 240), said: "" }),
+
+      // Both figures are shown and then added up, so the £3 is never a surprise at checkout. The
+      // middle row is the chosen route's own label: a card on the physical routes, the message
+      // itself on email, where there is no card to buy.
+      summary: [
+        { label: "Gift card", value: money(value || 0) },
+        { label: chosen.sumLabel, value: chosen.cardOptional ? (s.giftCard ? "+" + money(CARD_PRICE) : "Not added") : (s.giftMsg ? "Added" : "Not added") },
+        // One space, not two: HTML collapses the pair visually but a screen reader reads the raw
+        // string, so the gap was real in the accessible name and not on screen.
+        { label: "Delivery", value: chosen.fee ? chosen.summary + " +" + money(chosen.fee) : (isAttach ? "In your food box" : chosen.summary) },
+        { label: "Total", value: money(total), cls: "gf-sum-tot" },
+      ],
+      // The prototype has no basket, so the control says what it did rather than pretending to
+      // navigate to one. Production replaces this with the real add-to-basket. Every change to the
+      // order clears it: left standing it described an order the panel no longer showed — "£100
+      // gift card added" still sitting there after the value and the route had both changed.
+      onAddGift: () => this.setState({
+        said: total !== (value || 0)
+          ? money(value || 0) + " gift card added \u2014 " + money(total) + " total with extras. Recipient details come next, at checkout."
+          : money(value || 0) + " gift card added. Recipient details come next, at checkout.",
+      }),
+      saidText: s.said,
+
+      hdrRef: this.hdrRef,
+      hdrHidden: (s.dirDown && !s.drawer) ? "true" : "false",
+      // Stays visible over the footer — that is where it is most useful — but yields to the drawer
+      // like everything else fixed.
+      topOn: (s.topOn && !s.drawer) ? "true" : "false",
+      goTop: this.goTop,
+
+      drawerCls: s.drawer ? "is-open" : "",
+      burgerExpanded: s.drawer ? "true" : "false",
+      openDrawer: this.open,
+      closeDrawer: this.close,
+      // Stable class fields, NOT arrows built here: a ref recreated on every renderVals() is
+      // detached with null on each re-render, so this._panel was unreliable exactly when open()
+      // needed it — focusables() returned [] and the focus move gave up silently.
+      panelRef: this.panelRef,
+      burgerRef: this.burgerRef,
+      h1Ref: this.h1Ref,
+
+      subscribed: !!s.subscribed,
+      notSubscribed: !s.subscribed,
+      onJoin: this.onJoin,
+      footRef: this.footRef,
+      toggleShop: this.toggleShop,
+      toggleLearn: this.toggleLearn,
+      toggleInfo: this.toggleInfo,
+      shopCls: s.footOpen.shop ? "is-open" : "",
+      learnCls: s.footOpen.learn ? "is-open" : "",
+      infoCls: s.footOpen.info ? "is-open" : "",
+      shopExp: s.footOpen.shop ? "true" : "false",
+      learnExp: s.footOpen.learn ? "true" : "false",
+      infoExp: s.footOpen.info ? "true" : "false",
+    };
+  }
+}
+</script>
+</body>
+</html>

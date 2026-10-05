@@ -1,0 +1,345 @@
+[
+ {
+  "n": "dish-goat-efo.png",
+  "kb": 1814,
+  "w": 1200,
+  "h": 896,
+  "mem": 4.1
+ },
+ {
+  "n": "dish-fish-peppersoup.png",
+  "kb": 1634,
+  "w": 1200,
+  "h": 896,
+  "mem": 4.1
+ },
+ {
+  "n": "dish-lamb-shank.png",
+  "kb": 2391,
+  "w": 1200,
+  "h": 896,
+  "mem": 4.1
+ },
+ {
+  "n": "favicon-180.png",
+  "kb": 5,
+  "w": 180,
+  "h": 180,
+  "mem": 0.1
+ },
+ {
+  "n": "hero-mobile.png",
+  "kb": 2432,
+  "w": 1122,
+  "h": 1402,
+  "mem": 6
+ },
+ {
+  "n": "floral-monogram-gold.png",
+  "kb": 60,
+  "w": 329,
+  "h": 382,
+  "mem": 0.5
+ },
+ {
+  "n": "hiw-delivery.png",
+  "kb": 2152,
+  "w": 1402,
+  "h": 1122,
+  "mem": 6
+ },
+ {
+  "n": "story-hero.jpg",
+  "kb": 189,
+  "w": 1400,
+  "h": 788,
+  "mem": 4.2
+ },
+ {
+  "n": "mrsj-logo.png",
+  "kb": 44,
+  "w": 610,
+  "h": 280,
+  "mem": 0.7
+ },
+ {
+  "n": "bellefull-logo-sm.png",
+  "kb": 162,
+  "w": 700,
+  "h": 196,
+  "mem": 0.5
+ },
+ {
+  "n": "polaroid-mrsj-menu.jpg",
+  "kb": 104,
+  "w": 600,
+  "h": 750,
+  "mem": 1.7
+ },
+ {
+  "n": "polaroid-jollof-bowls.jpg",
+  "kb": 118,
+  "w": 600,
+  "h": 750,
+  "mem": 1.7
+ },
+ {
+  "n": "polaroid-bf-pouches.jpg",
+  "kb": 113,
+  "w": 600,
+  "h": 750,
+  "mem": 1.7
+ },
+ {
+  "n": "polaroid-bf-boxes.jpg",
+  "kb": 93,
+  "w": 600,
+  "h": 696,
+  "mem": 1.6
+ },
+ {
+  "n": "story-chapter-01.jpg",
+  "kb": 178,
+  "w": 900,
+  "h": 720,
+  "mem": 2.5
+ },
+ {
+  "n": "story-chapter-02.jpg",
+  "kb": 188,
+  "w": 900,
+  "h": 673,
+  "mem": 2.3
+ },
+ {
+  "n": "story-chapter-03.jpg",
+  "kb": 161,
+  "w": 900,
+  "h": 673,
+  "mem": 2.3
+ },
+ {
+  "n": "story-diagnosis.jpg",
+  "kb": 165,
+  "w": 1200,
+  "h": 960,
+  "mem": 4.4
+ },
+ {
+  "n": "cert-harvard.jpg",
+  "kb": 80,
+  "w": 800,
+  "h": 618,
+  "mem": 1.9
+ },
+ {
+  "n": "cert-cnm.jpg",
+  "kb": 113,
+  "w": 800,
+  "h": 566,
+  "mem": 1.7
+ },
+ {
+  "n": "story-video-still.jpg",
+  "kb": 189,
+  "w": 1400,
+  "h": 788,
+  "mem": 4.2
+ },
+ {
+  "n": "whatsapp-qr-placeholder.png",
+  "kb": 14,
+  "w": 528,
+  "h": 528,
+  "mem": 1.1
+ },
+ {
+  "n": "gifting-box.jpg",
+  "kb": 179,
+  "w": 1402,
+  "h": 1122,
+  "mem": 6
+ },
+ {
+  "n": "hero-landscape.png",
+  "kb": 2122,
+  "w": 1774,
+  "h": 887,
+  "mem": 6
+ },
+ {
+  "n": "hero-portrait.png",
+  "kb": 2140,
+  "w": 1086,
+  "h": 1448,
+  "mem": 6
+ },
+ {
+  "n": "hiw-poster-mobile.jpg",
+  "kb": 117,
+  "w": 1080,
+  "h": 720,
+  "mem": 3
+ },
+ {
+  "n": "founder.png",
+  "kb": 1970,
+  "w": 1237,
+  "h": 1272,
+  "mem": 6
+ },
+ {
+  "n": "hiw-poster-desktop.jpg",
+  "kb": 101,
+  "w": 1200,
+  "h": 500,
+  "mem": 2.3
+ },
+ {
+  "n": "hero.png",
+  "kb": 2531,
+  "w": 1959,
+  "h": 803,
+  "mem": 6
+ },
+ {
+  "n": "floral-monogram.png",
+  "kb": 39,
+  "w": 329,
+  "h": 382,
+  "mem": 0.5
+ },
+ {
+  "n": "hw-hero.jpg",
+  "kb": 299,
+  "w": 1402,
+  "h": 1122,
+  "mem": 6
+ },
+ {
+  "n": "hw-scratch.jpg",
+  "kb": 260,
+  "w": 1402,
+  "h": 1122,
+  "mem": 6
+ },
+ {
+  "n": "hw-delivery.jpg",
+  "kb": 179,
+  "w": 1402,
+  "h": 1122,
+  "mem": 6
+ },
+ {
+  "n": "hw-heat.jpg",
+  "kb": 227,
+  "w": 1402,
+  "h": 1122,
+  "mem": 6
+ },
+ {
+  "n": "hiw-hero.png",
+  "kb": 2469,
+  "w": 1402,
+  "h": 1122,
+  "mem": 6
+ },
+ {
+  "n": "hiw-scratch.png",
+  "kb": 2233,
+  "w": 1402,
+  "h": 1122,
+  "mem": 6
+ },
+ {
+  "n": "hiw-heat.png",
+  "kb": 2162,
+  "w": 1402,
+  "h": 1122,
+  "mem": 6
+ },
+ {
+  "n": "dish-goat-efo-800.jpg",
+  "kb": 125,
+  "w": 800,
+  "h": 597,
+  "mem": 1.8
+ },
+ {
+  "n": "dish-lamb-shank-800.jpg",
+  "kb": 120,
+  "w": 800,
+  "h": 597,
+  "mem": 1.8
+ },
+ {
+  "n": "dish-fish-peppersoup-800.jpg",
+  "kb": 102,
+  "w": 800,
+  "h": 597,
+  "mem": 1.8
+ },
+ {
+  "n": "private-table-hero.png",
+  "kb": 2530,
+  "w": 1275,
+  "h": 1234,
+  "mem": 6
+ },
+ {
+  "n": "std2-hero.jpg",
+  "kb": 206,
+  "w": 1200,
+  "h": 895,
+  "mem": 4.1
+ },
+ {
+  "n": "std2-ingredients.jpg",
+  "kb": 210,
+  "w": 1200,
+  "h": 900,
+  "mem": 4.1
+ },
+ {
+  "n": "std2-spices.jpg",
+  "kb": 191,
+  "w": 1200,
+  "h": 960,
+  "mem": 4.4
+ },
+ {
+  "n": "std2-nutrition.jpg",
+  "kb": 258,
+  "w": 1200,
+  "h": 906,
+  "mem": 4.1
+ },
+ {
+  "n": "std2-delivery.jpg",
+  "kb": 121,
+  "w": 1200,
+  "h": 960,
+  "mem": 4.4
+ },
+ {
+  "n": "hero-portrait-800.jpg",
+  "kb": 146,
+  "w": 800,
+  "h": 1067,
+  "mem": 3.3
+ },
+ {
+  "n": "hero-landscape-1774.jpg",
+  "kb": 261,
+  "w": 1774,
+  "h": 887,
+  "mem": 6
+ },
+ {
+  "n": "founder-1237.jpg",
+  "kb": 199,
+  "w": 1237,
+  "h": 1272,
+  "mem": 6
+ }
+]
