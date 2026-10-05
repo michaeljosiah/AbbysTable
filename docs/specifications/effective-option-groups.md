@@ -1,15 +1,27 @@
 ---
 spec_id: SPEC-2026-08-31-effective-option-groups
 title: Effective option groups in the storefront
-status: approved
+status: superseded
 branch: feat/effective-option-groups
 owner: michaeljosiah
 capabilities: [catalogue, personalisation, extras]
 created: 2026-08-31
-updated: 2026-08-31
+updated: 2026-10-05
 ---
 
 # Effective option groups in the storefront
+
+> **Status 2026-10-05: implemented (f0bfc05), then superseded by the v2 design.**
+> `design/CLAUDE.md` (Dish detail page, Add Dishes v2, Review v2) says **"Personalisation
+> is removed for good"**: no protein, side or heat choices, and no Yes/No step. The only
+> remaining choice is the Light Table / Full Table portion, plus the Signature supplement.
+>
+> "Every effective group renders", "One and Multi preserve cardinality" and "Multi
+> pricing does not guess" no longer describe the target. A portion-model spec should
+> replace this one (#22, #29).
+>
+> Keep the code until then. Aonik drops an option group that has no recommended default,
+> without any error, so the portion group must have one.
 
 ## Why
 
@@ -40,6 +52,8 @@ Depends on: `SPEC-2026-07-22-catalog-browse`, Aonik Specs 066 and 067.
 ### Requirement: Every effective group renders
 `capability: personalisation` · `delta: MODIFIED (feat/effective-option-groups)`
 
+> **Superseded (2026-10-05):** only the portion group renders under the v2 design (#22, #29).
+
 Dish detail, box dish selection, review editing and add-on personalisation SHALL render the ordered
 effective groups supplied for that product. A product with no groups SHALL omit the personaliser.
 An unfamiliar group key such as `garnish` SHALL render without a code change.
@@ -51,6 +65,9 @@ An unfamiliar group key such as `garnish` SHALL render without a code change.
 
 ### Requirement: One and Multi preserve cardinality
 `capability: personalisation` · `delta: MODIFIED (feat/effective-option-groups)`
+
+> **Superseded (2026-10-05):** the portion group is single-choice; there are no Multi groups
+> in the v2 design.
 
 A `One` group SHALL allow exactly one selected choice and encode a string. A `Multi` group SHALL
 allow multiple selected choices and encode an array, including when one choice is selected. UI
@@ -84,6 +101,9 @@ Components SHALL not branch into fixed demo controls versus generic live control
 
 ### Requirement: Multi pricing does not guess
 `capability: personalisation` · `delta: MODIFIED (feat/effective-option-groups)`
+
+> **Superseded (2026-10-05):** no Multi groups remain. Live money still comes only from the
+> quote (`live-cart-convergence.md`).
 
 Individual authored choice deltas MAY render. An aggregate pre-commit surcharge SHALL be omitted
 when the draft contains a `Multi` group because the effective adjustment subtracts the default once

@@ -1,15 +1,25 @@
 ---
 spec_id: SPEC-2026-08-31-live-cart-convergence
 title: Live cart convergence
-status: approved
+status: implemented
 branch: feat/live-cart-convergence
 owner: michaeljosiah
 capabilities: [box-builder, extras, personalisation]
 created: 2026-08-31
-updated: 2026-08-31
+updated: 2026-10-05
 ---
 
 # Live cart convergence
+
+> **Status 2026-10-05: implemented** (f0bfc05; verified live 2026-08-31).
+>
+> Under the v2 design, "Dish personalisation edits are atomic" and "Selection cardinality
+> is lossless" narrow to the portion choice only (#29). Everything else stands.
+>
+> Three behaviours this spec put out of scope are now tracked:
+> - **Payment:** #31.
+> - **Delivery:** #31.
+> - **Multiple tabs:** #14 and michaeljosiah/aonik#347.
 
 ## Why
 
@@ -87,6 +97,8 @@ failed continue gate SHALL expose a retry and SHALL NOT proceed to checkout.
 ### Requirement: Dish personalisation edits are atomic
 `capability: personalisation` · `delta: MODIFIED (feat/live-cart-convergence)`
 
+> **Narrowed (2026-10-05):** the only editable choice under the v2 design is the portion (#29).
+
 The provider SHALL expose one personalisation update that calls the existing line PATCH with
 `personalisation` and optional `applyToUnits`. Step 2 and review SHALL use it instead of decrementing
 or deleting a line before adding another.
@@ -103,6 +115,9 @@ or deleting a line before adding another.
 
 ### Requirement: Selection cardinality is lossless
 `capability: personalisation` · `delta: MODIFIED (feat/live-cart-convergence)`
+
+> **Narrowed (2026-10-05):** the portion group is single-choice; Multi no longer occurs in the
+> v2 design.
 
 The provider SHALL accept and project the canonical selection produced by
 `SPEC-2026-08-31-effective-option-groups` without flattening, renaming or dropping values. A
