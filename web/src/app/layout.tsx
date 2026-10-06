@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Cormorant_Garamond, Figtree, Playfair_Display } from 'next/font/google';
 
 import { DevDataMode } from '@/components/dev/DevDataMode';
-import { resolveDataMode } from '@/lib/aonik/dataMode';
+import { liveOrderingEnabled, resolveDataMode } from '@/lib/aonik/dataMode';
 import { CartProvider } from '@/lib/cart/CartProvider';
 
 import '@/styles/tokens.css';
@@ -82,7 +82,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       suppressHydrationWarning
     >
       <body>
-        <CartProvider mode={mode}>{children}</CartProvider>
+        <CartProvider mode={mode} liveOrdering={liveOrderingEnabled()}>
+          {children}
+        </CartProvider>
         {/* Renders nothing in production. */}
         <DevDataMode />
       </body>

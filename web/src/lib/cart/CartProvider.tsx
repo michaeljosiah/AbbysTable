@@ -31,8 +31,9 @@ import {
   type DemoCartState,
 } from './demoStorage';
 import { deleteExtra, patchDishPersonalisation, patchExtra, postExtra } from './mutations';
+import { ORDERING_DISABLED_CODE, ORDERING_DISABLED_MESSAGE } from './ordering';
 import { useServerCart } from './serverEngine';
-import type { CartRequestError } from './transport';
+import { CartRequestError } from './transport';
 
 /**
  * The box a customer is building.
@@ -109,6 +110,11 @@ interface CartContextValue extends CartState {
   /** True when this cart is server-backed, for surfaces that must know. */
   isServerCart: boolean;
   /**
+   * Whether `placeOrder` may create an order. False on demo data and, in live
+   * mode, until live ordering is switched on (see `@/lib/cart/ordering`).
+   */
+  orderingEnabled: boolean;
+  /**
    * Re-validates the box against the live catalogue (the continue gate).
    * Resolves to the surfaced changes, which may be empty. In demo mode there
    * is nothing to validate against, so it resolves to none.
@@ -178,13 +184,21 @@ function projectServerCart(
 
 export function CartProvider({
   mode = 'demo',
+  liveOrdering = false,
   children,
 }: {
   /** Resolved server-side; decides which engine runs. */
   mode?: 'demo' | 'live';
+  /**
+   * Resolved server-side from `liveOrderingEnabled()`. Off by default, so a
+   * caller that forgets it fails closed. `/api/cart/checkout` checks the same
+   * switch on every request; this only lets the page say so without asking.
+   */
+  liveOrdering?: boolean;
   children: ReactNode;
 }) {
   const isServerCart = mode === 'live';
+  const orderingEnabled = isServerCart && liveOrdering;
 
   const [state, setState] = useState<CartState>(EMPTY);
   const [hydrated, setHydrated] = useState(false);
@@ -469,8 +483,11 @@ export function CartProvider({
           'is held client-side and no order can be placed.',
       );
     }
+    if (!orderingEnabled) {
+      throw new CartRequestError(403, ORDERING_DISABLED_MESSAGE, ORDERING_DISABLED_CODE);
+    }
     return server.checkout();
-  }, [isServerCart, server]);
+  }, [isServerCart, orderingEnabled, server]);
 
   /* In live mode the projected server cart IS the state; demo uses its own. */
   const effectiveState = useMemo<CartState>(
@@ -502,6 +519,7 @@ export function CartProvider({
       pending: server.pending,
       error: server.error,
       isServerCart,
+      orderingEnabled,
       revalidate,
       placeOrder,
     }),
@@ -509,6 +527,7 @@ export function CartProvider({
       effectiveState,
       hydrated,
       isServerCart,
+      orderingEnabled,
       server.cart,
       server.hydrated,
       server.pending,

@@ -102,6 +102,21 @@ export function configuredDataMode(): { mode: DataMode; explicit: boolean } {
 }
 
 /**
+ * Whether live checkout may create an order. **Off unless
+ * `LIVE_ORDERING_ENABLED=true`, in every environment.**
+ *
+ * Live checkout is held closed until Checkout v2 (pay before order) ships: the
+ * current Aonik checkout creates an unpaid order with no delivery address, date
+ * or email (see `@/lib/cart/ordering`). Keep it unset in production until then.
+ * Setting it is for exercising the checkout path against a development tenant.
+ *
+ * Demo mode never orders, whatever this says.
+ */
+export function liveOrderingEnabled(): boolean {
+  return process.env.LIVE_ORDERING_ENABLED?.trim().toLowerCase() === 'true';
+}
+
+/**
  * Resolves the mode for this request, including the development override and
  * any fallback to demo when live is unreachable by configuration.
  */
