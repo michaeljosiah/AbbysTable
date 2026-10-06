@@ -22,9 +22,11 @@ Do not add application code at the repo root — it belongs in `web/`.
 
 Conventions inside `web/` that are easy to get wrong:
 
-- **Design tokens are the styling contract.** `src/styles/tokens.css` is ported verbatim from the
-  design template. Never hardcode a hex colour or font stack; prefer the semantic aliases
-  (`--surface-*`, `--text-*`, `--action-*`) over the raw ramp.
+- **Design tokens are the styling contract.** `src/styles/tokens.css` started as a port of the
+  original template, but the target is now the `design/` folder: it must match `design/CLAUDE.md`
+  ("Tokens — pending changes") and `design/build-handoff.md` §3g, folded in by #9. Never hardcode a
+  hex colour or font stack; prefer the semantic aliases (`--surface-*`, `--text-*`, `--action-*`)
+  over the raw ramp.
 - **No commerce data in markup.** Prices, dish counts and delivery dates come from
   `src/lib/aonik/` and are formatted with `src/lib/format.ts`. Money is stored in pence.
 - **Never infer ingredients or allergens.** `Dish.ingredients` and `Dish.allergens` are optional and
@@ -68,7 +70,8 @@ AGENTS.md                    grounding baseline (regenerated — don't hand-edit
 .arke/trace.ndjson           append-only event trace (~326KB — grep it, don't read it)
 .opencode/agents/*.md        6 agent prompts (frontmatter + role prose)
 docs/specifications/         README, specification.template.md, generated index.md
-docs/template/Homepage.html  29MB design template — see handling rules below
+docs/template/Homepage.html  29MB ORIGINAL design template — superseded by design/; see below
+design/                      the v2 design: source of truth (start at design/README.md)
 web/                         the storefront (Next.js); see its section in README.md
 .claude/launch.json          dev-server config for the preview tooling
 ```
@@ -96,7 +99,10 @@ Critique — both `edit: deny`, `bash: deny`).
 - Harness endpoint is `http://127.0.0.1:4119`; the provider profile in `.arke/config.json` points at
   port `4096`. Both numbers are real — don't "fix" one to match the other.
 
-## `docs/template/Homepage.html` — do not read this file whole
+## `docs/template/Homepage.html` — superseded; do not read this file whole
+
+**Superseded by the v2 design in `design/`** (start at `design/README.md`). It is kept as the
+record of what `web/` was first built from; do not take new values from it.
 
 29MB in 390 lines. Reading it will destroy your context. It is a single-file bundle:
 
@@ -113,16 +119,27 @@ sed -n '388p' docs/template/Homepage.html | grep -o -E '\-\-[a-z][a-z0-9-]{2,30}
 
 ## Product context: Abby's Table
 
+**Source of truth: [`design/README.md`](design/README.md)** and the documents it points to
+(`design/CLAUDE.md` for the checkable rules, `design/build-handoff.md` for decisions,
+`design/frontend-backend-contract.md` for data). Where anything below disagrees with them, they win.
+
 Nigerian food, cooked from scratch in small batches, delivered chilled UK-wide. Founder **Esther
 Abby Josiah**. Positioning is clean-label: *no MSG, no bouillon or cubes, no refined sugars, no seed
 oils*. Tagline: **"Heat, eat, live well."**
 
-Homepage sections: menu, "Build a gift box", "Abby's Private Table" (private consultation), founder
-story, "Join the table".
+Homepage sections (v2): header, mobile drawer, hero, How it works, the dishes preview, Our
+standards, Meet the founder, Private Table, footer. The v2 homepage **removed** the boxes promo and
+the gifting section ("Build a gift box"); `web/` still renders them from the original template
+until the homepage is rebuilt.
 
-Design system (from the template): deep forest green `#1E3A2F` with cream and brass accents —
-`--green-deep/forest/mid/mist/sage`, `--cream`, `--brass`, `--blush`. Type is **Playfair Display**
-(display headings), **Cormorant Garamond** (editorial accent), **Figtree** (UI, body, buttons).
+Price: **"6 dishes from £158"**. The wording is fixed and the value comes from an editable price
+source, never a literal. Only the six-dish price is confirmed; the £95 / 6–12–18 ladder in the old
+funnel is obsolete.
+
+Design system: deep forest green `#1E3A2F` with cream and brass accents —
+`--green-deep/forest/mid/mist/sage`, `--cream`, `--brass`, `--blush` — plus the v2 tokens listed in
+`design/CLAUDE.md`. Type is **Playfair Display** (display headings) and **Figtree** (UI, body,
+buttons), with **Cormorant Garamond** only where v2 still sets it.
 
 ## Conventions
 
