@@ -23,13 +23,14 @@ import {
   type PersonalisationSelection,
   type StorefrontConfigDto,
 } from '@/lib/aonik/map';
-import { readAonikConfig } from '@/lib/aonik/dataMode';
+import { liveOrderingEnabled, readAonikConfig } from '@/lib/aonik/dataMode';
 
 import { isExpired, readSession } from '@/lib/auth/session';
 
 import { clearCartCookie, readCartCookie, writeCartCookie } from './cartCookie';
 import { CartMissingError } from './cartMissing';
 import { cartExistsAfterProbe } from './convergence';
+import { ORDERING_DISABLED_MESSAGE } from './ordering';
 import {
   clearPlacedOrder,
   writePlacedOrder,
@@ -51,6 +52,20 @@ export class CartUnavailableError extends Error {
         'demo data, where the box is held client-side instead.',
     );
     this.name = 'CartUnavailableError';
+  }
+}
+
+/**
+ * Raised by `checkoutBoxCart` while live ordering is switched off.
+ *
+ * Checked on the server, not only in the button: the switch exists because an
+ * order placed today is unpaid and undeliverable, so a request that skips the
+ * Review page must be refused just the same. Nothing reaches Aonik.
+ */
+export class OrderingDisabledError extends Error {
+  constructor() {
+    super(ORDERING_DISABLED_MESSAGE);
+    this.name = 'OrderingDisabledError';
   }
 }
 
@@ -460,6 +475,10 @@ export async function checkoutBoxCart(input?: {
   customerAccountId?: string;
   discountCode?: string;
 }): Promise<CheckoutResult> {
+  // Before anything else, including the read below: while ordering is closed
+  // this call must not touch the cart or Aonik at all.
+  if (!liveOrderingEnabled()) throw new OrderingDisabledError();
+
   // The box is read BEFORE placing, because the checkout response carries only
   // totals — no lines. Once the cart is checked out this is the last chance to
   // see what was in it, and the confirmation page has no other source: Aonik's

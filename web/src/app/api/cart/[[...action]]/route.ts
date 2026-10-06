@@ -16,8 +16,10 @@ import type { BoxCartDto } from '@/lib/aonik/dto';
 import { AonikError } from '@/lib/aonik/errors';
 import { mapBoxCart, type PersonalisationSelection } from '@/lib/aonik/map';
 import { CartMissingError, mapCartMissingError } from '@/lib/cart/cartMissing';
+import { ORDERING_DISABLED_CODE } from '@/lib/cart/ordering';
 import {
   CartUnavailableError,
+  OrderingDisabledError,
   addBoxExtra,
   addBoxLine,
   checkoutBoxCart,
@@ -67,6 +69,12 @@ function errorResponse(error: unknown) {
   // than logging it as a fault.
   if (error instanceof CartUnavailableError) {
     return NextResponse.json({ error: error.message, code: 'cart.unavailable' }, { status: 503 });
+  }
+
+  // Ordering is switched off. Nothing was sent to Aonik and the box is
+  // untouched, so the response carries no cart and the provider keeps its own.
+  if (error instanceof OrderingDisabledError) {
+    return NextResponse.json({ error: error.message, code: ORDERING_DISABLED_CODE }, { status: 403 });
   }
 
   if (error instanceof AonikError) {
