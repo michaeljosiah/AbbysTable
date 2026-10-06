@@ -229,17 +229,13 @@ export interface HttpAonikClientOptions {
 /**
  * Talks to the real Aonik commerce API.
  *
- * Transport is complete: `aonikFetch` owns URL joining, the tenant header,
- * cache policy and the `AonikError` taxonomy, and `map.ts` owns the pence
- * adapter and DTO mapping.
+ * `aonikFetch` owns URL joining, the tenant header, cache policy and the
+ * `AonikError` taxonomy; `map.ts` owns the pence adapter and DTO mapping
+ * (SPEC-2026-07-22-catalog-browse for the catalogue). Every read is mapped.
  *
- * CATALOGUE MAPPING IS NOT. The reads below that still throw are waiting on
- * SPEC-2026-07-22-catalog-browse, which maps Aonik's product/facet/content DTOs
- * onto `Dish` and friends — a substantial surface with its own safety rules
- * (withheld allergens, standard-preparation captions) that must not be
- * half-done. They throw rather than returning fixtures because silently serving
- * demo data from a client labelled "live" is the one failure mode that would
- * make every downstream test a lie.
+ * A failure here is thrown, never answered with fixtures: silently serving demo
+ * data from a client labelled "live" is the one failure mode that would make
+ * every downstream test a lie.
  */
 export class HttpAonikClient implements AonikClient {
   constructor(private readonly options: HttpAonikClientOptions) {}
@@ -251,14 +247,6 @@ export class HttpAonikClient implements AonikClient {
       policy: 'catalog',
       query,
     });
-  }
-
-  /** Not yet mapped — see the class note. */
-  private notYetMapped(surface: string, spec: string): never {
-    throw new Error(
-      `Live mode cannot serve ${surface} yet: that mapping is ${spec}. Switch the dev ` +
-        'data-mode badge to demo, or implement the mapper.',
-    );
   }
 
   async getStorefrontConfig(): Promise<StorefrontConfig> {

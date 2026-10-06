@@ -48,13 +48,22 @@ import type {
 /* -------------------------------------------------------------------------- */
 
 /**
- * Decimal major units → integer pence.
+ * Decimal major units → integer pence, rounding half away from zero.
  *
- * `Math.round` rather than truncation so 2.345 → 235 rather than 234, and so
- * negative adjustments round symmetrically about zero (-2.5 → -250).
+ * Not a bare `Math.round(amount * 100)`, for two reasons. Binary floats put
+ * 1.005 × 100 at 100.4999…, which rounds DOWN to 100. And `Math.round` takes
+ * halves towards +∞, so -0.015 → -1 while 0.015 → 2: a refund and a charge of
+ * the same size would land a penny apart. The product is snapped to six
+ * decimals (far below a penny, far above float noise) and rounded on its
+ * magnitude so the sign is symmetric. Negative zero is normalised; NaN stays
+ * NaN rather than becoming a price. The snap means an input with 8+ decimals
+ * within 5e-7p of a half (0.004999999) rounds as the half; a decimal money API
+ * does not send those.
  */
 export function toPence(amount: number): number {
-  return Math.round(amount * 100);
+  const magnitude = Number((Math.abs(amount) * 100).toFixed(6));
+  const pence = Math.sign(amount) * Math.round(magnitude);
+  return Object.is(pence, -0) ? 0 : pence;
 }
 
 /**
