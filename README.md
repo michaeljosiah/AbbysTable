@@ -291,7 +291,7 @@ web/                         the storefront
   src/lib/menu/              pure faceting and search logic
   src/lib/content/           navigation, editorial copy, support contact (unset)
   src/lib/status-pages/      generator for the static host pages below
-  src/middleware.ts          maintenance mode: MAINTENANCE_MODE=true → 503 everywhere
+  src/middleware.ts          maintenance mode: MAINTENANCE_MODE=true → 503 for pages and API
   src/styles/tokens.css      design tokens; target is design/ (see #9)
   public/assets/             images, video and logo extracted from the bundle
   public/500.html            self-contained 500 / maintenance pages — GENERATED:

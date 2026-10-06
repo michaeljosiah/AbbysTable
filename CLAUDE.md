@@ -41,12 +41,15 @@ Conventions inside `web/` that are easy to get wrong:
   `SiteChrome` itself so the 404 keeps the marketing header, footer and session — do not replace it
   with a catch-all route calling `notFound()`: Next sends that as an empty `__next_error__` shell
   that only JavaScript fills in. Next renders the root 404 into EVERY document request, so it must
-  never await commerce data (`withDeliveryDate={false}`): a slow Aonik would hold every page open
-  and a failing one would turn the 404 into a 500. `public/500.html` and `public/maintenance.html` are GENERATED from
-  `src/lib/status-pages/render.ts` (fonts, wordmark and token values inlined; no JS) — regenerate
-  with `UPDATE_STATUS_PAGES=1 npm test`, which also fails while they are stale. `MAINTENANCE_MODE=true`
-  makes `src/middleware.ts` answer every page and API request with that page, 503 and
-  `Retry-After`. Nothing serves `500.html` on an outage yet — that needs a CDN rule.
+  never await commerce data (`withDeliveryDate={false}`, pinned by `tests/not-found-chrome.test.ts`):
+  a slow Aonik would hold every page open and a failing one would turn the 404 into a 500. The 500
+  page's links are plain `<a>` on purpose — the one exception to the `next/link` rule below — so
+  each is a full page load out of the failed app. `public/500.html` and `public/maintenance.html`
+  are GENERATED from `src/lib/status-pages/render.ts` (fonts, wordmark and token values inlined; no
+  JS) — regenerate with `UPDATE_STATUS_PAGES=1 npm test`, which also fails while they are stale.
+  `MAINTENANCE_MODE=true` makes `src/middleware.ts` answer every page and API request with that
+  page, 503 and `Retry-After`; static files under the matcher's exclusions still load. Nothing
+  serves `500.html` on an outage yet — that needs a CDN rule.
 - **Menu faceting lives in `src/lib/menu/filters.ts`**, deliberately free of React. Change matching
   rules there, not in components.
 - **Internal links go through `next/link`.** `Button` and `NavLink` route on `href` automatically

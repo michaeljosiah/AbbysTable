@@ -18,6 +18,7 @@
     "tests/cart-routes.test.ts",
     "tests/customer-identity.test.ts",
     "tests/status-pages.test.ts",
+    "tests/not-found-chrome.test.ts",
     "tests/support/*.ts",
     "src/components/personalisation/OptionGroupsControl.tsx",
     "src/lib/aonik/dataMode.ts",

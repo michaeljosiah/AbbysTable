@@ -1,6 +1,6 @@
 /**
  * Copy for the status pages, verbatim from the designs (Page Not Found,
- * Something Went Wrong, Back Shortly; design/SHOPPING-STATE.md §55–56,
+ * Something Went Wrong, Back Shortly; design/SHOPPING-STATE.md §55–57,
  * design/build-handoff.md §3ag–§3ai).
  *
  * One source for the React pages and for the static pages
