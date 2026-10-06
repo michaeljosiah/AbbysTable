@@ -282,15 +282,20 @@ web/                         the storefront
   src/components/ui/         design-system primitives — Button, Eyebrow, SectionHeading,
                              NavLink, FilterPill, NutritionTag, HeatPips, FloralMark
   src/components/brand/      Logo (masked SVG), SocialIcons
-  src/components/layout/     AnnouncementBar, Header, MobileDrawer, Footer
+  src/components/layout/     AnnouncementBar, Header, MobileDrawer, Footer, SiteChrome
+  src/components/status/     404 and 500 pages (design: Page Not Found, Something Went Wrong)
   src/components/sections/   the ten homepage sections + DishCard
   src/components/menu/       menu browser — toolbar, facet panel, grid, flavour band
   src/components/dish/       dish page — personaliser, info panels, related dishes
   src/lib/aonik/             commerce seam — types, client interface, fixtures
   src/lib/menu/              pure faceting and search logic
-  src/lib/content/           navigation and editorial copy
+  src/lib/content/           navigation, editorial copy, support contact (unset)
+  src/lib/status-pages/      generator for the static host pages below
+  src/middleware.ts          maintenance mode: MAINTENANCE_MODE=true → 503 everywhere
   src/styles/tokens.css      design tokens; target is design/ (see #9)
   public/assets/             images, video and logo extracted from the bundle
+  public/500.html            self-contained 500 / maintenance pages for the host —
+  public/maintenance.html    GENERATED: `UPDATE_STATUS_PAGES=1 npm test` rewrites them
 ```
 
 ## Contributing
