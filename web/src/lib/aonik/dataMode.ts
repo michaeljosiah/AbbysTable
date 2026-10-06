@@ -110,7 +110,9 @@ export function configuredDataMode(): { mode: DataMode; explicit: boolean } {
  * or email (see `@/lib/cart/ordering`). Keep it unset in production until then.
  * Setting it is for exercising the checkout path against a development tenant.
  *
- * Demo mode never orders, whatever this says.
+ * In demo mode the storefront never offers ordering, whatever this says. Set it
+ * for the build as well as the running server: statically rendered pages carry
+ * the build's value to the client, while the checkout route reads it per request.
  */
 export function liveOrderingEnabled(): boolean {
   return process.env.LIVE_ORDERING_ENABLED?.trim().toLowerCase() === 'true';
