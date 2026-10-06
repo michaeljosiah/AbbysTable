@@ -5,19 +5,24 @@ import { useEffect, useRef } from 'react';
 
 import { Logo } from '@/components/brand/Logo';
 import { SocialIcons } from '@/components/brand/SocialIcons';
-import { LOGIN_ITEM, NAV_ITEMS } from '@/lib/content/navigation';
+import type { SessionView } from '@/lib/auth/session';
+import { ACCOUNT_ITEM, LOGIN_ITEM, NAV_ITEMS } from '@/lib/content/navigation';
 
 import styles from './MobileDrawer.module.css';
 
 interface MobileDrawerProps {
   open: boolean;
   onClose: () => void;
+  /** The same session the header's account menu reads, handed down by `Header`. */
+  session: SessionView;
 }
 
-const DRAWER_LINKS = [...NAV_ITEMS, LOGIN_ITEM];
-
-export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
+export function MobileDrawer({ open, onClose, session }: MobileDrawerProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  // The last link is the account slot: "My Account" for a signed-in customer,
+  // "Login" otherwise — the drawer's half of what `AccountMenu` does above it.
+  const links = [...NAV_ITEMS, session.isSignedIn ? ACCOUNT_ITEM : LOGIN_ITEM];
 
   // Close on Escape and lock the page behind the drawer while it is open.
   useEffect(() => {
@@ -63,7 +68,7 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
         </div>
 
         <nav className={styles.nav}>
-          {DRAWER_LINKS.map((item) => (
+          {links.map((item) => (
             <Link key={item.label} href={item.href} className={styles.link} onClick={onClose}>
               {item.label}
             </Link>

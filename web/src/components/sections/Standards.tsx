@@ -7,7 +7,7 @@ import styles from './Standards.module.css';
 
 /**
  * The clean-label claims: four promises strung together with brass lozenges
- * over a Cormorant closing line, set in a raised card with the floral device in
+ * over a closing line, set in a raised card with the floral device in
  * two corners.
  *
  * This is a card, not a section. The template folds it into the top of the

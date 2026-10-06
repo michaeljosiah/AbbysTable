@@ -5,14 +5,15 @@
 > scratch for your table.
 
 Chef-prepared Nigerian meals — personalised, cooked from scratch in small batches, and delivered
-chilled UK-wide. Founded by **Esther Abby Josiah**.
+chilled to mainland UK. Founded by **Esther Abby Josiah**.
 
 ---
 
 ## Status
 
 Two routes are built and running in [`web/`](web/) — Next.js 15 App Router, React 19, TypeScript,
-CSS Modules, with the design tokens ported verbatim from the templates:
+CSS Modules, with design tokens that started as a port of the original template (bringing them up to
+the v2 design in [`design/`](design/) is #9):
 
 - **`/`** — the homepage, all ten sections.
 - **`/menu`** — the full catalogue: search, six filter facets (protein, spice, wellness goal, meal
@@ -34,8 +35,10 @@ and no price or date is hardcoded in markup.
 
 This repository is also an [Arke](AGENTS.md) spec-driven workspace: work is authored as markdown
 specifications in [docs/specifications/](docs/specifications/), reviewed, then implemented.
-`docs/template/Homepage.html` remains the design source of truth; the product documentation below is
-reverse-engineered from it. See [CLAUDE.md](CLAUDE.md) for conventions and known scaffold drift.
+**The design source of truth is [`design/README.md`](design/README.md)** (the v2 design). The
+templates in `docs/template/` are the originals and are **superseded**; the homepage anatomy below
+was reverse-engineered from `Homepage.html` and describes what `web/` renders today, not the v2
+target. See [CLAUDE.md](CLAUDE.md) for conventions and known scaffold drift.
 
 ### Running the site
 
@@ -70,23 +73,33 @@ reason to rethink and relearn the food she loved — and that journey became Abb
 
 ### Offer
 
+Prices and rules change in [`design/`](design/), not here — see `design/README.md`,
+`design/CLAUDE.md` ("Business rules") and `design/frontend-backend-contract.md`.
+
 | Product | Price | Notes |
 |---|---|---|
-| Main box | **£150** | Eight chef-prepared dishes |
-| Taster Box | **£78** | Four dishes — the entry point for new customers |
-| Signature dishes | **+£4** upgrade | Counts as one box dish; upgrade added on top |
-| Gift box | — | Built from the same menu, delivered to a recipient |
-| Abby's Private Table | Consultation | Bespoke, dietitian-developed collections; **worldwide** |
+| Box | **6 dishes from £158** | Any size from 6 to 99 dishes; 6 / 12 / 18 presets. Only the six-dish price is confirmed; it comes from an editable price source, never a literal |
+| Signature dishes | menu supplement | Counts as one box dish; the supplement is added on top |
+| Gift box | — | A food box sent to a recipient, from the Gifting page. Separate from Abby's Table Gift Cards |
+| Abby's Private Table | from £1,500 (unverified) | **Coming soon — a waitlist, not a booking.** Recipe development worldwide; recipes cooked for you UK-wide |
 
-Delivery is **chilled, never frozen**, UK-wide, with a customer-chosen date at checkout.
+Delivery is **chilled, never frozen**, to mainland UK, on a date the customer chooses at checkout.
+Delivery cost and non-mainland exclusions are still open. The £150 main box and £78 Taster Box are
+not part of v2, and the £95 / £170 / £240 box prices are obsolete; `web/` still shows £95 until
+the funnel is reconciled.
 
 **Abby's Private Table** is the premium service: bespoke Nigerian-inspired recipe collections
-developed with a registered dietitian to the guidelines a client's clinical team has set, then
-returned to that team for sign-off.
+developed under registered-nutritionist oversight to the guidelines a client's clinical team has
+set, then returned to that team for sign-off. Its credentials are regulated claims that must be
+substantiated before launch (`design/build-handoff.md`, open items).
 
 ---
 
 ## Homepage anatomy
+
+> This is the **original template's** homepage, which `web/` still renders. The v2 homepage in
+> `design/` removed the announcement bar (0), boxes promo (7) and gifting (8) sections; see
+> `design/README.md`.
 
 Ten sections, top to bottom. Anchor ids are the nav targets.
 
@@ -213,13 +226,16 @@ warm and restrained. Layout: `--content-max: 1280px` inside `--frame-max: 1440px
 
 ---
 
-## Working with the template
+## Working with the original template
 
-`docs/template/Homepage.html` is a **29MB single-file bundle** — do not open it whole.
+> **Superseded** by the v2 design in [`design/`](design/). Kept for reference to what `web/` was
+> built from; take new values from `design/`, not from here.
 
-- **Line 376** — `__bundler/manifest`: UUID → base64 assets. **28.9MB on one line.** Never read or
-  grep it without `cut`.
-- **Line 388** — `__bundler/template`: the real source (~121KB), JSON-escaped.
+`docs/template/Homepage.html` is a **~23MB single-file bundle** — do not open it whole.
+
+- **Line 376** — `__bundler/manifest`: UUID → base64 assets. **~22.8MB on one line.** Never read
+  or grep it without `cut`.
+- **Line 388** — `__bundler/template`: the real source (~150KB), JSON-escaped.
 
 Decode line 388 to a readable file first:
 
@@ -258,7 +274,8 @@ CLAUDE.md                    conventions, verified state, scaffold drift
 .opencode/agents/            six agent prompts (spec-author, architect, researcher,
                              implementer, reviewer-a, reviewer-b)
 docs/specifications/         source of truth for work — template, README, generated index
-docs/template/Homepage.html  bundled homepage design template (29MB)
+docs/template/               original design templates (superseded by design/)
+design/                      the v2 design — source of truth; start at design/README.md
 
 web/                         the storefront
   src/app/                   layout (chrome + fonts + metadata), / and /menu routes
@@ -272,7 +289,7 @@ web/                         the storefront
   src/lib/aonik/             commerce seam — types, client interface, fixtures
   src/lib/menu/              pure faceting and search logic
   src/lib/content/           navigation and editorial copy
-  src/styles/tokens.css      design tokens, ported from the template
+  src/styles/tokens.css      design tokens; target is design/ (see #9)
   public/assets/             images, video and logo extracted from the bundle
 ```
 

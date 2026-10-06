@@ -21,6 +21,9 @@ export const dynamic = 'force-dynamic';
 /**
  * Step 5: the order exists.
  *
+ * Promises no email. None is sent yet — Aonik stores no customer email on the
+ * order — so the order reference shown here is the customer's only record.
+ *
  * Rendered entirely from the snapshot written when checkout succeeded, which is
  * the ONLY source available: Aonik's storefront order routes require an
  * authenticated, party-scoped principal, so an anonymous customer cannot read
@@ -39,8 +42,8 @@ export default async function BoxConfirmationPage() {
         <section className={styles.card}>
           <h1 className={styles.heading}>No recent order to show</h1>
           <p className={styles.lead}>
-            We can&rsquo;t find a recently placed order in this browser. If you completed an
-            order, your confirmation email is your record — nothing here has changed it.
+            We can&rsquo;t find a recently placed order in this browser. If you placed one,
+            nothing here has changed it — contact us and we&rsquo;ll help.
           </p>
           <div className={styles.actions}>
             <Link href="/menu" className={styles.primary}>
@@ -91,7 +94,7 @@ export default async function BoxConfirmationPage() {
         {order.linesOmitted ? (
           <p className={styles.note}>
             Your order was placed successfully. The item list isn&rsquo;t available on this
-            screen — the reference above and your confirmation email are your record.
+            screen — the reference above is your record, so keep a note of it.
           </p>
         ) : (
           <>
