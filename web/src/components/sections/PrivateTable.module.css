@@ -33,7 +33,9 @@
 .standfirst {
   max-width: 540px;
   margin: var(--space-3) auto 0;
-  /* v2 sets this in the UI face at the section-intro size, not Cormorant. */
+  /* v2 sets this in the UI face at the section-intro size, not Cormorant.
+     Brass on navy is 4.08:1, a documented, accepted exception (design/CLAUDE.md
+     "Brass on --navy"): revisit with the other navy sections, never alone. */
   font-family: var(--font-sans);
   font-size: 18px;
   line-height: 1.5;

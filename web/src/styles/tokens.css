@@ -1,8 +1,9 @@
 /* Playfair Display's £ has a double crossbar that reads as a euro. This 1 KB
-   Figtree subset carries ONLY the pound sign (U+00A3) and is prepended to the
-   display and accent stacks, so every £ in those faces is Figtree's and no
-   other glyph changes. Never fix the sign per element — that is how it came
-   back. Source: design/assets/fonts/at-sterling.woff2. */
+   Figtree subset is prepended to the display and accent stacks so every £ in
+   those faces is Figtree's. `unicode-range` is what keeps every other glyph
+   unchanged — the file also maps the space, so dropping the range would swap
+   every space in Playfair text for Figtree's. Never fix the sign per element:
+   that is how it came back. Source: design/assets/fonts/at-sterling.woff2. */
 @font-face {
   font-family: 'AT Sterling';
   src: url('/fonts/at-sterling.woff2') format('woff2');

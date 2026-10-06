@@ -76,9 +76,10 @@
 .tagline {
   margin: 13px auto 0;
   max-width: 620px;
-  /* v2 sets this in the UI face at the section-intro size, not Cormorant.
-     At 18px it is small type, so terracotta's ink value: plain --terracotta is
-     3.5:1 on this cream ground. */
+  /* v2 sets this in the UI face at the section-intro size — 18px at EVERY
+     width, so no breakpoint resizes it — not Cormorant. At 18px it is small
+     type, so terracotta's ink value: plain --terracotta is 4.2:1 on this
+     raised cream ground, under the 4.5:1 small-text minimum. */
   font-family: var(--font-sans);
   font-size: 18px;
   line-height: 1.5;
@@ -150,12 +151,6 @@
   /* Clears the bottom-right leaf. */
   .tagline {
     padding-right: 38px;
-  }
-}
-
-@media (max-width: 520px) {
-  .tagline {
-    font-size: 20px;
   }
 }
 
