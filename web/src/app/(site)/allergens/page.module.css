@@ -312,11 +312,15 @@
   transform: translateX(3px);
 }
 
-.inlineLink:focus-visible,
-.cta:focus-visible,
-.textLink:focus-visible {
-  outline: 2px solid var(--focus-ring);
+/* The text links keep the site's default ring (2px currentColor, globals.css):
+   brass is 1.9:1 on the notice's blush and 2.6:1 on cream, under the 3:1
+   non-text minimum (WCAG 1.4.11). Only the CTA needs its own ring, because
+   currentColor there is cream on cream; it also keeps its pill shape, which
+   the global focus rule's 3px radius would otherwise square off. */
+.cta:focus-visible {
+  outline: 2px solid var(--text-heading);
   outline-offset: 3px;
+  border-radius: var(--radius-pill);
 }
 
 @media (prefers-reduced-motion: reduce) {

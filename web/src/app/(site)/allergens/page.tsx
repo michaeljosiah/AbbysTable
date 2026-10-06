@@ -21,10 +21,14 @@ import styles from './page.module.css';
  * marketing/editorial pages (design/CLAUDE.md, "Desktop marketing header").
  */
 
+const DESCRIPTION =
+  'We take allergens seriously and follow strict procedures in our kitchen. This page provides information about the 14 major allergens used in our dishes.';
+
 export const metadata: Metadata = {
   title: "Allergens — Abby's Table",
-  description:
-    'We take allergens seriously and follow strict procedures in our kitchen. This page provides information about the 14 major allergens used in our dishes.',
+  description: DESCRIPTION,
+  // Its own share card; the root one carries the homepage's copy.
+  openGraph: { title: "Allergens — Abby's Table", description: DESCRIPTION, locale: 'en_GB' },
 };
 
 /**
@@ -80,7 +84,8 @@ export default function AllergensPage() {
               allergens are present.
             </p>
 
-            <ul className={styles.list}>
+            {/* role="list": `list-style: none` drops list semantics in Safari/VoiceOver. */}
+            <ul className={styles.list} role="list">
               {REGULATED_ALLERGENS.map((allergen) => (
                 <li key={allergen} className={styles.item}>
                   {allergen}
@@ -207,7 +212,7 @@ export default function AllergensPage() {
 
             <div>
               <h2 className={styles.asideHeading}>Useful links</h2>
-              <ul className={styles.links}>
+              <ul className={styles.links} role="list">
                 <li className={styles.linkCard}>
                   <p className={styles.linkTitle}>Allergen information by dish</p>
                   <p className={styles.linkText}>Check allergens for each dish on our menu.</p>
