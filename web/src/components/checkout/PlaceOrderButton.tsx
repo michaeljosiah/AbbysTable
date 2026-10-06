@@ -5,6 +5,7 @@ import { useState, type ReactNode } from 'react';
 
 import { AONIK_CODES } from '@/lib/aonik/errors';
 import { useCart } from '@/lib/cart/CartProvider';
+import { ORDERING_DISABLED_CODE, ORDERING_DISABLED_MESSAGE } from '@/lib/cart/ordering';
 
 import styles from './PlaceOrderButton.module.css';
 
@@ -23,6 +24,10 @@ import styles from './PlaceOrderButton.module.css';
  *  3. **Validation** — e.g. an unavailable line raced in. Show it inline; the
  *     blocked-line UI already shows which line.
  *
+ * Before any of that, two stops that never send a request: demo data, which has
+ * no server cart, and live ordering while it is switched off (`orderingEnabled`;
+ * see `@/lib/cart/ordering`). Both say plainly that nothing was ordered.
+ *
  * It is a `<button>`, not the `<Link>` the templates drew, because it performs
  * an action rather than navigating. The CTA classes already zero the border and
  * set the font, so the two render identically.
@@ -37,7 +42,7 @@ export function PlaceOrderButton({
   disabled?: boolean;
 }) {
   const router = useRouter();
-  const { hasUnavailableLine, pending, placeOrder, isServerCart } = useCart();
+  const { hasUnavailableLine, pending, placeOrder, isServerCart, orderingEnabled } = useCart();
   const [placing, setPlacing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -55,6 +60,13 @@ export function PlaceOrderButton({
       return;
     }
 
+    if (!orderingEnabled) {
+      // Live ordering is switched off until payment is taken before the order
+      // exists (issue #5). Same treatment as demo: no request, no order.
+      setMessage(ORDERING_DISABLED_MESSAGE);
+      return;
+    }
+
     setPlacing(true);
     setMessage(null);
     try {
@@ -66,6 +78,9 @@ export function PlaceOrderButton({
       if (code === AONIK_CODES.boxDrift) {
         // The refreshed box is already on screen — the notices say what moved.
         setMessage('Your box changed while you were reviewing it. Nothing has been ordered — check the changes above, then confirm again.');
+      } else if (code === ORDERING_DISABLED_CODE) {
+        // The server's switch disagreed with the one this page rendered with.
+        setMessage(ORDERING_DISABLED_MESSAGE);
       } else if (code === AONIK_CODES.storefrontValidation) {
         setMessage((error as Error).message);
       } else {

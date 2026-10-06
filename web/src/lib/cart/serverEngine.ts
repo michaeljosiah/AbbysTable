@@ -15,6 +15,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { BoxCart, CheckoutResult, PersonalisationSelection } from '@/lib/aonik/map';
 
+import { ORDERING_DISABLED_CODE } from './ordering';
 import {
   admitCartRequest,
   adoptCartResponse,
@@ -130,7 +131,10 @@ export function useServerCart(enabled: boolean): ServerCartEngine {
                   0,
                   cause instanceof Error ? cause.message : 'The box could not be updated.',
                 );
-          setError(failure);
+          // Closed ordering says nothing about the box, and the Place order
+          // button reports it itself. As the cart-wide error it would surface as
+          // a "try again" alert on every cart surface, where retrying can't help.
+          if (failure.code !== ORDERING_DISABLED_CODE) setError(failure);
           throw failure;
         } finally {
           setPending(false);
