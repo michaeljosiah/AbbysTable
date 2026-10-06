@@ -24,7 +24,7 @@ Conventions inside `web/` that are easy to get wrong:
 
 - **Design tokens are the styling contract.** `src/styles/tokens.css` started as a port of the
   original template, but the target is now the `design/` folder: it must match `design/CLAUDE.md`
-  ("Tokens — pending changes") and `design/build-handoff.md` §3g, folded in by #9. Never hardcode a
+  ("Tokens — pending changes") and `design/build-handoff.md` §3g, which #9 folds in. Never hardcode a
   hex colour or font stack; prefer the semantic aliases (`--surface-*`, `--text-*`, `--action-*`)
   over the raw ramp.
 - **No commerce data in markup.** Prices, dish counts and delivery dates come from
@@ -70,7 +70,7 @@ AGENTS.md                    grounding baseline (regenerated — don't hand-edit
 .arke/trace.ndjson           append-only event trace (~326KB — grep it, don't read it)
 .opencode/agents/*.md        6 agent prompts (frontmatter + role prose)
 docs/specifications/         README, specification.template.md, generated index.md
-docs/template/Homepage.html  29MB ORIGINAL design template — superseded by design/; see below
+docs/template/               ORIGINAL design templates — all superseded by design/; see below
 design/                      the v2 design: source of truth (start at design/README.md)
 web/                         the storefront (Next.js); see its section in README.md
 .claude/launch.json          dev-server config for the preview tooling
@@ -99,17 +99,21 @@ Critique — both `edit: deny`, `bash: deny`).
 - Harness endpoint is `http://127.0.0.1:4119`; the provider profile in `.arke/config.json` points at
   port `4096`. Both numbers are real — don't "fix" one to match the other.
 
-## `docs/template/Homepage.html` — superseded; do not read this file whole
+## `docs/template/` — superseded; do not read `Homepage.html` whole
 
-**Superseded by the v2 design in `design/`** (start at `design/README.md`). It is kept as the
-record of what `web/` was first built from; do not take new values from it.
+**Every template in `docs/template/` is superseded by the v2 design in `design/`** (start at
+`design/README.md`): Homepage → Homepage v2, Menu → Menu Landing v3, the two dish details → Dish
+Landing v2, Steps 1–4 → Choose Box v2, Add Dishes v2, Extras v2 and Review v2. They are kept as the
+record of what `web/` was built from; do not take new values from them. (`Step 1.html` still
+carries the obsolete £95 price ladder.)
 
-29MB in 390 lines. Reading it will destroy your context. It is a single-file bundle:
+`Homepage.html` is ~23MB in 390 lines. Reading it will destroy your context. It is a single-file
+bundle:
 
-- **Line 376** — `__bundler/manifest`: UUID → base64 inlined assets (JPEGs). **28.9MB on one line.**
-  Never read, cat, or grep without `cut`.
+- **Line 376** — `__bundler/manifest`: UUID → base64 inlined assets (JPEGs). **~22.8MB on one
+  line.** Never read, cat, or grep without `cut`.
 - **Line 388** — `__bundler/template`: the real source (React 18 UMD, CSS, copy) as a JSON-escaped
-  string, ~127KB. This is where the design system lives.
+  string, ~150KB. This is where the ORIGINAL design system lived; the current one is `design/_ds/`.
 
 To inspect, target line 388 and pipe through `cut`/`grep -o`:
 
@@ -123,23 +127,27 @@ sed -n '388p' docs/template/Homepage.html | grep -o -E '\-\-[a-z][a-z0-9-]{2,30}
 (`design/CLAUDE.md` for the checkable rules, `design/build-handoff.md` for decisions,
 `design/frontend-backend-contract.md` for data). Where anything below disagrees with them, they win.
 
-Nigerian food, cooked from scratch in small batches, delivered chilled UK-wide. Founder **Esther
-Abby Josiah**. Positioning is clean-label: *no MSG, no bouillon or cubes, no refined sugars, no seed
-oils*. Tagline: **"Heat, eat, live well."**
+Nigerian food, cooked from scratch in small batches, delivered chilled to **mainland UK** (the
+wording is deliberate; non-mainland exclusions are still open). Founder **Esther Abby Josiah**.
+Positioning is clean-label: *no MSG, no bouillon or cubes, no refined sugars, no seed oils*. How it
+works ends on **"Heat, enjoy, live well"** (v2 step 04; the original template's "Heat, eat, live
+well" is gone).
 
 Homepage sections (v2): header, mobile drawer, hero, How it works, the dishes preview, Our
-standards, Meet the founder, Private Table, footer. The v2 homepage **removed** the boxes promo and
-the gifting section ("Build a gift box"); `web/` still renders them from the original template
-until the homepage is rebuilt.
+standards, Meet the founder, Private Table, footer. The v2 homepage **removed** the announcement
+strip, the boxes promo and the gifting section ("Build a gift box"); `web/` still renders them from
+the original template until the homepage is rebuilt.
 
 Price: **"6 dishes from £158"**. The wording is fixed and the value comes from an editable price
-source, never a literal. Only the six-dish price is confirmed; the £95 / 6–12–18 ladder in the old
-funnel is obsolete.
+source, never a literal. Only the six-dish price is confirmed. The 6 / 12 / 18 presets stay, but the
+£95 / £170 / £240 prices Choose Box still shows are obsolete — and `web/`'s fixtures still price
+the box at £95 with a 30-dish maximum until the funnel is reconciled.
 
 Design system: deep forest green `#1E3A2F` with cream and brass accents —
 `--green-deep/forest/mid/mist/sage`, `--cream`, `--brass`, `--blush` — plus the v2 tokens listed in
 `design/CLAUDE.md`. Type is **Playfair Display** (display headings) and **Figtree** (UI, body,
-buttons), with **Cormorant Garamond** only where v2 still sets it.
+buttons). **Cormorant Garamond** stays declared as `--font-accent`, but no rebuilt v2 page sets text
+in it; `web/` still uses it until #9 removes it.
 
 ## Conventions
 
