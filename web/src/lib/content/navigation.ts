@@ -51,6 +51,9 @@ export const LOGIN_ITEM: NavItem = { label: 'Login', href: '/login' };
  */
 export const ACCOUNT_ITEM: NavItem = { label: 'My Account', href: '/account/orders' };
 
+/** Named by the newsletter consent line. No policy page exists yet. */
+export const PRIVACY_ITEM: NavItem = { label: 'Privacy Policy', href: '/#contact' };
+
 export interface FooterColumn {
   heading: string;
   links: NavItem[];

@@ -13,8 +13,13 @@
 
 .grid {
   display: grid;
-  grid-template-columns: 1.4fr 1fr 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--space-7);
+}
+
+/* The signup's wider first track exists only while the signup does. */
+.grid[data-signup] {
+  grid-template-columns: 1.4fr 1fr 1fr 1fr;
 }
 
 /* ---- Newsletter ------------------------------------------------------------ */
@@ -81,6 +86,37 @@
 
 .join:hover {
   background: var(--action-brass-hover);
+}
+
+.join:disabled {
+  cursor: progress;
+  background: var(--action-brass);
+  opacity: 0.8;
+}
+
+/* Consent under the signup, as in the Homepage v2 footer. */
+.consent {
+  margin: 14px 0 0;
+  max-width: 340px;
+  font-size: var(--body-sm);
+  line-height: 1.5;
+  color: var(--text-on-dark-soft);
+}
+
+.error {
+  margin: 12px 0 0;
+  max-width: 340px;
+  font-size: var(--body-sm);
+  line-height: 1.5;
+  color: var(--text-on-dark);
+}
+
+.consentLink {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-skip-ink: none;
 }
 
 /* ---- Link columns ---------------------------------------------------------- */
@@ -200,7 +236,8 @@
 /* ---- Small viewports: columns become accordions ---------------------------- */
 
 @media (max-width: 860px) {
-  .grid {
+  .grid,
+  .grid[data-signup] {
     grid-template-columns: 1fr;
     gap: 0;
   }
@@ -214,7 +251,9 @@
     padding-bottom: 30px;
   }
 
-  .newsCopy {
+  .newsCopy,
+  .consent,
+  .error {
     max-width: 100%;
   }
 
