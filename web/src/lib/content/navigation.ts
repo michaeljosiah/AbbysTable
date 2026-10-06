@@ -82,7 +82,7 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
     links: [
       { label: 'Delivery & FAQs', href: '/#contact' },
       { label: 'Contact Us', href: '/#contact' },
-      { label: 'Allergens', href: '/#contact' },
+      { label: 'Allergens', href: '/allergens' },
     ],
   },
 ];

@@ -9,12 +9,12 @@ import styles from './layout.module.css';
  * Chrome for the box builder: stepper instead of site navigation, and a slim
  * footer carrying only order-relevant links.
  *
- * The template points every one of these at pages that do not exist yet, so they
- * resolve to the closest real destination rather than to dead URLs.
+ * Links to pages that do not exist yet resolve to the closest real destination
+ * rather than to dead URLs; swap each one as its page lands (Allergens has).
  */
 const FOOTER_LINKS = [
   { label: 'Delivery & FAQs', href: '/#contact' },
-  { label: 'Allergens', href: '/#contact' },
+  { label: 'Allergens', href: '/allergens' },
   { label: 'Contact Us', href: '/#contact' },
   { label: 'Privacy Policy', href: '/#contact' },
   { label: 'Terms', href: '/#contact' },
