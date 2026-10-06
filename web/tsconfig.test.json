@@ -17,6 +17,7 @@
     "tests/aonik-transport.test.ts",
     "tests/cart-routes.test.ts",
     "tests/customer-identity.test.ts",
+    "tests/consent.test.ts",
     "tests/support/*.ts",
     "src/components/personalisation/OptionGroupsControl.tsx",
     "src/lib/aonik/dataMode.ts",
@@ -28,6 +29,7 @@
     "src/lib/cart/convergence.ts",
     "src/lib/cart/demoStorage.ts",
     "src/lib/cart/mutations.ts",
-    "src/lib/cart/transport.ts"
+    "src/lib/cart/transport.ts",
+    "src/lib/consent/consent.ts"
   ]
 }

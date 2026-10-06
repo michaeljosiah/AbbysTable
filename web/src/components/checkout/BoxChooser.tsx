@@ -936,7 +936,7 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
       </div>
 
       {/* Sticky action bar, ≤860px. */}
-      <div className={styles.mobileBar}>
+      <div className={styles.mobileBar} data-consent-yield>
         <button
           type="button"
           className={styles.barSummary}

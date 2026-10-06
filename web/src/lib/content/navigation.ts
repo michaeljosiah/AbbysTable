@@ -54,6 +54,25 @@ export const ACCOUNT_ITEM: NavItem = { label: 'My Account', href: '/account/orde
 /** Named by the newsletter consent line. No policy page exists yet. */
 export const PRIVACY_ITEM: NavItem = { label: 'Privacy Policy', href: '/#contact' };
 
+/**
+ * The Privacy Policy's cookie section. Production MUST use `/privacy#cookies`
+ * — a named routing requirement (design/build-handoff.md §3s; `cookies` is a
+ * committed slug). No policy page exists yet, so this shares `PRIVACY_ITEM`'s
+ * placeholder rather than pointing at a 404. Repoint both when the page lands.
+ */
+export const PRIVACY_COOKIES_HREF = '/#contact';
+
+/**
+ * The footer's consent trigger. Rendered as a real link carrying
+ * `data-consent-open`: the consent manager turns a plain click into the
+ * preferences panel, and with no JS, a manager that failed, or a cmd/ctrl-click
+ * into a new tab, it simply goes to the Privacy cookie section.
+ */
+export const COOKIE_PREFERENCES_ITEM: NavItem = {
+  label: 'Cookie preferences',
+  href: PRIVACY_COOKIES_HREF,
+};
+
 export interface FooterColumn {
   heading: string;
   links: NavItem[];

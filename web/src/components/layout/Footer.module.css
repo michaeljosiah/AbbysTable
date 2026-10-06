@@ -194,6 +194,22 @@
   color: var(--green-sage);
 }
 
+/* "Cookie preferences", as the Homepage v2 legal strip sets it: 13px sand-2,
+   brass on hover, a 44px target because it is reachable on a phone. */
+.cookieLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: var(--body-sm);
+  color: var(--text-on-dark-soft);
+  text-decoration: none;
+  transition: color 0.16s ease;
+}
+
+.cookieLink:hover {
+  color: var(--brass);
+}
+
 .follow {
   display: flex;
   flex-direction: column;

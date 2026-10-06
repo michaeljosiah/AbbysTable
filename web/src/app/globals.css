@@ -96,6 +96,35 @@ input:focus-visible,
   }
 }
 
+/* ---- Consent layer priority -------------------------------------------------
+   The cookie consent layer outranks every other fixed element
+   (design/build-handoff.md §3s "Priority over other fixed UI"). While the
+   banner or the preferences panel shows, ConsentManager sets
+   `data-consent-layer` on <html>, and:
+   - bottom-fixed chrome that would collide with it — the mobile purchase bars,
+     the ↑ Top control — opts in with `data-consent-yield` and is suppressed:
+     gone from sight, the tab order and the accessibility tree, so no control is
+     left focusable behind the banner. It returns as soon as a choice is made;
+   - the page gains the banner's height at its end, and focus scrolling keeps
+     clear of it, so nothing on the page can only be reached behind the banner;
+   - the page h1 the layer may move focus to (a reading start, tabindex="-1")
+     shows no ring, like any non-control (design/at-focus.css rule 2). */
+html[data-consent-layer] [data-consent-yield] {
+  visibility: hidden;
+}
+
+html[data-consent-layer='banner'] {
+  scroll-padding-bottom: var(--consent-banner-h, 0px);
+}
+
+html[data-consent-layer='banner'] body {
+  padding-bottom: var(--consent-banner-h, 0px);
+}
+
+h1[tabindex='-1']:focus {
+  outline: none;
+}
+
 /* ---- Utilities ------------------------------------------------------------- */
 
 /* Scrollable rail with the scrollbar suppressed (dish carousel, filter row). */

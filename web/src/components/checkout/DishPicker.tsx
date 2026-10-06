@@ -2720,6 +2720,7 @@ export function DishPicker({
         type="button"
         className={styles.toTop}
         data-show={showTop || undefined}
+        data-consent-yield
         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
         aria-label="Back to top"
         tabIndex={showTop ? undefined : -1}

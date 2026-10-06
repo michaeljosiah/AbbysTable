@@ -6,7 +6,12 @@ import { useActionState, useState } from 'react';
 import { Logo } from '@/components/brand/Logo';
 import { SocialIcons } from '@/components/brand/SocialIcons';
 import { Eyebrow, NavLink } from '@/components/ui';
-import { FOOTER_COLUMNS, PRIVACY_ITEM, SOCIAL_HANDLE } from '@/lib/content/navigation';
+import {
+  COOKIE_PREFERENCES_ITEM,
+  FOOTER_COLUMNS,
+  PRIVACY_ITEM,
+  SOCIAL_HANDLE,
+} from '@/lib/content/navigation';
 import type { NewsletterSignupAction, NewsletterSignupState } from '@/lib/newsletter';
 
 import styles from './Footer.module.css';
@@ -93,6 +98,11 @@ export function Footer({ subscribeAction }: { subscribeAction?: NewsletterSignup
           <div className={styles.centre}>
             <span className={styles.signoff}>Abby x</span>
             <span className={styles.copyright}>© {COPYRIGHT_YEAR} Abby&apos;s Table</span>
+            {/* The canonical consent trigger (design/build-handoff.md §3s): a real
+                link that the consent manager enhances into the preferences panel. */}
+            <Link href={COOKIE_PREFERENCES_ITEM.href} className={styles.cookieLink} data-consent-open>
+              {COOKIE_PREFERENCES_ITEM.label}
+            </Link>
           </div>
 
           <div className={styles.follow}>
