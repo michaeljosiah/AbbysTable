@@ -87,7 +87,7 @@ export function Header({ session }: { session: SessionView }) {
         </div>
       </header>
 
-      <MobileDrawer open={drawerOpen} onClose={closeDrawer} />
+      <MobileDrawer open={drawerOpen} onClose={closeDrawer} session={session} />
     </>
   );
 }
