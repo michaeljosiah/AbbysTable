@@ -24,6 +24,9 @@ function memoryStorage(initial: Record<string, string> = {}): ConsentStorage & {
     setItem: (key, value) => {
       data.set(key, String(value));
     },
+    removeItem: (key) => {
+      data.delete(key);
+    },
   };
 }
 
@@ -34,6 +37,9 @@ const throwingStorage: ConsentStorage = {
   },
   setItem() {
     throw new Error('QuotaExceededError');
+  },
+  removeItem() {
+    throw new Error('SecurityError: access denied');
   },
 };
 
@@ -163,14 +169,41 @@ test('a write that cannot be read back is not honoured', () => {
       throw new Error('blocked');
     },
     setItem() {},
+    removeItem() {},
   };
   assertEssentialOnly(writeConsent(writeOnly, ALL_ACCEPTED));
 
   // Silently drops writes.
-  const forgetful: ConsentStorage = { getItem: () => null, setItem() {} };
+  const forgetful: ConsentStorage = { getItem: () => null, setItem() {}, removeItem() {} };
   const snapshot = writeConsent(forgetful, ALL_ACCEPTED);
   assert.equal(snapshot.status, 'unsaved');
   assertEssentialOnly(snapshot);
+});
+
+test('a withdrawal that cannot be saved never leaves the old grant behind', () => {
+  // Everything was accepted earlier; now storage is full, so the withdrawal's
+  // write throws. The stale grant must not be read back as consent next time.
+  const storage = memoryStorage({
+    [CONSENT_STORAGE_KEY]: JSON.stringify({ ...validRecord, preferences: true, analytics: true, advertising: true }),
+  });
+  storage.setItem = () => {
+    throw new Error('QuotaExceededError');
+  };
+
+  const withdrawn = writeConsent(storage, ESSENTIAL_ONLY);
+  assert.equal(withdrawn.status, 'unsaved');
+  assertEssentialOnly(withdrawn);
+
+  const nextPage = readConsent(storage);
+  assert.equal(nextPage.status, 'unresolved', 'the next page asks again');
+  assertEssentialOnly(nextPage);
+});
+
+test('a timestamp must be the exact ISO string the manager writes', () => {
+  for (const ts of ['1', '2026', '2026-10-06', 'Tue Oct 06 2026']) {
+    const snapshot = readConsent(storedWith({ ...validRecord, ts }));
+    assert.equal(snapshot.status, 'unresolved', ts);
+  }
 });
 
 test('a store is pending — essential only, no banner — until it is initialised', () => {

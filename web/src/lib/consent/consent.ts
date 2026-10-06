@@ -99,6 +99,7 @@ export interface ConsentSnapshot {
 export interface ConsentStorage {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
+  removeItem(key: string): void;
 }
 
 export const PENDING: ConsentSnapshot = Object.freeze({ status: 'pending', choices: ESSENTIAL_ONLY, ts: null });
@@ -135,7 +136,11 @@ export function parseConsentRecord(raw: string | null | undefined): ConsentRecor
   const record = value as Record<string, unknown>;
 
   if (record.v !== CONSENT_VERSION) return null;
-  if (typeof record.ts !== 'string' || Number.isNaN(Date.parse(record.ts))) return null;
+  // An exact ISO round trip, as `writeConsent` stores it: `Date.parse` alone
+  // accepts "1" or "2026".
+  if (typeof record.ts !== 'string') return null;
+  const when = new Date(record.ts);
+  if (Number.isNaN(when.getTime()) || when.toISOString() !== record.ts) return null;
   for (const category of CONSENT_CATEGORIES) {
     if (typeof record[category] !== 'boolean') return null;
   }
@@ -183,6 +188,12 @@ export function readConsent(storage: ConsentStorage | null): ConsentSnapshot {
  * trip is `resolved`; anything else is `unsaved`, which applies essential only.
  * A choice that cannot be stored cannot be honoured on the next page either,
  * so it is not honoured on this one.
+ *
+ * A failed write also REMOVES whatever record was there. Otherwise a
+ * withdrawal that could not be saved (storage full) would leave the previous
+ * grant in place, and the next page would read it back as consent: the
+ * visitor's "no" silently reversed. With the record gone, the next page asks
+ * again.
  */
 export function writeConsent(
   storage: ConsentStorage | null,
@@ -202,7 +213,7 @@ export function writeConsent(
   try {
     storage.setItem(CONSENT_STORAGE_KEY, JSON.stringify(record));
   } catch {
-    return UNSAVED;
+    return discardStoredChoice(storage);
   }
 
   const readBack = readConsent(storage);
@@ -211,9 +222,19 @@ export function writeConsent(
     readBack.ts !== record.ts ||
     CONSENT_CATEGORIES.some((category) => readBack.choices[category] !== record[category])
   ) {
-    return UNSAVED;
+    return discardStoredChoice(storage);
   }
   return readBack;
+}
+
+/** Best effort: if even removal throws, nothing more can be done from here. */
+function discardStoredChoice(storage: ConsentStorage): ConsentSnapshot {
+  try {
+    storage.removeItem(CONSENT_STORAGE_KEY);
+  } catch {
+    // Storage refuses every operation; the in-memory state is still essential only.
+  }
+  return UNSAVED;
 }
 
 export type ConsentListener = (snapshot: ConsentSnapshot) => void;
