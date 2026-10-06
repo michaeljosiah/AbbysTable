@@ -76,12 +76,13 @@
 .tagline {
   margin: 13px auto 0;
   max-width: 620px;
-  font-family: var(--font-accent);
-  font-weight: var(--weight-medium);
-  font-size: 22px;
-  letter-spacing: 0.02em;
-  line-height: 1.3;
-  color: var(--text-accent);
+  /* v2 sets this in the UI face at the section-intro size, not Cormorant.
+     At 18px it is small type, so terracotta's ink value: plain --terracotta is
+     3.5:1 on this cream ground. */
+  font-family: var(--font-sans);
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--terracotta-ink);
 }
 
 /* ---- Responsive steps ------------------------------------------------------
