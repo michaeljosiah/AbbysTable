@@ -44,6 +44,13 @@ export const NAV_ITEMS: NavItem[] = [
 
 export const LOGIN_ITEM: NavItem = { label: 'Login', href: '/login' };
 
+/**
+ * Takes `LOGIN_ITEM`'s place in the drawer once the customer is signed in
+ * (behaviour guide §A2): same slot, new label and destination. The order
+ * history is the account area's only page so far.
+ */
+export const ACCOUNT_ITEM: NavItem = { label: 'My Account', href: '/account/orders' };
+
 export interface FooterColumn {
   heading: string;
   links: NavItem[];
