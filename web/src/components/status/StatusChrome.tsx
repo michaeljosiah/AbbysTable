@@ -1,5 +1,3 @@
-import Link from 'next/link';
-
 import { Logo } from '@/components/brand/Logo';
 import { SOCIAL_LINKS, STATUS_FOOTER_LINKS } from '@/lib/content/navigation';
 import { SOCIAL_GLYPHS } from '@/lib/content/socialGlyphs';
@@ -14,7 +12,9 @@ import styles from './StatusChrome.module.css';
  * trigger — nothing that sends someone back into a possibly unhealthy order.
  *
  * No session, no data, no hooks: this chrome must render when the layouts
- * that read those are the thing that failed.
+ * that read those are the thing that failed. Plain `<a>` links for the same
+ * reason — each is a full page load rather than a client-side navigation
+ * through the app that just failed.
  */
 
 /** Matches the site footer. Bump with the brand's copyright line, not the clock. */
@@ -28,9 +28,10 @@ export function StatusHeader({ contactJump }: { contactJump: boolean }) {
   return (
     <header className={styles.header}>
       <div className={styles.headerRow}>
-        <Link href="/" aria-label="Abby's Table — home" className={styles.logo}>
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- full page load, as above */}
+        <a href="/" aria-label="Abby's Table — home" className={styles.logo}>
           <Logo withRegistered={false} />
-        </Link>
+        </a>
 
         {contactJump ? (
           // An in-page jump, so it works with no JavaScript and no server.
@@ -66,15 +67,16 @@ export function StatusFooter() {
   return (
     <footer className={styles.footer}>
       <div className={styles.footerInner}>
-        <Link href="/" aria-label="Abby's Table — home" className={styles.footerLogo}>
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- full page load, as above */}
+        <a href="/" aria-label="Abby's Table — home" className={styles.footerLogo}>
           <Logo withRegistered={false} />
-        </Link>
+        </a>
 
         <nav className={styles.footerNav} aria-label="Help and legal">
           {STATUS_FOOTER_LINKS.map((link) => (
-            <Link key={link.label} href={link.href} className={styles.footerLink}>
+            <a key={link.label} href={link.href} className={styles.footerLink}>
               {link.label}
-            </Link>
+            </a>
           ))}
         </nav>
 

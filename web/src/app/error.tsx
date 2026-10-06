@@ -4,13 +4,18 @@ import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
 
 import { ServerErrorPage } from '@/components/status/ServerErrorPage';
+import { SERVER_ERROR_COPY } from '@/lib/content/status';
 
 /**
  * The in-app 500: any error thrown below the root layout — a page, or the
  * `(site)` / `(checkout)` / `(auth)` layouts themselves (Aonik unreachable,
  * say). Next answers the document request with HTTP 500 and an error shell
- * that renders this page once JavaScript runs; when the app cannot answer at
- * all, the host serves the static `public/500.html` instead.
+ * that renders this page once JavaScript runs.
+ *
+ * When the app cannot answer at all, nothing covers the customer yet: the
+ * static `public/500.html` is generated for that case, but serving it needs a
+ * CDN / Front Door rule that Azure Static Web Apps alone cannot express — an
+ * owner decision (#13).
  *
  * It lives at the root rather than in `(site)` on purpose: the design's 500
  * carries reduced chrome of its own (design/build-handoff.md §3ah), and a
@@ -36,5 +41,12 @@ export default function AppError({
       reset();
     });
 
-  return <ServerErrorPage onRetry={retry} />;
+  return (
+    <>
+      {/* No metadata export from an error boundary; React 19 hoists this, and
+          it replaces the failed page's title for as long as the boundary shows. */}
+      <title>{SERVER_ERROR_COPY.title}</title>
+      <ServerErrorPage onRetry={retry} />
+    </>
+  );
 }

@@ -5,6 +5,7 @@ import {
   STATUS_FOOTER_LINKS,
 } from '@/lib/content/navigation';
 import { SOCIAL_GLYPHS } from '@/lib/content/socialGlyphs';
+import { MAINTENANCE_COPY, SERVER_ERROR_COPY } from '@/lib/content/status';
 
 import { FIGTREE_LATIN, PLAYFAIR_500_LATIN, PLAYFAIR_ITALIC_400_LATIN } from './fonts';
 import { WORDMARK_SVG } from './wordmark';
@@ -12,9 +13,13 @@ import { WORDMARK_SVG } from './wordmark';
 /**
  * The two host-level status pages, as self-contained HTML strings:
  *
- *  - `error`       → `public/500.html`, "Something didn't go to plan." — served
- *                    by the host / CDN with HTTP 500 when the APP cannot answer
- *                    (design: Something Went Wrong; build-handoff.md §3ah).
+ *  - `error`       → `public/500.html`, "Something didn't go to plan." — for
+ *                    the host / CDN to answer with, HTTP 500, when the APP
+ *                    cannot (design: Something Went Wrong; build-handoff.md
+ *                    §3ah). NOTHING SERVES IT THAT WAY YET: Azure Static Web
+ *                    Apps cannot override a 500, so it needs a CDN / Front Door
+ *                    rule, which is an owner decision. Until then it is only a
+ *                    file at `/500.html`, answered with 200.
  *  - `maintenance` → `public/maintenance.html`, "We'll be back shortly." —
  *                    HTTP 503 + Retry-After for planned downtime, and the body
  *                    `src/middleware.ts` answers with when MAINTENANCE_MODE is
@@ -27,7 +32,8 @@ import { WORDMARK_SVG } from './wordmark';
  * rather than read from tokens.css as every component does.
  *
  * The in-app 500 (`components/status/ServerErrorPage`) is the same design in
- * React; keep the two in step.
+ * React. The copy for both comes from `@/lib/content/status`; keep the markup
+ * in step by hand.
  *
  * The public files are GENERATED from this module — never edit them by hand.
  * Regenerate with `UPDATE_STATUS_PAGES=1 npm test`; the test fails while they
@@ -76,19 +82,16 @@ interface PageCopy {
 
 const COPY: Record<StatusPageKind, PageCopy> = {
   error: {
-    title: 'Something went wrong — Abby’s Table',
-    eyebrow: 'Error 500',
-    heading: 'Something didn’t go to plan.',
-    lede: 'We’re having trouble loading this page right now. Please try again in a moment.',
+    title: SERVER_ERROR_COPY.title,
+    eyebrow: SERVER_ERROR_COPY.eyebrow,
+    heading: SERVER_ERROR_COPY.heading,
+    lede: SERVER_ERROR_COPY.lede,
     linksIntoSite: true,
     // Triangle with an exclamation mark.
     mark: '<path d="M12 3.6 21.2 19.5H2.8z"/><path d="M12 9.6v4.6M12 16.9h.01" stroke-width="1.8"/>',
   },
   maintenance: {
-    title: 'We’ll be back shortly — Abby’s Table',
-    eyebrow: 'Temporarily unavailable',
-    heading: 'We’ll be back shortly.',
-    lede: 'Abby’s Table is temporarily unavailable while we carry out some improvements. Please try again soon.',
+    ...MAINTENANCE_COPY,
     // The whole site is down on purpose: every link into it would only show
     // this page again (design decision, 1 Oct 2026).
     linksIntoSite: false,
@@ -280,7 +283,7 @@ function helpPanel(contact: SupportContact | null): string {
 function body(copy: PageCopy, contact: SupportContact | null): string {
   // TRY AGAIN reloads the current URL with no JavaScript: an empty href.
   const homeLink = copy.linksIntoSite
-    ? `\n          <a class="se-link" href="/"><span>Back to homepage<span aria-hidden="true">→</span></span></a>`
+    ? `\n          <a class="se-link" href="/"><span>${SERVER_ERROR_COPY.home}<span aria-hidden="true">→</span></span></a>`
     : '';
   return `<main>
   <section class="se-sec">
@@ -291,7 +294,7 @@ function body(copy: PageCopy, contact: SupportContact | null): string {
         <h1 class="se-h1">${copy.heading}</h1>
         <p class="se-lede">${copy.lede}</p>
         <div class="se-acts">
-          <a class="se-cta" href="">Try again</a>${homeLink}
+          <a class="se-cta" href="">${SERVER_ERROR_COPY.retry}</a>${homeLink}
         </div>${helpPanel(contact)}
       </div>
     </div>
@@ -347,7 +350,7 @@ export function renderStatusPage(
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>${copy.title}</title>
+<title>${escapeHtml(copy.title)}</title>
 <style>${styles(kind)}
 </style>
 </head>

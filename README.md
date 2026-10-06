@@ -294,8 +294,9 @@ web/                         the storefront
   src/middleware.ts          maintenance mode: MAINTENANCE_MODE=true → 503 everywhere
   src/styles/tokens.css      design tokens; target is design/ (see #9)
   public/assets/             images, video and logo extracted from the bundle
-  public/500.html            self-contained 500 / maintenance pages for the host —
-  public/maintenance.html    GENERATED: `UPDATE_STATUS_PAGES=1 npm test` rewrites them
+  public/500.html            self-contained 500 / maintenance pages — GENERATED:
+  public/maintenance.html    `UPDATE_STATUS_PAGES=1 npm test` rewrites them. No host
+                             serves 500.html on an outage yet (needs a CDN rule)
 ```
 
 ## Contributing

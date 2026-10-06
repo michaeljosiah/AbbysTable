@@ -27,6 +27,13 @@ interface StatusMessageProps {
   primary: PrimaryAction;
   /** Site text-CTA: sentence case, brass rule under label and arrow. */
   secondary?: { label: string; href: string };
+  /**
+   * Plain `<a>` links instead of `next/link`, so following one is a full page
+   * load. The 500 needs that: a client-side navigation to the URL that failed
+   * keeps the error boundary up and does nothing, and a broken client (a
+   * stale chunk after a deploy) cannot be trusted to navigate at all.
+   */
+  fullPageLinks?: boolean;
   children?: ReactNode;
 }
 
@@ -38,8 +45,11 @@ export function StatusMessage({
   lede,
   primary,
   secondary,
+  fullPageLinks = false,
   children,
 }: StatusMessageProps) {
+  const Anchor = fullPageLinks ? 'a' : Link;
+
   return (
     <section className={styles.band} data-kind={kind}>
       <div className={styles.inner}>
@@ -68,9 +78,9 @@ export function StatusMessage({
 
           <div className={styles.actions}>
             {'href' in primary ? (
-              <Link href={primary.href} className={styles.primary}>
+              <Anchor href={primary.href} className={styles.primary}>
                 {primary.label}
-              </Link>
+              </Anchor>
             ) : (
               <button type="button" onClick={primary.onClick} className={styles.primary}>
                 {primary.label}
@@ -78,12 +88,12 @@ export function StatusMessage({
             )}
 
             {secondary ? (
-              <Link href={secondary.href} className={styles.secondary}>
+              <Anchor href={secondary.href} className={styles.secondary}>
                 <span>
                   {secondary.label}
                   <span aria-hidden="true">&rarr;</span>
                 </span>
-              </Link>
+              </Anchor>
             ) : null}
           </div>
 

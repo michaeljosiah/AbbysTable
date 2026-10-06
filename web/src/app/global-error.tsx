@@ -1,6 +1,7 @@
 'use client';
 
 import { ServerErrorPage } from '@/components/status/ServerErrorPage';
+import { SERVER_ERROR_COPY } from '@/lib/content/status';
 
 import { fontVariables } from './fonts';
 
@@ -22,10 +23,11 @@ import './globals.css';
  */
 export default function GlobalError() {
   return (
-    <html lang="en-GB" className={fontVariables}>
+    // suppressHydrationWarning as on the root layout: browser extensions edit <html>.
+    <html lang="en-GB" className={fontVariables} suppressHydrationWarning>
       <body>
         {/* No metadata export from an error boundary; React 19 hoists this. */}
-        <title>Something went wrong — Abby&rsquo;s Table</title>
+        <title>{SERVER_ERROR_COPY.title}</title>
         <ServerErrorPage onRetry={() => window.location.reload()} />
       </body>
     </html>

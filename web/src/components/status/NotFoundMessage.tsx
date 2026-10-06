@@ -1,3 +1,5 @@
+import { NOT_FOUND_COPY } from '@/lib/content/status';
+
 import { StatusMessage } from './StatusMessage';
 
 /**
@@ -13,11 +15,11 @@ export function NotFoundMessage() {
   return (
     <StatusMessage
       kind="notFound"
-      eyebrow="Error 404"
-      title="We couldn’t find that page."
-      lede="The page may have moved, or the link may no longer be available."
-      primary={{ label: 'Go to homepage', href: '/' }}
-      secondary={{ label: 'View the menu', href: '/menu' }}
+      eyebrow={NOT_FOUND_COPY.eyebrow}
+      title={NOT_FOUND_COPY.heading}
+      lede={NOT_FOUND_COPY.lede}
+      primary={{ label: NOT_FOUND_COPY.home, href: '/' }}
+      secondary={{ label: NOT_FOUND_COPY.menu, href: '/menu' }}
     />
   );
 }

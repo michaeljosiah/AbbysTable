@@ -160,15 +160,37 @@ test('maintenance mode answers with the page, 503, Retry-After and no-store', as
   assert.equal(await response.text(), renderStatusPage('maintenance'));
 });
 
-test('the middleware matches every path except Azure SWA’s /.swa health check', () => {
+test('the middleware matches every page and API path, but not /.swa or static files', () => {
   // The matcher is also a valid regular expression with the same meaning.
   const [matcher] = config.matcher;
   const matches = (pathname: string) => new RegExp(`^${matcher}$`).test(pathname);
 
-  for (const pathname of ['/', '/menu', '/api/cart', '/_next/static/x.js', '/500.html', '/swa']) {
+  for (const pathname of [
+    '/',
+    '/menu',
+    '/menu/assets',
+    '/api/cart',
+    '/box/review',
+    '/500.html',
+    '/maintenance.html',
+    '/swa',
+    '/assets',
+    '/icon.svg.html',
+    '/_next/data/build/index.json',
+  ]) {
     assert.ok(matches(pathname), pathname);
   }
-  for (const pathname of ['/.swa', '/.swa/health.html']) {
+  for (const pathname of [
+    '/.swa',
+    '/.swa/health.html',
+    '/_next/static/chunks/app.js',
+    '/_next/image',
+    '/assets/hero.png',
+    '/fonts/at-sterling.woff2',
+    '/favicon.ico',
+    '/icon.svg',
+    '/apple-icon.png',
+  ]) {
     assert.ok(!matches(pathname), pathname);
   }
 });

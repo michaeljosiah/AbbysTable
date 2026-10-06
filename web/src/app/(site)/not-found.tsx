@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 
 import { NotFoundMessage } from '@/components/status/NotFoundMessage';
+import { NOT_FOUND_COPY } from '@/lib/content/status';
 
 export const metadata: Metadata = {
-  title: 'Page not found — Abby’s Table',
+  title: NOT_FOUND_COPY.title,
 };
 
 /**
@@ -13,6 +14,11 @@ export const metadata: Metadata = {
  *
  * Unmatched URLs never reach this boundary; the root `app/not-found.tsx`
  * answers them with the same message in the same chrome.
+ *
+ * Unlike that one, this page does not arrive server-rendered: Next answers the
+ * document request with 404 and an empty `__next_error__` shell, and this
+ * renders once JavaScript runs. That is Next's behaviour for `notFound()`
+ * thrown from a page, and why unmatched URLs are not routed through here.
  */
 export default function SiteNotFound() {
   return <NotFoundMessage />;
