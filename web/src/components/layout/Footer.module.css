@@ -90,15 +90,25 @@
 
 .join:disabled {
   cursor: progress;
+  background: var(--action-brass);
+  opacity: 0.8;
 }
 
 /* Consent under the signup, as in the Homepage v2 footer. */
 .consent {
   margin: 14px 0 0;
-  max-width: 320px;
+  max-width: 340px;
   font-size: var(--body-sm);
   line-height: 1.5;
   color: var(--text-on-dark-soft);
+}
+
+.error {
+  margin: 12px 0 0;
+  max-width: 340px;
+  font-size: var(--body-sm);
+  line-height: 1.5;
+  color: var(--text-on-dark);
 }
 
 .consentLink {
@@ -242,7 +252,8 @@
   }
 
   .newsCopy,
-  .consent {
+  .consent,
+  .error {
     max-width: 100%;
   }
 

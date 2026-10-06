@@ -1,48 +1,35 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, type FormEvent } from 'react';
+import { useActionState, useState } from 'react';
 
 import { Logo } from '@/components/brand/Logo';
 import { SocialIcons } from '@/components/brand/SocialIcons';
 import { Eyebrow, NavLink } from '@/components/ui';
 import { FOOTER_COLUMNS, PRIVACY_ITEM, SOCIAL_HANDLE } from '@/lib/content/navigation';
+import type { NewsletterSignupAction, NewsletterSignupState } from '@/lib/newsletter';
 
 import styles from './Footer.module.css';
 
 /** Matches the template. Bump with the brand's copyright line, not the clock. */
 const COPYRIGHT_YEAR = 2026;
 
-type SignupStatus = 'idle' | 'sending' | 'joined' | 'failed';
-
 /**
  * Site footer: newsletter signup, link columns and the follow row.
  *
- * The signup renders only when `subscribe` is supplied, and nothing supplies it
- * yet: Aonik has no endpoint to store a subscription (michaeljosiah/aonik#357).
- * A form that thanks someone for joining while saving nothing is a live-looking
- * control that does nothing, so the whole "Join the table" block stays out of
- * the page until a server action can really subscribe. Wiring it is passing
- * that action from the site layout; the confirmation shows only once it has
- * resolved.
+ * The signup renders only when `subscribeAction` is supplied, and nothing
+ * supplies it yet: Aonik has no endpoint to store a subscription
+ * (michaeljosiah/aonik#357). A form that thanks someone for joining while
+ * saving nothing is a live-looking control that does nothing, so the whole
+ * "Join the table" block stays out of the page until a server action can
+ * really subscribe.
+ *
+ * Wiring it means passing that server action from the site layout (contract in
+ * `@/lib/newsletter`). Before then, the consent line's Privacy Policy link
+ * (`PRIVACY_ITEM`) needs a real policy page to point at.
  */
-export function Footer({ subscribe }: { subscribe?: (email: string) => Promise<void> }) {
-  const [signup, setSignup] = useState<SignupStatus>('idle');
+export function Footer({ subscribeAction }: { subscribeAction?: NewsletterSignupAction }) {
   const [openColumns, setOpenColumns] = useState<Record<string, boolean>>({});
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!subscribe || signup === 'sending') return;
-
-    const email = String(new FormData(event.currentTarget).get('email') ?? '').trim();
-    setSignup('sending');
-    try {
-      await subscribe(email);
-      setSignup('joined');
-    } catch {
-      setSignup('failed');
-    }
-  };
 
   const toggleColumn = (heading: string) =>
     setOpenColumns((current) => ({ ...current, [heading]: !current[heading] }));
@@ -52,49 +39,8 @@ export function Footer({ subscribe }: { subscribe?: (email: string) => Promise<v
       <div className={styles.brassRule} />
 
       <div className={`band band--frame ${styles.inner}`}>
-        <div className={styles.grid} data-signup={subscribe ? true : undefined}>
-          {subscribe ? (
-            <div className={styles.news}>
-              <Eyebrow tone="brass">Join the table</Eyebrow>
-              <p className={styles.newsCopy}>Kitchen notes and offers from Abby monthly.</p>
-
-              {signup === 'joined' ? (
-                <p className={styles.thanks} role="status">
-                  Thank you for joining the table.
-                </p>
-              ) : (
-                <>
-                  <form className={styles.form} onSubmit={handleSubmit}>
-                    <input
-                      name="email"
-                      type="email"
-                      required
-                      autoComplete="email"
-                      aria-label="Email address"
-                      placeholder="Enter your email address"
-                      className={styles.input}
-                    />
-                    <button type="submit" className={styles.join} disabled={signup === 'sending'}>
-                      Join
-                    </button>
-                  </form>
-                  {signup === 'failed' ? (
-                    <p className={styles.consent} role="alert">
-                      We couldn&rsquo;t add you just now. Please try again.
-                    </p>
-                  ) : null}
-                  <p className={styles.consent}>
-                    We use your email for kitchen notes and offers only. Unsubscribe any time. See
-                    our{' '}
-                    <Link href={PRIVACY_ITEM.href} className={styles.consentLink}>
-                      {PRIVACY_ITEM.label}
-                    </Link>
-                    .
-                  </p>
-                </>
-              )}
-            </div>
-          ) : null}
+        <div className={styles.grid} data-signup={subscribeAction ? true : undefined}>
+          {subscribeAction ? <NewsletterSignup action={subscribeAction} /> : null}
 
           {FOOTER_COLUMNS.map((column) => {
             const isOpen = Boolean(openColumns[column.heading]);
@@ -169,5 +115,63 @@ export function Footer({ subscribe }: { subscribe?: (email: string) => Promise<v
         </div>
       </div>
     </footer>
+  );
+}
+
+/**
+ * The "Join the table" signup. Its own component so the action state hook runs
+ * only when there is an action to run.
+ *
+ * Posts through `useActionState` like the auth forms, so a submit before
+ * hydration is still a POST to the server action rather than a GET that would
+ * put the email in the URL.
+ */
+function NewsletterSignup({ action }: { action: NewsletterSignupAction }) {
+  const [state, formAction, isPending] = useActionState<NewsletterSignupState, FormData>(action, {
+    status: 'idle',
+  });
+
+  return (
+    <div className={styles.news}>
+      <Eyebrow tone="brass">Join the table</Eyebrow>
+      <p className={styles.newsCopy}>Kitchen notes and offers from Abby monthly.</p>
+
+      {state.status === 'joined' ? (
+        <p className={styles.thanks} role="status">
+          Thank you for joining the table.
+        </p>
+      ) : (
+        <>
+          <form className={styles.form} action={formAction} aria-busy={isPending || undefined}>
+            <input
+              name="email"
+              type="email"
+              required
+              autoComplete="email"
+              aria-label="Email address"
+              aria-invalid={state.status === 'error' || undefined}
+              aria-describedby={state.status === 'error' ? 'newsletter-error' : undefined}
+              placeholder="Enter your email address"
+              className={styles.input}
+            />
+            <button type="submit" className={styles.join} disabled={isPending}>
+              {isPending ? 'Joining…' : 'Join'}
+            </button>
+          </form>
+          {state.status === 'error' ? (
+            <p id="newsletter-error" className={styles.error} role="alert">
+              {state.message ?? 'We couldn’t add you just now. Please try again.'}
+            </p>
+          ) : null}
+          <p className={styles.consent}>
+            We use your email for kitchen notes and offers only. Unsubscribe any time. See our{' '}
+            <Link href={PRIVACY_ITEM.href} className={styles.consentLink}>
+              {PRIVACY_ITEM.label}
+            </Link>
+            .
+          </p>
+        </>
+      )}
+    </div>
   );
 }
