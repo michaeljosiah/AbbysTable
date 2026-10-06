@@ -6,6 +6,7 @@ import { beforeEach, mock, test } from 'node:test';
 import { AONIK_CODES } from '../src/lib/aonik/errors';
 import { aonikAuthedFetch, SessionExpiredError } from '../src/lib/auth/server';
 import {
+  clearSession,
   isExpired,
   readSession,
   readSessionView,
@@ -18,7 +19,7 @@ import { CART_COOKIE } from '../src/lib/cart/cartCookie';
 import { adoptBoxCart } from '../src/lib/cart/server';
 
 import { aonikRequests, configureAonik, useAonik } from './support/aonik';
-import { cookieValue, cookieWrites, resetCookies } from './support/next-headers';
+import { cookieValue, cookieWrites, renderMode, resetCookies } from './support/next-headers';
 
 /*
  * customer-identity: the session cookie, a 401 becoming the signed-out state,
@@ -104,6 +105,24 @@ test('a 401 from Aonik clears the session and becomes the signed-out state', asy
   assert.equal(cookieValue(SESSION_COOKIE), undefined);
 });
 
+test('a 401 during a page render is still the signed-out state, not an error page', async () => {
+  // /account/orders reads orders in a Server Component, where Next seals the
+  // cookie store. A revoked token must still surface as SessionExpiredError,
+  // which the page turns into its sign-in prompt.
+  signedInWith(session());
+  renderMode();
+  useAonik(() => ({ status: 401, body: { error: 'Unauthorized' } }));
+
+  await assert.rejects(aonikAuthedFetch('/commerce/storefront/orders'), SessionExpiredError);
+  assert.ok(cookieValue(SESSION_COOKIE), 'a render cannot clear it; the next action will');
+});
+
+test('outside a render, clearing the session really clears it', async () => {
+  signedInWith(session());
+  await clearSession();
+  assert.equal(cookieValue(SESSION_COOKIE), undefined);
+});
+
 test('an expired session with no refresh token signs out without calling Aonik', async () => {
   signedInWith(session({ expiresAt: Date.now() - 1 }));
   useAonik(() => undefined);
@@ -186,12 +205,20 @@ test('a 404 on adoption clears the cart cookie without failing sign-in', async (
   assert.ok(cookieValue(SESSION_COOKIE), 'still signed in');
 });
 
-test('a storefront-validation 400 leaves the cart alone', async () => {
+test('a storefront-validation 400 leaves the cart alone, as an expected outcome', async () => {
   signedInWith(session(), { [CART_COOKIE]: GUEST_CART });
   useAonik(() => ({ status: 400, body: { error: 'Cart is not open.', code: AONIK_CODES.storefrontValidation } }));
+  const logged = mock.method(console, 'error', () => undefined);
 
-  assert.equal(await adoptBoxCart(), 'skipped');
-  assert.equal(cookieValue(CART_COOKIE), GUEST_CART);
+  try {
+    assert.equal(await adoptBoxCart(), 'skipped');
+    assert.equal(cookieValue(CART_COOKIE), GUEST_CART);
+    // Expected, so not logged — which is what tells this branch apart from the
+    // catch-all below.
+    assert.equal(logged.mock.callCount(), 0);
+  } finally {
+    logged.mock.restore();
+  }
 });
 
 test('an unexpected failure is logged, not thrown, and leaves the cart alone', async () => {

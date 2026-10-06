@@ -56,7 +56,9 @@ import type {
  * the same size would land a penny apart. The product is snapped to six
  * decimals (far below a penny, far above float noise) and rounded on its
  * magnitude so the sign is symmetric. Negative zero is normalised; NaN stays
- * NaN rather than becoming a price.
+ * NaN rather than becoming a price. The snap means an input with 8+ decimals
+ * within 5e-7p of a half (0.004999999) rounds as the half; a decimal money API
+ * does not send those.
  */
 export function toPence(amount: number): number {
   const magnitude = Number((Math.abs(amount) * 100).toFixed(6));

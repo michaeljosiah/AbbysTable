@@ -6,7 +6,7 @@ branch: feat/aonik-transport
 owner: michaeljosiah
 capabilities: [aonik-transport]
 created: 2026-07-22
-updated: 2026-07-22
+updated: 2026-10-06
 ---
 
 # Aonik transport & tenancy seam — the real HttpAonikClient
@@ -78,7 +78,8 @@ the header explicitly.
   boot-time check)
 
 ### Requirement: Money adapter — Aonik decimals to frontend pence
-`capability: aonik-transport` · `delta: ADDED (feat/aonik-transport)`
+`capability: aonik-transport` · `delta: ADDED (feat/aonik-transport)` ·
+`delta: MODIFIED (claude/frontend-issues-5-7-6-o50hvh-issue-39)` — rounding is half away from zero
 
 The system SHALL convert every monetary amount received from Aonik (decimal major units,
 e.g. `95.0` meaning £95.00) into integer pence at the transport seam, rounding half away from

@@ -160,7 +160,12 @@ test('a 404 for the cart itself clears the cookie and answers cart: null', async
   assert.equal(status, 404);
   assert.equal(json.cart, null);
   assert.equal(cookieValue(CART_COOKIE), undefined);
-  assert.equal(cartCookieWrites().at(-1)?.maxAge, 0);
+  // A non-empty tombstone on the cookie's own path: Azure SWA drops empty
+  // Set-Cookie values, and a different path would clear nothing.
+  assert.deepEqual(
+    { ...cartCookieWrites().at(-1) },
+    { name: CART_COOKIE, value: 'deleted', maxAge: 0, httpOnly: true, path: '/' },
+  );
 });
 
 test('a 404 about something else keeps the cart and its cookie', async () => {

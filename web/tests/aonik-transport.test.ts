@@ -44,7 +44,7 @@ test('toPence converts Aonik decimals to integer pence', () => {
 });
 
 test('toPence rounds half a penny away from zero, through float error', () => {
-  // Each of these is x.xx49999… once multiplied in binary floating point.
+  // 1.005 and 1.255 land on x.x49999… once multiplied in binary floating point.
   assert.equal(toPence(1.005), 101);
   assert.equal(toPence(1.255), 126);
   assert.equal(toPence(2.345), 235);
@@ -165,6 +165,23 @@ test('the boot-time check fails a half-configured production server at start-up'
 
   await withEnv(
     { NEXT_RUNTIME: 'nodejs', AONIK_API_URL: 'https://aonik.test', AONIK_TENANT_ID: 'tenant-test', NODE_ENV: 'production' },
+    async () => {
+      await assert.doesNotReject(register());
+    },
+  );
+});
+
+test('the boot-time check leaves an explicit demo deployment alone', async () => {
+  // As .env.example ships: demo, with a URL but no tenant. It never reads the
+  // connection, so it must start.
+  await withEnv(
+    {
+      NEXT_RUNTIME: 'nodejs',
+      AONIK_DATA_MODE: 'demo',
+      AONIK_API_URL: 'https://aonik.test',
+      AONIK_TENANT_ID: undefined,
+      NODE_ENV: 'production',
+    },
     async () => {
       await assert.doesNotReject(register());
     },

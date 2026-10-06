@@ -106,14 +106,35 @@ export async function writeSession(session: CustomerSession): Promise<void> {
   });
 }
 
+/**
+ * Next seals the cookie store during a Server Component render, and `set` throws
+ * this. Matched on the message because Next exports no class or name for it.
+ */
+function isReadOnlyCookieStore(error: unknown): boolean {
+  return error instanceof Error && error.message.startsWith('Cookies can only be modified');
+}
+
+/**
+ * Drops the session cookie.
+ *
+ * A render that finds the session dead — `/account/orders` with a token Aonik
+ * has revoked — cannot write cookies, but must still become the signed-out
+ * state rather than an error page. There the stale cookie is left for the next
+ * sign-in, sign-out or route handler to replace. Wherever cookies ARE writable,
+ * a failure is real and propagates.
+ */
 export async function clearSession(): Promise<void> {
-  (await cookies()).set(SESSION_COOKIE, 'deleted', {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    path: '/',
-    maxAge: 0,
-  });
+  try {
+    (await cookies()).set(SESSION_COOKIE, 'deleted', {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: 0,
+    });
+  } catch (error) {
+    if (!isReadOnlyCookieStore(error)) throw error;
+  }
 }
 
 /** What a page may know about the session. Deliberately carries no token. */
