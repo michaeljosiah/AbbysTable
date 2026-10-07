@@ -9,11 +9,18 @@ import type { Dish } from '@/lib/aonik/types';
 import { useCart } from '@/lib/cart/CartProvider';
 
 import { DishPersonaliser } from './DishPersonaliser';
+import { StandardsLink } from './StandardsLink';
+import { useDishReturn } from './useDishReturn';
 import styles from './DishOrderPanel.module.css';
 
 /**
  * Joins the personaliser to the cart: owns the current choice so "Add this dish
  * to your box" can write a complete line, then hands off to Step 1.
+ *
+ * It also holds both dish-side ends of the Our Standards round trip
+ * (`lib/dish-return.ts`), because it is what knows the current choice: "See
+ * our standards" records the whole selection, and on a genuine return
+ * `useDishReturn` hands it back for the personaliser to restore.
  */
 interface DishOrderPanelProps {
   dish: Dish;
@@ -22,6 +29,8 @@ interface DishOrderPanelProps {
 
 interface Choice {
   personalisation?: PersonalisationSelection;
+  /** The whole selection while personalising; undefined as Abby designed it. */
+  complete?: PersonalisationSelection;
   surchargePence: number | undefined;
 }
 
@@ -31,6 +40,10 @@ export function DishOrderPanel({ dish, optionGroups }: DishOrderPanelProps) {
   const [choice, setChoice] = useState<Choice>({ surchargePence: 0 });
 
   const handleChange = useCallback((next: Choice) => setChoice(next), []);
+  const { selection: restoredSelection, discard: discardReturn } = useDishReturn(
+    dish.slug,
+    optionGroups,
+  );
 
   const addToBox = async () => {
     if (pending) return;
@@ -58,8 +71,16 @@ export function DishOrderPanel({ dish, optionGroups }: DishOrderPanelProps) {
 
   return (
     <>
+      <StandardsLink slug={dish.slug} selection={choice.complete} />
+
       {hasOptionChoices(optionGroups) ? (
-        <DishPersonaliser dish={dish} optionGroups={optionGroups} onChange={handleChange} />
+        <DishPersonaliser
+          dish={dish}
+          optionGroups={optionGroups}
+          onChange={handleChange}
+          onEdit={discardReturn}
+          restoredSelection={restoredSelection}
+        />
       ) : null}
 
       <button type="button" className={styles.cta} onClick={addToBox} disabled={pending}>
