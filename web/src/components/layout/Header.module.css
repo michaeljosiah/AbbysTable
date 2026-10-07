@@ -25,6 +25,13 @@
   transform: translateY(-100%);
 }
 
+/* Keyboard focus arriving in a hidden header shows it at once, in CSS: the
+   browser scrolls a focused element into view before React can reveal the
+   header, and a still-translated header would drag the page up with it. */
+.header[data-hidden]:has(:focus-visible) {
+  transform: none;
+}
+
 .row {
   display: grid;
   grid-template-columns: 44px 1fr auto;

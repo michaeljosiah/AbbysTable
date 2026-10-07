@@ -19,8 +19,9 @@
  * measures markers may still want to look again.
  *
  * KEYBOARD focus moving into the header while the page reads "down" turns it to
- * "not down" (a pointer click that leaves focus there does not): the header comes back for the keyboard user, and the bar — which
- * follows the same direction — steps aside for it.
+ * "not down" (a pointer click that leaves focus there does not): the header
+ * comes back for the keyboard user, and the bar — which follows the same
+ * direction — steps aside for it.
  */
 
 import {

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { unstable_rethrow } from 'next/navigation';
 
 import { Eyebrow, SectionHeading } from '@/components/ui';
 import { formatOrderDate, listMyOrders, ORDERS_PAGE_SIZE } from '@/lib/aonik/orders';
@@ -114,6 +115,9 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
     try {
       historyPage = await listMyOrders(requestedPage, ORDERS_PAGE_SIZE);
     } catch (error) {
+      // Next's own control flow (redirect, notFound, dynamic bail-out) is
+      // never an outage.
+      unstable_rethrow(error);
       // A session that died between the cookie check and the call lands here.
       // Anything else is an outage: still a page with Sign out on it, since
       // this is the only place the site offers it (a shared computer must

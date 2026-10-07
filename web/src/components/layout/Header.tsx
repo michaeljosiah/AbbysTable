@@ -223,8 +223,11 @@ function useHeaderHidden(
     const onFocus = (event: FocusEvent) => {
       const header = headerRef.current;
       if (!header || !(event.target instanceof Node) || !header.contains(event.target)) return;
-      const keyboard = event.type === 'focusin' && event.target instanceof Element && isKeyboardFocused(event.target);
-      if (keyboard && desktop.matches) desk = { hidden: false, turn: readPageScroll()?.y ?? window.scrollY };
+      const keyboard =
+        event.type === 'focusin' && event.target instanceof Element && isKeyboardFocused(event.target);
+      if (keyboard && desktop.matches) {
+        desk = { hidden: false, turn: readPageScroll()?.y ?? window.scrollY };
+      }
       recheck();
     };
 
@@ -248,6 +251,16 @@ function useHeaderHidden(
     document.addEventListener('focusout', onFocus);
     document.addEventListener('click', onClick, true);
     window.addEventListener('hashchange', onHashChange);
+    // The customer taking over the scroll ends a jump's hold: wheeling or
+    // swiping on looks exactly like a jump still in motion. (The keydown for
+    // Enter on a link fires before its click, so a keyboard jump still holds.)
+    const endJump = () => {
+      jumpUntil = 0;
+    };
+    const userScrollInput = { capture: true, passive: true } as const;
+    window.addEventListener('wheel', endJump, userScrollInput);
+    window.addEventListener('touchstart', endJump, userScrollInput);
+    window.addEventListener('keydown', endJump, true);
     desktop.addEventListener('change', recheck);
     recheck();
 
@@ -258,6 +271,9 @@ function useHeaderHidden(
       document.removeEventListener('focusout', onFocus);
       document.removeEventListener('click', onClick, true);
       window.removeEventListener('hashchange', onHashChange);
+      window.removeEventListener('wheel', endJump, userScrollInput);
+      window.removeEventListener('touchstart', endJump, userScrollInput);
+      window.removeEventListener('keydown', endJump, true);
       desktop.removeEventListener('change', recheck);
     };
   }, [headerRef]);
