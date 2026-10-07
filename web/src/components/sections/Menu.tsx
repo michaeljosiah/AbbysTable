@@ -1,9 +1,8 @@
 'use client';
 
-import Image from 'next/image';
+import Link from 'next/link';
 import { useCallback, useEffect, useRef } from 'react';
 
-import { Button, Eyebrow, SectionHeading } from '@/components/ui';
 import type { Dish } from '@/lib/aonik/types';
 
 import { DishCard } from './DishCard';
@@ -17,13 +16,18 @@ interface MenuProps {
 }
 
 /**
- * The dishes rail. The dishes are resolved on the server and handed down, so
- * the list is in the initial HTML.
+ * "A taste of the table" — the homepage's dish rail (Homepage v2, approved).
+ * The dishes are the tenant's featured collection, resolved on the server and
+ * handed down, so the list is in the initial HTML; nothing about a dish is
+ * written here.
  *
- * There is no filter row: the 2026 template dropped it, showing one curated
- * rail and sending anyone who wants to browse to /menu. (The template still
- * carries `.at-filters` styles and builds a `pills` array in its script, but
- * never renders either — dead code, like its unused basket button.)
+ * The rail is full-bleed so the next card peeks in at the edge, but its first
+ * card starts on the page's content line: the gutter on a phone, and the 1280
+ * grid line on desktop — exactly where the How it works clip above starts.
+ *
+ * The bar under it is a progress INDICATOR, not a control: it reports where
+ * the rail is and nothing else. Navigation is the rail itself — swipe, drag,
+ * trackpad, or Tab through the card links, which scrolls natively.
  */
 export function Menu({ dishes }: MenuProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -31,9 +35,9 @@ export function Menu({ dishes }: MenuProps) {
   const thumbRef = useRef<HTMLSpanElement>(null);
 
   /**
-   * Sizes and positions the thumb to mirror the scroller, the way the design
-   * template does: width tracks the visible fraction, offset tracks progress.
-   * Written imperatively so scrolling does not re-render the whole rail.
+   * Sizes and positions the thumb to mirror the scroller: width tracks the
+   * visible fraction, offset tracks progress. Written imperatively so
+   * scrolling does not re-render the whole rail.
    */
   const syncThumb = useCallback(() => {
     const scroller = scrollerRef.current;
@@ -60,77 +64,38 @@ export function Menu({ dishes }: MenuProps) {
     return () => window.removeEventListener('resize', syncThumb);
   }, [syncThumb, dishes.length]);
 
-  /** Clicking the track jumps the rail to that position. */
-  const handleTrackClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    const scroller = scrollerRef.current;
-    const track = trackRef.current;
-    if (!scroller || !track) return;
-
-    const bounds = track.getBoundingClientRect();
-    const fraction = Math.min(1, Math.max(0, (event.clientX - bounds.left) / bounds.width));
-    const maxScroll = scroller.scrollWidth - scroller.clientWidth;
-    scroller.scrollTo({ left: fraction * maxScroll, behavior: 'smooth' });
-  };
-
   return (
     <section id="menu" className={styles.section}>
-      <div className="band">
-        <div className={styles.divider}>
-          <span className={styles.rule} />
-          <Image
-            src="/assets/floral-mark.png"
-            alt=""
-            width={58}
-            height={58}
-            aria-hidden="true"
-            className={styles.dividerMark}
-          />
-          <span className={styles.rule} />
-        </div>
+      <div className={styles.head}>
+        <h2 className={styles.heading}>A taste of the table</h2>
+        <p className={styles.intro}>
+          A few of Abby’s dishes, from everyday favourites to signature upgrades.
+        </p>
+      </div>
 
-        <div className={styles.intro}>
-          <Eyebrow tone="brass" align="center">
-            What&apos;s on the table?
-          </Eyebrow>
-          <SectionHeading level={1} align="center" className={styles.heading}>
-            A taste of the table
-          </SectionHeading>
-          <p className={styles.introCopy}>
-            A few of Abby&apos;s dishes, from everyday favourites to signature upgrades.
-          </p>
-        </div>
+      <div
+        ref={scrollerRef}
+        onScroll={syncThumb}
+        className={`${styles.scroller} noScrollbar`}
+        role="region"
+        aria-label="Dishes"
+        tabIndex={0}
+      >
+        {dishes.map((dish) => (
+          <div key={dish.id} className={styles.slide}>
+            <DishCard dish={dish} href={`/menu/${dish.slug}`} />
+          </div>
+        ))}
+      </div>
 
-        <div
-          ref={scrollerRef}
-          onScroll={syncThumb}
-          className={`${styles.scroller} noScrollbar`}
-          role="region"
-          aria-label="Dishes"
-          tabIndex={0}
-        >
-          {dishes.map((dish) => (
-            <div key={dish.id} className={styles.slide}>
-              <DishCard dish={dish} href={`/menu/${dish.slug}`} />
-            </div>
-          ))}
-        </div>
+      <div ref={trackRef} className={styles.progressTrack} aria-hidden="true">
+        <span ref={thumbRef} className={styles.progressThumb} />
+      </div>
 
-        {/* Pointer shortcut mirroring the scroller. Hidden from assistive tech:
-            the rail itself is focusable and scrolls with the arrow keys. */}
-        <div
-          ref={trackRef}
-          onClick={handleTrackClick}
-          className={styles.progressTrack}
-          aria-hidden="true"
-        >
-          <span ref={thumbRef} className={styles.progressThumb} />
-        </div>
-
-        <div className={styles.cta}>
-          <Button variant="outline" href="/menu">
-            View the full menu
-          </Button>
-        </div>
+      <div className={styles.ctaWrap}>
+        <Link href="/menu" className={styles.cta}>
+          View the full menu
+        </Link>
       </div>
     </section>
   );

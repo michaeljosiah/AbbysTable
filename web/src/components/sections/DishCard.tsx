@@ -3,8 +3,10 @@ import Link from 'next/link';
 
 import { HeatPips, NutritionTag } from '@/components/ui';
 import type { Dish } from '@/lib/aonik/types';
+import { SIGNATURE_EXPLAINER } from '@/lib/content/marketing';
 import { formatPrice } from '@/lib/format';
 
+import { KeepCompounds } from './KeepTogether';
 import styles from './DishCard.module.css';
 
 /**
@@ -20,9 +22,6 @@ interface DishCardProps {
   /** When set the whole card becomes a link to the dish page. */
   href?: string;
 }
-
-const SIGNATURE_EXPLAINER =
-  "One of Abby's specials. Counts as one of your box dishes — the upgrade is added on top.";
 
 interface Badge {
   label: string;
@@ -106,7 +105,11 @@ export function DishCard({ dish, variant = 'rail', href }: DishCardProps) {
       </div>
 
       <div className={styles.body}>
-        <h3 className={styles.title}>{dish.title}</h3>
+        {/* Approved compounds held together at render time, never with a
+            non-breaking hyphen in the data (design/build-handoff.md §3e). */}
+        <h3 className={styles.title}>
+          <KeepCompounds text={dish.title} />
+        </h3>
 
         {dish.parts ? (
           <>
@@ -115,7 +118,9 @@ export function DishCard({ dish, variant = 'rail', href }: DishCardProps) {
               <span className={styles.partsDiamond}>◆</span>
               <span className={styles.partsRule} />
             </span>
-            <p className={styles.parts}>{dish.parts}</p>
+            <p className={styles.parts}>
+              <KeepCompounds text={dish.parts} />
+            </p>
           </>
         ) : null}
 
@@ -123,7 +128,7 @@ export function DishCard({ dish, variant = 'rail', href }: DishCardProps) {
 
         <div className={styles.facts}>
           <span className={styles.heat}>
-            <HeatPips heat={dish.heat} />
+            <HeatPips heat={dish.heat} showLabel={variant !== 'rail'} />
             {/* Hairline between the heat and the macros. Homepage only: the
                 menu grid's card sets these side by side with no rule. */}
             {variant === 'rail' ? <span className={styles.heatRule} aria-hidden="true" /> : null}

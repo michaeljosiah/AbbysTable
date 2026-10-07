@@ -311,6 +311,54 @@
   }
 }
 
+/* ---- Homepage rail (Homepage v2) ----------------------------------------------
+   The homepage card's own sizes, scoped to the rail so the /menu grid card is
+   untouched (Menu Landing v3 is #21). Below 1024 the description is off — it
+   materially lengthens every card while browsing a taster, and display: none
+   takes it out of the accessibility tree too, so nothing is announced that is
+   not seen. The menu shows it at every width: that is where people choose. */
+
+.card[data-variant='rail'] .title {
+  font-size: 24px;
+}
+
+.card[data-variant='rail'] .description {
+  display: none;
+}
+
+/* Tight gaps and .06em tracking (the eyebrow's .16em reads loose in a data
+   row), so heat, protein and fibre hold ONE line on a 320px card — tightened
+   spacing, never smaller type. */
+.card[data-variant='rail'] .facts {
+  gap: 8px 10px;
+}
+
+.card[data-variant='rail'] .heat {
+  gap: 10px;
+}
+
+/* The pips themselves (HeatPips' labelled image), 3px apart as the design
+   sets them: at 4px the row is 226.4px on a 226px card and fibre wraps. */
+.card[data-variant='rail'] .heat [role='img'] {
+  gap: 3px;
+}
+
+.card[data-variant='rail'] .facts > * {
+  letter-spacing: 0.06em;
+}
+
+@media (min-width: 1024px) {
+  .card[data-variant='rail'] .title {
+    font-size: 26px;
+  }
+
+  .card[data-variant='rail'] .description {
+    display: -webkit-box;
+    font-size: 14.5px;
+    line-height: 1.5;
+  }
+}
+
 .facts {
   display: flex;
   flex-wrap: wrap;

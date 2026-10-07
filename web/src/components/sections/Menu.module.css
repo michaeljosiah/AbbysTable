@@ -1,85 +1,78 @@
+/* ===========================================================================
+   A taste of the table — design/Abby's Table - Homepage v2.dc.html (approved)
+   ---------------------------------------------------------------------------
+   Mobile-first; 640 and 1024 are min-width only. Same cream as How it works:
+   the two bands' paddings make one intentional gap between them.
+   =========================================================================== */
+
 .section {
-  background: var(--surface-bright);
-  padding: 24px 0 88px;
+  background: var(--surface-page);
+  padding: 34px 0 48px;
 }
 
-/* ---- Floral divider --------------------------------------------------------- */
+/* ---- Heading and intro, on the 1280 shell ---- */
 
-.divider {
-  display: flex;
-  align-items: center;
-  gap: 30px;
-  max-width: 900px;
-  margin: 0 auto 44px;
+.head,
+.ctaWrap {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 22px;
 }
 
-.rule {
-  flex: 1;
-  height: 1px;
-  background: var(--border-light);
+.heading {
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: clamp(30px, 8.6vw, 40px);
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  color: var(--text-heading);
+  text-align: center;
+  text-wrap: pretty;
 }
-
-.dividerMark {
-  flex: 0 0 auto;
-  height: 58px;
-  width: auto;
-}
-
-/* ---- Intro ------------------------------------------------------------------ */
 
 .intro {
-  text-align: center;
-}
-
-.intro .heading {
-  margin-top: 10px;
-}
-
-.introCopy {
-  margin: 14px auto 0;
   max-width: 520px;
-  font-size: var(--body-md);
-  line-height: var(--line-body);
+  margin: 16px auto 0;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  line-height: 1.5;
   color: var(--text-body);
+  text-align: center;
+  text-wrap: pretty;
 }
 
-/* ---- Carousel --------------------------------------------------------------- */
+/* ---- The rail: full-bleed, padded to the content line ----
+   The 12px top padding keeps a lifted card's shadow from being clipped. */
 
-/*
- * The 44px below the intro is the template's, minus the 12px the scroller
- * pads itself by so a lifted card's shadow is not clipped — the template gets
- * the same number by letting a negative margin collapse into its wrapper.
- */
 .scroller {
   display: flex;
-  gap: var(--space-6);
+  gap: 18px;
   overflow-x: auto;
-  margin-top: 32px;
-  padding-top: var(--space-3);
-  padding-bottom: 14px;
+  margin-top: 36px;
+  padding: 12px 22px 14px;
   scroll-snap-type: x proximity;
+  scroll-padding-left: 22px;
 }
 
 .slide {
+  position: relative;
   flex: 0 0 auto;
   display: flex;
   scroll-snap-align: start;
 }
 
-/* ---- Scroll progress -------------------------------------------------------- */
+/* ---- Progress indicator ---- */
 
 .progressTrack {
   position: relative;
   width: min(240px, 62%);
   height: 3px;
-  margin: 30px auto 0;
+  margin: 24px auto 0;
   border-radius: 3px;
   background: var(--sand-2);
-  cursor: pointer;
 }
 
-/* Width and offset are set imperatively from the scroller; the value here is
-   only what renders before hydration. */
+/* Width and offset are set from the scroller; this is the pre-hydration value. */
 .progressThumb {
   position: absolute;
   top: 0;
@@ -91,46 +84,96 @@
   transition: transform 0.1s linear, width 0.18s ease;
 }
 
-/* ---- Section CTA ------------------------------------------------------------ */
+/* ---- Section CTA ----
+   52px at every width; full width inside the gutters on a phone, intrinsic
+   and centred from 640. */
 
-.cta {
+.ctaWrap {
   display: flex;
-  align-items: center;
   justify-content: center;
-  margin-top: 44px;
+  margin-top: 34px;
 }
 
-@media (max-width: 860px) {
+.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 34px;
+  border: var(--border-hairline) solid var(--green-forest);
+  border-radius: var(--radius-pill);
+  color: var(--text-heading);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.cta:hover {
+  background: var(--green-forest);
+  color: var(--cream);
+}
+
+.cta:active {
+  filter: brightness(0.94);
+}
+
+.cta:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+/* ---- 640 ---- */
+
+@media (min-width: 640px) {
   .section {
-    padding: 12px 0 54px;
+    padding-top: 36px;
+  }
+
+  .head,
+  .ctaWrap {
+    padding: 0 34px;
   }
 
   .scroller {
-    gap: 14px;
-    scroll-padding-left: 22px;
+    gap: 24px;
+    padding-left: 34px;
+    padding-right: 34px;
+    scroll-padding-left: 34px;
   }
-}
 
-/* Full-width is a phone treatment; on tablets the CTA goes intrinsic again. */
-@media (min-width: 621px) and (max-width: 1080px) {
-  .cta a[data-variant] {
-    width: auto;
-    min-width: 280px;
-    justify-content: center;
-  }
-}
-
-@media (max-width: 620px) {
   .cta {
-    display: block;
-  }
-
-  .cta a[data-variant] {
-    display: flex;
-    width: 100%;
-    max-width: 360px;
-    margin-inline: auto;
-    justify-content: center;
+    width: auto;
   }
 }
 
+/* ---- 1024 ----
+   The track stays full-bleed so the next card peeks in, but its left padding
+   is the 1280 content line, not the viewport edge. 100%, not 100vw: 100vw
+   includes the scrollbar and would shift the first card off the grid. */
+
+@media (min-width: 1024px) {
+  .section {
+    padding: 36px 0 56px;
+  }
+
+  .head,
+  .ctaWrap {
+    padding: 0 48px;
+  }
+
+  .heading {
+    font-size: 48px;
+  }
+
+  .scroller {
+    gap: 32px;
+    padding-left: max(48px, calc((100% - var(--content-max)) / 2 + 48px));
+    padding-right: 48px;
+    scroll-padding-left: max(48px, calc((100% - var(--content-max)) / 2 + 48px));
+  }
+}

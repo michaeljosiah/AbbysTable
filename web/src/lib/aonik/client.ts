@@ -542,21 +542,18 @@ export async function getAonikClient(): Promise<AonikClient> {
 }
 
 /**
- * Resolves everything the homepage renders in one concurrent pass.
+ * Resolves the homepage's catalogue data: the dish rail.
  *
  * The rail is the `featured` COLLECTION in curated rank order — membership is
  * the tenant's editorial decision, not a flag this storefront derives.
+ *
+ * Nothing else: the v2 homepage has no boxes promo to price and never shows a
+ * delivery date, and its box plan is read with the purchase bar's data
+ * (`getPurchaseBarData`), so the page asks for the plan once.
  */
 export async function getHomepageData(): Promise<HomepageData> {
   const client = await getAonikClient();
-
-  const [dishes, boxes, delivery] = await Promise.all([
-    client.getFeaturedDishes(),
-    client.getBoxOffers(),
-    client.getDeliveryWindow(),
-  ]);
-
-  return { dishes, boxes, delivery };
+  return { dishes: await client.getFeaturedDishes() };
 }
 
 /** How many "You might also like" cards a dish page shows. */
