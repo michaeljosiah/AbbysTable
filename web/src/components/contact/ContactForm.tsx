@@ -43,6 +43,8 @@ interface Attachment {
   name: string;
   size: number;
   type: string;
+  /** With name and size, what tells two photos apart (`addImages`). */
+  lastModified: number;
   url: string;
 }
 
@@ -205,6 +207,9 @@ export function ContactForm({ action }: { action: EnquiryAction }) {
   const update =
     (field: keyof EnquiryDraft) =>
     (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+      // While sending, what was sent is what shows: an edit now would be lost
+      // on success, or sit beside a message that never carried it.
+      if (isPending) return;
       const value = event.target.value;
       setDraft((current) => ({ ...current, [field]: value }));
       // An error clears as soon as its field is being corrected, so it never
@@ -244,12 +249,17 @@ export function ContactForm({ action }: { action: EnquiryAction }) {
   /* ---- Images ---- */
 
   const attach = (files: FileList | null) => {
+    if (isPending) {
+      if (fileRef.current) fileRef.current.value = '';
+      return;
+    }
     const incoming = Array.from(files ?? []).map((file) => ({
       key: -1,
       file,
       name: file.name,
       size: file.size,
       type: file.type,
+      lastModified: file.lastModified,
       url: '',
     }));
     if (incoming.length === 0) return;
@@ -267,6 +277,7 @@ export function ContactForm({ action }: { action: EnquiryAction }) {
   };
 
   const remove = (key: number) => {
+    if (isPending) return;
     const index = attachments.findIndex((attachment) => attachment.key === key);
     if (index === -1) return;
     URL.revokeObjectURL(attachments[index].url);

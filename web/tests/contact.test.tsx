@@ -318,6 +318,8 @@ test('10MB each: exactly 10MB attaches, a byte more is reported by name', () => 
     'big.jpg is larger than 10MB.',
   );
   assert.equal(imageProblem(image('doc.pdf', 'application/pdf')), 'doc.pdf isn’t a JPG, PNG or HEIC.');
+  // An empty photo would show as attached and arrive as nothing.
+  assert.equal(imageProblem(image('blank.jpg', 'image/jpeg', 0)), IMAGE_MESSAGES.empty('blank.jpg'));
 });
 
 test('a pick keeps the valid files, names the invalid ones, and stops at three', () => {
@@ -384,6 +386,17 @@ test('the action re-checks every field and never answers "sent" without an endpo
     );
     assert.equal(tooMany.status, 'invalid');
     assert.equal(tooMany.imageError, IMAGE_MESSAGES.count);
+
+    // An empty file with a name is refused, never dropped and answered "sent";
+    // only the nameless empty part a plain browser post sends for "no file" is ignored.
+    const blank = await sendEnquiryAction(
+      { status: 'idle' },
+      formOf({}, [new File([], 'blank.jpg', { type: 'image/jpeg' })]),
+    );
+    assert.equal(blank.status, 'invalid');
+    assert.equal(blank.imageError, IMAGE_MESSAGES.empty('blank.jpg'));
+    const noFile = await sendEnquiryAction({ status: 'idle' }, formOf({}, [new File([], '')]));
+    assert.equal(noFile.status, 'unavailable', 'the "no file" part is not an attachment');
 
     const valid = await sendEnquiryAction({ status: 'idle' }, formOf({}));
     assert.equal(valid.status, 'unavailable');

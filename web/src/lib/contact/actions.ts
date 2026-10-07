@@ -29,11 +29,15 @@ import {
   type EnquiryState,
 } from './enquiry';
 
-/** A real attachment: the browser posts an empty, nameless part for "no file". */
+/**
+ * The attachments posted. A plain browser post sends an empty, NAMELESS part
+ * for "no file", which is not one; an empty file WITH a name is, and the rules
+ * refuse it rather than the action dropping it and answering "sent".
+ */
 function attachedImages(form: FormData): File[] {
   return form
     .getAll(ENQUIRY_FORM_FIELDS.images)
-    .filter((value): value is File => typeof value !== 'string' && value.size > 0);
+    .filter((value): value is File => typeof value !== 'string' && (value.size > 0 || value.name !== ''));
 }
 
 export async function sendEnquiryAction(

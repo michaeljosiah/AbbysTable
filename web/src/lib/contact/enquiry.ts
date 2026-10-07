@@ -215,6 +215,7 @@ export interface ImageCandidate {
 export const IMAGE_MESSAGES = {
   type: (name: string) => `${name} isn’t a JPG, PNG or HEIC.`,
   size: (name: string) => `${name} is larger than 10MB.`,
+  empty: (name: string) => `${name} is empty.`,
   count: `You can attach up to ${MAX_ENQUIRY_IMAGES} images.`,
 } as const;
 
@@ -234,6 +235,8 @@ export function isAcceptedImageType(file: Pick<ImageCandidate, 'name' | 'type'>)
 /** What is wrong with one file on its own, or null. */
 export function imageProblem(file: ImageCandidate): string | null {
   if (!isAcceptedImageType(file)) return IMAGE_MESSAGES.type(file.name);
+  // Shown as attached but carrying nothing: say so, never send it silently dropped.
+  if (file.size === 0) return IMAGE_MESSAGES.empty(file.name);
   if (file.size > MAX_ENQUIRY_IMAGE_BYTES) return IMAGE_MESSAGES.size(file.name);
   return null;
 }
