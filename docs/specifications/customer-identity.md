@@ -6,7 +6,7 @@ branch: feat/customer-identity
 owner: michaeljosiah
 capabilities: [identity, orders]
 created: 2026-07-22
-updated: 2026-07-22
+updated: 2026-10-07
 ---
 
 # Accounts — register, sign in, adopt the box, my orders
@@ -111,6 +111,13 @@ IdP than its host's. Per-tenant federated IdP is intentionally deferred." AbbysT
 therefore cannot enable Google by configuring its own tenant; it depends on the deployment's
 Keycloak having Google brokering configured.
 
+Both actions SHALL check the email's shape before calling Aonik, in time linear in the input
+(`isEmailAddress`, `src/lib/email.ts`): at most 254 characters (the SMTP limit), exactly one `@`
+with something before it, no whitespace, and a domain with something on both sides of its last
+dot. A form field can carry up to a server action's 1MB body, so the check SHALL NOT use a
+pattern that backtracks (the earlier `/^[^\s@]+@[^\s@]+\.[^\s@]+$/` held the event loop for
+seconds per 80k characters). Whether the mailbox exists stays Aonik's business.
+
 The reset-password page is deferred (the platform endpoint exists; the page does not) —
 tracked as a follow-up task, not a scenario.
 
@@ -118,6 +125,12 @@ tracked as a follow-up task, not a scenario.
 - **WHEN** a new customer submits valid registration details
 - **THEN** the server action registers, then immediately performs the token exchange
 - **AND** the customer lands signed in (session cookie set) with no second form
+
+#### Scenario: A hostile email is refused at once
+- **WHEN** either action receives an email over 254 characters, or one shaped to make a
+  backtracking pattern stall (`a@x.x.….x.@`)
+- **THEN** it answers "Enter a valid email address." without calling Aonik
+- **AND** the check's cost grows linearly with the input, never quadratically
 
 #### Scenario: Credentials never reach the browser's world
 - **WHEN** either form submits
@@ -269,6 +282,7 @@ if Aonik reshapes them without a spec change, this is where it will break first.
 - [x] Cart handlers: bearer-first authorization (token only when the cookie still holds one)
 - [x] `/account/orders` + `/account/orders/[orderId]` pages + header account menu
 - [x] Confirmation page link-through (from `review-checkout`) once signed in
+- [x] Email shape checked in linear time, capped at 254 characters (`src/lib/email.ts`)
 - [ ] Follow-up (deferred): reset-password page; social federation redirect flow
 
 ### Implementation notes (2026-07-22)
@@ -304,7 +318,8 @@ one that keeps Aonik's no-existence-oracle promise: it never speculates about wh
 something exists, only that we cannot show it.
 
 ### Testing
-- Unit: session cookie encode/decode + expiry math; adoption outcome router (200/404/Z4);
+- Unit: `tests/email.test.ts` (accepted and refused shapes, the 254 boundary, a 1MB hostile
+  input in linear time); session cookie encode/decode + expiry math; adoption outcome router (200/404/Z4);
   order DTO mappers (paged envelope, detail with selections).
 - Integration: register→auto-login→adopt happy path against mocked Aonik (cookie
   transitions asserted: token dropped, session set); login with existing party lists only
