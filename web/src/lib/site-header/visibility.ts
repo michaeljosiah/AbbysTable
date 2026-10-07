@@ -28,6 +28,7 @@
 
 import {
   ALLERGENS_ITEM,
+  CONTACT_ITEM,
   DELIVERY_FAQS_ITEM,
   HOW_IT_WORKS_ITEM,
   MENU_ITEM,
@@ -57,9 +58,9 @@ export const ANCHOR_JUMP_TAIL_MS = 150;
  * The routes whose desktop header auto-hides — the design's opted-in list
  * (build-handoff §3v): Homepage, Menu, How it works, Gifting, Private Table,
  * Standards, Abby's Story, Delivery & FAQs, Contact. Only the BUILT ones are
- * named: Gifting (#26), Private Table (#25) and Contact (#24) add their own
- * route here when they land. Listing an unbuilt path would give its 404 the
- * marketing behaviour, and error pages are on the "never" list.
+ * named: Gifting (#26) and Private Table (#25) add their own route here when
+ * they land. Listing an unbuilt path would give its 404 the marketing
+ * behaviour, and error pages are on the "never" list.
  *
  * Exact paths: `/menu` is here, a dish page (`/menu/<slug>`) is not.
  */
@@ -69,6 +70,7 @@ export const DESKTOP_AUTO_HIDE_PATHS: readonly string[] = [
   HOW_IT_WORKS_ITEM.href,
   OUR_STORY_ITEM.href,
   STANDARDS_ITEM.href,
+  CONTACT_ITEM.href,
   DELIVERY_FAQS_ITEM.href,
 ];
 

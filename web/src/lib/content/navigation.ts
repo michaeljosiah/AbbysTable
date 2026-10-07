@@ -69,16 +69,14 @@ export const GIFTING_ITEM: NavItem = { label: 'Gifting', href: '/gifting' };
 export const PRIVATE_TABLE_ITEM: NavItem = { label: 'Private Table', href: '/#private' };
 
 /**
- * Contact us (#24, `/contact`). Designed but not built, so it resolves to the
- * site footer (which carries `id="contact"` while anything points here) rather
- * than to a route that would 404. EVERY "contact us" in the site reads this —
- * the chrome, checkout's help line, Log in's "Forgotten it?", the confirmation
- * and order pages, the dish allergen fallback, the Allergens page and the legal
- * documents — and it is the ONLY `/#contact` in `web/src` (FR-21, pinned by
- * `tests/information-links.test.ts`). When the page lands, this one line
- * becomes `'/contact'`, they all follow, and the footer's id can go.
+ * Contact us (#24). EVERY "contact us" in the site reads this — the chrome,
+ * checkout's help line, Log in's "Forgotten it?", the confirmation and order
+ * pages, the dish allergen fallback, the Allergens page and the legal
+ * documents — so none is ever written as a literal (FR-21, pinned by
+ * `tests/information-links.test.ts`). It went to the site footer until the
+ * page was built; nothing points there now.
  */
-export const CONTACT_HREF: string = '/#contact';
+export const CONTACT_HREF: string = '/contact';
 
 /**
  * Delivery & FAQs (#23) — its page. Every Delivery & FAQs link in the site

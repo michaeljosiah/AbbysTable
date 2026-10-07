@@ -1,10 +1,10 @@
 ---
 spec_id: SPEC-2026-10-07-marketing-pages
-title: Marketing pages — Homepage v2, How It Works, Our Standards, Abby's Story, Allergens, legal
+title: Marketing pages — Homepage v2, How It Works, Our Standards, Abby's Story, Allergens, legal, Contact
 status: approved
 branch: feat/marketing-pages
 owner: michaeljosiah
-capabilities: [marketing-pages, homepage, legal-pages]
+capabilities: [marketing-pages, homepage, legal-pages, contact-page]
 created: 2026-10-07
 updated: 2026-10-07
 ---
@@ -15,10 +15,10 @@ updated: 2026-10-07
 > requirements for built pages describe what `web/` does on `main` at 213ee0b, read from the
 > source. Implemented: How It Works (#16, PR #55), Our Standards and the Back to dish round trip
 > (#17, PR #54), Abby's Story (#18, PR #52), Allergens (#19, PR #49), Privacy Policy and Terms of
-> Sale (#20, PR #56), and Homepage v2 (#15, PR #59), specified from the issue and
-> `design/Abby's Table - Homepage v2.dc.html`. Where an issue and `design/` disagree, the
-> design wins and the requirement says so. Header, drawer, footer, cookie consent, the purchase
-> bar's mechanics and the status pages are in `SPEC-2026-10-07-site-chrome-and-consent`.
+> Sale (#20, PR #56), Homepage v2 (#15, PR #59) and Contact (#24; its form waits on aonik#356) —
+> the last two specified from their issues and `design/` page files. Where an issue and `design/`
+> disagree, the design wins and the requirement says so. Header, drawer, footer, cookie consent,
+> the purchase bar's mechanics and the status pages are in `SPEC-2026-10-07-site-chrome-and-consent`.
 
 ## Why
 
@@ -40,6 +40,8 @@ Depends on: `SPEC-2026-07-22-catalog-browse` (dish records, the box plan),
 - ADDED marketing-pages — `/how-it-works` (FR-14), `/standards` and its Back to dish round trip
   (FR-15, FR-16), `/our-story` (FR-17)
 - ADDED legal-pages — `/allergens` (FR-18), `/privacy` and `/terms-of-sale` (FR-19, FR-20)
+- ADDED contact-page — `/contact`: one grid, details and hours from configuration, the message
+  form, and never a false "sent" (FR-21–FR-24)
 
 ---
 
@@ -125,15 +127,14 @@ pages.
 `capability: marketing-pages` · `delta: ADDED (feat/marketing-pages)`
 
 Every internal link SHALL resolve to a route that exists in `web/`. A destination whose page is not
-built SHALL point at the closest real destination — today `/#contact`, the footer, which carries
-`id="contact"` — never at a URL that would 404, and SHALL be repointed in the change that builds
-the page (#8). Internal links go through `next/link` (`Button` and `NavLink` route on `href`); the
+built SHALL point at the closest real destination — today Delivery & FAQs takes `/contact` — never
+at a URL that would 404, and SHALL be repointed in the change that builds the page (#8). Internal links go through `next/link` (`Button` and `NavLink` route on `href`); the
 500 page's plain `<a>` links are the one exception. Links SHALL be real anchors, so that
 open-in-new-tab and modified clicks work without JavaScript.
 
-#### Scenario: Contact is not built yet
-- **WHEN** a customer follows Allergens' "Contact us" while `/contact` does not exist
-- **THEN** they land on `/#contact`, the footer
+#### Scenario: Delivery & FAQs is not built yet
+- **WHEN** a customer follows Allergens' "Browse our FAQs" while `/delivery-and-faqs` does not exist
+- **THEN** they land on `/contact`
 - **AND** the link never answers 404
 
 ### Requirement: FR-06 Imagery is placeholder until #38
@@ -163,9 +164,10 @@ stop points (mechanics: site-chrome spec, FR-15–FR-17).
 | Our Standards | `MobilePurchaseBar` | hero "See what goes in" | closing CTA band, then footer |
 | Abby's Story | none | — | — |
 | Allergens, Privacy, Terms | none | — | — |
+| Contact | none | — | — |
 
-`/menu` and the dish pages also carry one (`SPEC-2026-07-22-catalog-browse`); Gifting, Delivery &
-FAQs and Contact will carry none, and Private Table v2 (#25) will carry its waitlist bar.
+`/menu` and the dish pages also carry one (`SPEC-2026-07-22-catalog-browse`); Gifting and Delivery &
+FAQs will carry none, and Private Table v2 (#25) will carry its waitlist bar.
 
 #### Scenario: The founder narrative is not a sales page
 - **WHEN** a customer scrolls anywhere on `/our-story` on a phone
@@ -397,6 +399,97 @@ The checkout return ("← Back to checkout") is site-chrome FR-22.
 - **WHEN** a customer follows an emailed `/terms-of-sale#s30`
 - **THEN** clause 30 is shown and the address bar reads its slug
 
+### Requirement: FR-21 Contact page, one grid
+`capability: contact-page` · `delta: ADDED (feat/marketing-pages)`
+
+`/contact` SHALL render `Abby's Table - Contact Us.dc.html` verbatim (FR-01): the h1 "Contact us",
+"Choose the way you'd prefer to get in touch." and the lede, then ONE 12-column grid whose DOM
+order is the phone order — WhatsApp (the highlighted card, `--sage-tint`), Email, a "Send a
+message" jump to `#send` (phone layout only, and only while the form is shown), Phone, the
+opening-hours block, "Looking for something specific?" (phone layout only), FAQs, the Private
+Table panel, "Send us a message". One column on a phone, two cards to a row from 640; from 1024
+every cell is placed: the form in columns 1–8 spanning the sidebar's rows, and the hours block at
+the top of the sidebar (9–12) — the SAME element that sits under the Phone card on a phone, moved
+by CSS alone, never duplicated or reparented. The cards go 4-up only from 1280 (the design's
+content exception); while there is no FAQs card the three are 3-up from 1024. "See opening hours"
+is a disclosure (`aria-expanded`, `aria-controls`) below 1024 and, from 1024, a jump that focuses
+the sidebar's "Opening hours" heading. No hero and no purchase bar (FR-07); the desktop header
+auto-hides (site-chrome FR-03). The FAQs card SHALL appear only while Delivery & FAQs has its own
+page (it has since #23; before, the card would have linked to this one) and the Private Table
+panel only once its waitlist
+exists (`PRIVATE_TABLE_WAITLIST_HREF`, #25), never a "Join the waitlist" with nowhere to go.
+
+#### Scenario: The hours move, the markup does not
+- **WHEN** the page is resized from 390px to 1280px
+- **THEN** the hours block moves from under the Phone card to the top of the sidebar
+- **AND** the document holds one hours block throughout
+
+### Requirement: FR-22 Contact details and opening hours from configuration
+`capability: contact-page` · `delta: ADDED (feat/marketing-pages)`
+
+WhatsApp (with its QR), email, phone and the opening hours SHALL come from
+`src/lib/content/contact.ts` (`WHATSAPP_CONTACT`, `SUPPORT_CONTACT`, `OPENING_HOURS`), each `null`
+until the owner confirms it (production values from Aonik, aonik#358). A `null` detail SHALL show
+the "to be confirmed" mark and SHALL NOT be a link: no `mailto:`, `tel:` or `wa.me` without a
+value. The design's phone, email, WhatsApp number, hours, bank holidays and placeholder QR SHALL
+NOT be copied into `web/`; the QR shows from 1024 only, unre-encoded, once a real tested code is
+configured. "Open now / Closed" SHALL be computed from configured hours only, in Europe/London (BST
+handled; the London date decides a bank holiday), honouring closed days, bank holidays and
+exceptional closures — in the browser, never on the server, and re-checked as each minute turns.
+With no hours there SHALL be no status. Words carry the state, never colour alone, and the
+printed table is derived from the same hours (`src/lib/contact/hours.ts`).
+
+#### Scenario: No hours, no status
+- **WHEN** `OPENING_HOURS` is `null`
+- **THEN** neither "Open now" nor "Closed" appears
+- **AND** the hours read "to be confirmed"
+
+#### Scenario: The clocks go forward
+- **WHEN** the line opens 08:30–18:00 on weekdays and it is 07:30 UTC on Monday 30 March 2026
+- **THEN** the status reads "Open now" (08:30 BST)
+
+### Requirement: FR-23 The message form
+`capability: contact-page` · `delta: ADDED (feat/marketing-pages)`
+
+The form SHALL carry, in order: Your name; Email address; What's it about? — a native `<select>`
+with "Choose a subject" and the six subjects in the design's words (An existing order / Placing a
+new order / A dish, ingredients or allergens / Delivery / Gifting / Something else), never Private
+Table; Order number, shown only for "An existing order" and optional; Your message, at least 10
+characters; up to 3 images, JPG, PNG or HEIC (by extension when a HEIC has no MIME type), 10MB
+each, picked with a real "Choose images" button or dropped. Validation is ours (`noValidate`):
+inline, `aria-invalid` + `aria-describedby`, the design's messages, each cleared as its field is
+corrected. A failed submit SHALL move focus to the first error in field order and bring it clear
+of the header. Invalid images are named and the valid ones still attach. Success SHALL replace the
+form, take focus, read "Thank you — your message has been sent." and echo the address; "Send
+another message" returns an empty form. The rules live in `src/lib/contact/enquiry.ts`, shared by
+the form and the server action.
+
+#### Scenario: Focus goes to the first error
+- **WHEN** a customer types a name and submits with a bad email and a nine-character message
+- **THEN** focus moves to Email address, which is in view under the header
+- **AND** the email and message errors are shown, the name's is not
+
+### Requirement: FR-24 Never a false "sent"
+`capability: contact-page` · `delta: ADDED (feat/marketing-pages)`
+
+The form SHALL render only when an enquiry can really be sent: live data and the Aonik enquiry
+endpoint (`ENQUIRY_PATH` in `src/lib/aonik/enquiries.ts`; aonik#356, not built). Until then the
+page keeps "Send us a message" and says "Our message form isn't available yet." — adding "Please
+use one of the ways above to get in touch." when a direct route is configured, and otherwise the
+brand's social accounts (`SOCIAL_LINKS`), so a "contact us" never lands on a dead end — and no jump
+points at the form; demo mode SHALL NOT send or say it has (the newsletter's rule, #6). The server
+action SHALL re-run every rule on what arrived and answer `sent` only after a 2xx from the
+endpoint. Any other outcome keeps every field and image and says "We couldn't send your message
+just now. Everything you've written is still here, so please try again." The request is multipart
+in the contract's field names (§3e), never retried. Every text field has a length cap, enforced by
+the field and again by the action (name 200, email 254, order number 64, message 5,000 characters),
+and the email shape check is linear (`isEmailAddress`), so no field can hold the server.
+
+#### Scenario: No endpoint, no thanks
+- **WHEN** a valid enquiry is posted to the action while `ENQUIRY_PATH` is `null`
+- **THEN** it answers `unavailable`
+- **AND** no request leaves the server
+
 ---
 
 ## Design
@@ -418,6 +511,7 @@ Aonik failures degrade per piece; a marketing page never becomes a 500 because o
 | `/standards` | `app/(site)/standards/page.tsx` | example dish, minimum, return dish |
 | `/our-story` | `app/(site)/our-story/page.tsx` | none |
 | `/allergens` | `app/(site)/allergens/page.tsx` | none |
+| `/contact` | `app/(site)/contact/page.tsx`, `components/contact/*`, `lib/contact/*` | `lib/content/contact.ts`; enquiry endpoint availability |
 | `/privacy`, `/terms-of-sale` | `LegalDocument` + `lib/legal/*` | `COMPANY` |
 
 ### Known gaps — code that contradicts the design or CLAUDE.md today
@@ -433,6 +527,11 @@ first two gaps recorded here, were closed by #15 (PR #59; T6, T9) and are no lon
    them and the code follows the page file.
 3. The demo fixtures still price the box at £95 with a 30-dish maximum until the funnel is
    reconciled (#28); live mode reads the plan.
+4. **Contact follows its design's DOM order, which desktop placement departs from** (FR-21): from
+   1024 the FAQs card is placed before Phone at 1280 and the sidebar's Private Table panel comes
+   before the form in the tab order. The design's own composition; recorded, not changed.
+5. Contact's "Send another message" is `--brass-ink-warm`, not the design's `--brass-ink`, which
+   measures 4.28:1 on the success panel's `--sage` (design/CLAUDE.md, tokens).
 
 > Note on sources: the page behaviour guide §6 says Abby's Story's bar "follows the normal
 > marketing logic"; `design/CLAUDE.md` and the page file have no bar, and they win.
@@ -445,8 +544,9 @@ first two gaps recorded here, were closed by #15 (PR #59; T6, T9) and are no lon
    launch, and does it come from data like the box price or stay as approved copy?
 3. **Gifting before #26.** Homepage v2 has no gifting band, so the nav's current `/#gifting`
    loses its target once #15 lands. Where should Gifting links point until `/gifting` exists?
-4. **Contact and Delivery & FAQs.** Every Contact/FAQ link resolves to `/#contact` until those
-   pages are built; the footer must keep `id="contact"` until then.
+4. **Delivery & FAQs before #23.** Its links resolve to `/contact` until its page lands, so on
+   `/contact` the footer marks both "Delivery & FAQs" and "Contact us" current, and Contact's own
+   FAQs card waits for the page (FR-21).
 5. **"Ready in minutes"** (homepage step 04) is unquantified copy awaiting the real reheat time.
 6. **"Full nutrition shared for every dish"** (homepage Our standards) is approved copy the owner
    confirmed as intended, but it holds only if every dish page publishes full nutrition. If any
@@ -456,6 +556,12 @@ first two gaps recorded here, were closed by #15 (PR #59; T6, T9) and are no lon
    visit to the dish (a new history entry) that restores nothing. Accept that brief window, as
    the JavaScript-off behaviour, or have the inline gate also bind a minimal true-return click
    handler that steps aside once `BackToDish` hydrates?
+8. **Contact's undesigned states.** The failure line and the "form isn't available yet" notice are
+   ours (the design has neither); and should unconfirmed routes stay visible as "to be confirmed"
+   (as the legal pages do) or be left out until confirmed?
+9. **Contact's promises.** "We've sent a copy to …" holds only if aonik#356 sends an
+   acknowledgement email; "within two working days" is an unconfirmed reply time. Spam protection
+   (honeypot, timing or an invisible challenge — no CAPTCHA) is the endpoint's to choose.
 
 ---
 
@@ -472,7 +578,8 @@ first two gaps recorded here, were closed by #15 (PR #59; T6, T9) and are no lon
   - [x] Our standards band (FR-12); founder heading structure (FR-13)
   - [x] Private Table band (FR-13); "Find out more" hidden until #25 (`PRIVATE_TABLE_HREF`)
   - [x] Signature tooltip copy on the shared dish card (FR-11); the separate button is T13
-- [ ] `T7` Repoint `/#contact` placeholders as Contact and Delivery & FAQs land (#8)
+- [x] `T7` Repoint `/#contact` placeholders as Contact and Delivery & FAQs land (#8) — Delivery &
+  FAQs with #23, Contact with #24
 - [ ] `T8` Real photography, company details, legal and food-safety sign-off (#38)
 - [x] `T9` Root metadata to "mainland UK" / "Heat, enjoy, live well" — PR #59
 - [x] `T10` Our Standards' minimum from the storefront plan, the same source as its purchase bar
@@ -484,11 +591,24 @@ first two gaps recorded here, were closed by #15 (PR #59; T6, T9) and are no lon
   — `departDishReturn`, mirrored by the gate; `tests/dish-return.test.ts` runs every record case
   through both and compares what each writes
 - [ ] `T13` The Signature info button as a real button outside the card link (FR-11) (#21)
+- [x] `T14` Contact (#24): the grid, routes, hours and status, the form held back (FR-21–FR-24)
+- [ ] `T15` Wire the enquiry endpoint when aonik#356 ships: set `ENQUIRY_PATH`, reconcile the
+  field names, confirm the acknowledgement email, routing by subject, spam protection and
+  server-side image checks (type sniffing, virus scan, EXIF stripping) (FR-24). Three 10MB
+  images exceed Next's server-action (1MB) and middleware (10MB) body limits: send the form to a
+  route handler (`app/api/enquiries/route.ts`) that streams with its own cap and is left out of the
+  middleware matcher (checking `MAINTENANCE_MODE` itself), or upload images direct to storage —
+  never raise either limit globally
+- [ ] `T16` Contact details, hours, bank holidays and closures from Aonik (aonik#358), and a real,
+  tested WhatsApp QR (FR-22)
 
 ### Testing
 
 - Unit (exists): `tests/how-it-works.test.tsx`, `tests/dish-return.test.ts`,
-  `tests/legal-documents.test.ts`, `tests/legal-pages.test.tsx`, `tests/purchase-bar.test.tsx`.
+  `tests/legal-documents.test.ts`, `tests/legal-pages.test.tsx`, `tests/purchase-bar.test.tsx`,
+  `tests/contact.test.tsx` (FR-21–FR-24: hours across DST, closed days and closures; subjects,
+  validation and images; the action never answering `sent` without an endpoint; the page as
+  configured today and fully configured).
 - Unit (to add with #15): section order; no delivery date on `/`; every homepage figure from the
   plan; no internal `href` on `/` to an unbuilt route.
 - Manual: 320 / 390 / 1024 / 1440 against each page file; keyboard pass of every control.

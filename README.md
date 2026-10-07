@@ -30,6 +30,11 @@ the v2 design in [`design/`](design/) is #9):
   [`web/src/lib/content/company.ts`](web/src/lib/content/company.ts) and print "to be confirmed"
   until set. Opened from checkout's legal line (`?from=checkout`, a new tab), each shows "← Back
   to checkout" above its h1 ([`web/src/lib/legal/checkoutReturn.ts`](web/src/lib/legal/checkoutReturn.ts)).
+- **`/contact`** — Contact us: WhatsApp, email and phone cards, opening hours with an "Open now /
+  Closed" indicator, and the message form, in one 12-column grid. Details and hours come from
+  [`web/src/lib/content/contact.ts`](web/src/lib/content/contact.ts) and print "to be confirmed"
+  until set; the form is held back until Aonik can accept an enquiry (aonik#356). Rules in
+  [`web/src/lib/contact/`](web/src/lib/contact/).
 - **`/delivery-and-faqs`** — the postcode checker (shown only where a coverage lookup exists: the
   demo fixtures today; live waits on Aonik's coverage endpoint) and the FAQs: live search and eight
   topic groups. Prices in the answers come from the storefront config; a served postcode is handed
@@ -147,11 +152,11 @@ standards) · *Information* (Delivery & FAQs, Allergens, Contact us) — accordi
 columns from 1024 — then the wordmark, "Abby x", the four social icons with **@FromAbbysTable** as
 plain text, and the legal strip: © · Privacy Policy | Terms · Cookie preferences.
 
-Gifting (#26), Private Table (#25) and Contact (#24) are not built yet: Gifting stays out of the
-chrome until its page lands, Private Table goes to the homepage band (`/#private`), and Contact to
-the footer — all from one place, `web/src/lib/content/navigation.ts`. Every "contact us" in the
-pages reads `CONTACT_HREF` and every Delivery & FAQs link `DELIVERY_FAQS_HREF` (its page,
-`/delivery-and-faqs`) from there too, so each page's arrival is a one-line change.
+Gifting (#26) and Private Table (#25) are not built yet: Gifting stays out of the chrome until its
+page lands, and Private Table goes to the homepage band (`/#private`) — from one place,
+`web/src/lib/content/navigation.ts`. Every "contact us" in the pages reads `CONTACT_HREF`
+(`/contact`) and every Delivery & FAQs link `DELIVERY_FAQS_HREF` (`/delivery-and-faqs`) from there
+too, so each page's arrival was a one-line change.
 The homepage band's own *Find out more* is separate: it renders once `PRIVATE_TABLE_HREF`
 (`web/src/lib/content/marketing.ts`) is set, when #25 lands.
 
@@ -313,6 +318,7 @@ web/                         the storefront
   src/components/dish/       dish page — personaliser, info panels, related dishes,
                              the shared add-to-box action and the dish's mobile bar
   src/components/legal/      Terms of Sale / Privacy Policy shell, index, copy blocks
+  src/components/contact/    Contact page — the grid, message form, hours disclosure, open/closed
   src/components/purchase-bar/ the mobile purchase bar — band, behaviour, Build a Box / VIEW BOX
   src/lib/aonik/             commerce seam — types, client interface, fixtures
   src/lib/menu/              pure faceting and search logic
@@ -324,6 +330,8 @@ web/                         the storefront
   src/lib/content/           navigation, editorial copy, support contact and company
                              details (unset)
   src/lib/legal/             legal documents' sections, groups and anchor contract
+  src/lib/contact/           Contact form rules and opening hours in UK time (pure), and the
+                             form's server action
   src/lib/status-pages/      generator for the static host pages below
   src/middleware.ts          maintenance mode: MAINTENANCE_MODE=true → 503 for pages and API
   src/styles/tokens.css      design tokens; target is design/ (see #9)

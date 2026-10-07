@@ -22,14 +22,14 @@ import {
  * Information links on real routes (site-chrome spec FR-21, issue #8).
  *
  * Every link to Contact (#24) and Delivery & FAQs (#23) reads ONE constant
- * each in `src/lib/content/navigation.ts`: `CONTACT_HREF` (the site footer,
- * `/#contact`, until Contact is built) and `DELIVERY_FAQS_HREF` (its page,
- * `/delivery-and-faqs`, since #23). Building a page is then a one-line change
- * there — and these tests fail until that line is changed, so a built page is
- * never left behind its placeholder.
+ * each in `src/lib/content/navigation.ts`: `CONTACT_HREF` (`/contact` — the
+ * site footer, `/#contact`, before it) and `DELIVERY_FAQS_HREF`
+ * (`/delivery-and-faqs`). Building a page was a one-line change there — and
+ * these tests fail if a built page is ever left behind its placeholder, or a
+ * placeholder brought back.
  */
 
-/** The interim destination: the site footer. */
+/** Contact's interim destination before #24: the site footer. */
 const FOOTER_ANCHOR = '/#contact';
 
 // `.test-dist/tests` → `web`
@@ -95,9 +95,25 @@ test('Contact and Delivery & FAQs point at their page once it exists, never at a
   }
 });
 
-test('while Contact resolves to the footer, the site footer keeps id="contact"', () => {
-  if (CONTACT_HREF !== FOOTER_ANCHOR) return;
-  assert.match(read(path.join('components', 'layout', 'Footer.tsx')), /<footer id="contact"/);
+test('the footer carries id="contact" only while Contact resolves to it', () => {
+  const footer = read(path.join('components', 'layout', 'Footer.tsx'));
+  if (CONTACT_HREF === FOOTER_ANCHOR) {
+    assert.match(footer, /<footer id="contact"/);
+  } else {
+    // Nothing jumps there any more: a stale anchor would invite a new link to it.
+    assert.doesNotMatch(footer, /id="contact"/);
+  }
+});
+
+test('Contact is built, so nothing links to its old stand-in (#24)', () => {
+  assert.ok(ROUTES.has('/contact'), 'app/(site)/contact/page.tsx');
+  assert.equal(CONTACT_HREF, '/contact');
+  // The Contact page never links to itself: its FAQs card shows only once
+  // Delivery & FAQs has a page of its own (it has, since #23).
+  const page = read(path.join('app', '(site)', 'contact', 'page.tsx'));
+  assert.match(page, /from '@\/lib\/content\/navigation'/);
+  assert.match(page, /faqsHref=\{DELIVERY_FAQS_HREF === CONTACT_HREF \? null : DELIVERY_FAQS_HREF\}/);
+  assert.doesNotMatch(page, /'\/(delivery-and-faqs|contact)'/);
 });
 
 test('the chrome lists read the shared items, so they follow the constants', () => {
@@ -126,7 +142,7 @@ test('the chrome lists read the shared items, so they follow the constants', () 
   assert.equal(STATUS_FOOTER_LINKS[1], CONTACT_ITEM);
 });
 
-test('every information link lands on a built page or the footer anchor', () => {
+test('every information link lands on a built page (or, before #24, the footer anchor)', () => {
   const information = FOOTER_COLUMNS.find((column) => column.heading === 'Information')?.links ?? [];
   for (const link of [...CHECKOUT_FOOTER_LINKS, ...STATUS_FOOTER_LINKS, ...information]) {
     assert.ok(ROUTES.has(link.href) || link.href === FOOTER_ANCHOR, `${link.label} → ${link.href}`);
@@ -135,9 +151,10 @@ test('every information link lands on a built page or the footer anchor', () => 
 });
 
 /*
- * The links written into pages, file by file. Contact and Delivery & FAQs share
- * one value today, so only the source can say WHICH one a link means; each
- * must read the semantically right constant, never a literal.
+ * The links written into pages, file by file. Contact and Delivery & FAQs
+ * shared one value until both pages existed, so only the source can say WHICH
+ * one a link means; each must read the semantically right constant, never a
+ * literal.
  */
 const IN_PAGE_LINKS: Array<{ file: string; contact: number; faqs: number; why: string }> = [
   { file: 'components/auth/LoginForm.tsx', contact: 1, faqs: 0, why: '"Forgotten it?" (open question 10)' },

@@ -29,6 +29,7 @@
     "tests/information-links.test.ts",
     "tests/checkout-legal-return.test.tsx",
     "tests/homepage.test.tsx",
+    "tests/contact.test.tsx",
     "tests/delivery-faqs.test.tsx",
     "tests/email.test.ts",
     "tests/support/*.ts",

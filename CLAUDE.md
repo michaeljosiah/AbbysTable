@@ -38,7 +38,9 @@ Conventions inside `web/` that are easy to get wrong:
   `FilterChip`, `FilterPill`), the `/how-it-works` size picker (`BoxSizePicker`, with
   `BoxSizeProvider`/`BoxSizeLink` sharing the choice with the page's purchase links), the legal
   pages' `LegalNavigation` (index, sheet, Sections/Top pair, scroll-spy) and `CheckoutReturn`
-  ("← Back to checkout"), the mobile purchase bar
+  ("← Back to checkout"), `/contact`'s `ContactForm` (validation, focus, images, the send
+  action's state), `HoursDisclosure` (the Phone card's "See opening hours", one open flag shared
+  with the hours cell) and `OpenNow` (open/closed, computed in the browser), the mobile purchase bar
   (`PurchaseBarShell`, `MobilePurchaseBar`, `DishPurchaseBar`), the dish page's
   `DishOrderProvider`, and Delivery & FAQs' postcode checker (`PostcodeChecker`, with
   `NotifyMeForm`), FAQ search (`FaqSearch`) and each group's `ExpandAllButton` — each for a
@@ -75,9 +77,9 @@ Conventions inside `web/` that are easy to get wrong:
   earliest delivery date. Every chrome destination is defined ONCE in `src/lib/content/navigation.ts`;
   a page that is designed but not built never gets a link that 404s or a dead anchor. Gifting stays
   out of the header, drawer and footer until `/gifting` lands (`GIFTING_LIVE`, #26); Private Table
-  is `/#private` until #25; Contact is `CONTACT_HREF` (the footer, `/#contact` — its only literal in
-  `src`, pinned by `tests/information-links.test.ts`) until #24, and Delivery & FAQs is
-  `DELIVERY_FAQS_HREF` (`/delivery-and-faqs`, #23). Every in-page "contact us" reads those
+  is `/#private` until #25; Contact is `CONTACT_HREF` (`/contact`, #24) and Delivery & FAQs is
+  `DELIVERY_FAQS_HREF` (`/delivery-and-faqs`, #23), pinned by `tests/information-links.test.ts`;
+  no `/#contact` is left in `src`. Every in-page "contact us" reads those
   constants too — never write `/#contact`, `/contact` or `/delivery-and-faqs` in a page.
   What the chrome says (current page, Log in / My Account, GET STARTED / VIEW BOX) and when the
   header hides are React-free in `src/lib/site-header/` (`tests/site-header.test.ts`). The header
@@ -105,6 +107,18 @@ Conventions inside `web/` that are easy to get wrong:
   the legal pages' URL writes and same-document links keep it. Only checkout's legal line (Checkout
   v2, #31 — use `checkoutLegalHref` and `CHECKOUT_LEGAL_LINK`) opens them in a new tab; checkout's
   footer links stay same-tab with no marker.
+- **Contact (#24): `/contact`** (`ContactView`, one 12-column grid — the hours block is ONE cell
+  that CSS moves from under the Phone card to the sidebar; never reparent it with script). The
+  form NEVER fakes success: it renders only when the page gets a real send action, i.e.
+  `enquiriesAvailable()` — live data plus the Aonik enquiry endpoint, `ENQUIRY_PATH` in
+  `src/lib/aonik/enquiries.ts`, `null` until aonik#356 ships; demo mode never sends. Until then the
+  page says the form isn't available (#6's rule). `sendEnquiryAction` re-checks everything and
+  answers `sent` only after a 2xx. Phone, email, WhatsApp (+ QR) and the hours come from
+  `src/lib/content/contact.ts` (all `null` → "to be confirmed", never a mailto:/tel:/wa.me with no
+  value; values from aonik#358 later). Never copy the design's number, email, hours, bank holidays
+  or placeholder QR. "Open now / Closed" is computed in the BROWSER in Europe/London from
+  configured hours only — no hours, no status. Topics, validation, images and the hours rules are
+  React-free in `src/lib/contact/` (`tests/contact.test.tsx`); Private Table is never a topic.
 - **Menu faceting lives in `src/lib/menu/filters.ts`**, deliberately free of React. Change matching
   rules there, not in components.
 - **Delivery & FAQs (#23): never fake an answer.** "We deliver" / "not in your area" come only from

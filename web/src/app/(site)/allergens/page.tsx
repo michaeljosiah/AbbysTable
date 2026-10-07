@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 // "Browse our FAQs" is Delivery & FAQs, as in the design; both "contact us"
-// links are Contact (#24), which follows its page here when it lands.
+// links are Contact.
 import { CONTACT_HREF, DELIVERY_FAQS_HREF, MENU_ITEM } from '@/lib/content/navigation';
 
 import styles from './page.module.css';
