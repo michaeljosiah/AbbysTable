@@ -57,7 +57,8 @@ Conventions inside `web/` that are easy to get wrong:
 - **Mobile purchase bar (#12) is opt-in per page.** A page that carries it renders the bar itself
   (`MobilePurchaseBar` with `getPurchaseBarData()`; the dish page renders `DishPurchaseBar`) and
   marks its own reveal point with `data-purchase-bar-reveal`; anything the bar must not sit over
-  carries `data-purchase-bar-stop` (the footer always does; the homepage's Private Table does).
+  carries `data-purchase-bar-stop` (the footer always does; so do the homepage's Private Table and
+  Standards' closing CTA).
   The rules live React-free in `src/lib/purchase-bar/visibility.ts`. Pages without a bar in the
   design — Abby's Story, Gifting, Delivery & FAQs, Contact, Allergens, legal, checkout, auth —
   simply don't render one. Drawers and phone bottom sheets hold `data-overlay-open` on `<html>`

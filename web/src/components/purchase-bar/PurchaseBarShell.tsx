@@ -10,6 +10,7 @@ import {
   isSuppressed,
   nextDirection,
   REVEAL_ATTR,
+  scrollerView,
   shouldShowBar,
   SITE_HEADER_ATTR,
   STOP_ATTR,
@@ -101,13 +102,14 @@ function useBarVisibility(
     let scroller: Element | null = null;
 
     /** The visible area the markers are measured against, in viewport terms. */
-    const view = () => {
-      if (!scroller?.isConnected) return { top: 0, height: window.innerHeight };
-      const box = scroller.getBoundingClientRect();
-      const top = Math.max(0, box.top + scroller.clientTop);
-      const bottom = Math.min(window.innerHeight, box.top + scroller.clientTop + scroller.clientHeight);
-      return { top, height: Math.max(0, bottom - top) };
-    };
+    const view = () =>
+      scroller?.isConnected
+        ? scrollerView(
+            scroller.getBoundingClientRect().top + scroller.clientTop,
+            scroller.clientHeight,
+            window.innerHeight,
+          )
+        : { top: 0, height: window.innerHeight };
 
     // Queried from the document on every pass, never held: a held node can be
     // a detached one after a re-render, and a detached node has no layout.
@@ -145,7 +147,12 @@ function useBarVisibility(
       if (!(source instanceof Element)) {
         scroller = null;
         y = window.scrollY;
-      } else if (barRef.current && source.contains(barRef.current)) {
+      } else if (
+        barRef.current &&
+        source.contains(barRef.current) &&
+        // A container that only scrolls sideways is not the page moving.
+        source.scrollHeight > source.clientHeight
+      ) {
         scroller = source;
         y = source.scrollTop;
       }

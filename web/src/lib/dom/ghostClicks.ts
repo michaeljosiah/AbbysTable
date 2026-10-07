@@ -14,6 +14,7 @@ export function swallowClicksFor(ms: number): void {
     event.preventDefault();
     event.stopPropagation();
   };
-  document.addEventListener('click', swallow, true);
-  window.setTimeout(() => document.removeEventListener('click', swallow, true), ms);
+  const capture = { capture: true } as const;
+  document.addEventListener('click', swallow, capture);
+  window.setTimeout(() => document.removeEventListener('click', swallow, capture), ms);
 }

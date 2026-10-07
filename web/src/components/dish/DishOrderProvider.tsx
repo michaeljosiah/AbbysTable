@@ -15,7 +15,7 @@ import {
 import type { MappedOptionGroup, PersonalisationSelection } from '@/lib/aonik/map';
 import type { Dish } from '@/lib/aonik/types';
 import { useCart } from '@/lib/cart/CartProvider';
-import type { CartRequestError } from '@/lib/cart/transport';
+import { CartRequestError } from '@/lib/cart/transport';
 import { swallowClicksFor } from '@/lib/dom/ghostClicks';
 import { boxResumeHref } from '@/lib/purchase-bar/activeBox';
 
@@ -47,6 +47,8 @@ interface DishOrderState {
   /** Adds the dish as currently chosen, confirms it, then goes to the box. */
   addToBox: () => Promise<void>;
   pending: boolean;
+  /** Added, and on the way to the box: both buttons ignore taps meanwhile. */
+  handingOff: boolean;
   error: CartRequestError | null;
 }
 
@@ -68,11 +70,15 @@ const HANDOFF_RELEASE_MS = 10_000;
 interface Toast {
   message: string;
   /**
-   * A failure is already announced by the panel's inline alert; the toast then
-   * only shows it to whoever tapped the bar with the panel out of sight.
+   * Already announced by the panel's inline alert (a failure the cart reports
+   * as its `error`): the toast then only shows it to whoever tapped the bar
+   * with the panel out of sight.
    */
-  error: boolean;
+  heardElsewhere: boolean;
 }
+
+/** The cart's own admission rejection: refused before the cart sets an error. */
+const IN_FLIGHT_CODE = 'cart.request_in_flight';
 
 export function DishOrderProvider({
   dish,
@@ -93,9 +99,11 @@ export function DishOrderProvider({
   // set once the add has succeeded: the page is on its way out, and a tap on
   // the still-visible button during a slow route change must not add again.
   const inFlight = useRef(false);
+  const [handingOff, setHandingOff] = useState(false);
+  const handOffTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const flash = useCallback((message: string, error = false) => {
-    setToast({ message, error });
+  const flash = useCallback((message: string, heardElsewhere = false) => {
+    setToast({ message, heardElsewhere });
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(null), TOAST_MS);
   }, []);
@@ -103,6 +111,7 @@ export function DishOrderProvider({
   useEffect(
     () => () => {
       if (toastTimer.current) clearTimeout(toastTimer.current);
+      if (handOffTimer.current) clearTimeout(handOffTimer.current);
     },
     [],
   );
@@ -128,7 +137,8 @@ export function DishOrderProvider({
       // The panel's inline alert carries the failure too; the toast is for
       // whoever tapped the bar with the panel scrolled out of sight.
       const message = cause instanceof Error ? cause.message : 'The box could not be updated.';
-      flash(`${message} Please try again.`, true);
+      const heardElsewhere = !(cause instanceof CartRequestError && cause.code === IN_FLIGHT_CODE);
+      flash(`${message} Please try again.`, heardElsewhere);
       inFlight.current = false;
       return;
     }
@@ -136,17 +146,19 @@ export function DishOrderProvider({
     // Only after the authoritative cart has adopted the line.
     flash('Added to your box');
     swallowClicksFor(GHOST_TAP_MS);
+    setHandingOff(true);
     router.push(boxResumeHref(boxSize));
     // Should the hand-off never land (the customer goes Back mid-route, say),
-    // the buttons come back rather than staying silently dead.
-    window.setTimeout(() => {
+    // the buttons come back rather than staying dead.
+    handOffTimer.current = setTimeout(() => {
       inFlight.current = false;
+      setHandingOff(false);
     }, HANDOFF_RELEASE_MS);
   }, [pending, addLine, dish, choice, flash, router, boxSize]);
 
   const value = useMemo<DishOrderState>(
-    () => ({ dish, optionGroups, choice, setChoice, addToBox, pending, error }),
-    [dish, optionGroups, choice, addToBox, pending, error],
+    () => ({ dish, optionGroups, choice, setChoice, addToBox, pending, handingOff, error }),
+    [dish, optionGroups, choice, addToBox, pending, handingOff, error],
   );
 
   return (
@@ -154,8 +166,8 @@ export function DishOrderProvider({
       {children}
       {/* Always mounted, so the live region exists before it has anything to say. */}
       <div className={styles.toast} role="status" data-show={toast ? '' : undefined}>
-        {/* A failure is seen here but heard once, from the panel's alert. */}
-        {toast?.error ? <span aria-hidden="true">{toast.message}</span> : toast?.message}
+        {/* A failure the panel's alert carries is seen here but heard once, there. */}
+        {toast?.heardElsewhere ? <span aria-hidden="true">{toast.message}</span> : toast?.message}
       </div>
     </DishOrderContext.Provider>
   );

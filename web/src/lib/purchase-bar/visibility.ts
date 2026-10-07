@@ -97,6 +97,22 @@ export function firstStopTop(tops: readonly number[]): number | null {
   return tops.length > 0 ? Math.min(...tops) : null;
 }
 
+/**
+ * The visible area the markers are measured against when an ancestor container
+ * does the scrolling (a host preview, an embedded frame): that container's
+ * client box, clipped to the window, in viewport coordinates. A CTA the
+ * container has clipped counts as passed, and the 75% line is the container's.
+ */
+export function scrollerView(
+  clientTop: number,
+  clientHeight: number,
+  windowHeight: number,
+): { top: number; height: number } {
+  const top = Math.max(0, clientTop);
+  const bottom = Math.min(windowHeight, clientTop + clientHeight);
+  return { top, height: Math.max(0, bottom - top) };
+}
+
 /** Suppressed once the first stop marker's top is above 75% of the viewport. */
 export function isSuppressed(stopTop: number | null, viewportHeight: number): boolean {
   if (stopTop === null) return false;

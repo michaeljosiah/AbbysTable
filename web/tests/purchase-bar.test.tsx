@@ -13,6 +13,7 @@ import { BOX_PRICING_FIXTURE, STOREFRONT_CONFIG_FIXTURE } from '../src/lib/aonik
 import type { StorefrontBoxPlan } from '../src/lib/aonik/types';
 import { CartProvider } from '../src/lib/cart/CartProvider';
 import { holdDocumentFlag, type FlagTarget } from '../src/lib/dom/documentFlag';
+import { swallowClicksFor } from '../src/lib/dom/ghostClicks';
 import {
   activeBoxSummary,
   boxResumeHref,
@@ -27,6 +28,7 @@ import {
   initialDirection,
   isSuppressed,
   nextDirection,
+  scrollerView,
   shouldShowBar,
   type ScrollDirection,
 } from '../src/lib/purchase-bar/visibility';
@@ -358,4 +360,47 @@ test('the shell takes any content — Private Table v2 passes its waitlist CTA (
   );
   assert.match(html, /data-layout="centre"/);
   assert.match(html, />Join the waitlist<\/a>/);
+});
+
+/* ---- Scroll containers and the hand-off ------------------------------------ */
+
+test('an ancestor scroller is measured by its own visible box, clipped to the window', () => {
+  // A host shell whose scroll box starts 100px down: its top is the line, and
+  // 75% is of its height, not the window's.
+  assert.deepEqual(scrollerView(100, 744, 844), { top: 100, height: 744 });
+  // A full-window scroller (body as the scroll box) measures as the viewport does.
+  assert.deepEqual(scrollerView(0, 844, 844), { top: 0, height: 844 });
+  // Taller than the window, or starting above it: only what is on screen counts.
+  assert.deepEqual(scrollerView(-50, 2000, 844), { top: 0, height: 844 });
+});
+
+test('after the hand-off every click is swallowed for the window, then let through', () => {
+  const page = new EventTarget();
+  let release: (() => void) | undefined;
+  const fakeWindow = {
+    setTimeout: (callback: () => void, ms: number) => {
+      assert.equal(ms, 500);
+      release = callback;
+      return 0;
+    },
+  };
+  const globals = globalThis as unknown as Record<string, unknown>;
+  const saved = { document: globals.document, window: globals.window };
+  globals.document = page;
+  globals.window = fakeWindow;
+  try {
+    swallowClicksFor(500);
+    const ghost = new Event('click', { cancelable: true });
+    page.dispatchEvent(ghost);
+    assert.equal(ghost.defaultPrevented, true); // the second tap of a double tap
+
+    assert.ok(release, 'the guard always schedules its own removal');
+    release();
+    const deliberate = new Event('click', { cancelable: true });
+    page.dispatchEvent(deliberate);
+    assert.equal(deliberate.defaultPrevented, false); // a tap after the window acts
+  } finally {
+    globals.document = saved.document;
+    globals.window = saved.window;
+  }
 });

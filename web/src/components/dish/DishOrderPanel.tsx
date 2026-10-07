@@ -19,7 +19,8 @@ import styles from './DishOrderPanel.module.css';
  * `useDishReturn` hands it back for the personaliser to restore.
  */
 export function DishOrderPanel() {
-  const { dish, optionGroups, choice, setChoice, addToBox, pending, error } = useDishOrder();
+  const { dish, optionGroups, choice, setChoice, addToBox, pending, handingOff, error } =
+    useDishOrder();
   const { selection: restoredSelection, discard: discardReturn } = useDishReturn(
     dish.slug,
     optionGroups,
@@ -46,6 +47,7 @@ export function DishOrderPanel() {
         className={styles.cta}
         onClick={addToBox}
         disabled={pending}
+        aria-disabled={handingOff || undefined}
         data-purchase-bar-reveal=""
       >
         Add this dish to your box

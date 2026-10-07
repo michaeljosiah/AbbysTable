@@ -38,9 +38,10 @@ import styles from './page.module.css';
  * dish" (`lib/dish-return.ts`), and validates that dish against the catalogue
  * on the server.
  *
- * Out of scope here, deliberately: the mobile purchase bar and its suppression
- * from the closing CTA through the footer (issue #12 owns the bar), the "↑ Top"
- * control, and the header's desktop auto-hide (the chrome overhaul, #10).
+ * The mobile purchase bar (#12) waits for the hero's "See what goes in" and is
+ * suppressed from the closing CTA through the footer. Out of scope here,
+ * deliberately: the "↑ Top" control, and the header's desktop auto-hide (the
+ * chrome overhaul, #10).
  */
 
 const DESCRIPTION =

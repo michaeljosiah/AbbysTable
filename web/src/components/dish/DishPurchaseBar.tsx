@@ -24,7 +24,7 @@ import { useDishOrder } from './DishOrderProvider';
  * or the chosen options.
  */
 export function DishPurchaseBar() {
-  const { optionGroups, choice, addToBox, pending } = useDishOrder();
+  const { optionGroups, choice, addToBox, pending, handingOff } = useDishOrder();
 
   return (
     <PurchaseBarShell followsDirection={false}>
@@ -39,6 +39,7 @@ export function DishPurchaseBar() {
         className={purchaseBarClasses.cta}
         onClick={addToBox}
         disabled={pending}
+        aria-disabled={handingOff || undefined}
       >
         Add to box
       </button>
