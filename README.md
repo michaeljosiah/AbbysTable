@@ -102,9 +102,11 @@ substantiated before launch (`design/build-handoff.md`, open items).
 
 ## Homepage anatomy
 
-> This is the **original template's** homepage, which `web/` still renders. The v2 homepage in
-> `design/` removed the announcement bar (0), boxes promo (7) and gifting (8) sections; see
-> `design/README.md`.
+> This is the **original template's** homepage, which `web/` still renders between its header and
+> footer. The v2 homepage in `design/` removed the announcement bar (0), boxes promo (7) and gifting
+> (8) sections; see `design/README.md`. The header, drawer and footer (1, 10) are already the v2
+> ones and the announcement bar is gone site-wide (#10) — see "Site chrome" below; the rest of the
+> page is #15.
 
 Ten sections, top to bottom. Anchor ids are the nav targets.
 
@@ -127,14 +129,25 @@ Ten sections, top to bottom. Anchor ids are the nav targets.
 UK-wide** (choose a date; packed chilled, never frozen) → **Heat, eat and live well** (fridge to plate
 in minutes).
 
-**Navigation:** Menu · How it works · Abby's Boxes · Gifting · Private Table · Our Standards ·
-Abby's Story · Contact · Login. Below 1040px this collapses to a burger opening a 286px left drawer,
-and the Order button becomes a compact basket pill.
+### Site chrome (v2 — built, #10)
 
-**Footer columns:** *Shop* (Menu, Gifting, Discovery Box, Private Table) · *Learn* (Abby's Story,
-Our Standards, Journal) · *Information* (Delivery & FAQs, Contact Us, Allergens). Columns collapse to
-accordions on mobile. Newsletter — "Kitchen notes and offers from Abby monthly" — confirms with
-*"Thank you for joining the table."* Socials: Instagram, TikTok, Facebook, X — **@FromAbbysTable**.
+**Header:** wordmark · Menu · How it works · Abby's Story · Gifting (once its page lands) · Private
+Table · Log in (My Account when signed in) · a **GET STARTED** pill to `/box`, which reads **VIEW
+BOX** while a box is active. No strapline. Below 1024 the links move into a burger-opened drawer
+(wordmark + close, Log in / My Account, the links, a full-width **BUILD A BOX** pill — VIEW BOX
+while a box is active — and the socials). The header hides on a
+downward scroll on a phone; from 1024 it hides (40px down, back after 64px up) on the marketing
+pages only — not on dish pages, Allergens, legal, account or checkout.
+
+**Footer:** *Shop* (Menu, Gifting once built, Private Table) · *Learn* (Abby's Story, How it works, Our
+standards) · *Information* (Delivery & FAQs, Allergens, Contact us) — accordions on a phone, open
+columns from 1024 — then the wordmark, "Abby x", the four social icons with **@FromAbbysTable** as
+plain text, and the legal strip: © · Privacy Policy | Terms · Cookie preferences.
+
+Gifting (#26) and Private Table (#25), Delivery & FAQs (#23) and Contact (#24) are not built yet:
+Gifting stays out of the chrome until its page lands, Private Table goes to the homepage band
+(`/#private`), and Contact / Delivery & FAQs to the footer — all from one place,
+`web/src/lib/content/navigation.ts`.
 
 ---
 
@@ -287,7 +300,7 @@ web/                         the storefront
   src/components/ui/         design-system primitives — Button, Eyebrow, SectionHeading,
                              NavLink, FilterPill, NutritionTag, HeatPips, FloralMark
   src/components/brand/      Logo (masked SVG), SocialIcons
-  src/components/layout/     AnnouncementBar, Header, MobileDrawer, Footer, SiteChrome
+  src/components/layout/     Header, MobileDrawer, Footer, SiteChrome (the v2 chrome)
   src/components/status/     404 and 500 pages (design: Page Not Found, Something Went Wrong)
   src/components/sections/   the ten homepage sections + DishCard
   src/components/menu/       menu browser — toolbar, facet panel, grid, flavour band
@@ -298,7 +311,10 @@ web/                         the storefront
   src/lib/aonik/             commerce seam — types, client interface, fixtures
   src/lib/menu/              pure faceting and search logic
   src/lib/purchase-bar/      the bar's visibility rules, offer and active-box summary (pure)
-  src/lib/dom/               <html> state flags (data-overlay-open), their hooks, ghost-click guard
+  src/lib/site-header/       when the header hides (per route and width), current page,
+                             Log in / My Account, GET STARTED / VIEW BOX (pure)
+  src/lib/dom/               <html> state flags (data-overlay-open), their hooks, ghost-click
+                             guard, the shared page-scroll direction, the focus trap
   src/lib/content/           navigation, editorial copy, support contact and company
                              details (unset)
   src/lib/legal/             legal documents' sections, groups and anchor contract
