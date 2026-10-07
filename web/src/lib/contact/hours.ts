@@ -217,6 +217,18 @@ export function hoursRows(weekly: WeeklyHours): HoursRow[] {
   }));
 }
 
+/** An ISO 8601 date-time ending in `Z` or a numeric offset — an absolute instant. */
+const ZONED_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
+
+/** `YYYY-MM-DD` naming a day that exists — `2026-02-30` would match no London date. */
+function isCalendarDate(date: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!match) return false;
+  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
+  const utc = new Date(Date.UTC(year, month - 1, day));
+  return utc.getUTCFullYear() === year && utc.getUTCMonth() === month - 1 && utc.getUTCDate() === day;
+}
+
 /**
  * What is wrong with a configured table — empty when nothing is. The test
  * suite runs it over `OPENING_HOURS`, so a typo fails the build instead of
@@ -236,13 +248,15 @@ export function hoursProblems(hours: OpeningHours): string[] {
     }
   });
   for (const date of hours.bankHolidays) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) problems.push(`bank holiday "${date}" must be YYYY-MM-DD`);
+    if (!isCalendarDate(date)) problems.push(`bank holiday "${date}" must be a real YYYY-MM-DD date`);
   }
   for (const closure of hours.closures) {
+    // A timestamp without a zone would be read in each visitor's own zone.
+    const zoned = ZONED_INSTANT.test(closure.from) && ZONED_INSTANT.test(closure.until);
     const from = Date.parse(closure.from);
     const until = Date.parse(closure.until);
-    if (!Number.isFinite(from) || !Number.isFinite(until) || !(from < until)) {
-      problems.push(`closure ${closure.from} – ${closure.until} must be two instants, in order`);
+    if (!zoned || !Number.isFinite(from) || !Number.isFinite(until) || !(from < until)) {
+      problems.push(`closure ${closure.from} – ${closure.until} must be two zoned instants, in order`);
     }
   }
   return problems;

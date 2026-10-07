@@ -87,12 +87,15 @@ export async function postEnquiry(
   enquiry: Enquiry,
   images: readonly File[],
 ): Promise<void> {
-  await aonikFetch<unknown>(path, {
+  await aonikFetch<void>(path, {
     baseUrl: config.baseUrl,
     tenantId: config.tenantId,
     policy: 'volatile',
     method: 'POST',
     body: toEnquiryForm(enquiry, images),
+    // The 2xx is the acceptance; an empty 200/201 must not read as a failure
+    // and invite a second, duplicate send.
+    ignoreBody: true,
   });
 }
 

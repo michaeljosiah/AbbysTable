@@ -39,6 +39,11 @@ export interface AonikFetchOptions {
   accessToken?: string;
   /** Query parameters; undefined and null values are dropped. */
   query?: Record<string, string | number | boolean | undefined | null>;
+  /**
+   * A void operation: any 2xx is the whole answer and the body is not read,
+   * so an empty `200`/`201` is a success rather than a JSON parse failure.
+   */
+  ignoreBody?: boolean;
   signal?: AbortSignal;
 }
 
@@ -88,6 +93,7 @@ export async function aonikFetch<T>(path: string, options: AonikFetchOptions): P
     accessToken,
     query,
     signal,
+    ignoreBody = false,
   } = options;
 
   const url = buildUrl(baseUrl, path, query);
@@ -122,6 +128,10 @@ export async function aonikFetch<T>(path: string, options: AonikFetchOptions): P
   }
 
   if (response.status === 204) return undefined as T;
+  if (ignoreBody) {
+    await response.body?.cancel().catch(() => undefined);
+    return undefined as T;
+  }
 
   return (await response.json()) as T;
 }

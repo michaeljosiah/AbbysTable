@@ -171,10 +171,19 @@ test('a configured table is checked, so a typo fails the build', () => {
   assert.deepEqual(hoursProblems(HOURS), []);
   const bad: OpeningHours = {
     weekly: [null, { opens: '25:00', closes: '17:00' }, { opens: '17:00', closes: '09:00' }, null, null, null, null],
-    bankHolidays: ['31/08/2026'],
-    closures: [{ from: '2026-07-01T14:00:00Z', until: '2026-07-01T12:00:00Z' }],
+    bankHolidays: ['31/08/2026', '2026-02-30', '2026-13-01'],
+    closures: [
+      { from: '2026-07-01T14:00:00Z', until: '2026-07-01T12:00:00Z' },
+      // A local timestamp: each visitor's browser would read it in its own zone.
+      { from: '2026-07-01T12:00:00', until: '2026-07-01T14:00:00+01:00' },
+    ],
   };
-  assert.equal(hoursProblems(bad).length, 4);
+  assert.equal(hoursProblems(bad).length, 7);
+  assert.deepEqual(
+    hoursProblems({ ...HOURS, bankHolidays: ['2028-02-29'], closures: [{ from: '2026-07-01T12:00:00.000Z', until: '2026-07-01T14:00+01:00' }] }),
+    [],
+    'a leap day, milliseconds and an hour-minute offset are all fine',
+  );
   if (OPENING_HOURS) assert.deepEqual(hoursProblems(OPENING_HOURS), [], 'OPENING_HOURS');
 });
 
@@ -390,6 +399,17 @@ test('only a 2xx from the endpoint counts as accepted', async () => {
     // fetch sets the multipart boundary itself; a JSON content type would break it.
     assert.equal(headers.get('Content-Type'), null);
 
+    // An empty 200 or 201 is still the acceptance — not a parse failure that
+    // would tell the customer nothing was sent and invite a duplicate.
+    globalThis.fetch = (async () => new Response(null, { status: 200 })) as typeof fetch;
+    await postEnquiry('/commerce/enquiries', config, result.enquiry, []);
+    globalThis.fetch = (async () => new Response('', { status: 201 })) as typeof fetch;
+    await postEnquiry('/commerce/enquiries', config, result.enquiry, []);
+
+    globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+      seen.push({ url: String(input), init });
+      return new Response('{"error":"down"}', { status: 503 });
+    }) as typeof fetch;
     status = 503;
     await assert.rejects(postEnquiry('/commerce/enquiries', config, result.enquiry, []));
   } finally {
