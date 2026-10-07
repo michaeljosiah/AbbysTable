@@ -41,7 +41,7 @@ Conventions inside `web/` that are easy to get wrong:
   `SiteChrome` itself so the 404 keeps the marketing header, footer and session — do not replace it
   with a catch-all route calling `notFound()`: Next sends that as an empty `__next_error__` shell
   that only JavaScript fills in. Next renders the root 404 into EVERY document request, so it must
-  never await commerce data (`withDeliveryDate={false}`, pinned by `tests/not-found-chrome.test.ts`):
+  never await commerce data (`withAnnouncement={false}`, pinned by `tests/not-found-chrome.test.ts`):
   a slow Aonik would hold every page open and a failing one would turn the 404 into a 500. The 500
   page's links are plain `<a>` on purpose — the one exception to the `next/link` rule below — so
   each is a full page load out of the failed app. `public/500.html` and `public/maintenance.html`
