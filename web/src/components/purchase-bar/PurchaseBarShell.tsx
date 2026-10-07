@@ -55,7 +55,7 @@ export function PurchaseBarShell({
   followsDirection = true,
 }: PurchaseBarShellProps) {
   const barRef = useRef<HTMLDivElement>(null);
-  const on = useBarVisibility(followsDirection);
+  const on = useBarVisibility(barRef, followsDirection);
   useBarHeight(barRef);
 
   return (
@@ -73,12 +73,26 @@ export function PurchaseBarShell({
   );
 }
 
-/** The page's scroll state through the rules, re-read once per frame. */
-function useBarVisibility(followsDirection: boolean): boolean {
+/**
+ * The page's scroll state through the rules, re-read once per frame.
+ *
+ * Scroll is heard on the document in the CAPTURE phase, not on window alone
+ * (design/CLAUDE.md, Choose Box "Bar suppression"): when an ancestor container
+ * does the scrolling — a host preview, an embedded frame — window `scroll`
+ * never fires and `window.scrollY` stays 0. The position is then read from
+ * that container. Scrolls inside an element that does not hold the bar (a
+ * dish rail, a sheet's list) only trigger a re-read: they are not the page
+ * moving, so they never count towards the direction.
+ */
+function useBarVisibility(
+  barRef: RefObject<HTMLDivElement | null>,
+  followsDirection: boolean,
+): boolean {
   const [on, setOn] = useState(false);
 
   useEffect(() => {
-    let direction = initialDirection(window.scrollY);
+    let y = window.scrollY;
+    let direction = initialDirection(y);
     let frame = 0;
 
     // Queried from the document on every pass, never held: a held node can be
@@ -86,7 +100,7 @@ function useBarVisibility(followsDirection: boolean): boolean {
     const evaluate = () => {
       frame = 0;
       const header = document.querySelector(`[${SITE_HEADER_ATTR}]`);
-      direction = nextDirection(direction, window.scrollY, {
+      direction = nextDirection(direction, y, {
         holdDown: Boolean(header?.contains(document.activeElement)),
       });
 
@@ -108,19 +122,30 @@ function useBarVisibility(followsDirection: boolean): boolean {
       if (!frame) frame = requestAnimationFrame(evaluate);
     };
 
-    window.addEventListener('scroll', schedule, { passive: true });
+    const onScroll = (event: Event) => {
+      const source = event.target;
+      if (!(source instanceof Element)) {
+        y = window.scrollY;
+      } else if (barRef.current && source.contains(barRef.current)) {
+        y = source.scrollTop;
+      }
+      schedule();
+    };
+
+    const listen = { capture: true, passive: true } as const;
+    document.addEventListener('scroll', onScroll, listen);
     window.addEventListener('resize', schedule);
     schedule();
     // Again once images and fonts have settled the layout under the markers.
     const settle = window.setTimeout(schedule, 500);
 
     return () => {
-      window.removeEventListener('scroll', schedule);
+      document.removeEventListener('scroll', onScroll, listen);
       window.removeEventListener('resize', schedule);
       window.clearTimeout(settle);
       cancelAnimationFrame(frame);
     };
-  }, [followsDirection]);
+  }, [barRef, followsDirection]);
 
   return on;
 }
