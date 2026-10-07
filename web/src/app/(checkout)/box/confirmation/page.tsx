@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { readSessionView } from '@/lib/auth/session';
+import { CONTACT_HREF } from '@/lib/content/navigation';
 import { formatDeliveryDate, formatPrice, formatPriceExact } from '@/lib/format';
 import { readPlacedOrder } from '@/lib/cart/orderCookie';
 
@@ -49,7 +50,7 @@ export default async function BoxConfirmationPage() {
             <Link href="/menu" className={styles.primary}>
               Back to the menu
             </Link>
-            <Link href="/#contact" className={styles.secondary}>
+            <Link href={CONTACT_HREF} className={styles.secondary}>
               Contact us
             </Link>
           </div>
@@ -182,7 +183,7 @@ export default async function BoxConfirmationPage() {
           <Link href="/menu" className={styles.primary}>
             Back to the menu
           </Link>
-          <Link href="/#contact" className={styles.secondary}>
+          <Link href={CONTACT_HREF} className={styles.secondary}>
             Questions about your order?
           </Link>
         </div>

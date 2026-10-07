@@ -2,7 +2,11 @@ import Link from 'next/link';
 
 import { Logo } from '@/components/brand/Logo';
 import { CheckoutHeader } from '@/components/checkout/CheckoutHeader';
-import { COOKIE_PREFERENCES_ITEM, PRIVACY_ITEM, TERMS_ITEM } from '@/lib/content/navigation';
+import {
+  CHECKOUT_FOOTER_LINKS,
+  CONTACT_HREF,
+  COOKIE_PREFERENCES_ITEM,
+} from '@/lib/content/navigation';
 
 import styles from './layout.module.css';
 
@@ -10,20 +14,11 @@ import styles from './layout.module.css';
  * Chrome for the box builder: stepper instead of site navigation, and a slim
  * footer carrying only order-relevant links.
  *
- * Links to pages that do not exist yet resolve to the closest real destination
- * rather than to dead URLs; swap each one as its page lands (Allergens, Privacy
- * Policy and Terms have). These footer links open in the same tab: only
- * checkout's own legal line opens the legal pages in a new tab
- * (design/CLAUDE.md, "Legal line").
+ * Every destination comes from `lib/content/navigation.ts`, so Delivery & FAQs
+ * and Contact follow their pages there when they land (#23, #24). The footer
+ * links open in the same tab: only checkout's own legal line opens the legal
+ * pages in a new tab (design/CLAUDE.md, "Legal line"; `CHECKOUT_FOOTER_LINKS`).
  */
-const FOOTER_LINKS = [
-  { label: 'Delivery & FAQs', href: '/#contact' },
-  { label: 'Allergens', href: '/allergens' },
-  { label: 'Contact Us', href: '/#contact' },
-  PRIVACY_ITEM,
-  TERMS_ITEM,
-];
-
 export default function CheckoutLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className={styles.shell}>
@@ -38,7 +33,7 @@ export default function CheckoutLayout({ children }: { children: React.ReactNode
             </Link>
 
             <nav className={styles.nav} aria-label="Order information">
-              {FOOTER_LINKS.map((link) => (
+              {CHECKOUT_FOOTER_LINKS.map((link) => (
                 <Link key={link.label} href={link.href} className={styles.link}>
                   {link.label}
                 </Link>
@@ -51,7 +46,7 @@ export default function CheckoutLayout({ children }: { children: React.ReactNode
           <div className={styles.bottom}>
             <span className={styles.help}>
               Questions about your order?{' '}
-              <Link href="/#contact" className={styles.helpLink}>
+              <Link href={CONTACT_HREF} className={styles.helpLink}>
                 Contact us
               </Link>
             </span>

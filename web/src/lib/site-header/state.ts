@@ -26,8 +26,9 @@ const SECTION_ROOTS: readonly string[] = [MENU_ITEM.href, '/account'];
  * `aria-current` for a chrome link: `page` when it is the page being shown,
  * `true` when the page sits inside the section it leads to, otherwise none.
  *
- * Anchors (`/#private`, `/#contact`) are never current — they are a place on
- * another page, not this one — and neither is anything with a scheme.
+ * Anchors (`/#private`, and the footer `CONTACT_HREF` resolves to until #24)
+ * are never current — they are a place on another page, not this one — and
+ * neither is anything with a scheme.
  */
 export function ariaCurrentFor(
   pathname: string | null | undefined,

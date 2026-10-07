@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useActionState, useState } from 'react';
 
 import { loginAction, type AuthActionState } from '@/lib/auth/actions';
+import { CONTACT_HREF } from '@/lib/content/navigation';
 
 import { GoogleMark } from './GoogleMark';
 import styles from './AuthForm.module.css';
@@ -105,7 +106,9 @@ export function LoginForm({ next }: { next?: string }) {
           <label className={styles.label} htmlFor="login-password">
             Password
           </label>
-          <Link href="/#contact" className={styles.quietLink}>
+          {/* No password reset exists yet, so a person resets it: Contact
+              (site-chrome spec, open question 10). */}
+          <Link href={CONTACT_HREF} className={styles.quietLink}>
             Forgotten it?
           </Link>
         </div>
