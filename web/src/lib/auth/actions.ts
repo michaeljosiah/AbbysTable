@@ -16,6 +16,7 @@
 import { redirect } from 'next/navigation';
 
 import { adoptBoxCart } from '@/lib/cart/server';
+import { isEmailAddress } from '@/lib/email';
 
 import { safePostAuthPath } from './redirect';
 
@@ -40,8 +41,6 @@ export interface AuthActionState {
   /** Field-level errors for the form to attach to inputs. */
   fieldErrors?: { email?: string; password?: string; firstName?: string; lastName?: string };
 }
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function text(form: FormData, key: string): string {
   const value = form.get(key);
@@ -100,7 +99,7 @@ export async function loginAction(
   const next = safePostAuthPath(text(form, 'next'));
 
   const fieldErrors: AuthActionState['fieldErrors'] = {};
-  if (!EMAIL_PATTERN.test(email)) fieldErrors.email = 'Enter a valid email address.';
+  if (!isEmailAddress(email)) fieldErrors.email = 'Enter a valid email address.';
   if (!password) fieldErrors.password = 'Enter your password.';
   if (Object.keys(fieldErrors).length > 0) return { status: 'error', fieldErrors };
 
@@ -128,7 +127,7 @@ export async function registerAction(
   const fieldErrors: AuthActionState['fieldErrors'] = {};
   if (!firstName) fieldErrors.firstName = 'Enter your first name.';
   if (!lastName) fieldErrors.lastName = 'Enter your last name.';
-  if (!EMAIL_PATTERN.test(email)) fieldErrors.email = 'Enter a valid email address.';
+  if (!isEmailAddress(email)) fieldErrors.email = 'Enter a valid email address.';
   if (password.length < 8) fieldErrors.password = 'Use at least 8 characters.';
   if (Object.keys(fieldErrors).length > 0) return { status: 'error', fieldErrors };
 
