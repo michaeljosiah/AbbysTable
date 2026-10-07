@@ -97,9 +97,10 @@ input:focus-visible,
 }
 
 /* ---- Consent layer priority -------------------------------------------------
-   The cookie consent layer outranks every other fixed element
-   (design/build-handoff.md §3s "Priority over other fixed UI"). While the
-   banner or the preferences panel shows, ConsentManager sets
+   The cookie banner sits over the page and its chrome, and under every drawer,
+   sheet and dialog the customer opens; the preferences panel sits over
+   everything (the prototype's order — ConsentManager.module.css, "Stacking").
+   While the banner or the panel shows, ConsentManager sets
    `data-consent-layer` on <html>, and:
    - bottom-fixed chrome that would collide with it — the mobile purchase bars,
      the ↑ Top control — opts in with `data-consent-yield` and is suppressed:

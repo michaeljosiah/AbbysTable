@@ -1063,7 +1063,9 @@ export function DishPicker({
 
       {/* ---- Search + filters ---------------------------------------------- */}
 
-      <div className={styles.sticky}>
+      {/* data-sheet-open lifts this stacking context over the cookie banner
+          while the phone sheet is open (ConsentManager.module.css). */}
+      <div className={styles.sticky} data-sheet-open={panelOpen || undefined}>
         <div className={styles.toolbar}>
           <div className={styles.bar}>
             <div className={styles.search}>

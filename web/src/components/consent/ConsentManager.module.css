@@ -11,12 +11,19 @@
    the desktop banner composition. The panel has no desktop rule in the design.
 
    ── Stacking ───────────────────────────────────────────────────────────────
-   The consent layer outranks every other fixed element (§3s "Priority over
-   other fixed UI"). Defined here, in one place, because the codebase has no
-   z-index scale yet. What it sits above today:
-     sticky headers 50 · mobile purchase bars 60 / 90 · ↑ Top 91 ·
-     drawer, sheets and dialogs 90–130 · checkout help drawer 200 ·
-     checkout toasts up to 220.
+   The prototype's order (the `.at-cc-*` rules in Privacy Policy and Homepage
+   v2: banner 70, drawer 90/95, consent scrim/panel 96/97), chosen over §3s's
+   "outranks every fixed element" by user decision, 7 Oct 2026:
+     - the BANNER (70) sits above the page and its chrome — sticky headers
+       and toolbars 30–50, mobile purchase bars 60 — and BENEATH everything
+       the customer opens: the drawer, sheets and dialogs 90–130, the
+       checkout help drawer 200, toasts up to 220;
+     - the PREFERENCES PANEL (scrim 310, panel 311) sits above everything.
+   Three of those overlays open inside a sticky ancestor's stacking context,
+   which would hold them under the banner, so the ancestor lifts itself while
+   they are open: the /menu and Add Dishes filter sheets (their toolbar → 90,
+   MenuToolbar and DishPicker) and the checkout help drawer (the checkout
+   header → 200). A new overlay must be checked the same way.
    Only the development data-mode badge (9999) is higher, and it never ships.
    While the banner or the panel shows, the purchase bars and ↑ Top are also
    suppressed outright (globals.css, `data-consent-yield`), so no control is
@@ -56,7 +63,7 @@
 
 .banner {
   position: fixed;
-  z-index: 300;
+  z-index: 70;
   left: 0;
   right: 0;
   bottom: 0;
