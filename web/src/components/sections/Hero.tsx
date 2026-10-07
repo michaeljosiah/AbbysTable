@@ -1,107 +1,125 @@
-import Image from 'next/image';
-import { Fragment } from 'react';
+import { getImageProps } from 'next/image';
+import Link from 'next/link';
 
-import { Button, Eyebrow } from '@/components/ui';
-import { PROOF_PATHS, PROOF_VIEW_BOX } from '@/components/ui/glyphs';
-import { HERO_PROOF_POINTS } from '@/lib/content/marketing';
+import { HERO_FACTS, type HeroFactIcon } from '@/lib/content/marketing';
 
+import { Keep, KeepCompounds } from './KeepTogether';
 import styles from './Hero.module.css';
 
+/** The facts' line glyphs, drawn on a 24px grid (Homepage v2 hero). */
+const FACT_PATHS: Record<HeroFactIcon, readonly string[]> = {
+  leaf: ['M5 19.5C4.6 12 9.4 5.6 19 4.5c.6 8.4-4.4 14-14 15z', 'M5.5 19c3-5.2 7-8.4 12.2-10.4'],
+  package: ['M20.5 7.3 12 2.6 3.5 7.3v9.4l8.5 4.7 8.5-4.7z', 'M3.5 7.3 12 12l8.5-4.7', 'M12 12v9.4'],
+  bowl: ['M3.6 10.4h16.8a8.4 8.4 0 0 1-16.8 0z', 'M9.4 13.4h.01', 'M14.6 13.4h.01', 'M9.9 16.3a3 3 0 0 0 4.2 0'],
+};
+
+/** Describes the photograph, which is the same scene in both crops. */
+const HERO_ALT =
+  'A ceramic bowl of jollof rice with sliced beef, chilli relish and charred asparagus, on a dark green cloth';
+
 /**
- * Opening full-bleed hero: food photography under a forest-green scrim, with
- * the page's single `<h1>`, three proof points and the primary CTAs.
+ * The hero — design/Abby's Table - Homepage v2.dc.html (approved), and
+ * design/CLAUDE.md "Desktop hero composition".
  *
- * The template art-directs the background rather than simply rescaling it, and
- * it does so four times — a wide letterbox on desktop, the same crop tightened
- * between 861 and 1080, that crop again for small tablets, and a portrait
- * re-frame with its own two-part gradient below 620px. `next/image` has no
- * `<picture media>` equivalent, so both crops are rendered and Hero.module.css
- * swaps them at 620px (the pattern the Next.js docs recommend for art
- * direction). Both carry `priority`: whichever one the breakpoint reveals is
- * above the fold and must not pop in.
+ * ONE continuous photograph under a feathered left overlay: the 3:4 crop on a
+ * phone and the 2:1 from 1024 — never the 3:4 on desktop. That is art
+ * direction, which `<Image>` cannot express, so the crops go through
+ * `getImageProps` (still next/image's optimiser) into one `<picture>`, and the
+ * browser fetches only the crop it shows. It is the page's LCP element: the
+ * one image with `fetchpriority="high"`, eager, with no preload competing.
  *
- * Below 620px the copy stops being a pinned overlay and joins the flow, so the
- * section height comes from the content and the photograph sits behind it.
+ * ⚠ PLACEHOLDER PHOTOGRAPHY — AI-generated, to be replaced before launch
+ * (#38); review HERO_ALT with the reshoot.
+ *
+ * The headline and lede carry HARD breaks at every width, as the approved
+ * mockup does — their line structure comes from the breaks, not a measure.
+ *
+ * "View the menu" is the mobile purchase bar's reveal point: the bar appears
+ * only once it has been scrolled past (design/CLAUDE.md, "Mobile purchase
+ * CTA").
  */
 export function Hero() {
+  const common = { alt: HERO_ALT, sizes: '100vw', priority: true, fetchPriority: 'high' } as const;
+  const {
+    props: { srcSet: landscape },
+  } = getImageProps({
+    ...common,
+    src: '/assets/home/hero-landscape-1774.jpg',
+    width: 1774,
+    height: 887,
+  });
+  const { props: portrait } = getImageProps({
+    ...common,
+    src: '/assets/home/hero-portrait-800.jpg',
+    width: 800,
+    height: 1067,
+  });
+
   return (
     <section id="top" className={styles.hero}>
-      <Image
-        className={styles.media}
-        src="/assets/hero.png"
-        alt=""
-        width={1959}
-        height={803}
-        sizes="100vw"
-        priority
-      />
-      <Image
-        className={styles.mediaMobile}
-        src="/assets/hero-mobile.png"
-        alt=""
-        width={1122}
-        height={1402}
-        sizes="100vw"
-        priority
-      />
+      <picture>
+        <source media="(min-width: 1024px)" srcSet={landscape} sizes="100vw" />
+        <img {...portrait} alt={HERO_ALT} className={styles.image} />
+      </picture>
+      <span className={styles.scrim} aria-hidden="true" />
 
-      <div className={styles.content}>
-        <Eyebrow tone="blush" className={styles.eyebrow}>
-          Nutrition-led · No ultra-processed foods
-        </Eyebrow>
+      <div className={styles.inner}>
+        <div className={styles.copy}>
+          <h1 className={styles.title}>
+            Nigerian
+            <br />
+            Fusion Food.
+            <br />
+            Nutrition
+            <br />
+            at the Core.
+          </h1>
 
-        {/*
-          Three break points, each revealed in a different band, so the headline
-          always clears the food in the photograph: two lines on desktop, two
-          shorter ones on small tablets, four on a phone.
-        */}
-        <h1 className={styles.title}>
-          Nigerian
-          <br className={styles.break2} /> fusion food,
-          <br className={styles.break1} /> rooted in
-          <br className={styles.break3} /> tradition.
-        </h1>
+          <p className={styles.lede}>
+            <Keep>Chef-prepared</Keep> dishes made from scratch,
+            <br />
+            with quality ingredients and real flavour.
+          </p>
 
-        <ul className={styles.proof}>
-          {HERO_PROOF_POINTS.map((point, index) => (
-            <Fragment key={point.icon}>
-              {index > 0 ? <li className={styles.proofRule} aria-hidden="true" /> : null}
-              <li className={styles.proofItem}>
-                <span className={styles.proofIcon} aria-hidden="true">
+          <ul className={styles.facts} role="list">
+            {HERO_FACTS.map((fact) => (
+              <li key={fact.icon} className={styles.fact}>
+                <span className={styles.factRing} aria-hidden="true">
                   <svg
-                    width="19"
-                    height="19"
-                    viewBox={PROOF_VIEW_BOX}
+                    width="21"
+                    height="21"
+                    viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="1.4"
+                    strokeWidth="1.6"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   >
-                    {PROOF_PATHS[point.icon].map((d) => (
+                    {FACT_PATHS[fact.icon].map((d) => (
                       <path key={d} d={d} />
                     ))}
                   </svg>
                 </span>
-                <span className={styles.proofText}>
-                  {point.lines[0]}
-                  <br />
-                  {point.lines[1]}
+                <span className={styles.factLabel}>
+                  <KeepCompounds text={fact.label} />
                 </span>
               </li>
-            </Fragment>
-          ))}
-        </ul>
+            ))}
+          </ul>
 
-        <div className={styles.actions}>
-          {/* The bar's reveal point: it appears only once this has been
-              scrolled past, so the two are never on screen together. */}
-          <Button variant="primary" size="lg" href="/menu" data-purchase-bar-reveal="">
-            View the menu
-          </Button>
-          <a className={styles.textLink} href="#howitworks">
-            See how it works
-          </a>
+          <div className={styles.actions}>
+            <Link href="/menu" className={styles.primary} data-purchase-bar-reveal="">
+              View the menu
+            </Link>
+            <Link href="/how-it-works" className={styles.secondary}>
+              <span className={styles.secondaryInner}>
+                <span className={styles.secondaryLabel}>How it works</span>
+                <span className={styles.arrow} aria-hidden="true">
+                  →
+                </span>
+              </span>
+            </Link>
+          </div>
         </div>
       </div>
     </section>

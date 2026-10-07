@@ -1,335 +1,285 @@
 /* ===========================================================================
-   Hero
+   Hero — design/Abby's Table - Homepage v2.dc.html (approved)
    ---------------------------------------------------------------------------
-   Ported from the template's `.at-hero` / `.at-hero-grad` / `.at-hero-content`.
-   The background is split in two: the photograph is a real <img> so next/image
-   can serve it, and the gradient the template layered on top of it in the same
-   `background` shorthand becomes the section's ::after.
+   Mobile-first (design/CLAUDE.md): the rules with no media query ARE the
+   phone design; 640 and 1024 are min-width only, plus one recorded content
+   exception at 1280 (the facts row). Values are the design file's.
 
-   Four art-directed bands, not two:
-     >=1081   wide letterbox, copy pinned top-left
-     861-1080 same crop, tighter scrim, copy pulled in
-     621-860  same crop again — the portrait re-frame misreads at tablet width
-     <=620    portrait crop, copy joins the flow over a two-part scrim
+   The ground is green-deep from the first paint, so the photograph resolves
+   onto the scrim's own colour rather than flashing page-cream.
    =========================================================================== */
 
 .hero {
   position: relative;
-  height: 590px;
+  display: grid;
+  align-content: start;
   overflow: hidden;
-  /* The template's `background` shorthand ends in a solid --green-forest, so
-     the hero is dark from the first paint and the photograph resolves onto it.
-     Without this the section starts page-cream and flashes pale before the
-     image arrives. */
-  background: var(--green-forest);
+  background: var(--surface-darker);
+  padding: 34px 22px 46px;
 }
 
-/* ---- Background art --------------------------------------------------------
-   Template desktop: `url(hero.png) center / cover no-repeat`. */
+/* ---- Photograph and overlay ---- */
 
-.media {
+.image {
   position: absolute;
   inset: 0;
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center;
+  object-position: right top;
 }
 
-.mediaMobile {
-  display: none;
-}
-
-/* ---- Green scrim -----------------------------------------------------------
-   `rgba(30,58,47,…)` in the template is --green-forest at reduced alpha, so it
-   is mixed from the token rather than restated as a literal. The 0-alpha stop
-   is plain `transparent`: gradients interpolate in premultiplied alpha space,
-   so it renders identically to rgba(30,58,47,0) with no grey fade. */
-
-.hero::after {
-  content: '';
+/* A feathered left overlay that reaches zero before the food, never a flat
+   wash: the protected copy zone without dimming the bowl. */
+.scrim {
   position: absolute;
   inset: 0;
   background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--green-forest) 55%, transparent) 0%,
-    color-mix(in srgb, var(--green-forest) 15%, transparent) 45%,
-    transparent 70%
+    to right,
+    color-mix(in srgb, var(--green-deep) 94%, transparent) 0%,
+    color-mix(in srgb, var(--green-deep) 80%, transparent) 46%,
+    transparent 78%
   );
 }
 
-/* ---- Content ---------------------------------------------------------------
-   Sits above the scrim, which is painted last as the section's ::after. */
-
-/*
- * Anchored to the header's frame, not the viewport edge, so the headline starts
- * on the same vertical as the wordmark above it. Below the frame width the two
- * expressions collapse to the same 48px gutter, so this only does work on wide
- * screens — where the template let the copy drift left of the logo.
- */
-.content {
-  position: absolute;
-  top: 116px;
-  left: max(
-    var(--space-7),
-    calc((100% - (var(--frame-max) + 2 * var(--space-7))) / 2 + var(--space-7))
-  );
-  z-index: 1;
-  max-width: 520px;
-  box-sizing: border-box;
+.inner {
+  position: relative;
 }
+
+/* No max-width on a phone: the headline and lede are shaped by their hard
+   breaks, and a measure here would cap the full-width CTA with them. */
+
+/* ---- Copy ---- */
 
 .title {
-  margin: 20px 0 0;
   font-family: var(--font-display);
   font-weight: var(--weight-medium);
-  font-size: var(--display-1);
-  line-height: 1.08;
-  letter-spacing: var(--track-display);
+  font-size: clamp(38px, 11.6vw, 56px);
+  line-height: 1.04;
+  letter-spacing: -0.015em;
   color: var(--text-inverse);
-  text-wrap: pretty;
 }
 
-/* Each break is revealed in its own band; all three are off on desktop. */
-.break1,
-.break2,
-.break3 {
-  display: none;
+.lede {
+  margin-top: 20px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-inverse);
 }
 
-/* ---- Proof points ----------------------------------------------------------
-   Three claims in brass rings, separated by a half-width hairline. Replaces the
-   single supporting paragraph the earlier design used. */
+/* ---- Facts: stacked, one line each, until the 1280 exception ---- */
 
-.proof {
-  margin: 22px 0 30px;
+.facts {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin: 28px 0 0;
   padding: 0;
-  max-width: 400px;
   list-style: none;
 }
 
-.proofItem {
+.fact {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 11px 0;
 }
 
-/*
- * 40px, not 38: the template sizes these content-box, so its 38px square sits
- * inside a 1px ring and lands at 40px overall. Stated as the finished size,
- * since this app is border-box.
- */
-.proofIcon {
+/* Gold is a dark-ground accent only (9.3:1 on green-deep). */
+.factRing {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  border: var(--border-hairline) solid var(--brass);
+  width: 44px;
+  height: 44px;
+  border: 1.5px solid var(--gold);
   border-radius: 50%;
-  color: var(--brass);
+  color: var(--gold);
 }
 
-.proofText {
+.factLabel {
   font-family: var(--font-sans);
-  font-size: 14.5px;
-  line-height: 1.45;
-  color: var(--text-on-dark);
+  font-size: 15.5px;
+  line-height: 1.35;
+  color: var(--text-inverse);
 }
 
-.proofRule {
-  display: block;
-  width: 52%;
-  height: 1px;
-  background: color-mix(in srgb, var(--brass) 42%, transparent);
-}
+/* ---- CTAs ----
+   54px hero primary, full width inside the gutters on a phone, intrinsic from
+   640; the height never changes. Hover is a colour shift, press deepens. */
 
 .actions {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 22px;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 30px;
 }
 
-.textLink {
+.primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 54px;
+  padding: 0 32px;
+  border-radius: var(--radius-pill);
+  background: var(--action-primary);
+  color: var(--text-inverse);
   font-family: var(--font-sans);
-  font-size: var(--body-sm);
-  text-transform: uppercase;
+  font-weight: var(--weight-semibold);
+  font-size: 14px;
   letter-spacing: 0.12em;
-  color: var(--text-on-dark);
+  text-transform: uppercase;
   text-decoration: none;
-  border-bottom: var(--border-hairline) solid var(--rule-brass);
+  transition: background 0.16s ease;
+}
+
+.primary:hover,
+.primary:active {
+  background: var(--action-primary-hover);
+}
+
+.primary:active {
+  filter: brightness(0.94);
+}
+
+/* Text CTA: sentence case and an arrow, the gold underline running under
+   both. */
+.secondary {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  text-decoration: none;
+}
+
+.secondaryInner {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   padding-bottom: 3px;
+  border-bottom: 1.5px solid var(--gold);
+}
+
+.secondaryLabel {
+  font-family: var(--font-sans);
+  font-size: 15.5px;
+  color: var(--text-inverse);
   transition: color 0.16s ease;
 }
 
-.textLink:hover {
-  color: var(--brass);
+.secondary:hover .secondaryLabel {
+  color: var(--blush);
 }
 
-/* ---- 861-1080 --------------------------------------------------------------
-   Same photograph, a heavier scrim to hold the copy at a narrower measure. */
-
-@media (max-width: 1080px) {
-  .hero {
-    height: 592px;
-  }
-
-  .hero::after {
-    background: linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--green-forest) 68%, transparent) 0%,
-      color-mix(in srgb, var(--green-forest) 26%, transparent) 50%,
-      transparent 74%
-    );
-  }
-
-  .content {
-    top: 76px;
-    left: 32px;
-    max-width: 440px;
-  }
-
-  .title {
-    font-size: 40px;
-  }
+.arrow {
+  color: var(--gold);
+  font-size: 16px;
+  line-height: 1;
 }
 
-/* ---- 621-860 ---------------------------------------------------------------
-   Still the landscape crop: the portrait re-frame misreads at this width. The
-   copy stays a pinned overlay and the section grows with the viewport. */
+/* Brass is only 1.9:1 on green-deep, so the dark ground gets a cream ring with
+   a gold outer edge: the one focus language for every dark band. */
+.hero a:focus-visible {
+  outline: 2px solid var(--cream-3);
+  outline-offset: 0;
+  box-shadow: 0 0 0 3px var(--gold);
+}
 
-@media (max-width: 860px) {
+/* The global focus rule's 3px radius would square the pill off. */
+.primary:focus-visible {
+  border-radius: var(--radius-pill);
+}
+
+/* ---- 640: more measure; the CTAs sit side by side ---- */
+
+@media (min-width: 640px) {
   .hero {
-    height: auto;
-    min-height: min(72vw, 560px);
+    padding: 52px 34px 60px;
   }
 
-  .hero::after {
-    background: linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--green-forest) 80%, transparent) 0%,
-      color-mix(in srgb, var(--green-forest) 36%, transparent) 52%,
-      transparent 80%
-    );
-  }
-
-  .content {
-    top: 48px;
-    left: 26px;
-    right: auto;
-    bottom: auto;
-    max-width: 400px;
-    padding: 0;
-  }
-
-  .title {
-    font-size: 36px;
-  }
-
-  .break1 {
-    display: inline;
+  .copy {
+    max-width: 560px;
   }
 
   .actions {
+    flex-direction: row;
     align-items: center;
-  }
-}
-
-/* ---- 620 and below ---------------------------------------------------------
-   The copy leaves the overlay and joins the flow, so the section is sized by
-   its content and the photograph sits behind it under a two-part scrim: a
-   vertical wash that darkens the floor for the text, and a soft diagonal that
-   keeps the top-left legible. */
-
-@media (max-width: 620px) {
-  .hero {
-    height: auto;
-    min-height: 0;
+    gap: 26px;
   }
 
-  .media {
-    display: none;
-  }
-
-  .mediaMobile {
-    display: block;
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    max-width: none;
-    object-fit: cover;
-    object-position: 66% top;
-  }
-
-  .hero::after {
-    background:
-      linear-gradient(
-        180deg,
-        transparent 0%,
-        transparent 34%,
-        color-mix(in srgb, var(--green-forest) 40%, transparent) 58%,
-        color-mix(in srgb, var(--green-forest) 86%, transparent) 80%,
-        color-mix(in srgb, var(--green-forest) 94%, transparent) 100%
-      ),
-      linear-gradient(
-        100deg,
-        color-mix(in srgb, var(--green-forest) 66%, transparent) 0%,
-        color-mix(in srgb, var(--green-forest) 30%, transparent) 34%,
-        transparent 58%
-      );
-  }
-
-  .content {
-    position: relative;
-    inset: auto;
-    max-width: none;
-    padding: 36px 22px 40px;
-  }
-
-  .eyebrow {
-    display: none;
-  }
-
-  .title {
-    font-size: 40px;
-  }
-
-  .break2,
-  .break3 {
-    display: inline;
-  }
-
-  /* Stacked, full-width CTAs — capped so they do not stretch on a wide phone. */
-  .actions {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 18px;
-  }
-
-  .actions a[data-variant] {
-    width: 100%;
-    max-width: 360px;
-    margin-inline: auto;
-    justify-content: center;
-  }
-
-  .textLink {
-    align-self: center;
-  }
-}
-
-/* ---- Tablet CTA sizing -----------------------------------------------------
-   Full-width buttons are a phone treatment. Between 621 and 1080 the CTA goes
-   intrinsic again, with a floor so it still reads as the primary action. */
-
-@media (min-width: 621px) and (max-width: 1080px) {
-  .actions a[data-variant] {
+  .primary {
+    align-self: flex-start;
     width: auto;
-    min-width: 280px;
-    justify-content: center;
+  }
+
+  .secondary {
+    align-self: auto;
+  }
+}
+
+/* ---- 1024: the desktop composition — the 2:1 crop, a fluid floor ----
+   Never a fixed height: the hero still grows for zoom or larger text. The
+   copy aligns to the same centred 1280 shell as every band below it. */
+
+@media (min-width: 1024px) {
+  .hero {
+    padding: 0;
+    min-height: clamp(500px, 44vw, 780px);
+    grid-template-columns: 1fr;
+    align-content: center;
+  }
+
+  .image {
+    object-position: right center;
+  }
+
+  .scrim {
+    background: linear-gradient(
+      to right,
+      color-mix(in srgb, var(--green-deep) 97%, transparent) 0%,
+      color-mix(in srgb, var(--green-deep) 92%, transparent) 24%,
+      color-mix(in srgb, var(--green-deep) 80%, transparent) 42%,
+      color-mix(in srgb, var(--green-deep) 46%, transparent) 58%,
+      color-mix(in srgb, var(--green-deep) 12%, transparent) 74%,
+      transparent 84%
+    );
+  }
+
+  .inner {
+    width: 100%;
+    max-width: var(--content-max);
+    margin: 0 auto;
+    padding: 64px 48px;
+  }
+
+  /* Bounded for measure, and to keep the copy inside the protected zone. */
+  .copy {
+    max-width: min(50vw, 600px);
+  }
+
+  /* No max-width on the h1: a cap risks wrapping "Fusion Food." onto a fifth
+     line at the 78px top end. */
+  .title {
+    font-size: clamp(56px, 5.4vw, 78px);
+  }
+}
+
+/* EXCEPTION — min-width 1280 (design/CLAUDE.md, "Breakpoint exceptions"):
+   three facts across need ~590px, and the copy column gives 477px at 1024 and
+   621px at 1280. Content-sized, not equal thirds — thirds starve the middle
+   label and push "No ultra-processed foods" to three lines. */
+@media (min-width: 1280px) {
+  .facts {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 20px;
+  }
+
+  .fact {
+    flex: 0 1 auto;
+    min-width: 0;
   }
 }

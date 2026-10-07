@@ -21,7 +21,13 @@ function Chilli({ lit }: { lit: boolean }) {
   );
 }
 
-export function HeatPips({ heat }: { heat: HeatLevel }) {
+/**
+ * `showLabel={false}` drops the visible word: the homepage rail's card leaves
+ * it off, where a menu states it because heat is what is scanned for there
+ * (design/CLAUDE.md, "Cards and repeated content"). The pips' accessible name
+ * carries the level either way.
+ */
+export function HeatPips({ heat, showLabel = true }: { heat: HeatLevel; showLabel?: boolean }) {
   const steps = HEAT_STEPS[heat];
 
   return (
@@ -31,9 +37,11 @@ export function HeatPips({ heat }: { heat: HeatLevel }) {
           <Chilli key={index} lit={index < steps} />
         ))}
       </span>
-      <span className={styles.label} aria-hidden="true">
-        {HEAT_LABELS[heat]}
-      </span>
+      {showLabel ? (
+        <span className={styles.label} aria-hidden="true">
+          {HEAT_LABELS[heat]}
+        </span>
+      ) : null}
     </span>
   );
 }

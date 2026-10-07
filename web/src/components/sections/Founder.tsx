@@ -1,54 +1,59 @@
 import Image from 'next/image';
+import Link from 'next/link';
 
-import { Button, Eyebrow, FloralMark, SectionHeading } from '@/components/ui';
-
+import { Keep } from './KeepTogether';
 import styles from './Founder.module.css';
 
 /**
- * The founder band: Abby's portrait beside the short version of her story.
- * Below 1040px the split collapses to one column and the portrait — first in
- * the DOM — leads as a square above the copy.
+ * Meet the founder — design/Abby's Table - Homepage v2.dc.html (approved) and
+ * build-handoff "Meet the founder — what was settled".
+ *
+ * On `--blush`. Stacked on a phone (photograph, then copy), still stacked from
+ * 640 with the photograph capped at 480px, and 50/50 with the copy centred
+ * against it from 1024. The photograph's box is square at EVERY width, so it
+ * is never re-cropped between breakpoints.
+ *
+ * "Esther Abby Josiah" is a subtitle, not part of the heading, so the outline
+ * reads "Meet the founder".
+ *
+ * Photograph: AI-generated placeholder, to be reshot (#38). Lazy — the band is
+ * well below the first screen at both reference viewports.
  */
 export function Founder() {
   return (
     <section id="founder" className={styles.section}>
-      <div className={`band ${styles.split}`}>
-        <div className={styles.media}>
-          <Image
-            src="/assets/founder-portrait.png"
-            alt="Esther Abby Josiah"
-            fill
-            sizes="(max-width: 1040px) min(100vw, 460px), 560px"
-            className={styles.portrait}
-          />
-        </div>
+      <div className={styles.inner}>
+        <div className={styles.grid}>
+          <div className={styles.media}>
+            <Image
+              src="/assets/home/founder-1237.jpg"
+              alt="Esther Abby Josiah at a kitchen table beside a stack of Abby’s Table meal boxes"
+              fill
+              sizes="(min-width: 1280px) 560px, (min-width: 1024px) calc(50vw - 80px), (min-width: 640px) 480px, calc(100vw - 44px)"
+              className={styles.image}
+            />
+          </div>
 
-        <div className={styles.copy}>
-          <FloralMark className={styles.mark} />
-          <Eyebrow tone="brass" align="center">
-            Meet the founder
-          </Eyebrow>
-          <SectionHeading level={1} align="center" className={styles.heading}>
-            Esther Abby Josiah
-          </SectionHeading>
+          <div className={styles.copy}>
+            <h2 className={styles.heading}>Meet the founder</h2>
+            <p className={styles.name}>Esther Abby Josiah</p>
 
-          <div className={styles.story}>
-            <p>
-              After more than a decade cooking Nigerian food for some of Britain&apos;s finest
-              tables through Mrs J Foods and Béllé-Full, one devastating diagnosis changed
+            <p className={styles.body}>
+              After more than a decade cooking Nigerian food for some of Britain’s finest tables
+              through Mrs J Foods and <Keep>Béllé-Full</Keep>, one devastating diagnosis changed
               everything.
             </p>
-            <p>
+            <p className={styles.body}>
               Remission became more than recovery. It became a reason to rethink and relearn
               everything she knew about the food she loved.
             </p>
-            <p>That journey gave birth to Abby&apos;s Table.</p>
-          </div>
+            <p className={styles.body}>That journey gave birth to Abby’s Table.</p>
 
-          <div className={styles.cta}>
-            <Button variant="outline" href="/our-story">
-              Read Abby&apos;s story
-            </Button>
+            <div className={styles.ctaWrap}>
+              <Link href="/our-story" className={styles.cta}>
+                Read Abby’s story
+              </Link>
+            </div>
           </div>
         </div>
       </div>

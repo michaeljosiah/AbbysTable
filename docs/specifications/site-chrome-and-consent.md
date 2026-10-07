@@ -15,11 +15,12 @@ updated: 2026-10-07
 > what `web/` does on `main` at 213ee0b, read from the source. Implemented: the drawer's signed-in
 > state (#7, PR #44), the newsletter held back until it can save (#6, PR #45), the cookie consent
 > manager (#11, PR #50), the 404, 500 and maintenance pages (#13, PRs #51 and #53), the mobile
-> purchase bar (#12, PR #57), and the legal half of #8 (Allergens link in PR #49, Privacy and
-> Terms links in PR #56). **Pending:** the v2 header, drawer and footer and the removal of the
-> announcement bar (#10, being built now); from #8, the Contact and Delivery & FAQs routes (they
-> wait on #24 and #23; every link already reads one constant each) and checkout's legal line (it
-> arrives with Checkout, #31; "← Back to checkout" on the legal pages is built). Pending parts are
+> purchase bar (#12, PR #57), the v2 header, drawer and footer with the announcement bar removed
+> (#10, PR #60), and #8 as far as the built pages allow (Allergens link in PR #49, Privacy and
+> Terms links in PR #56; every Contact and Delivery & FAQs link read from one constant each, and
+> "← Back to checkout" on the legal pages). **Pending:** from #8, the Contact and Delivery & FAQs
+> routes themselves (they wait on #24 and #23) and checkout's legal line (it arrives with
+> Checkout, #31). Pending parts are
 > specified from the issues and `design/` (Homepage v2's chrome,
 > `design/CLAUDE.md` "Canonical shared components", behaviour guide §A2/§A3/§A5,
 > `design/SHOPPING-STATE.md` §40). Where an issue and the design disagree, the design wins and the
@@ -141,8 +142,9 @@ area) when signed in — label and destination both — in the header and the dr
 SHALL come from the server session: `SiteChrome` calls `readSessionView()` (the cookie is
 httpOnly) and hands it to `Header`, `MobileDrawer` and `AccountMenu`; browser storage never
 decides it. Implemented (#7): the drawer's last link is "My Account" → `/account/orders` when
-`session.isSignedIn`, otherwise "Login" → `/login`. Pending (#10): the label "Log in" and the
-slot's position (FR-04), and the header's own label (today an "Account" menu).
+`session.isSignedIn`, otherwise "Login" → `/login`. Implemented (#10, PR #60): "Log in" /
+"My Account" in both the header and the drawer, from `accountLink` in `src/lib/site-header/state.ts`;
+sign-out moved to the account area (`/account/orders`).
 
 #### Scenario: The drawer follows the session
 - **WHEN** a signed-in customer opens the drawer
@@ -420,22 +422,14 @@ the session; only the header, drawer, footer, consent manager and bar are client
 
 ### Known gaps — code that contradicts the design or CLAUDE.md today
 
-1. **Header (#10):** seven links including Our Standards and Contact, three of them anchors
-   (`/#gifting`, `/#private`, `/#contact`); a strapline; an "Order" pill → `/menu`; the drawer
-   below 1240px, not 1024; "Login" signed out and an "Account" menu (My orders, Sign out) signed
-   in; no hide-on-scroll at any width.
-2. **Drawer (#10):** account link after seven links, no BUILD A BOX pill, `<aside>` without the
-   dialog role, no focus trap, focus not returned to the burger.
-3. **Footer (#10):** Discovery Box (→ `/menu`) and Journal (→ `/#contact`); "Our Standards",
-   "Contact Us"; Information ordered FAQs / Contact / Allergens; accordion below 860px with heads
-   that stay `<button aria-expanded>` on desktop; "@FromAbbysTable" is a link.
-4. **Announcement bar (#10):** shown on every `(site)` page with the earliest delivery date, and
-   because `SiteChrome` awaits `getDeliveryWindow()`, in live mode an Aonik failure on that read
-   makes every `(site)` page — Allergens and the legal pages included — a 500.
-5. **Social links:** `SOCIAL_LINKS` point at the networks' home pages (`https://instagram.com`…).
-6. **404:** the design's Page Not Found carries the purchase bar; the root 404 has none, since the
+1. **Header, drawer, footer and announcement bar (#10):** resolved by PR #60 — the v2 chrome,
+   hide-on-scroll from `src/lib/site-header/`, and no announcement bar, so `SiteChrome` reads the
+   session and nothing else.
+2. **Social links:** `SOCIAL_LINKS` are the design's accounts (PR #60), still unconfirmed (open
+   question 1).
+3. **404:** the design's Page Not Found carries the purchase bar; the root 404 has none, since the
    bar's offer needs the box plan and the 404 may not read Aonik.
-7. **In-app 500:** it renders under the root layout, where `ConsentManager` is mounted, so a
+4. **In-app 500:** it renders under the root layout, where `ConsentManager` is mounted, so a
    first-time visitor sees the banner on it; the design's 500 has no consent UI.
 
 ### Open questions (owner decisions, not requirements)
@@ -443,15 +437,16 @@ the session; only the header, drawer, footer, consent manager and bar are client
 1. **Social URLs.** The design's markup uses instagram.com/fromabbystable,
    tiktok.com/@fromabbystable, facebook.com/fromabbystable/ and x.com/fromabbystable. Are these the
    brand's live accounts? Until confirmed, nothing here asserts them.
-2. **Gifting before #26.** `/gifting` is not built and `/#gifting` loses its target with #15.
+2. **Gifting before #26.** `/gifting` is not built and `/#gifting` lost its target with #15.
+   For now (PR #60) Gifting stays out of the chrome until its page lands (`GIFTING_LIVE`).
 3. **Private Table before #25.** `/private-table` is not built; `/#private` resolves only while the
    homepage band keeps `id="private"`.
-4. **Sign-out.** The header's "Account" menu holds the only sign-out. The design puts it in the
-   account area, which has none yet; #10 must not remove it before it moves.
+4. **Sign-out.** Moved by PR #60 from the header's "Account" menu to `/account/orders`; #35
+   moves it into My Account's menu.
 5. **"My Account" destination.** Only `/account/orders` exists; the designed My Account page does
    not.
 6. **Drawer BUILD A BOX with an active box.** The design does not say whether it becomes VIEW BOX
-   (`at-order-state.js` skips the drawer pill).
+   (`at-order-state.js` skips the drawer pill). For now (PR #60) it switches with the header pill.
 7. **Serving `500.html`.** Azure Static Web Apps cannot override a 500; a CDN or Front Door rule
    is needed.
 8. **Server-side tags.** Consent lives in browser storage; a server-readable signal must be
@@ -459,7 +454,7 @@ the session; only the header, drawer, footer, consent manager and bar are client
 9. **Bar after consent.** Accepting while scrolled down shows the bar at once in the banner's
    place; the design left it, to revisit on a real device.
 10. **"Forgotten it?"** — Contact, or a password-reset flow when one exists?
-11. **404 bar and 500 banner** (known gaps 6–7): bar without an offer, or none; banner suppressed
+11. **404 bar and 500 banner** (known gaps 3–4): bar without an offer, or none; banner suppressed
     on the 500, or not.
 
 ---
@@ -472,10 +467,10 @@ the session; only the header, drawer, footer, consent manager and bar are client
 - [x] `T4` 404, 500 and maintenance; 404 without the announcement strip — PRs #51, #53 (#13)
 - [x] `T5` Mobile purchase bar, rules and active-box summary — PR #57 (#12)
 - [x] `T6` Allergens, Privacy and Terms links on their pages — PRs #49, #56 (#8, legal half)
-- [ ] `T7` v2 header: links, pill, current page, hide-on-scroll (FR-01–FR-03) (#10)
-- [ ] `T8` v2 drawer as a dialog (FR-04–FR-06) (#10)
-- [ ] `T9` v2 footer (FR-07) (#10)
-- [ ] `T10` Delete the announcement bar and its delivery read (FR-08) (#10)
+- [x] `T7` v2 header: links, pill, current page, hide-on-scroll (FR-01–FR-03) — PR #60 (#10)
+- [x] `T8` v2 drawer as a dialog (FR-04–FR-06) — PR #60 (#10)
+- [x] `T9` v2 footer (FR-07) — PR #60 (#10)
+- [x] `T10` Delete the announcement bar and its delivery read (FR-08) — PR #60 (#10)
 - [ ] `T11` Contact and Delivery & FAQs links (FR-21) (#8). Done: every link reads
   `CONTACT_HREF` or `DELIVERY_FAQS_HREF` in `src/lib/content/navigation.ts`, the only `/#contact`
   left in `web/src` (`tests/information-links.test.ts`). **Waits on #24 and #23:** set
@@ -493,10 +488,10 @@ the session; only the header, drawer, footer, consent manager and bar are client
 
 - Unit (exists): `tests/consent.test.ts`, `tests/purchase-bar.test.tsx`,
   `tests/status-pages.test.ts`, `tests/not-found-chrome.test.ts`, `tests/legal-documents.test.ts`,
+  `tests/site-header.test.ts` (FR-01–FR-07: auto-hide routes and thresholds, current page, account
+  slot, pills, links and footer columns),
   `tests/information-links.test.ts` (FR-21), `tests/checkout-legal-return.test.tsx` (FR-22).
-- Unit (to add with #10): header pill state from the active-box rule; hide-on-scroll thresholds as
-  a React-free module; drawer trap and focus return; footer heads by width; chrome makes no Aonik
-  request on any route (the not-found control test changes with FR-08).
+- Unit (still to add): drawer trap and focus return; footer heads by width.
 - Manual: drawer, banner, panel and bar together at 320 and 390; keyboard only; reduced motion.
 
 ### Definition of done

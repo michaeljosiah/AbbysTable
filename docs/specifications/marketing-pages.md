@@ -15,8 +15,8 @@ updated: 2026-10-07
 > requirements for built pages describe what `web/` does on `main` at 213ee0b, read from the
 > source. Implemented: How It Works (#16, PR #55), Our Standards and the Back to dish round trip
 > (#17, PR #54), Abby's Story (#18, PR #52), Allergens (#19, PR #49), Privacy Policy and Terms of
-> Sale (#20, PR #56). **Pending: Homepage v2 (#15, being built now)**, specified from the issue
-> and `design/Abby's Table - Homepage v2.dc.html`. Where an issue and `design/` disagree, the
+> Sale (#20, PR #56), and Homepage v2 (#15, PR #59), specified from the issue and
+> `design/Abby's Table - Homepage v2.dc.html`. Where an issue and `design/` disagree, the
 > design wins and the requirement says so. Header, drawer, footer, cookie consent, the purchase
 > bar's mechanics and the status pages are in `SPEC-2026-10-07-site-chrome-and-consent`.
 
@@ -190,7 +190,8 @@ earliest delivery date.
 
 #### Scenario: The removed sections stay removed
 - **WHEN** the homepage renders
-- **THEN** it contains six bands in the order above and no boxes promo or gifting section
+- **THEN** it contains the six bands in the order above (five if there are no dishes to show) and
+  no boxes promo or gifting section
 - **AND** no delivery date appears on it
 
 ### Requirement: FR-09 Homepage hero
@@ -237,7 +238,10 @@ from everyday favourites to signature upgrades.", render cards from catalogue da
 ("What does Signature mean?") SHALL open the tooltip "One of Abby's specials. This dish takes a
 little more time or uses premium cuts, so there's a small upgrade."; the upgrade amount comes from
 the dish record. The card is shared with `/menu`, whose design (Menu Landing v3) carries the same
-copy, so the change applies to both.
+copy, so the change applies to both. The band SHALL be left out when there are no dishes to show.
+Known gap (T13): the copy is in, but the info "i" is still the old hover tip inside the card link —
+`aria-hidden`, shown only on hover or card focus, and hidden below 640 — so the explainer cannot be
+opened on a phone or by keyboard; the separate button arrives with the v2 card treatment (#21).
 
 #### Scenario: The popover is not a link inside a link
 - **WHEN** a keyboard user tabs through a Signature card
@@ -460,19 +464,20 @@ Aonik failures degrade per piece; a marketing page never becomes a 500 because o
 - [x] `T3` Abby's Story at `/our-story`, all story links repointed — PR #52 (#18)
 - [x] `T4` Allergens — PR #49 (#19)
 - [x] `T5` Privacy Policy and Terms of Sale, slugs pinned — PR #56 (#20)
-- [ ] `T6` Homepage v2 (#15)
-  - [ ] Delete `BoxesPromo` and `Gifting` sections and their fixture reads
-  - [ ] Hero (FR-09) and How it works band without a date (FR-10)
-  - [ ] Our standards band (FR-12); founder heading structure (FR-13)
-  - [ ] Private Table band, after open questions 1–2 (FR-13)
-  - [ ] Signature tooltip copy on the shared dish card (FR-11)
+- [x] `T6` Homepage v2 — PR #59 (#15)
+  - [x] Delete `BoxesPromo` and `Gifting` sections and their fixture reads
+  - [x] Hero (FR-09) and How it works band without a date (FR-10)
+  - [x] Our standards band (FR-12); founder heading structure (FR-13)
+  - [x] Private Table band (FR-13); "Find out more" hidden until #25 (`PRIVATE_TABLE_HREF`)
+  - [x] Signature tooltip copy on the shared dish card (FR-11); the separate button is T13
 - [ ] `T7` Repoint `/#contact` placeholders as Contact and Delivery & FAQs land (#8)
 - [ ] `T8` Real photography, company details, legal and food-safety sign-off (#38)
-- [ ] `T9` Root metadata to "mainland UK" / "Heat, enjoy, live well" (no issue yet)
+- [x] `T9` Root metadata to "mainland UK" / "Heat, enjoy, live well" — PR #59
 - [ ] `T10` Our Standards' minimum from the storefront plan, the same source as its purchase bar
   (FR-02)
 - [ ] `T11` How It Works' hero image gets `fetchPriority="high"` (FR-06)
 - [ ] `T12` The Back to dish gate marks the record departed before revealing the control (FR-16)
+- [ ] `T13` The Signature info button as a real button outside the card link (FR-11) (#21)
 
 ### Testing
 

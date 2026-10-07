@@ -1,123 +1,139 @@
-import Image from 'next/image';
-import { Fragment } from 'react';
+import { getImageProps } from 'next/image';
+import Link from 'next/link';
 
-import { Button, Eyebrow, SectionHeading } from '@/components/ui';
-import { HOW_IT_WORKS_STEPS } from '@/lib/content/marketing';
+import { homepageSteps } from '@/lib/content/marketing';
+import { BOX_BUILDER_PATH } from '@/lib/how-it-works/boxSizes';
+import { offerLines, type PurchaseBarOffer } from '@/lib/purchase-bar/offer';
 
-import { Standards } from './Standards';
+import { HowItWorksClip } from './HowItWorksClip';
+import { KeepCompounds } from './KeepTogether';
 import styles from './HowItWorks.module.css';
 
 interface HowItWorksProps {
   /**
-   * Pre-formatted delivery date, e.g. "6 August", or null when the tenant
-   * publishes no promise — in which case the line is not rendered at all. A
-   * wrong date is worse than no date, so nothing is invented here.
+   * The box plan's offer — the minimum and the price of a box at it — as the
+   * page already resolved it for the mobile purchase bar, so the plan is read
+   * once. Null when the tenant has no usable plan: step 01 then drops its
+   * minimum and the desktop note is not rendered, rather than quoting a
+   * number that is not true.
    */
-  earliestDeliveryLabel: string | null;
+  offer: PurchaseBarOffer | null;
 }
 
-/** Renders lines hard-broken by the content, rather than left to wrap. */
-function Lines({ lines }: { lines: string[] }) {
+/** Describes what the clip shows, which is packaging and delivery. */
+const CLIP_LABEL =
+  'A tray of jollof rice with grilled chicken and fried plantain, beside stacked Abby’s Table meal boxes and a branded delivery box';
+
+/**
+ * The How it works band — design/Abby's Table - Homepage v2.dc.html
+ * (approved, mobile + desktop) and build-handoff "How it works band".
+ *
+ * Four steps as a real `<ol>` (the numerals are decorative), then the looping
+ * clip. Desktop puts the heading, intro and actions in a left column with the
+ * steps as a 2×2 grid beside them; a phone reads heading → intro → steps →
+ * "Learn more" → clip. The actions block is AFTER the copy in the DOM (the
+ * desktop order) and moved below the steps on a phone with `order` — safe
+ * under the ordering rule because the steps it moves past hold no controls.
+ *
+ * Build a Box and the "Minimum 6 dishes · From £158" note are desktop only:
+ * on a phone the mobile purchase bar carries both, so showing them here too
+ * would repeat them on one screen.
+ *
+ * NO delivery date. The earliest date was built into this band, reviewed and
+ * removed; it lives only in the funnel (handoff, behaviour guide §1).
+ */
+export function HowItWorks({ offer }: HowItWorksProps) {
+  const steps = homepageSteps(offer?.minDishes ?? null);
+  const note = offer ? offerLines(offer) : null;
+
   return (
-    <>
-      {lines.map((line, index) => (
-        <Fragment key={line}>
-          {index > 0 ? <br /> : null}
-          {line}
-        </Fragment>
-      ))}
-    </>
+    <section id="howitworks" className={styles.section}>
+      <div className={styles.inner}>
+        <div className={styles.grid}>
+          <div className={styles.copy}>
+            <h2 className={styles.heading}>How Abby’s Table works</h2>
+            <p className={styles.intro}>Four simple steps, from our table to yours.</p>
+          </div>
+
+          <div className={styles.actions}>
+            <div className={styles.pair}>
+              <Link href={BOX_BUILDER_PATH} className={styles.cta}>
+                Build a Box
+              </Link>
+              <div className={styles.moreRow}>
+                <Link href="/how-it-works" className={styles.more}>
+                  <span className={styles.moreInner}>
+                    Learn more
+                    <span aria-hidden="true">→</span>
+                  </span>
+                </Link>
+              </div>
+            </div>
+
+            {note ? (
+              <p className={styles.note}>
+                {note.minimum}
+                {note.from ? ` · ${note.from}` : null}
+              </p>
+            ) : null}
+          </div>
+
+          {/* `role` restated: `list-style: none` drops list semantics in Safari. */}
+          <ol className={styles.steps} role="list">
+            {steps.map((step) => (
+              <li key={step.number} className={styles.step}>
+                <span className={styles.stepNumber} aria-hidden="true">
+                  {step.number}
+                </span>
+                <span>
+                  <span className={styles.stepTitle}>{step.title}</span>
+                  <span className={styles.stepBody}>
+                    <KeepCompounds text={step.body} />
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <HowItWorksClip label={CLIP_LABEL} poster={<ClipPoster />} />
+      </div>
+    </section>
   );
 }
 
 /**
- * The four-step explainer: build the box, cook from scratch, deliver chilled,
- * heat and eat. Steps are content-driven; the delivery date is passed in so it
- * stays in step with the live cut-off rather than being baked into the markup.
+ * The clip's opening frame, art-directed like the clip itself — 3:2 on a
+ * phone, 2.4:1 from 1024 — and served through next/image. It is what shows
+ * before the clip loads, with no JavaScript, and under reduced motion. Lazy:
+ * the band sits below the first screen at both reference viewports.
  *
- * The section carries `id="standards"` and opens with the standards card,
- * because the template folds the two together: one ground, one column, one
- * vertical rhythm, with `#howitworks` as an anchor on the intro inside it. Both
- * anchors still resolve, so the nav is unaffected.
+ * Decorative here: the video over it carries the label.
  *
- * Each step is a horizontal card — photograph left, text right. The proportion
- * between the two is re-cut four times on the way down, which is why this
- * stylesheet carries banded queries rather than a single mobile breakpoint.
+ * ⚠ PLACEHOLDER — must not ship (#38): AI-generated footage whose sleeve copy
+ * is garbled and whose dish is not on the menu (photography-shot-list §2b).
  */
-export function HowItWorks({ earliestDeliveryLabel }: HowItWorksProps) {
+function ClipPoster() {
+  const common = { alt: '', sizes: '(min-width: 1280px) 1184px, 100vw', loading: 'lazy' } as const;
+  const {
+    props: { srcSet: desktop },
+  } = getImageProps({
+    ...common,
+    src: '/assets/home/hiw-poster-desktop.jpg',
+    width: 1200,
+    height: 500,
+  });
+  const { props: mobile } = getImageProps({
+    ...common,
+    src: '/assets/home/hiw-poster-mobile.jpg',
+    width: 1080,
+    height: 720,
+  });
+
   return (
-    <section id="standards" className={styles.section}>
-      <div className="band">
-        <Standards />
-
-        <div id="howitworks" className={styles.intro}>
-          <Eyebrow tone="brass" align="center">
-            Prepared with care
-          </Eyebrow>
-          <SectionHeading level={1} align="center" className={styles.heading}>
-            How Abby&apos;s Table works
-          </SectionHeading>
-          <p className={styles.lede}>
-            Choose your box, choose your date, and let Abby take care of the rest.
-          </p>
-        </div>
-
-        <ol className={styles.grid}>
-          {HOW_IT_WORKS_STEPS.map((step) => (
-            <li key={step.step} className={styles.card}>
-              <div className={styles.media}>
-                <Image
-                  src={step.imageUrl}
-                  alt={step.imageAlt}
-                  fill
-                  sizes="(max-width: 760px) 100vw, (max-width: 1080px) 50vw, 25vw"
-                  className={styles.image}
-                />
-              </div>
-
-              <div className={styles.copy}>
-                <span className={styles.badge}>{step.step}</span>
-                <div className={styles.titleRow}>
-                  <span className={styles.titleRule} aria-hidden="true" />
-                  <h3 className={styles.cardTitle}>
-                    <Lines lines={step.title} />
-                  </h3>
-                </div>
-                <p className={styles.cardBody}>
-                  <Lines lines={step.body} />
-                </p>
-              </div>
-            </li>
-          ))}
-        </ol>
-
-        <div className={styles.footer}>
-          {earliestDeliveryLabel ? (
-            <span className={styles.delivery}>
-              <svg
-                className={styles.calendar}
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <rect x="3" y="4.5" width="18" height="16" rx="2" />
-                <path d="M3 9h18" />
-                <path d="M8 2.5v4" />
-                <path d="M16 2.5v4" />
-              </svg>
-              <span>
-                Earliest mainland UK delivery:{' '}
-                <strong className={styles.deliveryDate}>{earliestDeliveryLabel}</strong>
-              </span>
-            </span>
-          ) : null}
-
-          <Button variant="dark" href="/menu">
-            Build your box
-          </Button>
-        </div>
-      </div>
-    </section>
+    <picture>
+      <source media="(min-width: 1024px)" srcSet={desktop} sizes={common.sizes} />
+      <img {...mobile} alt="" className={styles.poster} />
+    </picture>
   );
 }

@@ -85,41 +85,6 @@
   color: var(--terracotta-deep);
 }
 
-/* ---- Guidance ----------------------------------------------------------------- */
-
-.guidance {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  margin: -2px 0 26px;
-  text-align: center;
-}
-
-.guidanceLabel {
-  font-family: var(--font-sans);
-  font-weight: var(--weight-semibold);
-  font-size: 12px;
-  letter-spacing: var(--track-wide);
-  text-transform: uppercase;
-  color: var(--text-accent);
-}
-
-.guidanceLink {
-  font-family: var(--font-sans);
-  font-size: var(--body-md);
-  color: var(--text-heading);
-  text-decoration: none;
-  border-bottom: 1px solid var(--brass);
-  padding-bottom: 2px;
-  transition: color 0.16s ease;
-}
-
-.guidanceLink:hover {
-  color: var(--brass);
-}
-
 /* ---- Grid ---------------------------------------------------------------------- */
 
 .grid {

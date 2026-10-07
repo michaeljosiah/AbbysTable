@@ -1,105 +1,125 @@
-import { Button, Eyebrow, SectionHeading } from '@/components/ui';
-import { PRIVATE_TABLE_CREDENTIALS } from '@/lib/content/marketing';
+import Link from 'next/link';
+import { Fragment } from 'react';
 
+import {
+  PRIVATE_TABLE_CREDENTIALS,
+  PRIVATE_TABLE_FROM_PENCE,
+  PRIVATE_TABLE_HREF,
+  PRIVATE_TABLE_REACH,
+  type PrivateTableReachIcon,
+} from '@/lib/content/marketing';
+import { formatPrice } from '@/lib/format';
+
+import { KeepCompounds } from './KeepTogether';
 import styles from './PrivateTable.module.css';
 
-/** The brass rule-diamond-rule divider used between credential tiers. */
-function Divider({ className }: { className?: string }) {
+/** Order Confirmation v2's Private Table route glyphs: a globe and a pin. */
+function ReachGlyph({ icon }: { icon: PrivateTableReachIcon }) {
   return (
-    <span className={[styles.divider, className].filter(Boolean).join(' ')} aria-hidden="true">
-      <span className={styles.dividerRule} />
-      <span className={styles.dividerDiamond}>◆</span>
-      <span className={styles.dividerRule} />
-    </span>
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {icon === 'globe' ? (
+        <>
+          <circle cx="12" cy="12" r="8.5" />
+          <path d="M3.5 12h17" />
+          <path d="M12 3.5c2.4 2.4 3.5 5.2 3.5 8.5s-1.1 6.1-3.5 8.5c-2.4-2.4-3.5-5.2-3.5-8.5S9.6 5.9 12 3.5z" />
+        </>
+      ) : (
+        <>
+          <path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z" />
+          <circle cx="12" cy="9.5" r="2.5" />
+        </>
+      )}
+    </svg>
   );
 }
 
 /**
- * Navy band for the private consultation service.
+ * Abby's Private Table — design/Abby's Table - Homepage v2.dc.html (approved)
+ * and build-handoff "Private Table — what was settled".
  *
- * The credentials are rendered twice: as a bordered card beside the copy on
- * wide screens, and as a plain centred stack beneath it below 860px. The
- * template swaps one for the other rather than reflowing the card, because the
- * border reads as a panel at 360px wide and as a box at full width. Only one is
- * ever visible, and the stacked variant is the one hidden from assistive tech
- * to avoid announcing the list twice.
+ * On `--navy`, accents plain `--brass` by decision: 4.08:1 on navy, under the
+ * 4.5:1 small-text minimum, accepted so the band and Private Table v2 share
+ * one brass — the two are revisited together or not at all (design/CLAUDE.md,
+ * "Brass on --navy"). Do not "fix" this band alone.
  *
- * The CTA has no destination yet — the consultation flow does not exist — so it
- * renders as a `<button>`. Give it an `href` (or an `onClick` from a client
- * wrapper) once there is somewhere for it to go.
+ * One credentials card at every width (full width on a phone), never a second
+ * borderless copy. The credentials are regulated claims to substantiate
+ * before launch (#38).
+ *
+ * "Find out more" goes to the Private Table page, which does not exist yet
+ * (#25). Until it does the CTA is not rendered — never a link to a 404, never
+ * an inert button — and the band still states the service and its price. See
+ * `PRIVATE_TABLE_HREF`.
+ *
+ * The mobile purchase bar is suppressed from this band's top through the
+ * footer: "Build a Box" beside a bespoke service reads as an upsell. The
+ * suppression is positional, so this must stay the last band on the page —
+ * anything placed below it is suppressed too (build-handoff §3j).
  */
 export function PrivateTable() {
   return (
-    // The mobile purchase bar is suppressed from this section's top through
-    // the footer: "Build a Box" beside a bespoke service reads as an upsell
-    // (design/CLAUDE.md, "Mobile purchase CTA").
     <section id="private" className={styles.section} data-purchase-bar-stop="">
-      <div className={`band ${styles.split}`}>
-        <div className={styles.content}>
-          <Eyebrow tone="brass" align="center">
-            A private service
-          </Eyebrow>
+      <div className={styles.inner}>
+        <div className={styles.grid}>
+          <div className={styles.copy}>
+            <h2 className={styles.heading}>Abby’s Private Table</h2>
+            <p className={styles.subline}>Bespoke Nigerian fusion menus, created around you.</p>
+            <p className={styles.body}>
+              When the way you eat needs to change, the food you love can be rethought rather than
+              given up. Abby’s Private Table creates personalised Nigerian fusion food around your
+              health, recovery or performance needs.
+            </p>
 
-          <Divider className={styles.eyebrowDivider} />
+            <ul className={styles.reach} role="list">
+              {PRIVATE_TABLE_REACH.map((row) => (
+                <li key={row.label} className={styles.reachRow}>
+                  <span className={styles.reachRing} aria-hidden="true">
+                    <ReachGlyph icon={row.icon} />
+                  </span>
+                  <span>
+                    <span className={styles.reachLabel}>{row.label}</span>
+                    <span className={styles.reachValue}>{row.value}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
 
-          <SectionHeading level={1} tone="cream" align="center" className={styles.heading}>
-            Abby&apos;s Private Table
-          </SectionHeading>
-
-          <p className={styles.standfirst}>
-            Bespoke Nigerian fusion menus, created around you.
-          </p>
-
-          <p className={styles.body}>
-            When the way you eat needs to change, the food you love can be rethought rather than
-            given up. Abby&apos;s Private Table creates personalised Nigerian fusion food around
-            your health, recovery or performance needs.
-          </p>
-
-          <p className={styles.reach}>
-            <span className={styles.reachPlace}>Worldwide</span> — recipes created for you
-            <span className={styles.dot} aria-hidden="true">
-              •
-            </span>
-            <span className={styles.reachPlace}>UK-wide</span> — recipes created and prepared for
-            you
-          </p>
-
-          {/* Stacked variant: shown below 860px, where the card is hidden. */}
-          <div className={styles.credentialsStack}>
-            {PRIVATE_TABLE_CREDENTIALS.map((credential, index) => (
-              <div key={credential.role}>
-                {index > 0 ? <Divider /> : null}
-                <div className={styles.credentialRole}>{credential.role}</div>
-                <div className={styles.credentialName}>{credential.lines.join(' ')}</div>
+            {PRIVATE_TABLE_HREF ? (
+              <div className={styles.ctaWrap}>
+                <Link href={PRIVATE_TABLE_HREF} className={styles.cta}>
+                  Find out more
+                </Link>
               </div>
+            ) : null}
+            <p className={styles.price}>Private Table from {formatPrice(PRIVATE_TABLE_FROM_PENCE)}</p>
+          </div>
+
+          <div className={styles.card}>
+            {PRIVATE_TABLE_CREDENTIALS.map((credential, index) => (
+              <Fragment key={credential.role}>
+                {index > 0 ? (
+                  <span className={styles.divider} aria-hidden="true">
+                    <span className={styles.dividerRule} />
+                    <span className={styles.dividerMark}>◆</span>
+                    <span className={styles.dividerRule} />
+                  </span>
+                ) : null}
+                <p className={styles.role}>{credential.role}</p>
+                <p className={styles.credential}>
+                  <KeepCompounds text={credential.name} />
+                </p>
+              </Fragment>
             ))}
           </div>
-
-          <div className={styles.cta}>
-            <Button variant="cream" size="lg">
-              Find out more
-            </Button>
-          </div>
-
-          <p className={styles.price}>Private Table from £2,500</p>
-        </div>
-
-        <div className={styles.credentialsCard}>
-          {PRIVATE_TABLE_CREDENTIALS.map((credential, index) => (
-            <div key={credential.role}>
-              {index > 0 ? <Divider /> : null}
-              <div className={styles.credentialRole}>{credential.role}</div>
-              <div className={styles.credentialName}>
-                {credential.lines.map((line, lineIndex) => (
-                  <span key={line}>
-                    {lineIndex > 0 ? <br /> : null}
-                    {line}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ))}
         </div>
       </div>
     </section>
