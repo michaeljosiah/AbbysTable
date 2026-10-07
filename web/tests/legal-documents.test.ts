@@ -270,6 +270,7 @@ test('a link counts as this document\'s only on its own origin, path and query',
   assert.equal(linkTarget(PRIVACY_POLICY, '/#standards', here, 'top'), null);
   assert.equal(linkTarget(PRIVACY_POLICY, '/privacy?x=1#cookies', here, 'top'), null);
   assert.equal(linkTarget(PRIVACY_POLICY, 'https://elsewhere.test/privacy#cookies', here, 'top'), null);
-  assert.equal(linkTarget(PRIVACY_POLICY, '/privacy', here, 'top'), null);
+  // The page's own bare address goes to the top, focus with it.
+  assert.equal(linkTarget(PRIVACY_POLICY, '/privacy', here, 'top'), 'top');
   assert.equal(linkTarget(PRIVACY_POLICY, '#legal-index', here, 'top'), null);
 });

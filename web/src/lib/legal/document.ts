@@ -38,6 +38,8 @@ export interface LegalDocument {
   /** The index's accessible name, e.g. "Terms of Sale sections". */
   readonly navLabel: string;
   readonly groups: readonly LegalGroup[];
+  /** Whether the index divides its groups with a hairline (Terms does; Privacy does not). */
+  readonly groupRules?: boolean;
 }
 
 /** Every section in document order. */

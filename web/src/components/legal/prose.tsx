@@ -218,14 +218,16 @@ export function DefinitionList({
   head: readonly [string, string];
   children: ReactNode;
 }) {
+  // The head sits beside the <dl>, not in it: a <dl>'s div children may only
+  // group dt/dd pairs.
   return (
-    <dl className={styles.dl}>
+    <div className={styles.dl}>
       <div className={styles.dlHead} aria-hidden="true">
         <span>{head[0]}</span>
         <span>{head[1]}</span>
       </div>
-      {children}
-    </dl>
+      <dl className={styles.dlList}>{children}</dl>
+    </div>
   );
 }
 

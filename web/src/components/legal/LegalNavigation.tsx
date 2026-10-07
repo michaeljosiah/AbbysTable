@@ -527,6 +527,9 @@ export function LegalNavigation({
     const onPopState = () => {
       // A held-back passive write would land on the entry just returned to.
       clearTimeout(urlTimer.current);
+      // Back is how a phone dismisses a sheet: close it first, so the page is
+      // no longer inert when the target heading takes focus.
+      if (sheetOpenRef.current) closeSheet({ returnFocus: false });
       // Back to another page (client-side history): not ours to resolve, even
       // where its fragment looks like one of this document's.
       if (!isCurrent()) return;
@@ -540,7 +543,7 @@ export function LegalNavigation({
     };
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
-  }, [doc, isCurrent, select, writeUrl, scrollToSection]);
+  }, [doc, isCurrent, select, writeUrl, scrollToSection, closeSheet]);
 
   // The sheet is a true modal: focus in and trapped, Escape closes, the page
   // behind is inert and does not scroll. It is a phone presentation only, so
@@ -695,6 +698,7 @@ export function LegalIndex() {
           className={styles.nav}
           aria-label={doc.navLabel}
           data-open={inlineOpen || undefined}
+          data-group-rules={doc.groupRules || undefined}
         >
           <div className={styles.navTitle}>
             <p id={SHEET_TITLE_ID} className={styles.eyebrow}>

@@ -148,4 +148,5 @@ export type TermsSlug = (typeof TERMS_GROUPS)[number]['sections'][number]['slug'
 export const TERMS_OF_SALE: LegalDocument = {
   navLabel: 'Terms of Sale sections',
   groups: TERMS_GROUPS,
+  groupRules: true,
 };

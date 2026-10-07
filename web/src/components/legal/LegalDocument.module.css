@@ -209,7 +209,8 @@
   border-bottom: var(--border-hairline) solid var(--border-light);
 }
 
-.group + .group {
+/* Terms divides its index groups with a hairline; Privacy's design does not. */
+[data-group-rules] .group + .group {
   margin-top: 4px;
   padding-top: 4px;
   border-top: var(--border-hairline) solid var(--border-light);
@@ -635,6 +636,10 @@ div.groupToggle {
 .dl {
   max-width: 660px;
   margin: 16px 0 0;
+}
+
+.dlList {
+  margin: 0;
 }
 
 .dlHead {

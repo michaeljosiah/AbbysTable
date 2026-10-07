@@ -34,9 +34,9 @@ export function fragmentUrl(location: LocationLike, documentPath: string, slug: 
 
 /**
  * What a followed link means for this document: `'top'` for its "Back to top"
- * fragment, a section for any of its anchors — slug or legacy number — and
- * `null` for anywhere else. It must be this very document: same origin, path
- * and query. A link from the header or the cookie panel to
+ * fragment or its own bare address, a section for any of its anchors — slug
+ * or legacy number — and `null` for anywhere else. It must be this very
+ * document: same origin, path and query. A link from the header or the cookie panel to
  * `/privacy#cookies`, followed while already on it, counts.
  */
 export function linkTarget(
@@ -54,6 +54,9 @@ export function linkTarget(
   if (url.origin !== location.origin || url.pathname !== location.pathname || url.search !== location.search) {
     return null;
   }
-  if (url.hash === `#${topId}`) return 'top';
+  // The page's own bare address (the footer's "Privacy Policy" on /privacy)
+  // is a jump to the top, so focus goes with it rather than staying in the
+  // footer thirty screens down.
+  if (url.hash === '' || url.hash === `#${topId}`) return 'top';
   return resolveLegalAnchor(doc, url.hash)?.section ?? null;
 }
