@@ -1,0 +1,116 @@
+/* ===========================================================================
+   Delivery & FAQs — the page head and the delivery facts
+   design/Abby's Table - Delivery and FAQs.dc.html
+   ---------------------------------------------------------------------------
+   Mobile-first; 640 and 1024 min-width only. The checker and the FAQs carry
+   their own modules (components/delivery-faqs).
+   =========================================================================== */
+
+.inner {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 22px;
+}
+
+/* ---- Page head: centred as one unit; everything below is left-aligned ---- */
+
+.head {
+  padding: 34px 0 0;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: clamp(38px, 11.6vw, 56px);
+  line-height: 1.04;
+  letter-spacing: -0.015em;
+  color: var(--text-heading);
+  text-align: center;
+}
+
+/* Page lede: 18px at every width. */
+.lede {
+  margin: 12px auto 0;
+  max-width: 560px;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--text-body);
+  text-align: center;
+  text-wrap: pretty;
+}
+
+/* ---- The four delivery facts: from 1024 only ---- */
+
+.highlights {
+  display: none;
+  padding: 30px 0 0;
+}
+
+.highlightList {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.highlight {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 0 22px;
+}
+
+/* A rule between facts, never before the first. */
+.highlight + .highlight {
+  border-left: 1px solid var(--border-light);
+}
+
+.highlightIcon {
+  flex: 0 0 auto;
+  stroke: var(--brass-ink);
+}
+
+.highlightTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 22px;
+  line-height: 1.2;
+  color: var(--text-heading);
+}
+
+.highlightBody {
+  margin: 5px 0 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+@media (min-width: 640px) {
+  .inner {
+    padding: 0 34px;
+  }
+
+  .head {
+    padding-top: 52px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .inner {
+    padding: 0 48px;
+  }
+
+  .head {
+    padding-top: 60px;
+  }
+
+  .highlights {
+    display: block;
+  }
+}

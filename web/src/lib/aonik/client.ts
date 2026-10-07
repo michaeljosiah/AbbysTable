@@ -23,6 +23,7 @@ import type {
   PublicCollectionDto,
   ExtrasListDto,
 } from './dto';
+import { DemoCoverageLookup, type CoverageLookup } from './coverage';
 import { AONIK_CODES, AonikError } from './errors';
 import { EXTRA_FIXTURES } from './extras';
 import { FACET_FIXTURES, fixtureMatchesFacet, fixtureOptionGroups } from './fixtureFacets';
@@ -48,6 +49,7 @@ import {
   type StorefrontConfigDto,
   mapExtraRow,
 } from './map';
+import type { NotifyList } from './notifyMe';
 import type {
   BoxOffer,
   BoxPricing,
@@ -94,6 +96,16 @@ export interface AonikClient {
    * hide the panel entirely rather than rendering an empty one.
    */
   getDishOptionGroups(slug: string): Promise<MappedOptionGroup[]>;
+  /**
+   * Postcode coverage (contract §3b), or null while this source has no lookup
+   * — then the Delivery & FAQs checker is held back, never faked.
+   */
+  readonly coverage: CoverageLookup | null;
+  /**
+   * The notify-me list (contract §3c), or null while nothing can store to it
+   * — then the not-in-area panel offers no form.
+   */
+  readonly notifyList: NotifyList | null;
 }
 
 export interface ProductPage {
@@ -105,6 +117,15 @@ export interface ProductPage {
 
 /** Serves the design-template fixtures. Used until Aonik is reachable. */
 export class MockAonikClient implements AonikClient {
+  /** The design's placeholder coverage — a READ, so demo may serve it. */
+  readonly coverage: CoverageLookup = new DemoCoverageLookup();
+
+  /**
+   * None, deliberately: demo serves fixture reads but never pretends a write
+   * succeeded — it stores no email, so it offers no form (`./notifyMe`).
+   */
+  readonly notifyList: NotifyList | null = null;
+
   async getDishes(): Promise<Dish[]> {
     return DISH_FIXTURES;
   }
@@ -241,6 +262,18 @@ export interface HttpAonikClientOptions {
  */
 export class HttpAonikClient implements AonikClient {
   constructor(private readonly options: HttpAonikClientOptions) {}
+
+  /**
+   * None yet: Aonik has no coverage endpoint (michaeljosiah/aonik#352). Null,
+   * not a stub that fails every check — "we couldn't check that postcode just
+   * now, try again in a moment" would be untrue when no moment will fix it.
+   * The Delivery & FAQs page holds its checker back until this is a
+   * `CoverageLookup` over that endpoint.
+   */
+  readonly coverage: CoverageLookup | null = null;
+
+  /** None yet: Aonik cannot store a notify-me request (michaeljosiah/aonik#357). */
+  readonly notifyList: NotifyList | null = null;
 
   private get<T>(path: string, query?: Record<string, string | number | undefined>): Promise<T> {
     return aonikFetch<T>(path, {

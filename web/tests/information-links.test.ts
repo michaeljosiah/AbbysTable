@@ -21,12 +21,12 @@ import {
 /*
  * Information links on real routes (site-chrome spec FR-21, issue #8).
  *
- * Contact (#24) and Delivery & FAQs (#23) are designed but not built, so every
- * link to them reads ONE constant each in `src/lib/content/navigation.ts`:
- * `CONTACT_HREF` (the site footer, `/#contact`, for now) and
- * `DELIVERY_FAQS_HREF` (Contact's destination until its own page). Building
- * either page is then a one-line change there — and these tests fail until
- * that line is changed, so a built page is never left behind its placeholder.
+ * Every link to Contact (#24) and Delivery & FAQs (#23) reads ONE constant
+ * each in `src/lib/content/navigation.ts`: `CONTACT_HREF` (the site footer,
+ * `/#contact`, until Contact is built) and `DELIVERY_FAQS_HREF` (its page,
+ * `/delivery-and-faqs`, since #23). Building a page is then a one-line change
+ * there — and these tests fail until that line is changed, so a built page is
+ * never left behind its placeholder.
  */
 
 /** The interim destination: the site footer. */
@@ -160,6 +160,18 @@ const IN_PAGE_LINKS: Array<{ file: string; contact: number; faqs: number; why: s
     contact: 2,
     faqs: 1,
     why: 'two "contact us", and "Browse our FAQs" (Delivery & FAQs, as in the design)',
+  },
+  {
+    file: 'components/delivery-faqs/FaqBrowse.tsx',
+    contact: 1,
+    faqs: 0,
+    why: 'Delivery & FAQs\' "Still need help?" → "Contact us"',
+  },
+  {
+    file: 'components/delivery-faqs/FaqSearch.tsx',
+    contact: 1,
+    faqs: 0,
+    why: 'the no-results panel\'s "Contact us"',
   },
 ];
 

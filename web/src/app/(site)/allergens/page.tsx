@@ -1,9 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
-// Contact us (#24) and Delivery & FAQs (#23) are not built yet; their links
-// follow the pages here when they land. "Browse our FAQs" is Delivery & FAQs,
-// as in the design; both "contact us" links are Contact.
+// "Browse our FAQs" is Delivery & FAQs, as in the design; both "contact us"
+// links are Contact (#24), which follows its page here when it lands.
 import { CONTACT_HREF, DELIVERY_FAQS_HREF, MENU_ITEM } from '@/lib/content/navigation';
 
 import styles from './page.module.css';
@@ -21,9 +20,9 @@ import styles from './page.module.css';
  * Dish-level allergen data is out of scope here (michaeljosiah/aonik#351): this
  * page names the regulated 14 and makes no claim about any individual dish.
  *
- * An information page, like Delivery & FAQs and Contact: no hero, no purchase
- * bar, and NOT opted into the desktop header auto-hide, which is reserved for
- * marketing/editorial pages (design/CLAUDE.md, "Desktop marketing header").
+ * An information page, like Delivery & FAQs and Contact: no hero and no
+ * purchase bar. Unlike those two, NOT opted into the desktop header auto-hide
+ * (design/CLAUDE.md, "Desktop marketing header", names Allergens as static).
  */
 
 const DESCRIPTION =
