@@ -3,6 +3,7 @@ import Link from 'next/link';
 
 import { Eyebrow, SectionHeading } from '@/components/ui';
 import { formatOrderDate, listMyOrders, ORDERS_PAGE_SIZE } from '@/lib/aonik/orders';
+import { signOutAction } from '@/lib/auth/actions';
 import { SessionExpiredError } from '@/lib/auth/server';
 import { readSessionView } from '@/lib/auth/session';
 import { formatPrice } from '@/lib/format';
@@ -207,6 +208,21 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
             )}
           </nav>
         ) : null}
+
+        {/* Sign out lives in the account area, never as a loose header link
+            (design/CLAUDE.md, "Signed-in state" — decided 1 Oct 2026); the
+            header's account slot is a plain "My Account" link (#10). My
+            Account v2 (#35) moves it to the last row of the account menu.
+            A form posting to a server action: the cookie is httpOnly, and it
+            works before (and without) hydration. */}
+        <form action={signOutAction} className={styles.signOut}>
+          {session.email ? (
+            <span className={styles.signedInAs}>Signed in as {session.email}</span>
+          ) : null}
+          <button type="submit" className={styles.signOutButton}>
+            Sign out
+          </button>
+        </form>
       </div>
     </section>
   );

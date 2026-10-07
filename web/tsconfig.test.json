@@ -19,6 +19,7 @@
     "tests/customer-identity.test.ts",
     "tests/status-pages.test.ts",
     "tests/not-found-chrome.test.ts",
+    "tests/site-header.test.ts",
     "tests/consent.test.ts",
     "tests/dish-return.test.ts",
     "tests/how-it-works.test.tsx",
