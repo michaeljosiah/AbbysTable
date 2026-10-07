@@ -36,7 +36,8 @@ import { OpenNow } from './OpenNow';
  * - no hours, no "Open now / Closed": the status is computed in the browser
  *   from configured hours only;
  * - no send action, no form (aonik#356): the heading stays and says so;
- * - the FAQs card and the Private Table panel appear once their pages do.
+ * - the FAQs card appears once its page does, and the Private Table panel
+ *   once the waitlist can take a name (#25; aonik#357).
  */
 export interface ContactViewProps {
   /** Email and phone — `SUPPORT_CONTACT`. */
@@ -48,7 +49,7 @@ export interface ContactViewProps {
    * page (#23 not built), `null`: the card would link to itself.
    */
   faqsHref: string | null;
-  /** The Private Table waitlist (#25), or `null` while there is none. */
+  /** The Private Table waitlist (#25), or `null` while it cannot take a name. */
   waitlistHref: string | null;
   /** A REAL send action, or nothing — and then no form. */
   sendAction?: EnquiryAction;

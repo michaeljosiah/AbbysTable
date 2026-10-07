@@ -10,7 +10,7 @@
  * behind its own flag. When its route lands, change the one line here and the
  * header, drawer and footer all follow.
  *
- * Anchors are root-relative (`/#private`) rather than bare (`#private`) so they
+ * Anchors are root-relative (`/#founder`) rather than bare (`#founder`) so they
  * resolve from any route, not just the homepage.
  */
 
@@ -62,11 +62,12 @@ export const GIFTING_LIVE = false;
 export const GIFTING_ITEM: NavItem = { label: 'Gifting', href: '/gifting' };
 
 /**
- * Private Table (#25, `/private-table`) is not built yet. The v2 homepage
- * keeps its Private Table band (`#private`), so until the page lands the link
- * goes there. Swap to `/private-table` with #25.
+ * Private Table (#25) — its page. Until it was built the chrome went to the
+ * homepage band's `#private` anchor; nothing links there now. The Terms of Sale
+ * waitlist clause, the Delivery & FAQs answer and the homepage band's "Find
+ * out more" (`PRIVATE_TABLE_HREF`) all read this.
  */
-export const PRIVATE_TABLE_ITEM: NavItem = { label: 'Private Table', href: '/#private' };
+export const PRIVATE_TABLE_ITEM: NavItem = { label: 'Private Table', href: '/private-table' };
 
 /**
  * Contact us (#24). EVERY "contact us" in the site reads this — the chrome,

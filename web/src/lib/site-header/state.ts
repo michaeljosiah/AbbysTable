@@ -26,7 +26,7 @@ const SECTION_ROOTS: readonly string[] = [MENU_ITEM.href, '/account'];
  * `aria-current` for a chrome link: `page` when it is the page being shown,
  * `true` when the page sits inside the section it leads to, otherwise none.
  *
- * Anchors (`/#private`, the homepage band, until #25) are never current — they are a place on another page, not this one — and
+ * Anchors (`/#founder`, a homepage band) are never current — they are a place on another page, not this one — and
  * neither is anything with a scheme.
  */
 export function ariaCurrentFor(

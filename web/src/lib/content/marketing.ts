@@ -14,6 +14,8 @@
  * passed in where the copy names them rather than written into it.
  */
 
+import { PRIVATE_TABLE_ITEM } from './navigation';
+
 /**
  * The four clean-label prohibitions, as Our Standards' hero names them (the
  * /standards page pairs each with its glyph in `./standards`).
@@ -166,38 +168,49 @@ export const PRIVATE_TABLE_REACH: PrivateTableReach[] = [
 ];
 
 /**
- * Private Table's starting price, in pence: "Private Table from £1,500".
+ * Private Table's starting price, in pence: "Private Table from £1,500" — and
+ * the price of its first service, Bespoke Recipe Development ("From £1,500").
  *
  * Content, not commerce: Private Table is a waitlist, not a product Aonik
  * sells, and the design carries the figure as copy ("Copy is unchanged …
  * including 'Private Table from £1,500'"). Kept here, once, so it is never a
- * literal in markup — and so the homepage band and the Private Table page
- * (#25, which also quotes it) can share it. Still to be confirmed (#25, #37).
+ * literal in markup — the homepage band, the Private Table page (#25) and the
+ * Delivery & FAQs answer all read it. Unverified: an owner decision before
+ * launch (build-handoff open items; #37, #38).
  */
 export const PRIVATE_TABLE_FROM_PENCE = 150_000;
 
 /**
- * Where the band's "Find out more" goes: the Private Table page, once it
- * exists. It does not yet (#25), and a link to a 404 is never acceptable, so
- * this is null and the band renders no CTA until then. When #25 lands, set it
- * to '/private-table' — the CTA appears with no other change.
- *
- * Not the footer contact placeholder (`CONTACT_HREF`): Private Table is a
- * waitlist, and "Find out more" landing on the newsletter sign-up would
- * promise information that is not there.
+ * Recipe Development & Meal Preparation's starting price, in pence: "From
+ * £1,780" on its Private Table service card (#25). The same kind of figure as
+ * `PRIVATE_TABLE_FROM_PENCE` — approved copy held as data, unverified, to be
+ * confirmed by the owner before launch. It is the dearer service, so
+ * "Private Table from" stays the recipe-development price.
  */
-export const PRIVATE_TABLE_HREF: string | null = null;
+export const PRIVATE_TABLE_MEAL_PREPARATION_FROM_PENCE = 178_000;
 
 /**
- * The Private Table waitlist form, on that page (`#enquire`, as every design
- * file links it). The Contact page's Private Table panel — "Join the waitlist"
- * — renders only once it exists: its whole job is to send Private Table
- * enquiries there rather than to the message form, which deliberately has no
- * Private Table subject. Follows `PRIVATE_TABLE_HREF`, so #25 sets nothing new.
+ * The Private Table page (#25), where the homepage band's "Find out more"
+ * goes — the chrome's own destination (`PRIVATE_TABLE_ITEM`), so the two can
+ * never disagree.
  */
-export const PRIVATE_TABLE_WAITLIST_HREF: string | null = PRIVATE_TABLE_HREF
-  ? `${PRIVATE_TABLE_HREF}#enquire`
-  : null;
+export const PRIVATE_TABLE_HREF: string = PRIVATE_TABLE_ITEM.href;
+
+/**
+ * The id of the Private Table page's "Register your interest" section, where
+ * every "Join the waitlist" goes (`#enquire`, as every design file links it).
+ */
+export const WAITLIST_SECTION_ID = 'enquire';
+
+/**
+ * The waitlist form on that page. The Contact page's Private Table panel —
+ * "Join the waitlist" — links here: its whole job is to send Private Table
+ * enquiries to the waitlist rather than the message form, which deliberately
+ * has no Private Table subject. The panel shows only while the waitlist can
+ * really take a name (`waitlistOpen`, aonik#357): never a "Join the waitlist"
+ * with nothing to join.
+ */
+export const PRIVATE_TABLE_WAITLIST_HREF: string = `${PRIVATE_TABLE_HREF}#${WAITLIST_SECTION_ID}`;
 
 /* ---- Dish cards ------------------------------------------------------------ */
 

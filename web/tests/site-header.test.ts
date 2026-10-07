@@ -45,7 +45,7 @@ import {
 /* ---- Which routes auto-hide on desktop ---------------------------------------- */
 
 test('desktop auto-hide: the built marketing pages, and nothing else', () => {
-  for (const path of ['/', '/menu', '/how-it-works', '/our-story', '/standards', '/contact', '/delivery-and-faqs']) {
+  for (const path of ['/', '/menu', '/how-it-works', '/our-story', '/standards', '/contact', '/delivery-and-faqs', '/private-table']) {
     assert.equal(autoHidesOnDesktop(path), true, path);
   }
   // Trailing slash, query and hash do not change the route.
@@ -64,7 +64,7 @@ test('desktop auto-hide never reaches dish pages, Allergens, legal, account, log
   }
   // Unbuilt marketing routes join when they land: until then they are a 404,
   // and error pages keep a static header.
-  for (const path of ['/gifting', '/private-table', '/nope']) {
+  for (const path of ['/gifting', '/nope']) {
     assert.equal(autoHidesOnDesktop(path), false, path);
   }
   assert.equal(autoHidesOnDesktop(null), false);
@@ -191,11 +191,16 @@ test('the current page is marked; a dish page sits inside Menu', () => {
   assert.equal(ariaCurrentFor('/how-it-works', '/menu'), undefined);
   assert.equal(ariaCurrentFor('/our-story', '/our-story'), 'page');
   assert.equal(ariaCurrentFor('/contact', CONTACT_HREF), 'page');
+  // Private Table is its page since #25, so it is current there.
+  assert.equal(ariaCurrentFor('/private-table', PRIVATE_TABLE_ITEM.href), 'page');
   assert.equal(ariaCurrentFor('/menu-extra', '/menu'), undefined);
 });
 
 test('anchors and external links are never current; nor is anything on the homepage', () => {
-  assert.equal(ariaCurrentFor('/', PRIVATE_TABLE_ITEM.href), undefined);
+  // A homepage band is a place on a page, not the page (the chrome's
+  // Private Table link was `/#private` until #25).
+  assert.equal(ariaCurrentFor('/', '/#founder'), undefined);
+  assert.equal(ariaCurrentFor('/', '#private'), undefined);
   assert.equal(ariaCurrentFor('/', CONTACT_HREF), undefined);
   assert.equal(ariaCurrentFor('/', 'https://www.instagram.com/fromabbystable'), undefined);
   for (const item of NAV_ITEMS) assert.equal(ariaCurrentFor('/', item.href), undefined, item.label);
@@ -266,12 +271,11 @@ test('the header links: the v2 five, in order — Gifting only once its page exi
 });
 
 test('no chrome link 404s or points at an anchor the v2 homepage drops', () => {
-  const BUILT = new Set(['/menu', '/how-it-works', '/our-story', '/standards', '/contact', '/delivery-and-faqs', '/allergens', '/privacy', '/terms-of-sale', '/box', '/login', '/account/orders']);
-  // The v2 homepage keeps Private Table (#private) until #25.
-  const ANCHORS = new Set(['/#private']);
+  const BUILT = new Set(['/menu', '/how-it-works', '/our-story', '/standards', '/contact', '/delivery-and-faqs', '/private-table', '/allergens', '/privacy', '/terms-of-sale', '/box', '/login', '/account/orders']);
   const links = [...NAV_ITEMS, ...FOOTER_COLUMNS.flatMap((column) => column.links)];
   for (const link of links) {
-    assert.ok(BUILT.has(link.href) || ANCHORS.has(link.href), `${link.label} → ${link.href}`);
+    // Pages only: every interim homepage anchor (`/#private`, #25) is gone.
+    assert.ok(BUILT.has(link.href), `${link.label} → ${link.href}`);
   }
   assert.ok(!links.some((link) => link.href === '/#gifting'), '#gifting is gone from the v2 homepage');
 });

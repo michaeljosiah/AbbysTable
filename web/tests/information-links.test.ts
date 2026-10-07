@@ -5,6 +5,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
+import { PRIVATE_TABLE_HREF, PRIVATE_TABLE_WAITLIST_HREF } from '../src/lib/content/marketing';
 import {
   ALLERGENS_ITEM,
   CHECKOUT_FOOTER_LINKS,
@@ -14,6 +15,7 @@ import {
   DELIVERY_FAQS_ITEM,
   FOOTER_COLUMNS,
   PRIVACY_ITEM,
+  PRIVATE_TABLE_ITEM,
   STATUS_FOOTER_LINKS,
   TERMS_ITEM,
 } from '../src/lib/content/navigation';
@@ -114,6 +116,26 @@ test('Contact is built, so nothing links to its old stand-in (#24)', () => {
   assert.match(page, /from '@\/lib\/content\/navigation'/);
   assert.match(page, /faqsHref=\{DELIVERY_FAQS_HREF === CONTACT_HREF \? null : DELIVERY_FAQS_HREF\}/);
   assert.doesNotMatch(page, /'\/(delivery-and-faqs|contact)'/);
+});
+
+test('Private Table is built, so nothing links to its old stand-in (#25)', () => {
+  assert.ok(ROUTES.has('/private-table'), 'app/(site)/private-table/page.tsx');
+  assert.equal(PRIVATE_TABLE_ITEM.href, '/private-table');
+  // The homepage band's anchor was the chrome's destination until the page
+  // landed. Not one link to it is left, comments included — a stale mention
+  // invites a new link.
+  assert.deepEqual(filesContaining('/#private'), []);
+  // Everything else follows the one constant: the band's "Find out more", the
+  // waitlist link Contact uses, and the FAQ answer and Terms clause that link
+  // the service.
+  assert.equal(PRIVATE_TABLE_HREF, PRIVATE_TABLE_ITEM.href);
+  assert.equal(PRIVATE_TABLE_WAITLIST_HREF, `${PRIVATE_TABLE_ITEM.href}#enquire`);
+  for (const file of ['lib/content/deliveryFaqs.ts', 'app/(site)/terms-of-sale/clauses.tsx']) {
+    assert.match(read(file), /PRIVATE_TABLE_ITEM\.href/, file);
+    assert.doesNotMatch(read(file), /'\/private-table'/, file);
+  }
+  // Written once, in navigation.ts.
+  assert.deepEqual(filesContaining("'/private-table'"), [NAVIGATION]);
 });
 
 test('the chrome lists read the shared items, so they follow the constants', () => {

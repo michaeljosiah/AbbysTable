@@ -33,11 +33,10 @@ import type { TermsSlug } from '@/lib/legal/terms';
  * Company details come from `@/lib/content/company`, never from the design's
  * placeholders, and print as "to be confirmed" until they are set.
  *
- * Contact and Private Table are designed but not built yet; their links take
- * the site's current destinations from `@/lib/content/navigation` — where
- * every chrome destination is defined once — so each page's landing is a
- * one-line change there (`CONTACT_HREF`; `PRIVATE_TABLE_ITEM`, the homepage
- * band until #25).
+ * Links to Contact and Private Table take their destinations from
+ * `@/lib/content/navigation`, where every chrome destination is defined once
+ * (`CONTACT_HREF`; `PRIVATE_TABLE_ITEM`), so they followed each page as it
+ * landed (#24, #25) with no change here.
  */
 
 /**

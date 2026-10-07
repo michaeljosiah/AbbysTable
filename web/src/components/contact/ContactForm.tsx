@@ -32,8 +32,8 @@ import {
   type EnquiryState,
 } from '@/lib/contact/enquiry';
 import { PRIVACY_ITEM } from '@/lib/content/navigation';
+import { revealUnderHeader } from '@/lib/dom/reveal';
 
-import { revealUnderHeader } from './reveal';
 import styles from './ContactForm.module.css';
 
 /** An attached image: the file to send, and a preview URL revoked when it goes. */

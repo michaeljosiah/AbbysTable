@@ -25,6 +25,20 @@
  *    footer. Releasing it never forces the bar back — scrolling up is what
  *    releases it, and scrolling up already retracts the bar.
  *
+ * Private Table v2's waitlist bar (#25) is the same band with one centred
+ * "Join the waitlist", and one rule of its own: a stop marked
+ * `data-purchase-bar-stop="entry"` suppresses the moment ANY of it is on
+ * screen, not at the 75% line. Its enquiry section holds the form, whose own
+ * "Join the waitlist" is the same action, and the design stands the bar down
+ * while that section is in view at all (`_syncBar`: "never two of the same
+ * action at once"). It is still positional and continuous like every stop, so
+ * the footer below the form stays covered — which the prototype, testing only
+ * whether the section is on screen, missed. The page reveals its bar once the
+ * whole hero has gone (`data-purchase-bar-reveal` on the hero band): its CTA
+ * sits below the fold on a phone, so gating on the CTA showed the bar over the
+ * hero (the design's own fix). The waitlist bar never becomes VIEW BOX: a
+ * bespoke service is not routed into the food-box journey (behaviour guide §8).
+ *
  * The drawer, bottom sheets and the cookie consent layer hide the bar too, but
  * in CSS (globals.css, `data-overlay-yield` / `data-consent-yield`), since
  * they are document-level states the bar does not own.
@@ -38,6 +52,17 @@ export const DIRECTION_FLOOR_PX = 120;
 
 /** Suppression starts once a stop marker's top crosses this fraction of the viewport. */
 export const SUPPRESS_LINE = 0.75;
+
+/**
+ * `data-purchase-bar-stop="entry"`: suppressed from the moment the marker
+ * enters the viewport — its top above the viewport's bottom edge — rather than
+ * at `SUPPRESS_LINE`. For a band that offers the bar's own action (Private
+ * Table's enquiry form).
+ */
+export const STOP_ON_ENTRY = 'entry';
+
+/** The line an on-entry stop crosses: the whole viewport. */
+export const ENTRY_LINE = 1;
 
 /** Marks the element whose scrolling past reveals the bar. */
 export const REVEAL_ATTR = 'data-purchase-bar-reveal';
@@ -113,10 +138,37 @@ export function scrollerView(
   return { top, height: Math.max(0, bottom - top) };
 }
 
-/** Suppressed once the first stop marker's top is above 75% of the viewport. */
-export function isSuppressed(stopTop: number | null, viewportHeight: number): boolean {
+/**
+ * Suppressed once the first stop marker's top is above `line` (75% unless the
+ * marker says otherwise) of the viewport.
+ */
+export function isSuppressed(
+  stopTop: number | null,
+  viewportHeight: number,
+  line: number = SUPPRESS_LINE,
+): boolean {
   if (stopTop === null) return false;
-  return stopTop < viewportHeight * SUPPRESS_LINE;
+  return stopTop < viewportHeight * line;
+}
+
+/** The line a stop marker suppresses from, read from its attribute's value. */
+export function stopLine(value: string | null): number {
+  return value === STOP_ON_ENTRY ? ENTRY_LINE : SUPPRESS_LINE;
+}
+
+/** A stop marker as measured: its top in the viewport, and its own line. */
+export interface StopMarker {
+  top: number;
+  line: number;
+}
+
+/**
+ * Suppressed once ANY stop marker has crossed its line. With one line for
+ * all, that is `isSuppressed(firstStopTop(…))`: the highest marker crosses
+ * first. With an on-entry stop among them, each is held to its own.
+ */
+export function isSuppressedByStops(stops: readonly StopMarker[], viewportHeight: number): boolean {
+  return stops.some((stop) => isSuppressed(stop.top, viewportHeight, stop.line));
 }
 
 export interface BarInputs {

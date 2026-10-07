@@ -47,6 +47,7 @@ import {
 import { OPENING_HOURS, SUPPORT_CONTACT, WHATSAPP_CONTACT } from '../src/lib/content/contact';
 import { PRIVATE_TABLE_HREF, PRIVATE_TABLE_WAITLIST_HREF } from '../src/lib/content/marketing';
 import { CONTACT_HREF, DELIVERY_FAQS_HREF, SOCIAL_LINKS } from '../src/lib/content/navigation';
+import { waitlistOpen } from '../src/lib/private-table/availability';
 
 import { AONIK_BASE, TENANT_ID, configureAonik } from './support/aonik';
 import { resetCookies } from './support/next-headers';
@@ -511,11 +512,12 @@ test('as configured today: every route marked "to be confirmed", no dead link, n
     assert.ok(html.includes(`href="${DELIVERY_FAQS_HREF}"`), 'the FAQs card links Delivery & FAQs');
     assert.doesNotMatch(html, /data-faqs="none"/);
   }
-  // …and no "Join the waitlist" before there is a waitlist (#25).
-  if (!PRIVATE_TABLE_HREF) {
-    assert.equal(PRIVATE_TABLE_WAITLIST_HREF, null);
-    assert.doesNotMatch(text, /Join the waitlist/);
-  }
+  // …and no "Join the waitlist" while the waitlist cannot take a name: the
+  // page exists (#25), but nothing can store an entry until aonik#357.
+  assert.equal(PRIVATE_TABLE_WAITLIST_HREF, `${PRIVATE_TABLE_HREF}#enquire`);
+  assert.equal(await waitlistOpen(), false);
+  assert.doesNotMatch(text, /Join the waitlist|Interested in Private Table/);
+  assert.doesNotMatch(html, /private-table/);
 });
 
 test('none of the design’s placeholder details is anywhere on the page', async () => {

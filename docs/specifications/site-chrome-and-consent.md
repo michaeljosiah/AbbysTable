@@ -56,10 +56,10 @@ Depends on: `SPEC-2026-07-22-customer-identity` (session), `SPEC-2026-07-22-serv
 The marketing header SHALL carry the wordmark (→ `/`), five links in this order — Menu `/menu`,
 How it works `/how-it-works`, Abby's Story `/our-story`, Gifting, Private Table — the account
 slot (FR-06) and the purchase pill (FR-02). Links SHALL go to routes, not `/#…` anchors, once
-those routes exist; no link SHALL resolve to a 404 or a missing anchor. Until `/gifting` (#26) and
-`/private-table` (#25) are built, each SHALL use one interim destination defined once in
-`src/lib/content/navigation.ts` (an existing section, such as Private Table's `/#private`), or be
-left out of the nav, and switch to its route when the page lands (open questions 2–3). No strapline, search, basket or promo strip. Below 1024
+those routes exist; no link SHALL resolve to a 404 or a missing anchor. Until `/gifting` (#26) is
+built it SHALL use one interim destination defined once in `src/lib/content/navigation.ts`, or be
+left out of the nav, and switch to its route when the page lands (open question 2); Private Table
+did so with #25 (`/#private` → `/private-table`). No strapline, search, basket or promo strip. Below 1024
 the burger opens the drawer; from 1024 the nav and the account link show. The link for the
 current route SHALL carry `aria-current="page"`, styled with green-forest ink, semibold weight and
 the persistent brass underline (three signals, never colour alone); hover overrides it. The header
@@ -306,7 +306,9 @@ down — movements under 8px change nothing, nothing within the first 120px coun
 while focus is inside `[data-site-header]` the page cannot newly switch into "down" (the bar keeps
 its current state; the prototype's `_onScroll`) — and (3) it is not suppressed:
 suppression starts once the first stop marker's top is above 75% of the viewport and holds,
-continuously, below it. Releasing suppression never forces the bar back. `DishPurchaseBar` ignores
+continuously, below it — or, for a marker set to `"entry"` (`STOP_ON_ENTRY`: a band offering the
+bar's own action, Private Table's form; marketing-pages FR-29), as soon as its top is above the
+viewport's bottom edge. Releasing suppression never forces the bar back. `DishPurchaseBar` ignores
 direction (`followsDirection={false}`). The drawer and phone sheets (`data-overlay-open` →
 `[data-overlay-yield]`) and consent (FR-14) hide it in CSS. When an ancestor container scrolls,
 markers are measured against its visible box.
@@ -446,8 +448,8 @@ the session; only the header, drawer, footer, consent manager and bar are client
    brand's live accounts? Until confirmed, nothing here asserts them.
 2. **Gifting before #26.** `/gifting` is not built and `/#gifting` lost its target with #15.
    For now (PR #60) Gifting stays out of the chrome until its page lands (`GIFTING_LIVE`).
-3. **Private Table before #25.** `/private-table` is not built; `/#private` resolves only while the
-   homepage band keeps `id="private"`.
+3. ~~**Private Table before #25.**~~ Resolved: the chrome links `/private-table`. The homepage
+   band keeps `id="private"` only so a link saved before then still lands.
 4. **Sign-out.** Moved by PR #60 from the header's "Account" menu to `/account/orders`; #35
    moves it into My Account's menu.
 5. **"My Account" destination.** Only `/account/orders` exists; the designed My Account page does

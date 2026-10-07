@@ -6,6 +6,7 @@ import { sendEnquiryAction } from '@/lib/contact/actions';
 import { OPENING_HOURS, SUPPORT_CONTACT, WHATSAPP_CONTACT } from '@/lib/content/contact';
 import { PRIVATE_TABLE_WAITLIST_HREF } from '@/lib/content/marketing';
 import { CONTACT_HREF, DELIVERY_FAQS_HREF } from '@/lib/content/navigation';
+import { waitlistOpen } from '@/lib/private-table/availability';
 
 /*
  * Contact us (#24) — design/Abby's Table - Contact Us.dc.html.
@@ -19,6 +20,10 @@ import { CONTACT_HREF, DELIVERY_FAQS_HREF } from '@/lib/content/navigation';
  * (`enquiriesAvailable`: live data and the Aonik endpoint, aonik#356, which
  * does not exist yet). Until then the page says the form is not available
  * rather than thanking anyone for a message that went nowhere (#6's rule).
+ *
+ * The Private Table panel ("Join the waitlist") shows only while that
+ * waitlist can really take a name (`waitlistOpen`; aonik#357) — never a
+ * "Join the waitlist" with nothing to join.
  *
  * No mobile purchase bar (an information page) — and on the desktop header
  * auto-hide list, as the design opts Contact in.
@@ -34,7 +39,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ContactPage() {
-  const canSend = await enquiriesAvailable();
+  const [canSend, waitlist] = await Promise.all([enquiriesAvailable(), waitlistOpen()]);
 
   return (
     <ContactView
@@ -44,7 +49,7 @@ export default async function ContactPage() {
       // Only while Delivery & FAQs has a page of its own (since #23): before,
       // it took Contact's destination and this card would have linked here.
       faqsHref={DELIVERY_FAQS_HREF === CONTACT_HREF ? null : DELIVERY_FAQS_HREF}
-      waitlistHref={PRIVATE_TABLE_WAITLIST_HREF}
+      waitlistHref={waitlist ? PRIVATE_TABLE_WAITLIST_HREF : null}
       sendAction={canSend ? sendEnquiryAction : undefined}
     />
   );

@@ -5,13 +5,14 @@ import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'rea
 import { holdDocumentFlag, PURCHASE_BAR_ATTR } from '@/lib/dom/documentFlag';
 import { readPageScroll, subscribePageScroll } from '@/lib/dom/pageScroll';
 import {
-  firstStopTop,
   hasScrolledPast,
-  isSuppressed,
+  isSuppressedByStops,
   REVEAL_ATTR,
   scrollerView,
   shouldShowBar,
   STOP_ATTR,
+  stopLine,
+  type StopMarker,
 } from '@/lib/purchase-bar/visibility';
 
 import styles from './PurchaseBar.module.css';
@@ -28,7 +29,9 @@ import styles from './PurchaseBar.module.css';
  *  - `data-purchase-bar-reveal` on its own purchase CTA (or title band) — the
  *    bar waits until that has been scrolled past;
  *  - `data-purchase-bar-stop` on any band the bar must not sit over, from its
- *    top to the end of the page. The footer always carries one.
+ *    top to the end of the page. The footer always carries one. A band that
+ *    offers the bar's own action (Private Table's enquiry form) sets it to
+ *    `"entry"`, and suppresses as soon as any of it is on screen.
  * The rules are `lib/purchase-bar/visibility.ts`.
  *
  * Hidden (scroll-retracted, suppressed, drawer or sheet open, consent
@@ -118,11 +121,15 @@ function useBarVisibility(followsDirection: boolean): boolean {
           : null,
       );
 
-      const tops: number[] = [];
+      const stops: StopMarker[] = [];
       document.querySelectorAll(`[${STOP_ATTR}]`).forEach((stop) => {
-        if (stop.getClientRects().length > 0) tops.push(stop.getBoundingClientRect().top - viewTop);
+        if (stop.getClientRects().length === 0) return;
+        stops.push({
+          top: stop.getBoundingClientRect().top - viewTop,
+          line: stopLine(stop.getAttribute(STOP_ATTR)),
+        });
       });
-      const suppressed = isSuppressed(firstStopTop(tops), viewHeight);
+      const suppressed = isSuppressedByStops(stops, viewHeight);
 
       setOn(shouldShowBar({ revealed, down, suppressed, followsDirection }));
     };
