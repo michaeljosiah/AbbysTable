@@ -10,6 +10,7 @@ import {
   COOKIE_PREFERENCES_ITEM,
   FOOTER_COLUMNS,
   PRIVACY_ITEM,
+  TERMS_ITEM,
   SOCIAL_HANDLE,
 } from '@/lib/content/navigation';
 import type { NewsletterSignupAction, NewsletterSignupState } from '@/lib/newsletter';
@@ -30,8 +31,8 @@ const COPYRIGHT_YEAR = 2026;
  * really subscribe.
  *
  * Wiring it means passing that server action from the site layout (contract in
- * `@/lib/newsletter`). Before then, the consent line's Privacy Policy link
- * (`PRIVACY_ITEM`) needs a real policy page to point at.
+ * `@/lib/newsletter`). The consent line's Privacy Policy link (`PRIVACY_ITEM`)
+ * already points at the real policy page.
  */
 export function Footer({ subscribeAction }: { subscribeAction?: NewsletterSignupAction }) {
   const [openColumns, setOpenColumns] = useState<Record<string, boolean>>({});
@@ -101,6 +102,19 @@ export function Footer({ subscribeAction }: { subscribeAction?: NewsletterSignup
           <div className={styles.centre}>
             <span className={styles.signoff}>Abby x</span>
             <span className={styles.copyright}>© {COPYRIGHT_YEAR} Abby&apos;s Table</span>
+            {/* Homepage v2's legal strip: the two documents, then the consent
+                trigger. The rest of the v2 footer is #10. */}
+            <div className={styles.legalRow}>
+              <Link href={PRIVACY_ITEM.href} className={styles.cookieLink}>
+                {PRIVACY_ITEM.label}
+              </Link>
+              <span className={styles.legalSep} aria-hidden="true">
+                |
+              </span>
+              <Link href={TERMS_ITEM.href} className={styles.cookieLink}>
+                {TERMS_ITEM.label}
+              </Link>
+            </div>
             {/* The canonical consent trigger (design/build-handoff.md §3s): a real
                 link that the consent manager enhances into the preferences panel. */}
             <Link href={COOKIE_PREFERENCES_ITEM.href} className={styles.cookieLink} data-consent-open>

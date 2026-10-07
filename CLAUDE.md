@@ -35,8 +35,9 @@ Conventions inside `web/` that are easy to get wrong:
 - **Server Components by default.** Client components are `Header`, `MobileDrawer`, `Footer`, the
   homepage `Menu` rail, and the `/menu` browser (`MenuBrowser`, `MenuToolbar`, `MenuGrid`,
   `FilterChip`, `FilterPill`), the `/how-it-works` size picker (`BoxSizePicker`, with
-  `BoxSizeProvider`/`BoxSizeLink` sharing the choice with the page's purchase links), the mobile
-  purchase bar (`PurchaseBarShell`, `MobilePurchaseBar`, `DishPurchaseBar`) and the dish page's
+  `BoxSizeProvider`/`BoxSizeLink` sharing the choice with the page's purchase links), the legal
+  pages' `LegalNavigation` (index, sheet, Sections/Top pair, scroll-spy), the mobile purchase bar
+  (`PurchaseBarShell`, `MobilePurchaseBar`, `DishPurchaseBar`) and the dish page's
   `DishOrderProvider` — each for a specific piece of state — plus `app/error.tsx` and
   `app/global-error.tsx`, which Next requires to be client components. Data is fetched once in
   `app/layout.tsx` / the route's `page.tsx` and passed down; sections never fetch for themselves.
@@ -61,6 +62,15 @@ Conventions inside `web/` that are easy to get wrong:
   design — Abby's Story, Gifting, Delivery & FAQs, Contact, Allergens, legal, checkout, auth —
   simply don't render one. Drawers and phone bottom sheets hold `data-overlay-open` on `<html>`
   (`useDocumentFlag`, `src/lib/dom/`) and the bar yields to them, as it does to the consent layer.
+- **Legal pages (#20): `/terms-of-sale` and `/privacy`.** Section slugs are a PUBLIC CONTRACT
+  (`src/lib/legal/terms.ts`, `privacy.ts`; pinned by `tests/legal-documents.test.ts`) — never
+  rename one; `#cookies` is committed. Legacy `#sN`/`#N` resolve to slugs. Clause copy is verbatim
+  from the design and awaits legal review (#38): do not reword it. Company details render from
+  `src/lib/content/company.ts` (all `null`, shown as "to be confirmed") — never copy the designs'
+  placeholder name, number, address, phone or email into it. The print stylesheet that drops the
+  site chrome is a `<style media="print">` rendered by `LegalDocument`, so it exists only on these
+  two pages. Privacy's "Cookie preferences" button relies on `html[data-consent-ready]`, which the
+  consent manager sets once its trigger listener is bound.
 - **Menu faceting lives in `src/lib/menu/filters.ts`**, deliberately free of React. Change matching
   rules there, not in components.
 - **Dish → Our Standards → dish (#17)** is specified in `src/lib/dish-return.ts`, also React-free.
