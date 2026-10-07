@@ -110,7 +110,8 @@ export function FaqSearch({
     // Dismisses a phone's keyboard, which would cover the results.
     inputRef.current?.blur();
     const submitted = searchFaqs(index, value);
-    if (submitted.state === 'results' && submitted.ids.length > 0) setBring((n) => n + 1);
+    // No matches is an answer too: the empty panel sits in the same section.
+    if (submitted.state === 'results') setBring((n) => n + 1);
   };
 
   /**
