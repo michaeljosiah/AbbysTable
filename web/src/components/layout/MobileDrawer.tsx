@@ -95,7 +95,12 @@ export function MobileDrawer({ id, open, onClose, session, pathname }: MobileDra
     };
   }, [open, onClose]);
 
+  // Escape, the scrim and the close button hand focus back to the burger. A
+  // link that navigates does not: on a same-page jump the layout stays
+  // mounted, and focus parked in the header would hold it shown and stop the
+  // shared scroll direction (focus in the header is never "down").
   const close = () => onClose();
+  const closeForLink = () => onClose({ returnFocus: false });
 
   return (
     <div className={styles.wrap} data-open={open || undefined}>
@@ -109,7 +114,7 @@ export function MobileDrawer({ id, open, onClose, session, pathname }: MobileDra
         aria-label="Main menu"
       >
         <div className={styles.top}>
-          <Link href="/" aria-label="Abby's Table — home" className={styles.logo} onClick={close}>
+          <Link href="/" aria-label="Abby's Table — home" className={styles.logo} onClick={closeForLink}>
             <Logo withRegistered={false} />
           </Link>
           <button
@@ -143,7 +148,7 @@ export function MobileDrawer({ id, open, onClose, session, pathname }: MobileDra
           href={account.href}
           className={`${styles.link} ${styles.account}`}
           aria-current={ariaCurrentFor(pathname, account.href)}
-          onClick={close}
+          onClick={closeForLink}
         >
           {account.label}
         </Link>
@@ -156,7 +161,7 @@ export function MobileDrawer({ id, open, onClose, session, pathname }: MobileDra
               href={item.href}
               className={styles.link}
               aria-current={ariaCurrentFor(pathname, item.href)}
-              onClick={close}
+              onClick={closeForLink}
             >
               {item.label}
             </Link>
@@ -170,7 +175,7 @@ export function MobileDrawer({ id, open, onClose, session, pathname }: MobileDra
           href={cta.href}
           className={styles.cta}
           data-continuing={cta.continuing || undefined}
-          onClick={close}
+          onClick={closeForLink}
         >
           {cta.label}
         </Link>

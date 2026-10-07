@@ -44,7 +44,7 @@ function pageHref(page: number): string {
  * refreshed — and it says the same thing for both, because from the customer's
  * side they are the same thing: sign in again.
  */
-function SignInRequired() {
+function SignInRequired({ staleSession }: { staleSession: boolean }) {
   return (
     <div className={styles.notice}>
       <h1 className={styles.noticeHeading}>Sign in to see your orders</h1>
@@ -59,6 +59,16 @@ function SignInRequired() {
           Browse the menu
         </Link>
       </div>
+      {/* A cookie Aonik rejected still reads as signed in (the header says
+          "My Account"), and a Server Component render cannot clear it: this
+          form is the way out. */}
+      {staleSession ? (
+        <form action={signOutAction} className={styles.signOut}>
+          <button type="submit" className={styles.signOutButton}>
+            Sign out
+          </button>
+        </form>
+      ) : null}
     </div>
   );
 }
@@ -86,7 +96,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
     return (
       <section className={styles.page}>
         <div className={styles.inner}>
-          <SignInRequired />
+          <SignInRequired staleSession={session.isSignedIn} />
         </div>
       </section>
     );
