@@ -11,6 +11,8 @@
  * Server Components or Route Handlers.
  */
 
+import { resolveBoxPlan, resolveExampleDish } from '@/lib/how-it-works/pageData';
+
 import { readAonikConfig, resolveDataMode } from './dataMode';
 import type {
   BoxPlanDto,
@@ -640,15 +642,19 @@ export async function getMenuPageData(options: {
 /**
  * Resolves everything the /how-it-works page renders in one concurrent pass.
  *
+ * Both pieces are optional to the page and degrade independently — an Aonik
+ * failure costs the picker its sizes and prices, or the page its example card,
+ * never the whole page (see `lib/how-it-works/pageData.ts`):
+ *
  * - `boxPlan` is the tenant's size plan from the storefront config: the size
  *   picker's presets, prices and authored savings. Undefined when the tenant
- *   has not set one; the picker then degrades to a plain link to Choose Box.
+ *   has not set one or the config cannot be read; the picker then degrades to
+ *   a plain link to Choose Box.
  * - `exampleDish` is the editorially chosen dish (`exampleSlug`) for the
- *   "Example dish" card and the hero photograph. When that slug does not
- *   resolve — a tenant whose catalogue has no such dish — it falls back to the
- *   first dish of the curated `featured` rail, and to null (no card) after
- *   that. Either way it is a full detail read, never a browse summary, so an
- *   absent figure really is unpublished rather than merely not summarised.
+ *   "Example dish" card and the hero photograph. If that slug 404s, the first
+ *   featured dish that resolves through its own DETAIL read is used (a browse
+ *   summary never is — it omits figures the dish does publish); null, and no
+ *   card, when none does or Aonik errors.
  */
 export async function getHowItWorksPageData(exampleSlug: string): Promise<{
   boxPlan: StorefrontConfig['box'];
@@ -656,12 +662,13 @@ export async function getHowItWorksPageData(exampleSlug: string): Promise<{
 }> {
   const client = await getAonikClient();
 
-  const [config, named] = await Promise.all([
-    client.getStorefrontConfig(),
-    client.getDishBySlug(exampleSlug),
+  const [boxPlan, exampleDish] = await Promise.all([
+    resolveBoxPlan(client),
+    resolveExampleDish(client, {
+      slug: exampleSlug,
+      featuredCollection: FEATURED_COLLECTION_SLUG,
+    }),
   ]);
 
-  const exampleDish = named ?? (await client.getFeaturedDishes())[0] ?? null;
-
-  return { boxPlan: config.box, exampleDish };
+  return { boxPlan, exampleDish };
 }

@@ -281,6 +281,30 @@
   }
 }
 
+/* ---- Forced colours (Windows High Contrast) ----
+   Backgrounds and box-shadows are dropped there, so the blush fill that marks
+   the selected size and the gold focus edge both vanish, and every face's
+   border becomes the same colour. The selected size takes a 3px Highlight
+   border (padding trimmed by the 2px it gains, so nothing moves); focus is a
+   separate CanvasText outline outside it, so a focused, selected size shows
+   both. The filled CTA keeps its shape with a ButtonText border. */
+@media (forced-colors: active) {
+  .input:checked + .face,
+  .size:hover .input:checked + .face {
+    padding: 0 12px;
+    border: 3px solid Highlight;
+  }
+
+  .input:focus-visible + .face {
+    outline: 2px solid CanvasText;
+    outline-offset: 2px;
+  }
+
+  .cta {
+    border: 2px solid ButtonText;
+  }
+}
+
 /* ---- 640: the CTA sits intrinsically, centred ---- */
 
 @media (min-width: 640px) {

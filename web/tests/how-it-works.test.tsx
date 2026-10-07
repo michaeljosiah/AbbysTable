@@ -21,6 +21,12 @@ import {
   sizesSentence,
 } from '../src/lib/how-it-works/boxSizes';
 import { exampleDishFacts } from '../src/lib/how-it-works/exampleDish';
+import {
+  FEATURED_FALLBACK_ATTEMPTS,
+  resolveBoxPlan,
+  resolveExampleDish,
+} from '../src/lib/how-it-works/pageData';
+import type { ProductBrowseOptions, ProductPage } from '../src/lib/aonik/client';
 
 /*
  * How it works (#16): the size picker's rules and the example dish card.
@@ -144,6 +150,35 @@ test('"Set your own" needs a range; no plan means no picker', () => {
     const model = buildBoxSizeModel(missing as StorefrontBoxPlan | undefined);
     assert.deepEqual(model.options, []);
     assert.equal(model.defaultId, null);
+  }
+});
+
+test('a presets-only plan (no per-space rate) offers no "Set your own" and no custom link', () => {
+  // Absent `perSpacePence` means "presets only" (StorefrontBoxPlan, types.ts).
+  const presetsOnly: StorefrontBoxPlan = { ...plan, perSpacePence: undefined };
+
+  for (const candidate of [
+    presetsOnly,
+    { ...plan, perSpacePence: Number.NaN },
+    { ...plan, perSpacePence: -100 },
+    { ...plan, perSpacePence: 17.5 },
+  ]) {
+    const model = buildBoxSizeModel(candidate);
+    assert.deepEqual(
+      model.options.map((option) => option.id),
+      ['6', '12', '18'],
+      `no custom option for perSpacePence=${String(candidate.perSpacePence)}`,
+    );
+    assert.equal(sizesSentence(model), 'Start with 6, 12 or 18 dishes.');
+
+    const html = renderToStaticMarkup(
+      <BoxSizeProvider defaultId={model.defaultId}>
+        <BoxSizeLink>Build a Box</BoxSizeLink>
+        <BoxSizePicker model={model} />
+      </BoxSizeProvider>,
+    );
+    assert.doesNotMatch(html, /custom/i);
+    assert.equal(html.match(/type="radio"/g)?.length, 3);
   }
 });
 
@@ -295,7 +330,7 @@ test('the card says "not yet published" in words', () => {
   assert.match(partial, /Example dish/);
   assert.match(partial, /kcal<\/span><span class="visuallyHidden">, not yet published/);
   assert.match(partial, /Figures shown as – are not yet published for this dish\./);
-  assert.match(partial, /Allergens<\/span> <span class="unpublished">Not yet published/);
+  assert.match(partial, /Allergens<\/span> Not yet published/);
   assert.match(partial, /Ingredients not yet published/);
 
   const none = renderToStaticMarkup(<ExampleDishCard dish={{ ...salmon, nutrition: {} }} />);
@@ -305,4 +340,127 @@ test('the card says "not yet published" in words', () => {
   const full = renderToStaticMarkup(<ExampleDishCard dish={okra} />);
   assert.doesNotMatch(full, /not yet published/i);
   assert.match(full, /Full ingredients available/);
+});
+
+/* ---- Page data: optional pieces degrade, and only detail reads reach the card ---- */
+
+/**
+ * A stand-in Aonik client. `details` maps slug → what a DETAIL read returns
+ * (a dish, null for a 404, or an Error to throw); `featured` is what the
+ * featured browse lists — summaries, marked so a test can tell them apart.
+ */
+function fakeClient(options: {
+  details: Record<string, Dish | null | Error>;
+  featured?: string[] | Error;
+}) {
+  const calls = { detail: [] as string[], browse: [] as ProductBrowseOptions[] };
+  const client = {
+    async getDishBySlug(slug: string): Promise<Dish | null> {
+      calls.detail.push(slug);
+      const result = options.details[slug] ?? null;
+      if (result instanceof Error) throw result;
+      return result;
+    },
+    async listProducts(browse: ProductBrowseOptions = {}): Promise<ProductPage> {
+      calls.browse.push(browse);
+      if (options.featured instanceof Error) throw options.featured;
+      const dishes = (options.featured ?? []).map(
+        (slug) => ({ ...salmon, slug, title: `${slug} (browse summary)` }) as Dish,
+      );
+      return { dishes, totalCount: dishes.length, page: 1, pageSize: dishes.length };
+    },
+  };
+  return { client, calls };
+}
+
+const detail = (slug: string): Dish => ({ ...okra, slug, title: `${slug} (detail read)` });
+
+function captureLog() {
+  const messages: string[] = [];
+  return { messages, log: (message: string) => void messages.push(message) };
+}
+
+const exampleOptions = { slug: 'editorial', featuredCollection: 'featured' };
+
+test('the editorial dish is used when it resolves, with no fallback reads', async () => {
+  const { client, calls } = fakeClient({ details: { editorial: detail('editorial') } });
+  const dish = await resolveExampleDish(client, exampleOptions, captureLog().log);
+
+  assert.equal(dish?.title, 'editorial (detail read)');
+  assert.deepEqual(calls.detail, ['editorial']);
+  assert.equal(calls.browse.length, 0);
+});
+
+test('a missing editorial dish falls back to the first featured dish that DETAIL-reads', async () => {
+  const { client, calls } = fakeClient({
+    details: { editorial: null, a: null, b: detail('b'), c: detail('c') },
+    featured: ['a', 'b', 'c'],
+  });
+  const dish = await resolveExampleDish(client, exampleOptions, captureLog().log);
+
+  assert.equal(dish?.title, 'b (detail read)', 'never the browse summary');
+  assert.deepEqual(calls.detail, ['editorial', 'a', 'b'], 'stops at the first success');
+  assert.equal(calls.browse.length, 1);
+  assert.equal(calls.browse[0].collection, 'featured');
+  assert.equal(calls.browse[0].sort, 'rank');
+  assert.equal(calls.browse[0].pageSize, FEATURED_FALLBACK_ATTEMPTS);
+});
+
+test('the fallback is capped, and no resolvable dish means no card', async () => {
+  const featured = ['a', 'b', 'c', 'd', 'e', 'f'];
+  const { client, calls } = fakeClient({
+    details: { editorial: null, f: detail('f') },
+    featured,
+  });
+  const { messages, log } = captureLog();
+  const dish = await resolveExampleDish(client, exampleOptions, log);
+
+  assert.equal(dish, null);
+  assert.deepEqual(calls.detail, ['editorial', ...featured.slice(0, FEATURED_FALLBACK_ATTEMPTS)]);
+  assert.equal(messages.length, 1);
+});
+
+test('an Aonik error ends the search at once: no card, logged, no 500', async () => {
+  const failing = fakeClient({
+    details: { editorial: new Error('503 from Aonik') },
+    featured: ['a'],
+  });
+  const first = captureLog();
+  assert.equal(await resolveExampleDish(failing.client, exampleOptions, first.log), null);
+  assert.deepEqual(failing.calls.detail, ['editorial']);
+  assert.equal(failing.calls.browse.length, 0);
+  assert.equal(first.messages.length, 1);
+
+  const browseFails = fakeClient({ details: { editorial: null }, featured: new Error('timeout') });
+  const second = captureLog();
+  assert.equal(await resolveExampleDish(browseFails.client, exampleOptions, second.log), null);
+  assert.equal(second.messages.length, 1);
+
+  const candidateFails = fakeClient({
+    details: { editorial: null, a: new Error('reset'), b: detail('b') },
+    featured: ['a', 'b'],
+  });
+  assert.equal(await resolveExampleDish(candidateFails.client, exampleOptions, captureLog().log), null);
+  assert.deepEqual(candidateFails.calls.detail, ['editorial', 'a']);
+});
+
+test('the box plan degrades to none (a picker without prices) when the config fails', async () => {
+  const box = STOREFRONT_CONFIG_FIXTURE.box;
+  assert.equal(
+    await resolveBoxPlan({ getStorefrontConfig: async () => STOREFRONT_CONFIG_FIXTURE }),
+    box,
+  );
+
+  const { messages, log } = captureLog();
+  const failed = await resolveBoxPlan(
+    {
+      getStorefrontConfig: async () => {
+        throw new Error('502 from Aonik');
+      },
+    },
+    log,
+  );
+  assert.equal(failed, undefined);
+  assert.equal(messages.length, 1);
+  assert.deepEqual(buildBoxSizeModel(failed).options, []);
 });

@@ -1,6 +1,6 @@
 /**
  * The "Example dish" card on How it works, as data — free of React so the
- * safety rules are unit-tested (tests/how-it-works.test.ts).
+ * safety rules are unit-tested (tests/how-it-works.test.tsx).
  *
  * SAFETY: every figure, the allergen line and the ingredients claim come from
  * the dish record and nowhere else. A value the record does not carry is

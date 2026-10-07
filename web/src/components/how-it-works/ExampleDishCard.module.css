@@ -159,28 +159,19 @@
   margin: 0;
 }
 
+/* The declaration is shown verbatim, as supporting copy (16px, the floor for
+   a sentence). It is a free-text string today — the contract's controlled
+   `allergens_present[]` is not served yet — so it is not split into the
+   design's one-chip-per-allergen tags: "nuts (peanuts, almonds)" would break.
+   The label is set in the heading ink so it still reads apart from it. */
 .allergens {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 12px;
+  min-width: 0;
+  text-wrap: pretty;
 }
 
-/* The declaration is shown verbatim. It is a free-text string today (the
-   contract's controlled `allergens_present[]` is not served yet), so it is not
-   split into one tag per allergen — "nuts (peanuts, almonds)" would break. */
-.declared,
-.unpublished {
-  display: inline-flex;
-  align-items: center;
-  padding: 7px 14px;
-  border-radius: 14px;
-  background: var(--cream-2);
+.allergensLabel {
   font-weight: var(--weight-semibold);
-  font-size: 13px;
-  line-height: 1.4;
   color: var(--text-heading);
-  text-wrap: pretty;
 }
 
 .ingredients {

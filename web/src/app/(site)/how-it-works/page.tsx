@@ -26,8 +26,14 @@ import styles from './page.module.css';
  * suppression (#12), the v2 header/footer and the desktop header auto-hide this
  * marketing page opts into (#10), and Choose Box reading `?dishes=` (#28).
  *
- * Photography is placeholder (#38): the steps reuse the homepage's how-it-works
- * assets, and the hero shows the example dish's own record image.
+ * Photography is placeholder (#38). Steps 02–04 use the design's own
+ * photographs (design/assets/hw-*.jpg, copied to public/assets/how-it-works/,
+ * 1402px JPEGs — handoff §3v explains why the source width, not 2×, is the
+ * honest ceiling) with the design's alt text. The hero shows the example
+ * dish's own record image, so its caption names what the record says it is.
+ *
+ * Aonik failures degrade per piece (`getHowItWorksPageData`): no box plan
+ * means a picker without sizes or prices, no dish means no example card.
  */
 
 const DESCRIPTION =
@@ -113,7 +119,9 @@ const METHOD_POINTS: { title: string; body: ReactNode; icon: ReactNode }[] = [
 
 const DELIVERY_FACTS = [
   { title: 'You choose the date', body: 'At checkout' },
-  { title: 'UK-wide delivery', body: 'Arrives chilled' },
+  // "Mainland UK" is deliberate (CLAUDE.md, build-handoff): the design's
+  // "UK-wide delivery" overstates coverage while non-mainland is unresolved.
+  { title: 'Mainland UK delivery', body: 'Arrives chilled' },
   { title: 'Enjoy now or later', body: 'Fridge or freezer ready' },
 ];
 
@@ -180,7 +188,7 @@ export default async function HowItWorksPage() {
               </div>
             </div>
 
-            <figure className={`${styles.media} ${styles.heroMedia}`}>
+            <figure className={styles.media}>
               {exampleDish ? (
                 <>
                   {/* The caption names the dish, so the photograph's alt is
@@ -248,7 +256,8 @@ export default async function HowItWorksPage() {
                 </div>
                 <div>
                   <h3>Choose delivery</h3>
-                  <p>Pick an available UK nationwide delivery at checkout.</p>
+                  {/* Mainland wording on purpose; the design says "UK nationwide". */}
+                  <p>Pick an available mainland UK delivery date at checkout.</p>
                 </div>
               </div>
             </div>
@@ -280,8 +289,8 @@ export default async function HowItWorksPage() {
                 with the argument it supports; it is also the left column on
                 desktop, so DOM order is visual order. */}
             <StepPhoto
-              src="/assets/how-2-cooked-from-scratch.jpg"
-              alt="A cook in an Abby’s Table apron sleeving a freshly filled meal tray in a professional kitchen"
+              src="/assets/how-it-works/hw-scratch.jpg"
+              alt="Whole spices and dried chillies ground by hand in a stone mortar"
               label="Cooked from scratch"
             />
 
@@ -334,8 +343,8 @@ export default async function HowItWorksPage() {
             </div>
 
             <StepPhoto
-              src="/assets/how-3-delivered-chilled.png"
-              alt="A sealed Abby’s Table delivery box in brown card printed with the wordmark"
+              src="/assets/how-it-works/hw-delivery.jpg"
+              alt="An Abby’s Table box packed chilled with labelled dishes"
               label="Packed safely chilled"
             />
           </div>
@@ -372,8 +381,8 @@ export default async function HowItWorksPage() {
             {/* Only the photograph moves at desktop (media left), and it holds
                 no controls, so the tab order is untouched. */}
             <StepPhoto
-              src="/assets/how-4-heat-eat-live-well.jpg"
-              alt="A plated dish of spiced rice, greens and sliced grilled meat being eaten at home"
+              src="/assets/how-it-works/hw-heat.jpg"
+              alt="A plated Abby’s Table dish being eaten at home"
               label="Ready when you are"
             />
           </div>
@@ -386,9 +395,13 @@ export default async function HowItWorksPage() {
           <div className={styles.nutritionSplit}>
             <div className={styles.nutritionCopy}>
               <h2 className={styles.h2}>Nutrition, clearly shared.</h2>
+              {/* Qualified on purpose: not every dish publishes all of these yet,
+                  and "on every dish" would be an untrue, safety-adjacent claim.
+                  Restore the design's "are shown on every dish" once every dish
+                  publishes them (#38). */}
               <p className={styles.body}>
-                Nutrition, ingredients, allergens and heat level are shown on every dish, so you can
-                choose with confidence.
+                Nutrition, ingredients, allergens and heat level are shown on each dish where
+                we&apos;ve published them, so you can choose with confidence.
               </p>
               <div className={styles.ctaRow}>
                 <Link href={MENU_HREF} className={styles.ctaOutline}>

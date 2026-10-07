@@ -126,12 +126,12 @@
 
 /*
  * Captions sit on a scrim over the lower part of the photograph, in
- * full-opacity cream — never an alpha-muted type colour. The scrim is the
- * design's warm near-black: --brown taken halfway to black.
+ * full-opacity cream — never an alpha-muted type colour. The design's scrim is
+ * a warm near-black with no token; --brown is the token for it, at the
+ * design's 78% (cream text still clears 5:1 over a white pixel at the base).
  */
 .heroCaption,
 .mediaLabel {
-  --scrim: color-mix(in srgb, var(--brown) 47%, black);
   position: absolute;
   right: 0;
   bottom: 0;
@@ -139,8 +139,8 @@
   margin: 0;
   background: linear-gradient(
     to top,
-    color-mix(in srgb, var(--scrim) 78%, transparent),
-    color-mix(in srgb, var(--scrim) 0%, transparent)
+    color-mix(in srgb, var(--brown) 78%, transparent),
+    color-mix(in srgb, var(--brown) 0%, transparent)
   );
   color: var(--cream);
   text-align: center;
@@ -570,6 +570,15 @@
 
 .closing {
   background: var(--sage);
+}
+
+/* Forced colours drop the fills, which would leave the filled CTAs as bare
+   text: a border in the link colour keeps them reading as buttons. */
+@media (forced-colors: active) {
+  .heroCta,
+  .cta {
+    border: 2px solid LinkText;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

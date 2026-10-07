@@ -84,13 +84,11 @@ export function ExampleDishCard({ dish }: { dish: Dish }) {
       {facts.figuresNote ? <p className={styles.note}>{facts.figuresNote}</p> : null}
 
       <div className={styles.foot}>
+        {/* The declaration is a sentence, so it is supporting copy at the 16px
+            floor, not a chip. */}
         <p className={styles.allergens}>
-          <span>Allergens</span>{' '}
-          {facts.allergens !== null ? (
-            <span className={styles.declared}>{facts.allergens}</span>
-          ) : (
-            <span className={styles.unpublished}>Not yet published</span>
-          )}
+          <span className={styles.allergensLabel}>Allergens</span>{' '}
+          {facts.allergens !== null ? facts.allergens : 'Not yet published'}
         </p>
         <p className={styles.ingredients}>
           {facts.ingredientsPublished

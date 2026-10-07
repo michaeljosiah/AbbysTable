@@ -1,6 +1,6 @@
 /**
  * The How it works size picker, as data — deliberately free of React so the
- * rules are unit-tested on their own (tests/how-it-works.test.ts).
+ * rules are unit-tested on their own (tests/how-it-works.test.tsx).
  *
  * Sources: design/Abby's Table - How It Works v2.dc.html (step 1),
  * design/build-handoff.md §3v and design/frontend-backend-contract.md §4c.
@@ -106,8 +106,13 @@ export function buildBoxSizeModel(plan: StorefrontBoxPlan | null | undefined): B
     };
   });
 
-  // "Set your own" needs a range to set it in.
-  if (maxSize > minSize) {
+  /*
+   * "Set your own" needs a range to set it in AND a way to price what is set:
+   * the plan's marginal rate. `StorefrontBoxPlan.perSpacePence` absent means
+   * "presets only" (types.ts), so such a plan offers no custom option and no
+   * `?dishes=custom` link exists anywhere on the page.
+   */
+  if (maxSize > minSize && isPence(plan.perSpacePence)) {
     const atMinimum = options.find((option) => option.dishes === minSize);
     options.push({
       id: CUSTOM_SIZE_ID,
