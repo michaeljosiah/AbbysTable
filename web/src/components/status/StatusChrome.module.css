@@ -1,0 +1,227 @@
+/* Reduced header and simplified footer — ported from the Something Went Wrong
+   design (.se-hdr, .se-foot). Mobile is the base; 640 and 1024 add,
+   min-width only. */
+
+/* ---- Header ---------------------------------------------------------------- */
+
+.header {
+  border-bottom: var(--border-hairline) solid var(--border-light);
+  background: var(--surface-page);
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  max-width: var(--content-max);
+  min-height: 70px;
+  margin: 0 auto;
+  padding: 13px 22px;
+}
+
+.logo {
+  --logo-width: clamp(108px, 36vw, 168px);
+  --logo-height: calc(var(--logo-width) * 32 / 186);
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--text-heading);
+  text-decoration: none;
+  transition: opacity 0.16s ease;
+}
+
+.logo:hover {
+  opacity: 0.78;
+}
+
+/* The payment header's "Questions?" treatment: brass-ink envelope, 7px gap,
+   brass rule under the label only. */
+.contact {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  color: var(--text-heading);
+  font-family: var(--font-sans);
+  font-size: var(--body-lg);
+  text-decoration: none;
+  transition: color 0.16s ease;
+}
+
+.contact svg {
+  flex: 0 0 auto;
+  color: var(--brass-ink);
+}
+
+.contact span {
+  padding-bottom: 1px;
+  border-bottom: var(--border-hairline) solid var(--rule-brass);
+  transition: border-color 0.16s ease;
+}
+
+.contact:hover {
+  color: var(--action-primary-hover);
+}
+
+.contact:hover span {
+  border-bottom-color: var(--action-primary-hover);
+}
+
+/* ---- Footer ---------------------------------------------------------------- */
+
+.footer {
+  border-top: var(--rule-thick) solid var(--rule-brass);
+  background: var(--surface-darker);
+}
+
+.footerInner {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 30px 22px 34px;
+  text-align: center;
+}
+
+.footerLogo {
+  --logo-width: 156px;
+  --logo-height: calc(156px * 32 / 186);
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--text-on-dark);
+}
+
+.footerNav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  justify-items: center;
+  column-gap: 18px;
+}
+
+.footerLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  color: var(--text-on-dark);
+  font-family: var(--font-sans);
+  font-size: var(--body-lg);
+  text-decoration: none;
+  transition: color 0.16s ease;
+}
+
+.footerLink:hover {
+  color: var(--brass);
+}
+
+/* 20px glyphs on 44px targets; the negative margin keeps the visual gap. */
+.socials {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 10px;
+}
+
+.social {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -10px;
+  color: var(--text-on-dark);
+  transition: color 0.16s ease;
+}
+
+.social:hover {
+  color: var(--brass);
+}
+
+.footerBase {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+
+.legal {
+  margin: 0;
+  color: var(--text-on-dark-soft);
+  font-family: var(--font-sans);
+  font-size: 14px;
+}
+
+.signoff {
+  margin: 0;
+  color: var(--text-accent);
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-style: italic;
+}
+
+.footer a:focus-visible {
+  outline: 2px solid var(--cream-3);
+  outline-offset: 0;
+  box-shadow: 0 0 0 3px var(--gold);
+}
+
+@media (min-width: 640px) {
+  .headerRow {
+    padding: 15px 34px;
+  }
+
+  .footerInner {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    justify-items: start;
+    gap: 14px 28px;
+    padding: 32px 34px 36px;
+    text-align: left;
+  }
+
+  .footerNav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 26px;
+    justify-self: end;
+  }
+
+  .socials {
+    justify-self: end;
+  }
+
+  .footerBase {
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    justify-items: start;
+    width: 100%;
+  }
+
+  .signoff {
+    justify-self: end;
+  }
+}
+
+@media (min-width: 1024px) {
+  .headerRow {
+    padding: 17px 48px;
+  }
+
+  .footerInner {
+    padding: 36px 48px 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo,
+  .contact,
+  .contact span,
+  .footerLink,
+  .social {
+    transition: none;
+  }
+}

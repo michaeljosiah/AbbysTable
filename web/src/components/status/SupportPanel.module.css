@@ -1,0 +1,85 @@
+/* Direct-contact panel — ported from the Something Went Wrong design
+   (.se-help). Mobile is the base; 640 adds, min-width only. */
+
+.panel {
+  max-width: 520px;
+  margin: 40px auto 0;
+  padding: 20px 20px 18px;
+  border: var(--border-hairline) solid var(--border-light);
+  border-radius: var(--radius-card);
+  background: var(--surface-raised);
+  text-align: center;
+  scroll-margin-top: 24px;
+}
+
+.heading {
+  margin: 0;
+  color: var(--text-heading);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: var(--weight-medium);
+  line-height: 1.25;
+}
+
+.copy {
+  margin: 6px 0 0;
+  color: var(--text-body);
+  font-family: var(--font-sans);
+  font-size: var(--body-lg);
+  line-height: 1.5;
+}
+
+.ways {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-top: 10px;
+}
+
+.way {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  color: var(--text-heading);
+  font-family: var(--font-sans);
+  font-size: var(--body-lg);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  transition: color 0.16s ease;
+}
+
+.way svg {
+  flex: 0 0 auto;
+  color: var(--brass-ink);
+}
+
+.way > span {
+  padding-bottom: 1px;
+  border-bottom: var(--border-hairline) solid var(--rule-brass);
+}
+
+.way:hover {
+  color: var(--action-primary-hover);
+}
+
+@media (min-width: 640px) {
+  .panel {
+    padding: 22px 28px 20px;
+  }
+
+  .ways {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .way {
+    transition: none;
+  }
+}

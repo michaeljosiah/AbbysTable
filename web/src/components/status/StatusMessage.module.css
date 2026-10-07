@@ -1,0 +1,187 @@
+/* Status band — ported from the Page Not Found (.nf-*) and Something Went
+   Wrong (.se-*) designs. Mobile is the base; 640 and 1024 add, min-width only.
+   No decoration: the mockup's leaf pattern is not in the brand. */
+
+.band {
+  display: flex;
+  align-items: center;
+  padding: 48px 0 56px;
+  background: var(--surface-page);
+}
+
+/* The 500 holds the viewport even on a phone: it is the whole page, under a
+   reduced header and footer. The 404 hugs its content on a phone, where a
+   full-viewport band left a large empty field above and below. */
+.band[data-kind='error'] {
+  min-height: calc(100dvh - 260px);
+  padding: 56px 0 64px;
+}
+
+.inner {
+  width: 100%;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 22px;
+}
+
+.body {
+  max-width: 640px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+/* Decorative status disc (error pages only): blush ground, thin brass-ink
+   line glyph. The brand is near-iconless; this mark is scoped to status pages. */
+.mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  background: var(--surface-blush);
+  color: var(--brass-ink);
+}
+
+.eyebrow {
+  margin: 0 0 16px;
+  color: var(--brass-ink);
+  font-family: var(--font-sans);
+  font-size: var(--eyebrow-sm);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+}
+
+/* The Log in hero scale. */
+.title {
+  margin: 0;
+  color: var(--text-heading);
+  font-family: var(--font-display);
+  font-size: clamp(38px, 11.6vw, 56px);
+  font-weight: var(--weight-medium);
+  line-height: 1.06;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+.lede {
+  max-width: 36ch;
+  margin: 18px auto 0;
+  color: var(--text-body);
+  font-family: var(--font-sans);
+  font-size: 18px;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin-top: 32px;
+}
+
+/* 52px major-section CTA: full width inside the gutters on a phone, intrinsic
+   from 640. Green-forest — terracotta is reserved for the header pill, hero
+   and drawer CTAs. No arrow (button CTAs carry none). */
+.primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 32px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--action-dark);
+  color: var(--text-inverse);
+  font-family: var(--font-sans);
+  font-size: var(--btn-size);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.16s ease;
+}
+
+.primary:hover {
+  background: var(--surface-darker);
+}
+
+.primary:active {
+  filter: brightness(0.94);
+}
+
+/* Site text-CTA: sentence case, arrow aria-hidden, 1.5px brass rule under the
+   label AND the arrow. 44px hit area from the link itself, not padding. */
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--text-heading);
+  font-family: var(--font-sans);
+  font-size: var(--body-lg);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+}
+
+.secondary > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 3px;
+  border-bottom: 1.5px solid var(--rule-brass);
+  transition: border-color 0.16s ease;
+}
+
+.secondary:hover {
+  color: var(--action-primary-hover);
+}
+
+.secondary:hover > span {
+  border-bottom-color: var(--action-primary-hover);
+}
+
+@media (min-width: 640px) {
+  .band,
+  .band[data-kind='error'] {
+    padding: 80px 0 88px;
+  }
+
+  .inner {
+    padding: 0 34px;
+  }
+
+  .primary {
+    width: auto;
+  }
+}
+
+@media (min-width: 1024px) {
+  /* A min-height holds the footer down on a tall screen and still lets the
+     band grow with accessibility text. */
+  .band {
+    min-height: calc(100dvh - 250px);
+    padding: 112px 0 120px;
+  }
+
+  .band[data-kind='error'] {
+    min-height: calc(100dvh - 260px);
+    padding: 104px 0 112px;
+  }
+
+  .inner {
+    padding: 0 48px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .primary,
+  .secondary > span {
+    transition: none;
+  }
+}

@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
-import { Cormorant_Garamond, Figtree, Playfair_Display } from 'next/font/google';
 
 import { ConsentManager } from '@/components/consent/ConsentManager';
 import { DevDataMode } from '@/components/dev/DevDataMode';
 import { liveOrderingEnabled, resolveDataMode } from '@/lib/aonik/dataMode';
 import { CartProvider } from '@/lib/cart/CartProvider';
+
+import { fontVariables } from './fonts';
 
 import '@/styles/tokens.css';
 import './globals.css';
@@ -16,29 +17,8 @@ import './globals.css';
  * footer, `(checkout)` carries the stepper — so the builder is not wrapped in
  * navigation that would let someone wander out mid-order.
  *
- * next/font downloads and self-hosts each family at build time, so there is no
- * runtime request to Google and no layout shift from a late webfont.
+ * Fonts are declared in `./fonts`, shared with `global-error.tsx`.
  */
-const playfair = Playfair_Display({
-  subsets: ['latin'],
-  style: ['normal', 'italic'],
-  display: 'swap',
-  variable: '--font-playfair',
-});
-
-const cormorant = Cormorant_Garamond({
-  subsets: ['latin'],
-  weight: ['400', '500', '600'],
-  display: 'swap',
-  variable: '--font-cormorant',
-});
-
-const figtree = Figtree({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-figtree',
-});
-
 export const metadata: Metadata = {
   title: "Abby's Table — Nigerian fusion food, rooted in tradition",
   description:
@@ -79,7 +59,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
      */
     <html
       lang="en-GB"
-      className={`${playfair.variable} ${cormorant.variable} ${figtree.variable}`}
+      className={fontVariables}
       suppressHydrationWarning
     >
       <body>

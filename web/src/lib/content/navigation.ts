@@ -55,6 +55,21 @@ export const ACCOUNT_ITEM: NavItem = { label: 'My Account', href: '/account/orde
 export const PRIVACY_ITEM: NavItem = { label: 'Privacy Policy', href: '/#contact' };
 
 /**
+ * The simplified footer on the 500 page — help and legal only, by design
+ * (design/build-handoff.md §3ah). None of these pages exists yet, so like the
+ * site footer they resolve to the closest real destination until they land.
+ *
+ * The static host copy of that page (`public/500.html`) is generated from this
+ * list: regenerate it after a change (`UPDATE_STATUS_PAGES=1 npm test`).
+ */
+export const STATUS_FOOTER_LINKS: NavItem[] = [
+  { label: 'Delivery & FAQs', href: '/#contact' },
+  { label: 'Contact us', href: '/#contact' },
+  PRIVACY_ITEM,
+  { label: 'Terms', href: '/#contact' },
+];
+
+/**
  * The Privacy Policy's cookie section. Production MUST use `/privacy#cookies`
  * — a named routing requirement (design/build-handoff.md §3s; `cookies` is a
  * committed slug). No policy page exists yet, so this shares `PRIVACY_ITEM`'s
@@ -116,6 +131,11 @@ export interface SocialLink {
 
 export const SOCIAL_HANDLE = '@FromAbbysTable';
 
+/**
+ * Also printed into the static status pages (`public/500.html`,
+ * `public/maintenance.html`): regenerate them after a change here
+ * (`UPDATE_STATUS_PAGES=1 npm test`).
+ */
 export const SOCIAL_LINKS: SocialLink[] = [
   { network: 'instagram', label: 'Instagram', href: 'https://instagram.com' },
   { network: 'tiktok', label: 'TikTok', href: 'https://tiktok.com' },
