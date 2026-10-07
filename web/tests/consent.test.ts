@@ -1,12 +1,16 @@
+import './support/runtime';
+
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { ConsentBoundary } from '../src/components/consent/ConsentManager';
 import {
   ALL_ACCEPTED,
   announceConsentReady,
   CONSENT_PANEL_ID,
   CONSENT_READY_ATTRIBUTE,
   CONSENT_STORAGE_KEY,
+  consentStore,
   createConsentStore,
   ESSENTIAL_ONLY,
   isGranted,
@@ -325,6 +329,94 @@ test('one failing technology does not stop the others hearing a withdrawal', () 
     assert.equal(stopped, true);
   } finally {
     console.error = originalError;
+  }
+});
+
+/* ---- A manager that fails (site-chrome FR-09, T13) ----------------------------- */
+
+test('revoke withdraws a grant that was loaded and applied: every gate stops at once', () => {
+  const storage = storedWith({ ...validRecord, preferences: true, analytics: true, advertising: true });
+  const store = createConsentStore(() => storage);
+  store.init();
+
+  // Two technologies running on the stored grant, and a React gate's subscription.
+  const stopped: string[] = [];
+  store.whileGranted('analytics', () => () => void stopped.push('analytics'));
+  store.whileGranted('advertising', () => () => void stopped.push('advertising'));
+  const heard: ConsentSnapshot[] = [];
+  store.subscribe((snapshot) => heard.push(snapshot));
+  assert.equal(isGranted(store.getSnapshot(), 'analytics'), true);
+
+  const revoked = store.revoke();
+  assert.equal(revoked.status, 'pending', 'essential only, and no banner from a manager that is gone');
+  assert.equal(needsBanner(revoked), false);
+  assertEssentialOnly(revoked);
+  assert.deepEqual(stopped.sort(), ['advertising', 'analytics'], 'every cleanup ran');
+  assert.equal(heard.length, 1, 'subscribers (ConsentGate) heard the withdrawal');
+  assertEssentialOnly(heard[0]);
+
+  // The visitor's stored answer is theirs: it is not erased, only no longer applied here.
+  assert.equal(JSON.parse(storage.data.get(CONSENT_STORAGE_KEY)!).analytics, true);
+});
+
+test('after revoke nothing can grant again this session — not a re-read, not a choice', () => {
+  const storage = storedWith({ ...validRecord, analytics: true });
+  const store = createConsentStore(() => storage);
+  store.init();
+  store.revoke();
+
+  let starts = 0;
+  store.whileGranted('analytics', () => {
+    starts += 1;
+  });
+  // A `storage` listener the failed manager left bound would call init().
+  assert.equal(store.init().status, 'pending');
+  assert.equal(store.choose(ALL_ACCEPTED).status, 'pending');
+  assertEssentialOnly(store.getSnapshot());
+  assert.equal(starts, 0);
+  // And nothing was written on the failed manager's behalf.
+  assert.equal(JSON.parse(storage.data.get(CONSENT_STORAGE_KEY)!).advertising, false);
+});
+
+test('a crash before init: revoke changes nothing that was running, and nothing starts after', () => {
+  const store = createConsentStore(() => storedWith({ ...validRecord, analytics: true }));
+  const seen: ConsentSnapshot[] = [];
+  store.subscribe((snapshot) => seen.push(snapshot));
+  assert.equal(store.revoke().status, 'pending');
+  assert.equal(seen.length, 0, 'already pending: no change to announce');
+  store.init();
+  assertEssentialOnly(store.getSnapshot());
+});
+
+test('ConsentBoundary revokes the site store’s loaded grant when the manager crashes after init', () => {
+  const storage = storedWith({ ...validRecord, analytics: true });
+  const globals = globalThis as { window?: unknown };
+  const hadWindow = 'window' in globals;
+  globals.window = { localStorage: storage };
+  const originalError = console.error;
+  console.error = () => {};
+  try {
+    consentStore.init();
+    assert.equal(isGranted(consentStore.getSnapshot(), 'analytics'), true, 'the manager had loaded a grant');
+    let stopped = false;
+    consentStore.whileGranted('analytics', () => () => {
+      stopped = true;
+    });
+
+    // What React does when the manager throws on a later render.
+    const boundary = new ConsentBoundary({ children: null });
+    assert.deepEqual(ConsentBoundary.getDerivedStateFromError(), { failed: true });
+    boundary.componentDidCatch(new Error('the manager threw after init'));
+
+    assert.equal(stopped, true, 'the running technology was stopped');
+    assert.equal(consentStore.getSnapshot().status, 'pending');
+    assertEssentialOnly(consentStore.getSnapshot());
+    consentStore.init();
+    assertEssentialOnly(consentStore.getSnapshot());
+  } finally {
+    console.error = originalError;
+    if (hadWindow) globals.window = undefined;
+    else delete globals.window;
   }
 });
 

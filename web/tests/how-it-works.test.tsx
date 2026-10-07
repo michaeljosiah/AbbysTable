@@ -27,6 +27,12 @@ import {
   resolveExampleDish,
 } from '../src/lib/how-it-works/pageData';
 import type { ProductBrowseOptions, ProductPage } from '../src/lib/aonik/client';
+import HowItWorksPage from '../src/app/(site)/how-it-works/page';
+import { CartProvider } from '../src/lib/cart/CartProvider';
+
+// Aliased: `useAonik` stubs fetch, it is not a React hook.
+import { configureAonik, useAonik as stubAonik } from './support/aonik';
+import { resetCookies } from './support/next-headers';
 
 /*
  * How it works (#16): the size picker's rules and the example dish card.
@@ -442,6 +448,39 @@ test('an Aonik error ends the search at once: no card, logged, no 500', async ()
   });
   assert.equal(await resolveExampleDish(candidateFails.client, exampleOptions, captureLog().log), null);
   assert.deepEqual(candidateFails.calls.detail, ['editorial', 'a']);
+});
+
+/* ---- The page: its hero is the one high-priority image (marketing FR-06, T11) ---- */
+
+async function renderHowItWorks(live: boolean): Promise<string> {
+  const saved = { ...process.env };
+  if (live) {
+    // Aonik down: no example dish, so the hero falls back to the placeholder photograph.
+    configureAonik({ AONIK_DATA_MODE: 'live' });
+    stubAonik(() => ({ status: 503, body: { title: 'Service Unavailable' } }));
+  }
+  const quiet = console.error;
+  console.error = () => {};
+  try {
+    resetCookies();
+    return renderToStaticMarkup(<CartProvider mode={live ? undefined : 'demo'}>{await HowItWorksPage()}</CartProvider>);
+  } finally {
+    console.error = quiet;
+    process.env = saved;
+  }
+}
+
+test('the hero image is the page’s only fetchpriority="high" — whichever image the hero shows', async () => {
+  for (const live of [false, true]) {
+    const html = await renderHowItWorks(live);
+    // React writes the prop as `fetchPriority`; HTML attribute names are case-insensitive.
+    const high = [...html.matchAll(/<img\b[^>]*fetchpriority="high"[^>]*>/gi)].map((match) => match[0]);
+    assert.equal(high.length, 1, `${live ? 'placeholder' : 'example dish'} hero: exactly one`);
+    // The first image on the page, inside the hero (before the step rail).
+    assert.equal(html.indexOf('<img'), html.indexOf(high[0]));
+    assert.ok(html.indexOf(high[0]) < html.indexOf('aria-label="The four steps"'));
+    if (live) assert.match(high[0], /how-1-build-your-box/);
+  }
 });
 
 test('the box plan degrades to none (a picker without prices) when the config fails', async () => {

@@ -662,36 +662,33 @@ async function optionalRead<T>(label: string, read: () => Promise<T>, fallback: 
  *  - `exampleDish`: the dish band 05 prints as "Example dish information" —
  *    null when the catalogue has no such dish or it could not be read, and the
  *    panel is then omitted.
- *  - `minDishes`: the box minimum the closing CTA's copy states — null when
- *    the box plan could not be read, and the copy then names no number.
  *  - `returnDish`: only when the page was opened from a dish
  *    (`?from=dish&dish=<slug>`), so "Back to dish" is validated against the
  *    real catalogue. No dish behind the slug (or no answer) means no link.
+ *
+ * The box minimum the closing CTA states is NOT read here: it is the
+ * storefront plan's, read once by `getPurchaseBarData` for the page's mobile
+ * bar, so the closing line and the bar can never quote different minimums
+ * (marketing-pages FR-02).
  */
 export async function getStandardsPageData(options: {
   exampleDishSlug: string;
   returnSlug?: string | null;
 }): Promise<{
   exampleDish: Dish | null;
-  minDishes: number | null;
   returnDish: Dish | null;
 }> {
   const client = await getAonikClient();
   const { exampleDishSlug, returnSlug } = options;
 
-  const [exampleDish, minDishes, returnDish] = await Promise.all([
+  const [exampleDish, returnDish] = await Promise.all([
     optionalRead('the Our Standards example dish', () => client.getDishBySlug(exampleDishSlug), null),
-    optionalRead(
-      'the box minimum',
-      async () => (await client.getBoxPricing()).custom.minDishes,
-      null as number | null,
-    ),
     returnSlug
       ? optionalRead('the dish behind "Back to dish"', () => client.getDishBySlug(returnSlug), null)
       : Promise.resolve(null),
   ]);
 
-  return { exampleDish, minDishes, returnDish };
+  return { exampleDish, returnDish };
 }
 
 /**

@@ -74,9 +74,9 @@ No price, box minimum, dish count or delivery date SHALL be written into markup.
 held in pence and formatted by `src/lib/format.ts`. The canonical wording is fixed and the value is
 not: "6 dishes from £158" / "Minimum 6 dishes · From £158" resolve from data. When the plan is
 unavailable the line SHALL name no number rather than guess one, and the page SHALL still render.
-Known gap: Our Standards' closing line reads its minimum from box pricing
-(`getBoxPricing().custom.minDishes` in `getStandardsPageData`) while its purchase bar reads the
-storefront plan, so the two could disagree if those sources diverge (T10).
+A page that states a minimum and carries the purchase bar SHALL read both from one plan read: Our
+Standards' closing line takes its minimum from the offer `getPurchaseBarData()` resolves for its
+bar, so the two cannot disagree (T10; box pricing is no longer read for it).
 No marketing page SHALL show the earliest delivery date; it belongs to the ordering funnel.
 
 #### Scenario: The price changes without a frontend change
@@ -142,9 +142,9 @@ open-in-new-tab and modified clicks work without JavaScript.
 All photography and video is AI-generated placeholder (`design/README.md`) and SHALL be marked as
 such with a comment at its use site. No other image SHALL be substituted while a real asset is
 missing. Alt text SHALL describe the image actually on screen and SHALL be reviewed whenever the
-image is replaced. The hero image of a page is eager with `fetchpriority="high"`; images further
-down load lazily. Known gap (T11): How It Works' hero sets `priority` without
-`fetchPriority="high"`. Replacing the placeholders is launch work tracked by #38.
+image is replaced. The hero image of a page is eager with `fetchpriority="high"` — the page's only
+such image (Next 15's `priority` alone only preloads it; How It Works' hero gained it in T11);
+images further down load lazily. Replacing the placeholders is launch work tracked by #38.
 
 #### Scenario: A reshoot replaces a photograph
 - **WHEN** a placeholder image is replaced
@@ -271,10 +271,12 @@ Bespoke recipes created and prepared for you" — "Find out more", which SHALL f
 goes to `/private-table` once #25 builds it; until then an interim destination or no link) — and
 one credentials card at every width: Guided by "A UK-certified
 health coach", Overseen by "A registered nutritionist", In collaboration with "Your clinical
-team". The band carries `data-purchase-bar-stop`. The design's price line "Private Table from
-£1,500" is unverified (build-handoff; open question 2): it MAY appear only as approved copy from a
-content constant, never inline in markup, and SHALL be removed if the owner does not confirm it
-before launch.
+team". The band carries `data-purchase-bar-stop`, and a 72px `scroll-margin-top`: it is the
+chrome's Private Table destination (`/#private`) until #25, often reached by an UPWARD jump, which
+re-shows the phone header, so it SHALL land with its heading clear of the header. The design's
+price line "Private Table from £1,500" is unverified (build-handoff; open question 2): it MAY
+appear only as approved copy from a content constant, never inline in markup, and SHALL be removed
+if the owner does not confirm it before launch.
 
 #### Scenario: The outline reads correctly
 - **WHEN** the page's heading outline is listed
@@ -324,12 +326,13 @@ entry's `history.state` (key `atDishReturn`). Records expire after 6 hours. Our 
 show "Back to dish" only when BOTH the query names a dish the catalogue has (checked on the
 server) AND this tab holds a live record for it; the control is server-rendered `hidden` and
 revealed only in the browser (an inline gate script before first paint, a layout effect on
-client navigation). Opening Our Standards marks the record `departed`. Known gap (T12): on a full
-page load the gate reveals the control before hydration but `departed` is written only by
-`BackToDish`'s layout effect, so a click in that window is a plain forward navigation and the dish
-page does not restore; the gate SHALL mark the record departed before revealing the control. "Back to dish" SHALL make a
-true return — `history.back()` when the entry behind is the dish, otherwise mark `returning` and
-replace — never a forward push. The dish page SHALL restore the selection and scroll only on a
+client navigation). Opening Our Standards SHALL mark the record `departed` BEFORE revealing the
+control, on both paths alike (`departDishReturn`, which the gate script mirrors byte for byte;
+T12), so the browser's Back to the dish restores even before Our Standards has hydrated. A click
+on "Back to dish" itself before hydration follows its plain `href`, as with JavaScript off: a
+forward visit that restores nothing (open question 7). "Back to dish" SHALL make a true return —
+`history.back()` when the entry behind is the dish, otherwise mark `returning` and replace —
+never a forward push. The dish page SHALL restore the selection and scroll only on a
 genuine return (departed, and either `returning` or on the stamped entry), never on a reload, then
 disarm the record; an edit drops it. The selection SHALL NEVER be put in a URL.
 
@@ -419,22 +422,16 @@ Aonik failures degrade per piece; a marketing page never becomes a 500 because o
 
 ### Known gaps — code that contradicts the design or CLAUDE.md today
 
-1. **The homepage is still the original template** (all closed by #15): hero H1 "…fusion food,
-   rooted in tradition." with "See how it works" as an in-page anchor; the How it works band
-   shows the earliest delivery date (`HowItWorks earliestDeliveryLabel`); `BoxesPromo` (the
-   cheapest box offer, £95 in the fixtures) and `Gifting` still render; there is no Our
-   standards band; the founder band puts the name in the heading; the Signature tooltip reads
-   "Counts as one of your box dishes — the upgrade is added on top."; Private Table reads "from
-   £2,500", a literal in markup, and its "Find out more" is a `<button>` with no destination.
-2. **Root metadata** (`app/layout.tsx`) says "delivered chilled UK-wide" and "Heat, eat, live
-   well" — CLAUDE.md requires "mainland UK" and "Heat, enjoy, live well". No issue yet.
-3. **How It Works departs from its design's words on purpose** (FR-01): "Mainland UK delivery" for
+The original-template homepage and the root metadata ("UK-wide", "Heat, eat, live well"), the
+first two gaps recorded here, were closed by #15 (PR #59; T6, T9) and are no longer listed.
+
+1. **How It Works departs from its design's words on purpose** (FR-01): "Mainland UK delivery" for
    "UK-wide delivery"; "Pick an available mainland UK delivery date at checkout." for "…UK
    nationwide delivery at checkout."; and "…shown on each dish where we've published them…" for
    "…shown on every dish…" — to be restored when every dish publishes them (#38).
-4. `build-handoff.md` §3v says the three step-1 sub-steps were removed; the page file still has
+2. `build-handoff.md` §3v says the three step-1 sub-steps were removed; the page file still has
    them and the code follows the page file.
-5. The demo fixtures still price the box at £95 with a 30-dish maximum until the funnel is
+3. The demo fixtures still price the box at £95 with a 30-dish maximum until the funnel is
    reconciled (#28); live mode reads the plan.
 
 > Note on sources: the page behaviour guide §6 says Abby's Story's bar "follows the normal
@@ -454,6 +451,11 @@ Aonik failures degrade per piece; a marketing page never becomes a 500 because o
 6. **"Full nutrition shared for every dish"** (homepage Our standards) is approved copy the owner
    confirmed as intended, but it holds only if every dish page publishes full nutrition. If any
    does not at launch, does the line change, or does the dish wait?
+7. **"Back to dish" before hydration.** On a full load of Our Standards the gate reveals the
+   control at first paint, and until React hydrates a click on it is its plain link: a forward
+   visit to the dish (a new history entry) that restores nothing. Accept that brief window, as
+   the JavaScript-off behaviour, or have the inline gate also bind a minimal true-return click
+   handler that steps aside once `BackToDish` hydrates?
 
 ---
 
@@ -473,10 +475,14 @@ Aonik failures degrade per piece; a marketing page never becomes a 500 because o
 - [ ] `T7` Repoint `/#contact` placeholders as Contact and Delivery & FAQs land (#8)
 - [ ] `T8` Real photography, company details, legal and food-safety sign-off (#38)
 - [x] `T9` Root metadata to "mainland UK" / "Heat, enjoy, live well" — PR #59
-- [ ] `T10` Our Standards' minimum from the storefront plan, the same source as its purchase bar
-  (FR-02)
-- [ ] `T11` How It Works' hero image gets `fetchPriority="high"` (FR-06)
-- [ ] `T12` The Back to dish gate marks the record departed before revealing the control (FR-16)
+- [x] `T10` Our Standards' minimum from the storefront plan, the same source as its purchase bar
+  (FR-02) — the closing line reads the bar's offer, one plan read; `getStandardsPageData` no
+  longer reads box pricing
+- [x] `T11` How It Works' hero image gets `fetchPriority="high"` (FR-06) — the page's only one,
+  whichever hero image renders
+- [x] `T12` The Back to dish gate marks the record departed before revealing the control (FR-16)
+  — `departDishReturn`, mirrored by the gate; `tests/dish-return.test.ts` runs every record case
+  through both and compares what each writes
 - [ ] `T13` The Signature info button as a real button outside the card link (FR-11) (#21)
 
 ### Testing
