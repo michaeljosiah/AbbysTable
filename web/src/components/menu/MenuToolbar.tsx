@@ -72,7 +72,9 @@ export function MenuToolbar({
   }, [open, onOpenChange]);
 
   return (
-    <div className={styles.sticky}>
+    // data-sheet-open lifts this stacking context over the cookie banner while
+    // the phone sheet is open (ConsentManager.module.css, "Stacking").
+    <div className={styles.sticky} data-sheet-open={open || undefined}>
       <div className={styles.card}>
         <div className={styles.bar}>
           <div className={styles.search}>

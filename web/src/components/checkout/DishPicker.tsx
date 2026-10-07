@@ -1063,7 +1063,9 @@ export function DishPicker({
 
       {/* ---- Search + filters ---------------------------------------------- */}
 
-      <div className={styles.sticky}>
+      {/* data-sheet-open lifts this stacking context over the cookie banner
+          while the phone sheet is open (ConsentManager.module.css). */}
+      <div className={styles.sticky} data-sheet-open={panelOpen || undefined}>
         <div className={styles.toolbar}>
           <div className={styles.bar}>
             <div className={styles.search}>
@@ -2720,6 +2722,7 @@ export function DishPicker({
         type="button"
         className={styles.toTop}
         data-show={showTop || undefined}
+        data-consent-yield
         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
         aria-label="Back to top"
         tabIndex={showTop ? undefined : -1}

@@ -1,0 +1,484 @@
+/* ===========================================================================
+   Cookie consent — banner + preferences panel.
+   Ported from the canonical source, `design/Abby's Table - Privacy Policy.dc.html`
+   (the `.at-cc-*` rules); contract in design/build-handoff.md §3s.
+
+   Light cream ground with a 2px brass top rule: a green-deep sheet would
+   compete with the footer, and a light panel keeps the ordinary brass focus
+   ring and light-ground contrast rules.
+
+   Mobile first: no media query is the phone; 640 widens the gutters; 1024 is
+   the desktop banner composition. The panel has no desktop rule in the design.
+
+   ── Stacking ───────────────────────────────────────────────────────────────
+   The prototype's order (the `.at-cc-*` rules in Privacy Policy and Homepage
+   v2: banner 70, drawer 90/95, consent scrim/panel 96/97), chosen over §3s's
+   "outranks every fixed element" by user decision, 7 Oct 2026:
+     - the BANNER (70) sits above the page and its chrome — sticky headers
+       and toolbars 30–50, mobile purchase bars 60 — and BENEATH everything
+       the customer opens: the drawer, sheets and dialogs 90–130, the
+       checkout help drawer 200, toasts up to 220;
+     - the PREFERENCES PANEL (scrim 310, panel 311) sits above everything.
+   Three of those overlays open inside a sticky ancestor's stacking context,
+   which would hold them under the banner, so the ancestor lifts itself while
+   they are open: the /menu and Add Dishes filter sheets (their toolbar → 90,
+   MenuToolbar and DishPicker) and the checkout help drawer (the checkout
+   header → 200). A new overlay must be checked the same way.
+   Only the development data-mode badge (9999) is higher, and it never ships.
+   While the banner or the panel shows, the purchase bars and ↑ Top are also
+   suppressed outright (globals.css, `data-consent-yield`), so no control is
+   left focusable behind the banner.
+   =========================================================================== */
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Always mounted; shown by a state flip, so opening has nothing to load. */
+.bannerWrap,
+.panelWrap {
+  display: none;
+}
+
+.bannerWrap[data-on],
+.panelWrap[data-open] {
+  display: block;
+}
+
+/* ---- Banner ------------------------------------------------------------------ */
+
+.banner {
+  position: fixed;
+  z-index: 70;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--surface-raised);
+  border-top: var(--rule-thick) solid var(--rule-brass);
+  box-shadow: 0 -8px 30px color-mix(in srgb, var(--green-forest) 16%, transparent);
+  padding: 0 0 env(safe-area-inset-bottom, 0px);
+  animation: slideUp 0.22s ease;
+}
+
+/* The bar is full-bleed; its content sits on the same centred 1280 shell and
+   gutters as every other band. */
+.bannerInner {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 18px 22px;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 22px;
+  line-height: 1.25;
+  color: var(--text-heading);
+}
+
+.copy {
+  margin: 8px 0 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+.actions {
+  display: grid;
+  gap: 10px;
+}
+
+.bannerActions {
+  margin-top: 16px;
+}
+
+.panelActions {
+  margin-top: 18px;
+}
+
+/* Reject is exactly as easy as Accept: identical boxes — same height, same
+   width, same label weight — and Required only first in DOM and visual order.
+   Only the fill differs (a recorded decision). */
+.pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.btn {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 0 18px;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--radius-pill);
+  background: var(--action-dark);
+  color: var(--cream);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease;
+}
+
+.btn:hover {
+  background: var(--green-deep);
+}
+
+.btn:active {
+  filter: brightness(0.94);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+  border-radius: var(--radius-pill);
+}
+
+.btnOutline {
+  background: transparent;
+  border: 1px solid var(--action-dark);
+  color: var(--action-dark);
+}
+
+.btnOutline:hover {
+  background: var(--action-dark);
+  color: var(--cream);
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  color: var(--text-heading);
+  transition: color 0.16s ease;
+}
+
+.link span {
+  border-bottom: 1px solid var(--rule-brass);
+  padding-bottom: 1px;
+}
+
+.link:hover {
+  color: var(--action-primary-hover);
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+/* ---- Preferences panel ------------------------------------------------------- */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 310;
+  background: color-mix(in srgb, var(--green-deep) 50%, transparent);
+  animation: fadeIn 0.2s ease;
+}
+
+.panel {
+  position: fixed;
+  z-index: 311;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 88vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--surface-raised);
+  border-top: var(--rule-thick) solid var(--rule-brass);
+  border-radius: 18px 18px 0 0;
+  padding: 20px 22px calc(22px + env(safe-area-inset-bottom, 0px));
+  animation: slideUp 0.22s ease;
+}
+
+/* Focus lands on the dialog itself so its name and role are announced first;
+   it is a reading start, not a control, so it shows no ring. Doubled class to
+   outrank the global `[tabindex]:focus-visible` ring. */
+.panelWrap .panel:focus,
+.panelWrap .panel:focus-visible {
+  outline: none;
+}
+
+.panelHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* A plain 44px SVG cross: green-forest, terracotta-deep on hover, no ring or
+   disc (design/CLAUDE.md "Close controls"). */
+.close {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -10px -10px 0 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-heading);
+  cursor: pointer;
+  transition: color 0.16s ease;
+}
+
+.close:hover {
+  color: var(--action-primary-hover);
+}
+
+.close:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 0;
+  border-radius: 50%;
+}
+
+.rows {
+  margin-top: 14px;
+}
+
+/* Areas rather than source order: the description sits between the title and
+   the control in the DOM, so a screen reader hears the category described
+   before its switch, but it renders on its own full-width row. */
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'title control'
+    'desc desc';
+  gap: 4px 16px;
+  align-items: start;
+  padding: 16px 0;
+  border-top: 1px solid var(--border-light);
+}
+
+.row:last-child {
+  border-bottom: 1px solid var(--border-light);
+}
+
+.rowTitle {
+  grid-area: title;
+  margin: 0;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 16px;
+  line-height: 1.35;
+  color: var(--text-heading);
+}
+
+.rowDesc {
+  grid-area: desc;
+  margin: 4px 0 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+/* role="switch", not a checkbox: the control IS the choice. 46×44 — sized to
+   its own 46px track rather than pulled into place with a negative margin, so
+   the target stays ≥44 both ways. */
+.switch {
+  grid-area: control;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 44px;
+  margin: -8px 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.track {
+  display: block;
+  position: relative;
+  width: 46px;
+  height: 26px;
+  border-radius: var(--radius-pill);
+  background: var(--sand-2);
+  border: 1px solid var(--taupe);
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--cream);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--green-forest) 30%, transparent);
+  transition: transform 0.16s ease;
+}
+
+.switch[aria-checked='true'] .track {
+  background: var(--action-dark);
+  border-color: var(--action-dark);
+}
+
+.switch[aria-checked='true'] .knob {
+  transform: translateX(20px);
+}
+
+.switch:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+
+/* A text mark, never a disabled switch: a switch that cannot move is a dead
+   control. --brown on --sand, not --brass-ink (3.97:1 there, under the
+   small-text minimum). */
+.always {
+  grid-area: control;
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  background: var(--sand);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--brown);
+}
+
+/* 14px: tertiary metadata about the categories, not supporting copy. */
+.note {
+  margin: 14px 0 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+/* A launch placeholder, marked so it cannot pass unnoticed (§3q checklist). */
+.tbc {
+  border-bottom: 1px dotted var(--brass-ink);
+  color: var(--text-body);
+  font-style: italic;
+}
+
+.xref {
+  color: var(--text-heading);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.16s ease;
+}
+
+.xref:hover {
+  color: var(--action-primary-hover);
+}
+
+.xref:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* ---- 640: more measure ------------------------------------------------------- */
+
+@media (min-width: 640px) {
+  .bannerInner {
+    padding: 18px 34px;
+  }
+}
+
+/* ---- 1024: the desktop banner ------------------------------------------------
+   Not the mobile bar stretched: the actions move up beside the copy — two
+   full-width buttons across 1280px would read as a page CTA rather than a
+   choice. Scoped to the banner: the design's shared selector also zeroed the
+   panel's action spacing, which its own comment does not describe.
+   `minmax(150px, 1fr)` rather than the design's `auto`, so the two buttons are
+   identical boxes at any label length — refusal parity is an acceptance
+   criterion. */
+@media (min-width: 1024px) {
+  .bannerInner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px 40px;
+    padding: 20px 48px;
+  }
+
+  .bannerInner > .title,
+  .bannerInner > .copy {
+    grid-column: 1;
+  }
+
+  .bannerInner > .copy {
+    max-width: 68ch;
+  }
+
+  .bannerActions {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    margin-top: 0;
+    justify-items: stretch;
+  }
+
+  .bannerActions .pair {
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .banner,
+  .panel,
+  .scrim {
+    animation: none;
+  }
+
+  .track,
+  .knob,
+  .btn,
+  .link,
+  .close,
+  .xref {
+    transition: none;
+  }
+}

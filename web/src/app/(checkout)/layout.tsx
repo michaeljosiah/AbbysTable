@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 import { Logo } from '@/components/brand/Logo';
 import { CheckoutHeader } from '@/components/checkout/CheckoutHeader';
+import { COOKIE_PREFERENCES_ITEM } from '@/lib/content/navigation';
 
 import styles from './layout.module.css';
 
@@ -9,12 +10,12 @@ import styles from './layout.module.css';
  * Chrome for the box builder: stepper instead of site navigation, and a slim
  * footer carrying only order-relevant links.
  *
- * The template points every one of these at pages that do not exist yet, so they
- * resolve to the closest real destination rather than to dead URLs.
+ * Links to pages that do not exist yet resolve to the closest real destination
+ * rather than to dead URLs; swap each one as its page lands (Allergens has).
  */
 const FOOTER_LINKS = [
   { label: 'Delivery & FAQs', href: '/#contact' },
-  { label: 'Allergens', href: '/#contact' },
+  { label: 'Allergens', href: '/allergens' },
   { label: 'Contact Us', href: '/#contact' },
   { label: 'Privacy Policy', href: '/#contact' },
   { label: 'Terms', href: '/#contact' },
@@ -53,6 +54,16 @@ export default function CheckoutLayout({ children }: { children: React.ReactNode
             </span>
             <span className={styles.legal}>
               <span className={styles.copyright}>© 2026 Abby&apos;s Table</span>
+              {/* The checkout footer's © row carries the consent trigger too
+                  (design/build-handoff.md §3s): a real link, enhanced into the
+                  preferences panel by the consent manager. */}
+              <Link
+                href={COOKIE_PREFERENCES_ITEM.href}
+                className={styles.cookieLink}
+                data-consent-open
+              >
+                {COOKIE_PREFERENCES_ITEM.label}
+              </Link>
               <span className={styles.legalDivider} aria-hidden="true" />
               <span className={styles.signoff}>Abby x</span>
             </span>

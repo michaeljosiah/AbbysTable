@@ -1,0 +1,402 @@
+/* ===========================================================================
+   Allergens — design/Abby's Table - Allergens.dc.html
+   ---------------------------------------------------------------------------
+   Mobile-first (design/CLAUDE.md, "Mobile-first rebuild"): the rules with no
+   media query ARE the phone design; 640 and 1024 are min-width only. Values
+   are the design file's, which takes them from Homepage v2.
+
+   One DOM order at every width. The sidebar sits below the main column on a
+   phone and beside it from 1024 purely because the grid gains a second
+   column — nothing is moved with `order` or grid placement.
+   =========================================================================== */
+
+.section {
+  padding: 34px 0 48px;
+}
+
+/* Inner shell: 1280 cap, gutter 22 → 34 → 48. Border-box, as in the design,
+   so the cap includes the gutters. */
+.inner {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 22px;
+}
+
+.grid {
+  display: grid;
+  gap: 30px;
+}
+
+/* ---- Page head: centred as one unit; the body below stays left-aligned ---- */
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: clamp(38px, 11.6vw, 56px);
+  line-height: 1.04;
+  letter-spacing: -0.015em;
+  color: var(--text-heading);
+  text-align: center;
+}
+
+/* Page lede: 18px at every width — it never bumps up on desktop. */
+.lede {
+  margin: 12px auto 0;
+  max-width: 560px;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--text-body);
+  text-align: center;
+  text-wrap: pretty;
+}
+
+/* ---- The regulated 14 ---- */
+
+.listHeading {
+  margin: 34px 0 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: clamp(30px, 8.6vw, 40px);
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  color: var(--text-heading);
+}
+
+.listIntro {
+  margin: 10px 0 0;
+  max-width: 560px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: var(--line-body);
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+/* 2 columns on a phone, 3 at 640, 4 from 1024. */
+.list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Inert items: no hover, no cursor, no chevron. */
+.item {
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+  padding: 12px 16px;
+  background: var(--surface-raised);
+  border: var(--border-hairline) solid var(--border-light);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.35;
+  color: var(--text-heading);
+  text-wrap: pretty;
+}
+
+/* ---- Important allergen information ---- */
+
+.notice {
+  margin-top: 26px;
+  padding: 24px 22px;
+  background: var(--surface-blush);
+  border-radius: var(--radius-card);
+}
+
+.noticeHead {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+/* A graphic, not type: brass-ink clears the 3:1 non-text minimum on blush. */
+.noticeIcon {
+  flex: 0 0 auto;
+  stroke: var(--brass-ink);
+}
+
+/* At this length the label is a real heading, not a 13px eyebrow. */
+.noticeHeading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 22px;
+  line-height: 1.2;
+  color: var(--text-heading);
+  text-wrap: pretty;
+}
+
+.noticeText {
+  margin: 18px 0 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: var(--line-body);
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+.noticeText strong {
+  font-weight: var(--weight-semibold);
+  color: var(--text-heading);
+}
+
+/* The legal backstop: 14px is the floor for legal notes. --brown, not
+   --taupe, which is never small text. */
+.noticeBackstop {
+  margin: 22px 0 0;
+  padding-top: 18px;
+  border-top: var(--border-hairline) solid var(--rule-brass);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: var(--line-body);
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+/* Inline link in body copy — exempt from the 44px target (design/CLAUDE.md):
+   a padded inline-block would inflate the line box. */
+.inlineLink {
+  color: var(--text-heading);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.16s ease;
+}
+
+.inlineLink:hover {
+  color: var(--action-primary-hover);
+}
+
+/* ---- Sidebar ---- */
+
+.aside {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+/* Panel heading: 22px, with no desktop bump in the sidebar. */
+.asideHeading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 22px;
+  line-height: 1.2;
+  color: var(--text-heading);
+}
+
+.asideText {
+  margin: 10px 0 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: var(--line-body);
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+.asideTextFollow {
+  margin-top: 12px;
+}
+
+.ctaRow {
+  display: flex;
+  margin-top: 16px;
+}
+
+/* Major section CTA, 52px on the ladder. Full width inside the gutters on a
+   phone, intrinsic from 640; the height never changes. Hover is a colour
+   shift, never a lift (design/CLAUDE.md, "Hover language"). */
+.cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 28px;
+  border-radius: var(--radius-pill);
+  background-color: var(--action-dark);
+  color: var(--cream);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--btn-size);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: background-color 0.16s ease;
+}
+
+.cta:hover {
+  background-color: var(--surface-darker);
+}
+
+.cta:active {
+  filter: brightness(0.94);
+}
+
+.links {
+  display: grid;
+  gap: 12px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.linkCard {
+  padding: 16px 18px;
+  background: var(--surface-raised);
+  border: var(--border-hairline) solid var(--border-light);
+  border-radius: 14px;
+}
+
+.linkTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 19px;
+  line-height: 1.2;
+  color: var(--text-heading);
+}
+
+.linkText {
+  margin: 5px 0 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: var(--line-snug);
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+/* Text link: 13px / .12em caps in --brass-ink (brass as small type on cream),
+   brass underline on the label, 44px hit area from the visible control. */
+.textLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--btn-size-sm);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--brass-ink);
+  text-decoration: none;
+  transition: color 0.16s ease;
+}
+
+.textLink:hover {
+  color: var(--action-primary-hover);
+}
+
+.textLinkLabel {
+  padding-bottom: 1px;
+  border-bottom: var(--border-hairline) solid var(--rule-brass);
+}
+
+/* "FAQs", not "FAQS": the plural s stays lower case inside the caps. */
+.lowercase {
+  text-transform: lowercase;
+}
+
+.arrow {
+  display: inline-block;
+  transition: transform 0.16s ease;
+}
+
+.textLink:hover .arrow {
+  transform: translateX(3px);
+}
+
+/* The text links keep the site's default ring (2px currentColor, globals.css):
+   brass is 1.9:1 on the notice's blush and 2.6:1 on cream, under the 3:1
+   non-text minimum (WCAG 1.4.11). Only the CTA needs its own ring, because
+   currentColor there is cream on cream; it also keeps its pill shape, which
+   the global focus rule's 3px radius would otherwise square off. */
+.cta:focus-visible {
+  outline: 2px solid var(--text-heading);
+  outline-offset: 3px;
+  border-radius: var(--radius-pill);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arrow,
+  .inlineLink,
+  .textLink,
+  .cta {
+    transition: none;
+  }
+
+  .textLink:hover .arrow {
+    transform: none;
+  }
+}
+
+/* ---- 640: more measure; 3-up list; the CTA becomes intrinsic ---- */
+
+@media (min-width: 640px) {
+  .section {
+    padding: 52px 0 56px;
+  }
+
+  .inner {
+    padding: 0 34px;
+  }
+
+  .list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .cta {
+    width: auto;
+  }
+}
+
+/* ---- 1024: desktop composition — sidebar beside the main column ---- */
+
+@media (min-width: 1024px) {
+  .section {
+    padding: 60px 0 64px;
+  }
+
+  .inner {
+    padding: 0 48px;
+  }
+
+  /* Two columns, both starting at the top: the h1 leads the left column
+     rather than spanning the page, so the sidebar sits level with it. */
+  .grid {
+    grid-template-columns: minmax(0, 1fr) 372px;
+    gap: 56px;
+  }
+
+  .title {
+    font-size: 56px;
+  }
+
+  .listHeading {
+    font-size: var(--display-1);
+  }
+
+  .list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .notice {
+    padding: 30px 34px;
+  }
+
+  .noticeHeading {
+    font-size: 30px;
+  }
+
+  .aside {
+    gap: 34px;
+    padding-left: 56px;
+    border-left: var(--border-hairline) solid var(--border-light);
+  }
+}
