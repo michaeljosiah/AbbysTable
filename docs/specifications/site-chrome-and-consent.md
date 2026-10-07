@@ -52,8 +52,11 @@ Depends on: `SPEC-2026-07-22-customer-identity` (session), `SPEC-2026-07-22-serv
 
 The marketing header SHALL carry the wordmark (→ `/`), five links in this order — Menu `/menu`,
 How it works `/how-it-works`, Abby's Story `/our-story`, Gifting, Private Table — the account
-slot (FR-06) and the purchase pill (FR-02). Links SHALL go to routes, not `/#…` anchors (Gifting
-and Private Table: open questions 2–3). No strapline, search, basket or promo strip. Below 1024
+slot (FR-06) and the purchase pill (FR-02). Links SHALL go to routes, not `/#…` anchors, once
+those routes exist; no link SHALL resolve to a 404 or a missing anchor. Until `/gifting` (#26) and
+`/private-table` (#25) are built, each SHALL use one interim destination defined once in
+`src/lib/content/navigation.ts` (an existing section, such as Private Table's `/#private`), or be
+left out of the nav, and switch to its route when the page lands (open questions 2–3). No strapline, search, basket or promo strip. Below 1024
 the burger opens the drawer; from 1024 the nav and the account link show. The link for the
 current route SHALL carry `aria-current="page"`, styled with green-forest ink, semibold weight and
 the persistent brass underline (three signals, never colour alone); hover overrides it. The header
@@ -189,9 +192,10 @@ the site on essential processing with every trigger a plain link.
 `capability: consent` · `delta: ADDED (feat/site-chrome-and-consent)`
 
 The choice SHALL be stored under the one key `at-cookie-consent-v1` as `{ v: 1, ts, preferences,
-analytics, advertising }`, with every access in try/catch. A value SHALL count only if it is
-exactly that shape with an exact ISO timestamp round trip and three booleans; anything else is no
-choice — essential only, banner showing — never consent. A write SHALL be read back; if it cannot
+analytics, advertising }`, with every access in try/catch. A value SHALL count only if it
+parses to an object with `v: 1`, a `ts` that survives an exact ISO round trip, and a boolean for
+each of the three categories (other keys are ignored and not kept); anything else is no choice —
+essential only, banner showing — never consent. A write SHALL be read back; if it cannot
 be, the status is `unsaved` (essential only) and any previous record is removed, so a withdrawal
 that failed to save cannot leave an old grant behind. Statuses: `pending` (server render, before
 init), `unresolved`, `resolved`, `unsaved`. A `storage` event re-reads, so a withdrawal in another
@@ -210,7 +214,8 @@ then Accept all (filled) — identical boxes, Required only first in DOM and vis
 Manage preferences. The panel SHALL be `role="dialog"` `aria-modal="true"` labelled "Cookie
 preferences": focus moves to the dialog itself, Tab is trapped, Escape and the scrim close it, the
 body is scroll-locked, focus returns to the opener (the page `h1` if the opener is gone), and
-closing without choosing brings the banner back. It lists exactly four categories: Essential with
+closing without choosing brings the banner back only when no valid choice is stored — a returning
+visitor who opens the panel from "Cookie preferences" and closes it sees no banner. It lists exactly four categories: Essential with
 an "Always on" text mark, then Preferences, Analytics and Advertising and measurement as
 `role="switch"` buttons, off by default. Actions: Save my choices (filled), then Required only and
 Accept all (outline). Providers, cookie names and durations are "to be confirmed" with a link to
@@ -283,7 +288,8 @@ scrolling clear of it below 1024. The roster of pages is marketing-pages FR-07.
 As `src/lib/purchase-bar/visibility.ts`: the bar SHALL show only when (1) the reveal marker is
 wholly above the viewport (`bottom ≤ 0`; no marker counts as passed), (2) the page is scrolling
 down — movements under 8px change nothing, nothing within the first 120px counts as down, and
-focus inside `[data-site-header]` holds the page out of "down" — and (3) it is not suppressed:
+while focus is inside `[data-site-header]` the page cannot newly switch into "down" (the bar keeps
+its current state; the prototype's `_onScroll`) — and (3) it is not suppressed:
 suppression starts once the first stop marker's top is above 75% of the viewport and holds,
 continuously, below it. Releasing suppression never forces the bar back. `DishPurchaseBar` ignores
 direction (`followsDirection={false}`). The drawer and phone sheets (`data-overlay-open` →
@@ -329,8 +335,10 @@ commerce data (`withAnnouncement={false}` today; pinned by `tests/not-found-chro
 
 `app/error.tsx` (and `global-error.tsx` when the root layout fails) SHALL render the design's 500
 in reduced chrome (`StatusChrome`): wordmark, no nav, drawer, account, GET STARTED, purchase bar,
-newsletter or consent trigger; plain `<a>` links, each a full page load. TRY AGAIN calls
-`router.refresh()` then `reset()`. The "Need help with an order?" panel and the header's "Contact
+newsletter or consent trigger; plain `<a>` links, each a full page load. TRY AGAIN in `error.tsx`
+calls `router.refresh()` then `reset()`, so the route is refetched rather than the failed payload
+re-rendered; in `global-error.tsx`, with the root layout gone, it is a full reload of the current
+URL (`window.location.reload()`), as the design's handoff specifies. The "Need help with an order?" panel and the header's "Contact
 us" jump render only when `SUPPORT_CONTACT` is set. `public/500.html` SHALL be generated from
 `src/lib/status-pages/render.ts`: inlined CSS, fonts and wordmark, `noindex`, no JavaScript, no
 outbound request; `UPDATE_STATUS_PAGES=1 npm test` regenerates it and the test fails while it is

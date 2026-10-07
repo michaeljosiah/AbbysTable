@@ -74,6 +74,9 @@ No price, box minimum, dish count or delivery date SHALL be written into markup.
 held in pence and formatted by `src/lib/format.ts`. The canonical wording is fixed and the value is
 not: "6 dishes from £158" / "Minimum 6 dishes · From £158" resolve from data. When the plan is
 unavailable the line SHALL name no number rather than guess one, and the page SHALL still render.
+Known gap: Our Standards' closing line reads its minimum from box pricing
+(`getBoxPricing().custom.minDishes` in `getStandardsPageData`) while its purchase bar reads the
+storefront plan, so the two could disagree if those sources diverge (T10).
 No marketing page SHALL show the earliest delivery date; it belongs to the ordering funnel.
 
 #### Scenario: The price changes without a frontend change
@@ -257,11 +260,14 @@ paragraph beneath it, not part of the heading; keep its three founder paragraphs
 Abby's story" → `/our-story`. The Private Table band (`--navy`) SHALL carry the h2 "Abby's Private
 Table", the line "Bespoke Nigerian fusion menus, created around you.", its body paragraph, two
 reach rows with globe and pin icons — "Worldwide · Bespoke recipes created for you" and "UK-wide ·
-Bespoke recipes created and prepared for you" — "Find out more" → `/private-table`, the price line
-"Private Table from £1,500", and one credentials card at every width: Guided by "A UK-certified
+Bespoke recipes created and prepared for you" — "Find out more", which SHALL follow FR-05 (it
+goes to `/private-table` once #25 builds it; until then an interim destination or no link) — and
+one credentials card at every width: Guided by "A UK-certified
 health coach", Overseen by "A registered nutritionist", In collaboration with "Your clinical
-team". The band carries `data-purchase-bar-stop`. See open questions 1 and 2 before shipping the
-link and the price.
+team". The band carries `data-purchase-bar-stop`. The design's price line "Private Table from
+£1,500" is unverified (build-handoff; open question 2): it MAY appear only as approved copy from a
+content constant, never inline in markup, and SHALL be removed if the owner does not confirm it
+before launch.
 
 #### Scenario: The outline reads correctly
 - **WHEN** the page's heading outline is listed
@@ -457,6 +463,8 @@ Aonik failures degrade per piece; a marketing page never becomes a 500 because o
 - [ ] `T7` Repoint `/#contact` placeholders as Contact and Delivery & FAQs land (#8)
 - [ ] `T8` Real photography, company details, legal and food-safety sign-off (#38)
 - [ ] `T9` Root metadata to "mainland UK" / "Heat, enjoy, live well" (no issue yet)
+- [ ] `T10` Our Standards' minimum from the storefront plan, the same source as its purchase bar
+  (FR-02)
 
 ### Testing
 
