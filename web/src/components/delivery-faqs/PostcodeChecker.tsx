@@ -167,6 +167,9 @@ export function PostcodeChecker({
   const locate = () => {
     if (locating) return;
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      // A check still in flight is abandoned too: it must not land, nor write
+      // or clear the postcode carried to Build a Box.
+      ++counter.current;
       dispatch({ type: 'correct', message: 'location' });
       return;
     }

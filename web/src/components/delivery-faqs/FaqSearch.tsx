@@ -114,19 +114,19 @@ export function FaqSearch({
   };
 
   /**
-   * Back to browse. Desktop keeps the field; on a phone the keyboard would
-   * cover the topic grid the clear just brought back, so the field lets go —
-   * and "Browse all topics", which disappears with the results, hands focus
-   * to the topic grid's heading rather than dropping it to <body>.
+   * Back to browse. The field's clear control unmounts with the value, so it
+   * hands focus back to the field (FR-12) rather than dropping it to <body>.
+   * "Browse all topics" disappears with the results too: desktop keeps the
+   * field, and on a phone — where the keyboard would cover the topic grid it
+   * just brought back — focus goes to the topic grid's heading instead.
    */
   const clear = (from: 'field' | 'browse') => {
     clearTimeout(timer.current);
     if (inputRef.current) inputRef.current.value = '';
     setTyped('');
     setQuery('');
-    if (window.matchMedia(DESKTOP_QUERY).matches) inputRef.current?.focus();
-    else if (from === 'browse') focusTopics.current = true;
-    else inputRef.current?.blur();
+    if (from === 'field' || window.matchMedia(DESKTOP_QUERY).matches) inputRef.current?.focus();
+    else focusTopics.current = true;
   };
 
   // Once browse is back on screen (a hidden heading cannot take focus).
