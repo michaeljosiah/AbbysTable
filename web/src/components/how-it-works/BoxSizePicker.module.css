@@ -1,0 +1,320 @@
+/* ===========================================================================
+   How it works — step 1's "Choose a size" panel (`.hw-panel` in
+   design/Abby's Table - How It Works v2.dc.html). Mobile-first; 640 and 1024
+   are min-width only. Values are the design file's.
+   =========================================================================== */
+
+/* Bright card, flat (the design system forbids gradients on UI surfaces). */
+.panel {
+  display: block;
+  background: var(--surface-bright);
+  border: var(--border-hairline) solid var(--border-light);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+/* Green head: label and price on one row, the sizes spanning beneath. DOM
+   order is visual order at every width — label, price, sizes. */
+.head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 20px;
+  row-gap: 18px;
+  padding: 22px;
+  background: var(--surface-dark);
+}
+
+.label {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-on-dark);
+}
+
+/* Blush on green-forest is 8.2:1; the "From" label is sand-2 (9.9:1), never
+   an alpha-muted blush. */
+.price {
+  margin: 0;
+  text-align: right;
+}
+
+.priceFrom {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  color: var(--text-on-dark-soft);
+}
+
+.priceValue {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 32px;
+  line-height: 1;
+  color: var(--text-on-dark);
+}
+
+/* --brass-lift: small type on green-forest at 4.97:1. Not Choose Box's
+   terracotta saving colour, which is ~3.4:1 on this ground. */
+.saving {
+  display: block;
+  margin-top: 6px;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--brass-lift);
+}
+
+/* No-JavaScript read-out (inside <noscript>, so only ever parsed as markup
+   when scripting is off). It takes the live region's place, and shows the
+   figure for whichever radio is checked — matched by position, so up to six
+   options; the plan's presets plus "Set your own" are four today. */
+.priceStatic {
+  display: block;
+}
+
+.head:has(.priceStatic) > .price:not(.priceStatic) {
+  display: none;
+}
+
+.priceOption {
+  display: none;
+}
+
+.head:has(.size:nth-child(1) > .input:checked) .priceOption:nth-child(1),
+.head:has(.size:nth-child(2) > .input:checked) .priceOption:nth-child(2),
+.head:has(.size:nth-child(3) > .input:checked) .priceOption:nth-child(3),
+.head:has(.size:nth-child(4) > .input:checked) .priceOption:nth-child(4),
+.head:has(.size:nth-child(5) > .input:checked) .priceOption:nth-child(5),
+.head:has(.size:nth-child(6) > .input:checked) .priceOption:nth-child(6) {
+  display: block;
+}
+
+.sizes {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.size {
+  position: relative;
+  display: inline-flex;
+  cursor: pointer;
+}
+
+/* The native radio carries the semantics and the keyboard model; the face
+   beside it is what is seen. Visually hidden, never `display: none`, which
+   would take it out of the tab order and the accessibility tree. */
+.input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+  opacity: 0;
+}
+
+/* 54px tall and 60px minimum wide: a purchase-path control, so the VISIBLE
+   face meets the target rather than a hit area around a smaller chip. The
+   border is --green-sage (4.49:1 on green-forest), because a control boundary
+   needs 3:1 and --green-mid is 1.79:1 there. */
+.face {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 60px;
+  min-height: 54px;
+  padding: 0 14px;
+  border: var(--border-hairline) solid var(--green-sage);
+  border-radius: 14px;
+  background: transparent;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.figure {
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 22px;
+  line-height: 1;
+  color: var(--text-on-dark);
+  transition: color 0.16s ease;
+}
+
+.sub {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
+  color: var(--text-on-dark);
+  transition: color 0.16s ease;
+}
+
+/* Hover on a dark ground shifts toward the band's warm ink — label AND
+   border, never a lift and never a border-only change. */
+.size:hover .face {
+  border-color: var(--brass-lift);
+}
+
+.size:hover .figure,
+.size:hover .sub {
+  color: var(--brass-lift);
+}
+
+.size:active .face {
+  filter: brightness(0.94);
+}
+
+/* Selected: blush fill, green-forest type. Driven by `:checked`, so it is
+   right with or without JavaScript. */
+.input:checked + .face {
+  background: var(--blush);
+  border-color: var(--blush);
+}
+
+.input:checked + .face .figure,
+.input:checked + .face .sub {
+  color: var(--text-heading);
+}
+
+.size:hover .input:checked + .face {
+  background: var(--cream);
+  border-color: var(--cream);
+}
+
+.size:hover .input:checked + .face .figure,
+.size:hover .input:checked + .face .sub {
+  color: var(--text-heading);
+}
+
+/* Brass is 1.9:1 here, so the dark ground takes a cream ring with a gold
+   outer edge (the design's dark-ground focus treatment). */
+.input:focus-visible + .face {
+  outline: 2px solid var(--cream-3);
+  outline-offset: 0;
+  box-shadow: 0 0 0 3px var(--gold);
+}
+
+.body {
+  padding: 20px 22px 22px;
+}
+
+.note {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-body);
+}
+
+.ctaRow {
+  margin-top: 24px;
+}
+
+/* No plan, so no note above it. */
+.ctaRow:first-child {
+  margin-top: 0;
+}
+
+/* Major section CTA: 52px, green-forest. Full width inside the panel on a
+   phone, intrinsic from 640 — only the width is responsive. */
+.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 34px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background-color: var(--action-dark);
+  color: var(--text-inverse);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--btn-size);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.16s ease;
+}
+
+.cta:hover {
+  background-color: var(--surface-darker);
+  color: var(--text-inverse);
+}
+
+.cta:active {
+  filter: brightness(0.94);
+}
+
+/* The site ring is currentColor, which is white-on-cream here. */
+.cta:focus-visible {
+  outline: 2px solid var(--text-heading);
+  outline-offset: 3px;
+  border-radius: var(--radius-pill);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .face,
+  .figure,
+  .sub,
+  .cta {
+    transition: none;
+  }
+}
+
+/* ---- 640: the CTA sits intrinsically, centred ---- */
+
+@media (min-width: 640px) {
+  .ctaRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 12px 26px;
+  }
+
+  .cta {
+    width: auto;
+  }
+}
+
+/* ---- 1024: desktop panel scale; the CTA aligns to the column ---- */
+
+@media (min-width: 1024px) {
+  .head {
+    column-gap: 26px;
+    row-gap: 20px;
+    padding: 26px;
+  }
+
+  .priceValue {
+    font-size: 38px;
+  }
+
+  .body {
+    padding: 24px 26px 26px;
+  }
+
+  .ctaRow {
+    justify-content: flex-start;
+  }
+}

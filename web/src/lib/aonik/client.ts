@@ -636,3 +636,32 @@ export async function getMenuPageData(options: {
     delivery,
   };
 }
+
+/**
+ * Resolves everything the /how-it-works page renders in one concurrent pass.
+ *
+ * - `boxPlan` is the tenant's size plan from the storefront config: the size
+ *   picker's presets, prices and authored savings. Undefined when the tenant
+ *   has not set one; the picker then degrades to a plain link to Choose Box.
+ * - `exampleDish` is the editorially chosen dish (`exampleSlug`) for the
+ *   "Example dish" card and the hero photograph. When that slug does not
+ *   resolve — a tenant whose catalogue has no such dish — it falls back to the
+ *   first dish of the curated `featured` rail, and to null (no card) after
+ *   that. Either way it is a full detail read, never a browse summary, so an
+ *   absent figure really is unpublished rather than merely not summarised.
+ */
+export async function getHowItWorksPageData(exampleSlug: string): Promise<{
+  boxPlan: StorefrontConfig['box'];
+  exampleDish: Dish | null;
+}> {
+  const client = await getAonikClient();
+
+  const [config, named] = await Promise.all([
+    client.getStorefrontConfig(),
+    client.getDishBySlug(exampleSlug),
+  ]);
+
+  const exampleDish = named ?? (await client.getFeaturedDishes())[0] ?? null;
+
+  return { boxPlan: config.box, exampleDish };
+}

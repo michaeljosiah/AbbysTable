@@ -20,6 +20,7 @@
     "tests/status-pages.test.ts",
     "tests/not-found-chrome.test.ts",
     "tests/consent.test.ts",
+    "tests/how-it-works.test.tsx",
     "tests/support/*.ts",
     "src/components/personalisation/OptionGroupsControl.tsx",
     "src/lib/aonik/dataMode.ts",
@@ -33,6 +34,7 @@
     "src/lib/cart/mutations.ts",
     "src/lib/cart/transport.ts",
     "src/lib/consent/consent.ts",
+    "src/lib/how-it-works/*.ts",
     "src/lib/status-pages/*.ts",
     "src/middleware.ts"
   ]
