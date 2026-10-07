@@ -15,7 +15,8 @@ import styles from './HowItWorks.module.css';
  *   (`preload="none"` and no `src` until then), and it pauses once scrolled
  *   away. An explicit pause is remembered: coming back never restarts it.
  * - Under `prefers-reduced-motion` nothing is fetched or played; the poster
- *   shows and the button is an opt-in Play.
+ *   shows and the button is an opt-in Play. Once opted in, the clip follows
+ *   the same off-screen pause and return as everyone else's.
  * - Autoplay refused (data saver, low power) leaves the poster and a Play
  *   button — never an error state.
  * - `<video>` ignores `media` on `<source>`, so the crop (2.4:1 from 1024, 3:2
@@ -47,6 +48,8 @@ export function HowItWorksClip({ label, poster }: HowItWorksClipProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const sourceRef = useRef<string | null>(null);
   const userPausedRef = useRef(false);
+  /** Reduced motion only: the visitor pressed Play, so returning may resume. */
+  const optedInRef = useRef(false);
   const [playing, setPlaying] = useState(false);
 
   const start = useCallback(() => {
@@ -76,12 +79,15 @@ export function HowItWorksClip({ label, poster }: HowItWorksClipProps) {
     video.addEventListener('play', onPlay);
     video.addEventListener('pause', onPause);
 
+    // Observed for everyone, so an opted-in reduced-motion clip still pauses
+    // off-screen; only the automatic start is withheld until Play is pressed.
+    const reducedMotion = mq(REDUCED_MOTION_QUERY);
     let observer: IntersectionObserver | null = null;
-    if (!mq(REDUCED_MOTION_QUERY) && typeof IntersectionObserver !== 'undefined') {
+    if (typeof IntersectionObserver !== 'undefined') {
       observer = new IntersectionObserver(
         ([entry]) => {
           if (entry.isIntersecting) {
-            if (!userPausedRef.current) start();
+            if (!userPausedRef.current && (!reducedMotion || optedInRef.current)) start();
           } else if (!video.paused) {
             // Nothing decorative keeps playing off-screen.
             video.pause();
@@ -105,6 +111,7 @@ export function HowItWorksClip({ label, poster }: HowItWorksClipProps) {
     if (!video) return;
     if (video.paused) {
       userPausedRef.current = false;
+      optedInRef.current = true;
       start();
     } else {
       userPausedRef.current = true;
