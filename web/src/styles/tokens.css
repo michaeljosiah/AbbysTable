@@ -87,6 +87,7 @@
   --surface-dark: var(--green-forest);
   --surface-darker: var(--green-deep);
   --surface-navy: var(--navy);
+  --surface-story: var(--story-ink); /* Abby's Story diagnosis band — page-local, see above */
 
   /* Text */
   --text-heading: var(--green-forest);
