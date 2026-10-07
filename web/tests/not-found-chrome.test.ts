@@ -25,23 +25,23 @@ beforeEach(() => {
   renderMode();
 });
 
-test('the root 404 renders the site chrome without the delivery date', () => {
+test('the root 404 renders the site chrome without the announcement bar', () => {
   const element = NotFound();
   assert.equal(element.type, SiteChrome);
-  assert.equal(element.props.withDeliveryDate, false);
+  assert.equal(element.props.withAnnouncement, false);
 });
 
-test('without the delivery date the chrome makes no Aonik request, so cannot fail', async () => {
+test('without the announcement bar the chrome makes no Aonik request, so cannot fail', async () => {
   useAonik(failingAonik);
 
-  const chrome = await SiteChrome({ children: null, withDeliveryDate: false });
+  const chrome = await SiteChrome({ children: null, withAnnouncement: false });
 
   assert.equal(aonikRequests.length, 0);
   const [announcement] = chrome.props.children;
-  assert.equal(announcement.props.earliestDeliveryLabel, null);
+  assert.equal(announcement, null, 'no announcement bar: on a phone it would be an empty strip');
 });
 
-test('the site layout’s chrome does read the delivery date, and fails with Aonik', async () => {
+test('the site layout’s chrome does read the delivery date for its bar, and fails with Aonik', async () => {
   // The control for the test above: the stub is live, and the default fetches.
   useAonik(failingAonik);
 

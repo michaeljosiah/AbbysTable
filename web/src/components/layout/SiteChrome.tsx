@@ -11,17 +11,17 @@ import { Header } from './Header';
 interface SiteChromeProps {
   children: ReactNode;
   /**
-   * Whether the announcement bar fetches the live delivery date from Aonik.
-   * Without it the bar shows its line with no date, which it already does when
-   * the tenant publishes none.
+   * Whether to render the announcement bar, which carries the live delivery
+   * date from Aonik.
    *
-   * The root `app/not-found.tsx` turns this off. Next renders the root 404 into
+   * The root `app/not-found.tsx` turns it off. Next renders the root 404 into
    * EVERY document request, in every route group, not only when a URL is
    * missing — so anything it awaits is awaited by every page, and anything that
    * throws there turns a 404 into a 500. A slow or failing Aonik must never do
-   * either.
+   * either. The whole bar goes, not just the date: the v2 Page Not Found has no
+   * bar, and on a phone a bar without its date is an empty green strip.
    */
-  withDeliveryDate?: boolean;
+  withAnnouncement?: boolean;
 }
 
 /**
@@ -32,11 +32,11 @@ interface SiteChromeProps {
  * still carry the site's header, footer and session state (design: Page Not
  * Found).
  */
-export async function SiteChrome({ children, withDeliveryDate = true }: SiteChromeProps) {
+export async function SiteChrome({ children, withAnnouncement = true }: SiteChromeProps) {
   // The announcement bar carries the live delivery date, so the chrome needs
   // commerce data too — resolved here rather than threaded through every page.
   const [delivery, session] = await Promise.all([
-    withDeliveryDate ? getAonikClient().then((client) => client.getDeliveryWindow()) : null,
+    withAnnouncement ? getAonikClient().then((client) => client.getDeliveryWindow()) : null,
     // Read here, in a Server Component, and handed down: the session cookie is
     // httpOnly and the header is a Client Component. A cookie read only — it
     // cannot block or fail, so the root 404 keeps it.
@@ -45,7 +45,9 @@ export async function SiteChrome({ children, withDeliveryDate = true }: SiteChro
 
   return (
     <>
-      <AnnouncementBar earliestDeliveryLabel={formatDeliveryDate(delivery?.earliestDeliveryDate)} />
+      {withAnnouncement ? (
+        <AnnouncementBar earliestDeliveryLabel={formatDeliveryDate(delivery?.earliestDeliveryDate)} />
+      ) : null}
       <Header session={session} />
       <main>{children}</main>
       <Footer />

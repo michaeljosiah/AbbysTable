@@ -1,0 +1,874 @@
+/* ===========================================================================
+   How it works — design/Abby's Table - How It Works v2.dc.html
+   ---------------------------------------------------------------------------
+   Mobile-first (design/CLAUDE.md, "Mobile-first rebuild"): the rules with no
+   media query ARE the phone design; 640 and 1024 add compositions, min-width
+   only. Values are the design file's, which takes them from Homepage v2:
+   1280 / 22-34-48 shell, band padding 44-48 → 56-60 → 72-76, the homepage
+   type scale and the button ladder (54 hero primary, 52 section CTA).
+
+   One DOM order at every width. Where the desktop composition moves something
+   (step 04's photograph to the left), it is a photograph — nothing that holds
+   a control is ever moved with grid placement.
+
+   Section grounds alternate at the user's request (handoff §3v): hero cream,
+   rail blush, 01 cream, 02 cream-3, 03 cream, 04 green-forest, nutrition
+   blush, closing sage.
+   =========================================================================== */
+
+.band {
+  padding: 44px 0 48px;
+  background: var(--surface-page);
+}
+
+/*
+ * A rail link lands its step under the sticky header, not behind it — the
+ * design's 72px. Measured against the header this site renders until #10
+ * (65–66px below 1240, 77–85px from there): the step's numeral and heading
+ * always land clear of it, because the band's own top padding (44–72px) sits
+ * between the section edge and its content. Kept at the design's value, not
+ * re-derived from the interim header.
+ */
+.step {
+  scroll-margin-top: 72px;
+}
+
+/* Inner shell: 1280 cap, gutter 22 → 34 → 48. Border-box, as in the design,
+   so the cap includes the gutters. */
+.inner {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 22px;
+}
+
+/* A hyphenated compound never splits across lines (handoff §3e). */
+.keep {
+  white-space: nowrap;
+}
+
+/* ---- Type ---------------------------------------------------------------- */
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: clamp(38px, 11.6vw, 56px);
+  line-height: 1.04;
+  letter-spacing: -0.015em;
+  color: var(--text-heading);
+  text-wrap: pretty;
+}
+
+.h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: clamp(30px, 8.6vw, 40px);
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  color: var(--text-heading);
+  text-wrap: pretty;
+}
+
+/* Page lede and section intro: 18px at EVERY width. */
+.lede {
+  margin: 14px 0 0;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+.body {
+  margin: 14px 0 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+/* The ringed step numeral — the same device as the rail's, one size up.
+   Decorative (aria-hidden): the heading carries the step. */
+.num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  margin: 0 0 14px;
+  border: var(--border-hairline) solid var(--brass);
+  border-radius: 50%;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text-heading);
+}
+
+/* ---- Photography ---------------------------------------------------------- */
+
+/* Geometry is reserved by the aspect ratio before the image loads. */
+.media {
+  position: relative;
+  margin: 26px 0 0;
+  aspect-ratio: 5 / 4;
+  overflow: hidden;
+  border: var(--border-hairline) solid var(--border-light);
+  border-radius: var(--radius-lg);
+  background: var(--surface-bright);
+}
+
+.mediaImage {
+  object-fit: cover;
+}
+
+/*
+ * Captions sit on a scrim over the lower part of the photograph, in
+ * full-opacity cream — never an alpha-muted type colour. The design's scrim is
+ * a warm near-black with no token; --brown is the token for it, at the
+ * design's 78% (cream text still clears 5:1 over a white pixel at the base).
+ */
+.heroCaption,
+.mediaLabel {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  margin: 0;
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--brown) 78%, transparent),
+    color-mix(in srgb, var(--brown) 0%, transparent)
+  );
+  color: var(--cream);
+  text-align: center;
+  pointer-events: none;
+}
+
+.heroCaption {
+  padding: 52px 20px 16px;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 16px;
+  line-height: 1.35;
+  text-wrap: pretty;
+}
+
+/* A plain label, not a pill: a filled capsule read as a call to action. */
+.mediaLabel {
+  padding: 48px 20px 14px;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* ---- Buttons and links ---------------------------------------------------- */
+
+/* Hero primary: terracotta at 54 — terracotta is reserved for the persistent
+   primaries, so every in-page CTA below is green-forest or outline. Full width
+   of the column on a phone; intrinsic from 640. */
+.heroCta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 54px;
+  padding: 0 32px;
+  border-radius: var(--radius-pill);
+  background-color: var(--action-primary);
+  color: var(--text-inverse);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--btn-size);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: background-color 0.16s ease;
+}
+
+/* The colour is restated on hover so no inherited link hover can recolour the
+   label against its own fill (handoff §3v, "Two fixes worth keeping"). */
+.heroCta:hover {
+  background-color: var(--action-primary-hover);
+  color: var(--text-inverse);
+}
+
+/* Major section CTA: 52, green-forest. */
+.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 34px;
+  border-radius: var(--radius-pill);
+  background-color: var(--action-dark);
+  color: var(--text-inverse);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--btn-size);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: background-color 0.16s ease;
+}
+
+.cta:hover {
+  background-color: var(--surface-darker);
+  color: var(--text-inverse);
+}
+
+.ctaOutline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 34px;
+  border: var(--border-hairline) solid var(--action-dark);
+  border-radius: var(--radius-pill);
+  background-color: transparent;
+  color: var(--text-heading);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--btn-size);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.ctaOutline:hover {
+  background-color: var(--action-dark);
+  color: var(--cream);
+}
+
+.heroCta:active,
+.cta:active,
+.ctaOutline:active {
+  filter: brightness(0.94);
+}
+
+/* The site ring is currentColor — white on a cream ground for the filled
+   buttons — so they take green-forest, and every CTA keeps its pill shape. */
+.heroCta:focus-visible,
+.cta:focus-visible,
+.ctaOutline:focus-visible {
+  outline: 2px solid var(--text-heading);
+  outline-offset: 3px;
+  border-radius: var(--radius-pill);
+}
+
+/* Secondary text link: 16px, brass underline on the label, 44px target. */
+.textLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--text-heading);
+  text-decoration: none;
+}
+
+.textLink > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 3px;
+  border-bottom: 1.5px solid var(--rule-brass);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  color: var(--text-heading);
+  transition:
+    color 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.textLink:hover > span {
+  color: var(--action-primary-hover);
+  border-bottom-color: var(--action-primary-hover);
+}
+
+.ctaRow {
+  margin-top: 24px;
+}
+
+/* ---- Hero ------------------------------------------------------------------ */
+
+/* Title, lede and CTA row centred on the phone composition (and through
+   640–1023, the same composition at a wider measure); released at 1024. */
+.hero .title,
+.hero .lede {
+  text-align: center;
+}
+
+.heroCtas {
+  margin-top: 26px;
+  text-align: center;
+}
+
+/* ---- Step rail -------------------------------------------------------------- */
+
+/* A jump nav: every item is a real link with a 48px target. Two rows of two
+   on a phone (all four visible at once), one centred row from 640. */
+.rail {
+  border-top: var(--border-hairline) solid var(--border-light);
+  border-bottom: var(--border-hairline) solid var(--border-light);
+  background: var(--surface-blush);
+}
+
+.railRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 22px;
+}
+
+/* Numeral ABOVE the label on a phone, so the label gets the whole half-width
+   cell and "Delivered chilled" fits at 360–430. */
+.railItem {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 12px 10px;
+  color: var(--text-heading);
+  text-decoration: none;
+}
+
+/* Green-forest numerals in a brass ring: on blush, brass-ink is ~4.4:1, under
+   the small-text minimum. The ring is a mark, so brass is right for it. */
+.railNum {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: var(--border-hairline) solid var(--brass);
+  border-radius: 50%;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  color: var(--text-heading);
+}
+
+/* 16px: these are primary navigation links. No underline (the user's call);
+   the ringed numeral and the hover colour carry it. */
+.railLabel {
+  display: inline-block;
+  max-width: 100%;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  color: var(--text-heading);
+  transition: color 0.16s ease;
+}
+
+.railItem:hover .railLabel {
+  color: var(--action-primary-hover);
+}
+
+/* ---- 01 Build your box ------------------------------------------------------- */
+
+.panelWrap {
+  margin-top: 22px;
+}
+
+/* What happens once a size is chosen. Unnumbered, at the user's request: the
+   page steps are already a numbered sequence. */
+.subSteps {
+  display: grid;
+  margin-top: 22px;
+  border-top: var(--border-hairline) solid var(--border-light);
+  border-bottom: var(--border-hairline) solid var(--border-light);
+}
+
+.subSteps > div {
+  padding: 16px 0;
+}
+
+.subSteps > div + div {
+  border-top: var(--border-hairline) solid var(--border-light);
+}
+
+.subSteps h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 22px;
+  line-height: 1.2;
+  color: var(--text-heading);
+}
+
+.subSteps p {
+  margin: 6px 0 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+/* ---- 02 We cook ---------------------------------------------------------------- */
+
+.stepTwo {
+  background: var(--surface-bright);
+}
+
+.points {
+  display: grid;
+  margin: 26px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.point {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  column-gap: 16px;
+  align-items: start;
+  padding: 18px 0;
+  border-top: var(--border-hairline) solid var(--border-light);
+}
+
+/* No rule above the first point — the heading and lede already open it. */
+.point:first-child {
+  border-top: none;
+}
+
+/* Thin-stroke icon in --brass-ink on a --sand disc (a graphic: 3:1 is the bar). */
+.pointIcon {
+  grid-row: 1 / span 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--sand);
+  stroke: var(--brass-ink);
+}
+
+.point h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 22px;
+  line-height: 1.2;
+  color: var(--text-heading);
+  text-wrap: pretty;
+}
+
+.point p {
+  margin: 6px 0 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+/* ---- 03 Delivered chilled ------------------------------------------------------ */
+
+.facts {
+  display: grid;
+  margin: 26px 0 0;
+  padding: 0;
+  list-style: none;
+  border-bottom: var(--border-hairline) solid var(--border-light);
+}
+
+.fact {
+  padding: 18px 0;
+  border-top: var(--border-hairline) solid var(--border-light);
+}
+
+.factTitle {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 22px;
+  line-height: 1.2;
+  color: var(--text-heading);
+}
+
+.factBody {
+  display: block;
+  margin-top: 6px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-body);
+}
+
+/* ---- 04 Heat and eat: the green band ------------------------------------------- */
+
+.dark {
+  background: var(--surface-dark);
+}
+
+.dark .h2 {
+  color: var(--cream);
+}
+
+.dark .body {
+  color: var(--text-on-dark-soft);
+}
+
+/* --brass-lift: brass as type on green-forest (4.97:1), so the numeral is
+   brass like the other three; the device reads the same on either ground. */
+.dark .num {
+  border-color: var(--brass-lift);
+  color: var(--brass-lift);
+}
+
+.dark .media {
+  border-color: var(--border-dark);
+}
+
+.methods {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 14px;
+  margin: 26px 0 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-on-dark);
+}
+
+.methods li {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.methodMark {
+  font-size: 9px;
+  color: var(--brass-lift);
+}
+
+/* ---- Nutrition, clearly shared ------------------------------------------------- */
+
+.nutrition {
+  background: var(--surface-blush);
+}
+
+/* ---- Closing --------------------------------------------------------------------- */
+
+.closing {
+  background: var(--sage);
+}
+
+/* Forced colours drop the fills, which would leave the filled CTAs as bare
+   text: a border in the link colour keeps them reading as buttons. */
+@media (forced-colors: active) {
+  .heroCta,
+  .cta {
+    border: 2px solid LinkText;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heroCta,
+  .cta,
+  .ctaOutline,
+  .textLink > span,
+  .railLabel {
+    transition: none;
+  }
+}
+
+/* ---- 640: more measure — buttons sit intrinsically and the grids split ---- */
+
+@media (min-width: 640px) {
+  .band {
+    padding: 56px 0 60px;
+  }
+
+  .inner,
+  .railRow {
+    padding: 0 34px;
+  }
+
+  /* Capped and centred in this band: the column is the full page width here,
+     and a 5:4 photograph edge to edge came out taller than the viewport. */
+  .media {
+    max-width: 720px;
+    margin-right: auto;
+    margin-left: auto;
+  }
+
+  .heroCta,
+  .cta,
+  .ctaOutline {
+    width: auto;
+  }
+
+  .heroCtas,
+  .ctaRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 12px 26px;
+  }
+
+  .railRow {
+    grid-template-columns: repeat(4, auto);
+    justify-content: center;
+    column-gap: 8px;
+  }
+
+  .railItem {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 10px;
+    white-space: nowrap;
+  }
+
+  /* Three across on shared row tracks, so title and body line up however
+     long the copy runs. Degrades to ragged, never broken, without subgrid. */
+  .subSteps {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(2, auto);
+    column-gap: 28px;
+  }
+
+  .subSteps > div {
+    display: grid;
+    grid-row: span 2;
+    grid-template-rows: subgrid;
+    row-gap: 6px;
+    padding: 18px 0;
+  }
+
+  .subSteps > div + div {
+    border-top: none;
+  }
+
+  .subSteps p {
+    margin: 0;
+  }
+
+  .points {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Column separation from padding, not gap, so each row's hairline runs
+     unbroken across both columns. */
+  .point:nth-child(odd) {
+    padding-right: 18px;
+  }
+
+  .point:nth-child(even) {
+    padding-left: 18px;
+  }
+
+  .point:nth-child(2) {
+    border-top: none;
+  }
+
+  /* One rule above and below the row rather than three notched segments. */
+  .facts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: 28px;
+    border-top: var(--border-hairline) solid var(--border-light);
+  }
+
+  .fact {
+    border-top: none;
+  }
+}
+
+/* ---- 1024: desktop composition — copy beside the photograph ---- */
+
+@media (min-width: 1024px) {
+  .band {
+    padding: 72px 0 76px;
+  }
+
+  .inner,
+  .railRow {
+    padding: 0 48px;
+  }
+
+  .title {
+    font-size: 56px;
+  }
+
+  .h2 {
+    font-size: 48px;
+  }
+
+  .num {
+    width: 42px;
+    height: 42px;
+    margin-bottom: 18px;
+    font-size: 17px;
+  }
+
+  /* A grid cell from here. The 640 band's auto side margins would shrink it
+     to its content, which is an absolutely positioned image — so zero. */
+  .media {
+    max-width: none;
+    margin-right: 0;
+    margin-left: 0;
+  }
+
+  /* Column-aligned again: a centred button in a left-aligned column is adrift. */
+  .hero .title,
+  .hero .lede {
+    text-align: left;
+  }
+
+  .heroCtas,
+  .ctaRow {
+    justify-content: flex-start;
+  }
+
+  .heroCaption {
+    padding: 60px 24px 18px;
+    font-size: 18px;
+  }
+
+  /* Copy beside the photograph. Rows are `1fr auto 1fr`, so a spanning figure
+     pours its extra height into the flexible tracks rather than inflating the
+     gaps inside the copy column. */
+  .split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: 1fr auto 1fr;
+    column-gap: 56px;
+    align-items: center;
+  }
+
+  .split > .copy {
+    grid-column: 1;
+    grid-row: 2;
+    max-width: 560px;
+  }
+
+  .split > .media {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    margin-top: 0;
+  }
+
+  /* Media left, copy right (step 04). Only the photograph moves, and it holds
+     no controls, so the tab order is untouched. */
+  .splitReverse > .copy {
+    grid-column: 2;
+  }
+
+  .splitReverse > .media {
+    grid-column: 1;
+  }
+
+  /* Step 01: copy left; the panel and its CTA right. The copy column carries
+     the three sub-steps, so it takes the larger share. */
+  .stepOne {
+    display: grid;
+    grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
+    column-gap: 56px;
+    align-items: start;
+  }
+
+  .stepOne > .copy {
+    max-width: 620px;
+  }
+
+  /* Step 02 only: heading and lede run full width, then the photograph and
+     the four points side by side, the points in one column — stacked, they
+     come out close to the photograph's height. */
+  .methodLayout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 56px;
+    row-gap: 30px;
+    align-items: center;
+  }
+
+  .methodLayout > .copy {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .methodLayout > .copy > .lede {
+    max-width: 680px;
+  }
+
+  .methodLayout > .media {
+    grid-column: 1;
+    grid-row: 2;
+    margin-top: 0;
+  }
+
+  .methodLayout > .points {
+    grid-column: 2;
+    grid-row: 2;
+    grid-template-columns: minmax(0, 1fr);
+    margin-top: 0;
+  }
+
+  .methodLayout .point {
+    grid-template-columns: 56px minmax(0, 1fr);
+    column-gap: 18px;
+    padding-right: 0;
+    padding-left: 0;
+  }
+
+  /* One column again, so the second point takes its rule back. */
+  .methodLayout .point:nth-child(2) {
+    border-top: var(--border-hairline) solid var(--border-light);
+  }
+
+  .pointIcon {
+    width: 56px;
+    height: 56px;
+  }
+
+  .point h3,
+  .factTitle {
+    font-size: 26px;
+  }
+
+  /* The example card sits beside the band's copy. */
+  .nutritionSplit {
+    display: grid;
+    grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
+    column-gap: 56px;
+    align-items: center;
+  }
+
+  .nutritionCopy {
+    max-width: 480px;
+  }
+
+  .closing .inner {
+    text-align: center;
+  }
+
+  .closing .lede {
+    max-width: 560px;
+    margin-right: auto;
+    margin-left: auto;
+  }
+
+  .closing .ctaRow {
+    justify-content: center;
+  }
+}

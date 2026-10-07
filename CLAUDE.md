@@ -34,14 +34,16 @@ Conventions inside `web/` that are easy to get wrong:
   "not yet published" notice — do not fill the gap with plausible-looking data.
 - **Server Components by default.** Client components are `Header`, `MobileDrawer`, `Footer`, the
   homepage `Menu` rail, and the `/menu` browser (`MenuBrowser`, `MenuToolbar`, `MenuGrid`,
-  `FilterChip`, `FilterPill`) — each for a specific piece of state — plus `app/error.tsx` and
+  `FilterChip`, `FilterPill`), the `/how-it-works` size picker (`BoxSizePicker`, with
+  `BoxSizeProvider`/`BoxSizeLink` sharing the choice with the page's purchase links) — each for a
+  specific piece of state — plus `app/error.tsx` and
   `app/global-error.tsx`, which Next requires to be client components. Data is fetched once in
   `app/layout.tsx` / the route's `page.tsx` and passed down; sections never fetch for themselves.
 - **Status pages (#13).** Unmatched URLs get the root `app/not-found.tsx`, which renders
   `SiteChrome` itself so the 404 keeps the marketing header, footer and session — do not replace it
   with a catch-all route calling `notFound()`: Next sends that as an empty `__next_error__` shell
   that only JavaScript fills in. Next renders the root 404 into EVERY document request, so it must
-  never await commerce data (`withDeliveryDate={false}`, pinned by `tests/not-found-chrome.test.ts`):
+  never await commerce data (`withAnnouncement={false}`, pinned by `tests/not-found-chrome.test.ts`):
   a slow Aonik would hold every page open and a failing one would turn the 404 into a 500. The 500
   page's links are plain `<a>` on purpose — the one exception to the `next/link` rule below — so
   each is a full page load out of the failed app. `public/500.html` and `public/maintenance.html`

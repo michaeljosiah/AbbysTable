@@ -34,7 +34,7 @@ export interface NavItem {
  */
 export const NAV_ITEMS: NavItem[] = [
   { label: 'Menu', href: '/menu' },
-  { label: 'How it works', href: '/#howitworks' },
+  { label: 'How it works', href: '/how-it-works' },
   { label: 'Gifting', href: '/#gifting' },
   { label: 'Private Table', href: '/#private' },
   { label: 'Our Standards', href: '/standards' },

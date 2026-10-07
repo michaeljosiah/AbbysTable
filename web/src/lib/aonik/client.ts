@@ -11,6 +11,8 @@
  * Server Components or Route Handlers.
  */
 
+import { resolveBoxPlan, resolveExampleDish } from '@/lib/how-it-works/pageData';
+
 import { readAonikConfig, resolveDataMode } from './dataMode';
 import type {
   BoxPlanDto,
@@ -689,4 +691,38 @@ export async function getMenuPageData(options: {
     facetGroups,
     delivery,
   };
+}
+
+/**
+ * Resolves everything the /how-it-works page renders in one concurrent pass.
+ *
+ * Both pieces are optional to the page and degrade independently — an Aonik
+ * failure costs the picker its sizes and prices, or the page its example card,
+ * never the whole page (see `lib/how-it-works/pageData.ts`):
+ *
+ * - `boxPlan` is the tenant's size plan from the storefront config: the size
+ *   picker's presets, prices and authored savings. Undefined when the tenant
+ *   has not set one or the config cannot be read; the picker then degrades to
+ *   a plain link to Choose Box.
+ * - `exampleDish` is the editorially chosen dish (`exampleSlug`) for the
+ *   "Example dish" card and the hero photograph. If that slug 404s, the first
+ *   featured dish that resolves through its own DETAIL read is used (a browse
+ *   summary never is — it omits figures the dish does publish); null, and no
+ *   card, when none does or Aonik errors.
+ */
+export async function getHowItWorksPageData(exampleSlug: string): Promise<{
+  boxPlan: StorefrontConfig['box'];
+  exampleDish: Dish | null;
+}> {
+  const client = await getAonikClient();
+
+  const [boxPlan, exampleDish] = await Promise.all([
+    resolveBoxPlan(client),
+    resolveExampleDish(client, {
+      slug: exampleSlug,
+      featuredCollection: FEATURED_COLLECTION_SLUG,
+    }),
+  ]);
+
+  return { boxPlan, exampleDish };
 }

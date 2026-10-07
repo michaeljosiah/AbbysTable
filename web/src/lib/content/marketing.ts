@@ -80,6 +80,21 @@ export const HOW_IT_WORKS_STEPS: HowItWorksStep[] = [
 ];
 
 /**
+ * The dish the /how-it-works page uses as its worked example: the photograph
+ * and caption in the hero, and the "Example dish" nutrition card. An editorial
+ * choice, so it lives here; every value the card shows still comes from the
+ * dish's own record.
+ *
+ * The design names "Grilled wild salmon, dirty ofada rice with kale", which is
+ * not in the catalogue. This is the catalogue dish whose record publishes the
+ * full set the card shows — all five figures, ingredients and an allergen
+ * declaration — so the example demonstrates what "shown on every dish" means.
+ * When the slug does not resolve (a live tenant without it) the page falls back
+ * to the first dish of the featured rail. Owner to confirm the choice.
+ */
+export const HOW_IT_WORKS_EXAMPLE_DISH_SLUG = 'royal-seafood-okra';
+
+/**
  * The three tiers of oversight behind Abby's Private Table. Rendered twice —
  * as a bordered card beside the copy on wide screens, and as a plain centred
  * stack beneath it below 860px — so the list lives here rather than in either
