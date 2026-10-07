@@ -17,7 +17,7 @@ import {
   SiteLink,
   StandardsList,
 } from '@/components/legal/prose';
-import { CONTACT_HREF } from '@/lib/content/navigation';
+import { CONTACT_HREF, PRIVATE_TABLE_ITEM } from '@/lib/content/navigation';
 import type { TermsSlug } from '@/lib/legal/terms';
 
 /*
@@ -34,11 +34,11 @@ import type { TermsSlug } from '@/lib/legal/terms';
  * placeholders, and print as "to be confirmed" until they are set.
  *
  * Contact and Private Table are designed but not built yet; their links take
- * the site's current destinations (`CONTACT_HREF`, the homepage band).
+ * the site's current destinations from `@/lib/content/navigation` — where
+ * every chrome destination is defined once — so each page's landing is a
+ * one-line change there (`CONTACT_HREF`; `PRIVATE_TABLE_ITEM`, the homepage
+ * band until #25).
  */
-
-/** The homepage's Private Table band, until the Private Table page is built. */
-const PRIVATE_TABLE_HREF = '/#private';
 
 /**
  * Clause 4's five food standards. In-house glyphs drawn in the Our standards
@@ -1118,7 +1118,7 @@ export const TERMS_CLAUSES: Record<TermsSlug, ReactNode> = {
     <>
       <p>At launch, <strong>Abby&apos;s Private Table is coming soon</strong>.</p>
       <p>
-        Joining the <SiteLink href={PRIVATE_TABLE_HREF}>Private Table</SiteLink> waitlist means that
+        Joining the <SiteLink href={PRIVATE_TABLE_ITEM.href}>Private Table</SiteLink> waitlist means that
         you are asking us to let you know when consultations or the service become available.
       </p>
       <p>Joining the waitlist:</p>

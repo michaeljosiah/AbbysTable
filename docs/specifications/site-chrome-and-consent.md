@@ -186,14 +186,20 @@ Aonik cannot hold or fail a page through its layout.
 
 `ConsentManager` SHALL be mounted once, in `app/layout.tsx`, covering every route group; never
 per page, never copied. A manager that throws SHALL render nothing (`ConsentBoundary`), leaving
-every trigger a plain link. Known gap (T13): when it throws on a LATER render, after
-`consentStore.init()` has loaded a stored grant, the boundary does not reset the store, so
-`ConsentGate` siblings and `onConsent` subscribers keep the grant; the boundary SHALL publish
-essential-only and run their cleanups.
+every trigger a plain link. However late it throws — even after `consentStore.init()` has loaded a
+stored grant — the boundary SHALL revoke what was applied (`consentStore.revoke()`): `pending` is
+published, so `ConsentGate` siblings close and `onConsent` cleanups run, and the store grants
+nothing more that page session; the stored choice itself is kept for the next page (T13). An
+initialisation that fails inside the manager's own effect revokes the same way.
 
 #### Scenario: A crash is safe
 - **WHEN** the manager throws on its first render
 - **THEN** no optional technology runs and "Cookie preferences" goes to `/privacy#cookies`
+
+#### Scenario: A late crash withdraws the grant
+- **WHEN** a returning visitor who accepted analytics loads a page and the manager then throws
+- **THEN** the analytics technology's cleanup runs at once, and nothing optional starts again until
+  the next page load
 
 ### Requirement: FR-10 Consent storage and fail-safe
 `capability: consent` · `delta: ADDED (feat/site-chrome-and-consent)`
@@ -483,7 +489,8 @@ the session; only the header, drawer, footer, consent manager and bar are client
 - [ ] `T14` Checkout's legal line — new tab, `?from=checkout`, hidden "(opens in a new tab)" —
   wired by Checkout v2 (#31) with `checkoutLegalHref` and `CHECKOUT_LEGAL_LINK`. No built step
   carries it: Review v2 has no legal line, and live ordering stays closed until Checkout ships.
-- [ ] `T13` `ConsentBoundary` revokes a loaded grant when the manager crashes after init (FR-09)
+- [x] `T13` `ConsentBoundary` revokes a loaded grant when the manager crashes after init (FR-09)
+  — `consentStore.revoke()`, latched for the page session; pinned in `tests/consent.test.ts`
 
 ### Testing
 

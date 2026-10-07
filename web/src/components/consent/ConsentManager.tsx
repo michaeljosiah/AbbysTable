@@ -40,8 +40,9 @@ import styles from './ConsentManager.module.css';
  * store, so a withdrawal here stops processing without a reload.
  *
  * Fail-safe: anything that goes wrong — unreadable storage, a manager that
- * throws before it is ready — leaves the site on essential processing only,
- * and the footer triggers behave as the plain links they are.
+ * throws before it is ready or after it has loaded a choice — leaves the site
+ * on essential processing only, and the footer triggers behave as the plain
+ * links they are.
  */
 export function ConsentManager() {
   return (
@@ -160,6 +161,10 @@ function ConsentLayer() {
       setReady(true);
     } catch (error) {
       console.error('[consent] the consent manager could not initialise; essential only', error);
+      // `init()` may already have loaded a grant before the step that threw: a
+      // manager with no trigger listener cannot take a withdrawal, so nothing
+      // it loaded may apply (the boundary's rule, for a failure it never sees).
+      consentStore.revoke();
     }
 
     return () => {
@@ -476,10 +481,16 @@ function returnFocus(target: HTMLElement | null) {
 
 /**
  * A manager that crashes renders nothing rather than taking the page down with
- * it. The site then stays on essential processing (gates read the store, which
- * never becomes `resolved` without a stored choice) and the triggers are links.
+ * it, and the site falls back to essential processing only; the triggers are
+ * plain links again. That holds however late the crash comes: if the manager
+ * had already initialised and loaded a stored grant, `revoke()` withdraws it —
+ * every `ConsentGate` closes and every `onConsent` cleanup runs — because a
+ * manager that is gone can no longer honour a withdrawal, so nothing it
+ * granted may keep running (site-chrome FR-09).
+ *
+ * Exported for its tests only; mount `ConsentManager`.
  */
-class ConsentBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+export class ConsentBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
 
   static getDerivedStateFromError() {
@@ -488,6 +499,7 @@ class ConsentBoundary extends Component<{ children: ReactNode }, { failed: boole
 
   componentDidCatch(error: unknown) {
     console.error('[consent] the consent manager failed; essential only', error);
+    consentStore.revoke();
   }
 
   render() {

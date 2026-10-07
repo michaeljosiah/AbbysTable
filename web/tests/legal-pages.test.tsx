@@ -1,12 +1,15 @@
 import './support/runtime';
 
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import PrivacyPolicyPage from '../src/app/(site)/privacy/page';
 import TermsOfSalePage from '../src/app/(site)/terms-of-sale/page';
 import { COMPANY } from '../src/lib/content/company';
+import { PRIVATE_TABLE_ITEM } from '../src/lib/content/navigation';
 import { sectionsOf, type LegalDocument } from '../src/lib/legal/document';
 import { PRIVACY_POLICY } from '../src/lib/legal/privacy';
 import { TERMS_OF_SALE } from '../src/lib/legal/terms';
@@ -128,6 +131,18 @@ test('internal links route through the site, the ICO opens in a new tab', () => 
   assert.match(privacy, /<a href="https:\/\/ico\.org\.uk" class="cta" target="_blank" rel="noopener noreferrer">/);
   // No link is left on a design-file path.
   for (const html of [terms, privacy]) assert.doesNotMatch(html, /\.dc\.html/);
+});
+
+test('the Private Table waitlist clause links the chrome’s one Private Table destination', () => {
+  const clause = terms.slice(
+    terms.indexOf('<div id="private-table-waitlist"'),
+    terms.indexOf('class="docSection"', terms.indexOf('<div id="private-table-waitlist"') + 40),
+  );
+  assert.match(clause, new RegExp(`<a class="link" href="${PRIVATE_TABLE_ITEM.href}">Private Table</a> waitlist`));
+  // Read from navigation.ts, never a local stand-in: #25's swap to /private-table is one line there.
+  const source = readFileSync(path.resolve(__dirname, '..', '..', 'src/app/(site)/terms-of-sale/clauses.tsx'), 'utf8');
+  assert.match(source, /href=\{PRIVATE_TABLE_ITEM\.href\}/);
+  assert.doesNotMatch(source, /\/#private|PRIVATE_TABLE_HREF/);
 });
 
 test('the index has no controls until they can work', () => {

@@ -11,7 +11,7 @@ import {
   markReturning,
   returnsByHistory,
 } from '@/lib/dish-return';
-import { loadDishReturn, saveDishReturn } from '@/lib/dish-return-storage';
+import { departDishReturnHere, loadDishReturn, saveDishReturn } from '@/lib/dish-return-storage';
 
 import styles from './BackToDish.module.css';
 
@@ -32,7 +32,8 @@ interface BackToDishProps {
  * server renders it HIDDEN: the second signal — a live record for that dish in
  * THIS tab — exists only in the browser, so only the browser may reveal it.
  *  - On a full page load the inline gate script, which runs as the element is
- *    parsed, reveals it before first paint. `suppressHydrationWarning` is
+ *    parsed, marks the record departed and reveals it before first paint
+ *    (`departDishReturn`, mirrored in ES5). `suppressHydrationWarning` is
  *    there because the script may have cleared `hidden` before React
  *    hydrates; it covers this element's own attributes and nothing inside it.
  *  - On a client-side navigation React never runs inline scripts, so the
@@ -46,11 +47,10 @@ export function BackToDish({ slug, href }: BackToDishProps) {
   const [genuine, setGenuine] = useState(false);
 
   useLayoutEffect(() => {
-    const record = loadDishReturn(slug);
     // Our Standards has opened in this tab with the record: the customer has
-    // genuinely left the dish, which is what lets a return restore it.
-    if (record && !record.departed) saveDishReturn(markDeparted(record));
-    setGenuine(record !== null);
+    // genuinely left the dish, which is what lets a return restore it. Marked
+    // before the control shows — the gate script does the same on a full load.
+    setGenuine(departDishReturnHere(slug) !== null);
   }, [slug]);
 
   const onClick = (event: MouseEvent<HTMLAnchorElement>) => {
