@@ -32,7 +32,8 @@ import { HEAT_STEPS } from '@/lib/aonik/types';
  * the template's four "Nutritional highlights" cells.
  */
 const attributesOf = (dish: (typeof DISH_FIXTURES)[number]) => ({
-  heatStep: HEAT_STEPS[dish.heat],
+  // Omitted (not 0) for a dish with no published heat: 0 means "None".
+  heatStep: dish.heat === undefined ? undefined : HEAT_STEPS[dish.heat],
   // The homepage card's components line. Published as an attribute because the
   // rail renders from data the browse row carries, and Aonik's product model
   // has no first-class subtitle — `attributesJson` is the tenant's own bag.

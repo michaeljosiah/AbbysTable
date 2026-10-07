@@ -1,31 +1,159 @@
+/* ===========================================================================
+   Where the flavour comes from — design/Abby's Table - Menu Landing v3.dc.html
+   (`.fl-sec`). The phone layout is the BASE; the two-column composition with
+   the photograph is added at 1024.
+   =========================================================================== */
+
 .band {
+  padding: 48px 0 52px;
   background: var(--surface-blush);
-  text-align: center;
-  padding: 56px var(--space-5) 60px;
 }
 
-.eyebrow {
-  margin: 20px 0 18px;
+.inner {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 22px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 28px;
+}
+
+.copy {
+  max-width: 620px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.mark {
+  display: block;
+  width: auto;
+  height: 60px;
+  margin: 0 auto 20px;
+}
+
+/* --brown, not brass: brass is 2.2:1 on blush and even brass-ink 3.72:1. */
+.label {
+  margin: 0 0 18px;
   font-family: var(--font-sans);
   font-weight: var(--weight-semibold);
   font-size: 12px;
   letter-spacing: 0.28em;
   text-transform: uppercase;
-  color: var(--text-eyebrow);
+  color: var(--brown);
 }
 
-.statement {
-  margin: 0 auto;
-  max-width: 640px;
+.heading {
+  margin: 0;
   font-family: var(--font-display);
   font-weight: var(--weight-medium);
   font-size: 34px;
-  line-height: 1.28;
-  color: var(--text-heading);
+  line-height: 1.16;
+  color: var(--green-forest);
+  text-wrap: pretty;
 }
 
-@media (max-width: 640px) {
-  .statement {
-    font-size: 26px;
+.rule {
+  display: block;
+  width: 88px;
+  height: 1px;
+  margin: 26px auto;
+  background: var(--brass);
+}
+
+.facts {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+/* The icon is INLINE, inside the text run: as a flex sibling it strands at
+   the column's left edge the moment the text wraps. */
+.fact {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-medium);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--green-forest);
+  text-align: center;
+}
+
+.icon {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  margin-right: 9px;
+  vertical-align: -0.3em;
+}
+
+.media {
+  display: none;
+}
+
+.image {
+  object-fit: cover;
+}
+
+@media (min-width: 640px) {
+  .band {
+    padding: 56px 0 60px;
+  }
+
+  .inner {
+    padding: 0 34px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .band {
+    padding: 72px 0 76px;
+  }
+
+  .inner {
+    padding: 0 48px;
+  }
+
+  .grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 64px;
+    align-items: center;
+  }
+
+  .copy {
+    max-width: none;
+  }
+
+  .heading {
+    font-size: 40px;
+  }
+
+  .fact {
+    font-weight: var(--weight-semibold);
+    font-size: 13.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .icon {
+    width: 26px;
+    height: 26px;
+  }
+
+  .facts {
+    gap: 14px;
+  }
+
+  .media {
+    position: relative;
+    display: block;
+    aspect-ratio: 4 / 3;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: var(--green-deep);
+    box-shadow: var(--shadow-card);
   }
 }

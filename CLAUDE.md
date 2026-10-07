@@ -34,8 +34,10 @@ Conventions inside `web/` that are easy to get wrong:
   "not yet published" notice — do not fill the gap with plausible-looking data.
 - **Server Components by default.** Client components are `Header`, `MobileDrawer`, `Footer`, the
   homepage `Menu` rail and How it works clip (`HowItWorksClip`: lazy source, pause control,
-  reduced motion), the `/menu` browser (`MenuBrowser`, `MenuToolbar`, `MenuGrid`,
-  `FilterChip`, `FilterPill`), the `/how-it-works` size picker (`BoxSizePicker`, with
+  reduced motion), the dish card's `SignatureInfo` (the Signature "i" and its note, outside the
+  card link), the `/menu` browser (`MenuBrowser`, `MenuToolbar`, `MenuFilterSheet`, `MenuSort`,
+  `MenuGrid`, `FilterChip`; the ui `FilterPill` is currently unused), its `MenuDeliveryStrip` (the
+  cooking-run note) and `MenuTopButton` (↑ Top), the `/how-it-works` size picker (`BoxSizePicker`, with
   `BoxSizeProvider`/`BoxSizeLink` sharing the choice with the page's purchase links), the legal
   pages' `LegalNavigation` (index, sheet, Sections/Top pair, scroll-spy) and `CheckoutReturn`
   ("← Back to checkout"), `/contact`'s `ContactForm` (validation, focus, images, the send
@@ -72,6 +74,8 @@ Conventions inside `web/` that are easy to get wrong:
   (`useDocumentFlag`, `src/lib/dom/`) and the bar yields to them, as it does to the consent layer.
   The bar and the header read ONE scroll direction (`src/lib/dom/pageScroll.ts`), so they can never
   disagree: one order CTA on screen at a time. Never give either its own scroll listener for it.
+  While the bar is slid in it holds `data-purchase-bar-shown` on `<html>`; `/menu`'s ↑ Top reads it
+  (with `--at-bar-h`) to sit 14px above the bar.
 - **Site chrome (#10) is the v2 header, drawer and footer** (Homepage v2 is canonical). There is no
   announcement strip — the v2 design dropped it site-wide, and the homepage must never show the
   earliest delivery date. Every chrome destination is defined ONCE in `src/lib/content/navigation.ts`;
@@ -119,8 +123,18 @@ Conventions inside `web/` that are easy to get wrong:
   or placeholder QR. "Open now / Closed" is computed in the BROWSER in Europe/London from
   configured hours only — no hours, no status. Topics, validation, images and the hours rules are
   React-free in `src/lib/contact/` (`tests/contact.test.tsx`); Private Table is never a topic.
-- **Menu faceting lives in `src/lib/menu/filters.ts`**, deliberately free of React. Change matching
-  rules there, not in components.
+- **Menu (#21, Menu Landing v3): the rules live React-free in `src/lib/menu/`** — the four
+  groups and their matching (`facets.ts`), the pills and result line (`filters.ts`), the three
+  sorts (`sort.ts`), the card's tags with the DERIVED "Under 500 kcal" (`cardTags.ts`) and ↑ Top
+  (`topControl.ts`); `tests/menu.test.tsx`. Change rules there, not in components. Filtering and
+  sorting happen at the source before paging, never on one page in the browser: live, Aonik
+  applies the facets its facets read advertises (a URL facet it did not advertise is dropped
+  before the browse — it would 400) and sorts only by Recommended, so live draws no Sort control
+  until aonik#359; demo mirrors Aonik in `MockAonikClient`. A dish matches only through a field it
+  carries — no heat published, no heat row and no heat chip (`heatFromStep` never defaults to
+  "Medium"); "Low sugar" has no field, so it has no chip. "Next deliveries from" is Aonik's
+  delivery window via `formatDeliveryDateShort`, left out with none; the cooking run "with
+  capacity" waits on aonik#346. The lede says "mainland UK", not the design's "across the UK".
 - **Delivery & FAQs (#23): never fake an answer.** "We deliver" / "not in your area" come only from
   `AonikClient.coverage` (contract §3b); it is the design's placeholder areas in demo and `null` in
   live until michaeljosiah/aonik#352, and with no lookup the page renders NO checker. The nine

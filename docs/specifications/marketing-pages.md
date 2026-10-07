@@ -241,9 +241,8 @@ from everyday favourites to signature upgrades.", render cards from catalogue da
 little more time or uses premium cuts, so there's a small upgrade."; the upgrade amount comes from
 the dish record. The card is shared with `/menu`, whose design (Menu Landing v3) carries the same
 copy, so the change applies to both. The band SHALL be left out when there are no dishes to show.
-Known gap (T13): the copy is in, but the info "i" is still the old hover tip inside the card link —
-`aria-hidden`, shown only on hover or card focus, and hidden below 640 — so the explainer cannot be
-opened on a phone or by keyboard; the separate button arrives with the v2 card treatment (#21).
+The info "i" is a real button in the card's tag stack, outside the card link, with the v2 tag
+treatment (T13, #21 — `SPEC-2026-10-07-menu` FR-08–FR-10).
 
 #### Scenario: The popover is not a link inside a link
 - **WHEN** a keyboard user tabs through a Signature card
@@ -590,7 +589,8 @@ first two gaps recorded here, were closed by #15 (PR #59; T6, T9) and are no lon
 - [x] `T12` The Back to dish gate marks the record departed before revealing the control (FR-16)
   — `departDishReturn`, mirrored by the gate; `tests/dish-return.test.ts` runs every record case
   through both and compares what each writes
-- [ ] `T13` The Signature info button as a real button outside the card link (FR-11) (#21)
+- [x] `T13` The Signature info button as a real button outside the card link (FR-11) (#21) — with
+  the v2 tag stack; `SPEC-2026-10-07-menu`
 - [x] `T14` Contact (#24): the grid, routes, hours and status, the form held back (FR-21–FR-24)
 - [ ] `T15` Wire the enquiry endpoint when aonik#356 ships: set `ENQUIRY_PATH`, reconcile the
   field names, confirm the acknowledgement email, routing by subject, spam protection and

@@ -1,56 +1,73 @@
+/* A filter chip — Menu Landing v3 `.mn-chip`: 44px, dish-panel ground,
+   forest green while pressed. The active-filter pills in the toolbar share
+   this look (MenuToolbar.module.css `.activeChip`). */
+
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 9px 15px;
-  border: 1.5px solid var(--sand-2);
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1.5px solid var(--surface-dish);
   border-radius: var(--radius-pill);
-  background: var(--surface-card);
+  background: var(--surface-dish);
   color: var(--green-forest);
   font-family: var(--font-sans);
   font-weight: var(--weight-semibold);
-  font-size: var(--body-sm);
-  line-height: 1;
+  font-size: 16px;
+  line-height: 1.2;
+  white-space: nowrap;
   cursor: pointer;
-  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease;
 }
 
 .chip:hover {
   border-color: var(--green-forest);
 }
 
-.chip[data-selected] {
-  background: var(--green-forest);
+.chip[aria-pressed='true'] {
   border-color: var(--green-forest);
+  background: var(--green-forest);
   color: var(--white);
+}
+
+.chip[aria-pressed='true']:hover {
+  border-color: var(--green-deep);
+  background: var(--green-deep);
+}
+
+.chip:active {
+  filter: brightness(0.94);
 }
 
 .pips {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
 }
 
 .pip {
   display: block;
 }
 
-.stem {
-  fill: var(--green-forest);
+.pip .stem,
+.pip .body {
+  fill: var(--green-mist);
 }
 
-.body {
-  fill: var(--terracotta);
+.pip[data-lit] .stem {
+  fill: var(--green-mid);
 }
 
-.chip[data-selected] .stem {
-  fill: var(--blush);
+.pip[data-lit] .body {
+  fill: var(--chilli);
 }
 
-.remove {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  line-height: 1;
+@media (prefers-reduced-motion: reduce) {
+  .chip {
+    transition: none;
+  }
 }

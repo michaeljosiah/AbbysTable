@@ -1,32 +1,70 @@
+/* ===========================================================================
+   The dish card — design/Abby's Table - Homepage v2.dc.html (approved), shared
+   with the menu grid (Menu Landing v3). `.cell` holds the card link and, beside
+   it rather than inside it, the tag stack.
+   =========================================================================== */
+
+.cell {
+  position: relative;
+  display: flex;
+  width: min(360px, 82vw);
+}
+
+.cell[data-variant='grid'] {
+  width: 100%;
+}
+
+.link {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--radius-card);
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+  border-radius: var(--radius-card);
+}
+
 .card {
   display: flex;
   flex-direction: column;
-  width: min(360px, 82vw);
-  height: 100%;
+  flex: 1 1 auto;
+  width: 100%;
   border-radius: var(--radius-card);
   background: var(--surface-dish);
   overflow: hidden;
   box-shadow: var(--shadow-card);
-  /* Applies to both roots: the card is an <article> or, when linked, an <a>. */
-  color: inherit;
-  text-decoration: none;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
-.card:hover {
+/* The lift is a card affordance (the design's `.at-dish-link:hover`). */
+.link:hover .card {
   transform: translateY(-4px);
   box-shadow: var(--shadow-lift);
 }
 
-/* Menu-grid variant: hairline border, full-height cell, softer lift. */
-.card[data-variant='grid'] {
-  width: 100%;
-  border: var(--border-hairline) solid var(--sand-2);
+.link:active .card {
+  transform: translateY(-1px);
 }
 
-.card[data-variant='grid']:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-raised);
+/* The menu grid lifts only where there is a pointer to hover with. */
+.cell[data-variant='grid'] .link:hover .card,
+.cell[data-variant='grid'] .link:active .card {
+  transform: none;
+  box-shadow: var(--shadow-card);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .link:hover .card,
+  .link:active .card {
+    transform: none;
+  }
 }
 
 /* ---- Media ----------------------------------------------------------------- */
@@ -35,185 +73,162 @@
   position: relative;
   aspect-ratio: 5 / 4;
   flex: 0 0 auto;
+  background: var(--cream-3);
 }
 
 .image {
   object-fit: cover;
 }
 
+/* ---- Tag stack ----------------------------------------------------------------
+   Over the photograph, outside the link. pointer-events: none lets a tap fall
+   through to the card link; the "i" alone takes pointer events back. */
+
 .tags {
   position: absolute;
-  top: var(--space-3);
-  left: var(--space-3);
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-2);
-  max-width: calc(60% - var(--space-3));
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  z-index: 2;
+  gap: 8px;
+  pointer-events: none;
 }
 
-.tag {
+/* Cream pill. nowrap is the render-layer protection for a hyphenated label
+   ("Mediterranean-inspired"), so the data keeps an ordinary hyphen. */
+.pill {
   display: inline-flex;
   align-items: center;
-  padding: 6px var(--space-3);
+  padding: 6px 12px;
   border-radius: var(--radius-pill);
   background: var(--cream);
   color: var(--green-forest);
   font-family: var(--font-sans);
   font-weight: var(--weight-semibold);
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  box-shadow: var(--shadow-card);
-}
-
-.tag[data-emphasis='new'] {
-  background: var(--brass);
-  color: var(--white);
-}
-
-/* ---- Signature treatment ---------------------------------------------------- */
-
-.signatureBadges {
-  position: absolute;
-  top: var(--space-3);
-  right: var(--space-3);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: var(--space-2);
-  z-index: 6;
-}
-
-.signaturePill {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 6px 11px;
-  border-radius: var(--radius-pill);
-  background: var(--surface-navy);
-  color: var(--text-on-dark);
-  font-family: var(--font-sans);
-  font-weight: var(--weight-semibold);
-  font-size: 10px;
-  letter-spacing: 0.12em;
+  font-size: 12px;
+  line-height: normal;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   white-space: nowrap;
   box-shadow: var(--shadow-card);
 }
 
-.lozenge {
-  color: var(--brass);
-  font-size: 11px;
-  line-height: 1;
+/* Gold FILL with forest ink, 7.6:1 — not gold as ink on cream (1.45:1). */
+.pill[data-tone='new'] {
+  background: var(--gold);
 }
 
+/* The Signature pill and the upgrade pill: navy, blush ink. */
+.signaturePill {
+  gap: 7px;
+  background: var(--surface-navy);
+  color: var(--blush);
+}
+
+.signaturePill:has(.info) {
+  padding: 6px 10px 6px 12px;
+}
+
+.lozenge {
+  font-size: 9px;
+  line-height: 1;
+  color: var(--brass);
+}
+
+/* A 17px disc with a 45px target: padding the button would inflate the navy
+   pill, so the hit area is an invisible ::before. It matters more here than
+   usual — the button sits over the card link, so a missed tap would navigate. */
 .info {
   position: relative;
+  pointer-events: auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 15px;
-  height: 15px;
-  flex: 0 0 auto;
-  border-radius: 50%;
+  width: 17px;
+  height: 17px;
+  padding: 0;
   border: 1px solid var(--blush);
+  border-radius: 50%;
+  background: transparent;
   color: var(--blush);
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 10px;
+  font-family: var(--font-sans);
   font-weight: var(--weight-semibold);
-  cursor: help;
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0;
+  cursor: pointer;
 }
 
-.infoTip {
+.info::before {
+  content: '';
   position: absolute;
-  top: calc(100% + 9px);
-  right: -4px;
+  inset: -14px;
+  border-radius: 50%;
+}
+
+.info:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* MOBILE: below the tag stack (the stack is the positioning context), its tail
+   measured to the "i" (`--tail-x`, set by SignatureInfo). */
+.signatureNote {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 8;
   width: max-content;
-  max-width: 224px;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--brass);
-  border-radius: var(--radius-sm);
+  max-width: min(252px, 70vw);
+  padding: 9px 13px;
+  border-radius: 12px;
   background: var(--surface-navy);
-  color: var(--text-on-dark);
+  color: var(--blush);
   font-family: var(--font-sans);
-  font-style: normal;
-  font-size: 12.5px;
   font-weight: var(--weight-regular);
-  letter-spacing: 0.01em;
+  font-size: 13px;
   line-height: 1.45;
+  letter-spacing: 0;
   text-transform: none;
   text-align: left;
-  box-shadow: var(--shadow-card);
+  white-space: normal;
   opacity: 0;
+  transform: translateY(-5px);
   pointer-events: none;
-  transform: translateY(5px);
-  transition: opacity 0.18s ease, transform 0.18s ease;
-  z-index: 40;
+  visibility: hidden;
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease,
+    visibility 0s linear 0.16s;
 }
 
-.infoTip::after {
+.signatureNote::after {
   content: '';
   position: absolute;
   bottom: 100%;
-  right: 8px;
-  border: 5px solid transparent;
+  left: var(--tail-x, 18px);
+  border: 9px solid transparent;
   border-bottom-color: var(--navy);
 }
 
-.info:hover .infoTip,
-.signaturePill:hover .infoTip,
-.card:focus-visible .infoTip {
+.signatureNote[data-open] {
   opacity: 1;
-  transform: translateY(0);
+  transform: translate(0, 0);
+  visibility: visible;
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease,
+    visibility 0s;
 }
 
-.card:focus-visible {
-  /* Keeps the card's corners under the global focus rule's 3px radius. */
-  border-radius: var(--radius-card);
-}
-
-/* Tooltips are a pointer affordance; below this width the card shows the full
-   title instead of clamping, and the tip would only get in the way. */
-@media (max-width: 640px) {
-  .infoTip {
-    display: none;
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .signatureNote {
+    transition: none;
   }
-
-  .title {
-    display: block;
-    -webkit-line-clamp: unset;
-    line-clamp: unset;
-    min-height: 0;
-    overflow: visible;
-  }
-}
-
-.signatureBanner {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 13px;
-  padding: 9px var(--space-4);
-  background: var(--surface-navy);
-  z-index: 4;
-}
-
-.signatureBanner span {
-  font-family: var(--font-display);
-  font-weight: var(--weight-medium);
-  font-size: var(--body-md);
-  letter-spacing: 0.01em;
-  color: var(--text-on-dark);
 }
 
 /* ---- Body -------------------------------------------------------------------- */
@@ -244,8 +259,7 @@
 }
 
 /* ---- Components line -------------------------------------------------------
-   What is in the dish, set in the display face beneath a brass divider. Kept to
-   two lines so cards in the rail stay the same height whatever the dish. */
+   What is in the dish, set in the display face beneath a brass divider. */
 
 .partsDivider {
   display: flex;
@@ -296,7 +310,6 @@
   color: var(--text-body);
 }
 
-/* The supporting copy sizes up once the card is the width of the screen. */
 @media (max-width: 1080px) {
   .description {
     font-size: 14.5px;
@@ -304,8 +317,6 @@
   }
 }
 
-/* The display face carries further before it has to give ground, so the title
-   and components line step one band later than the description. */
 @media (max-width: 860px) {
   .title {
     font-size: 25px;
@@ -316,53 +327,18 @@
   }
 }
 
-/* ---- Homepage rail (Homepage v2) ----------------------------------------------
-   The homepage card's own sizes, scoped to the rail so the /menu grid card is
-   untouched (Menu Landing v3 is #21). Below 1024 the description is off — it
-   materially lengthens every card while browsing a taster, and display: none
-   takes it out of the accessibility tree too, so nothing is announced that is
-   not seen. The menu shows it at every width: that is where people choose. */
-
-.card[data-variant='rail'] .title {
-  font-size: 24px;
-}
-
-.card[data-variant='rail'] .description {
-  display: none;
-}
-
-/* Tight gaps and .06em tracking (the eyebrow's .16em reads loose in a data
-   row), so heat, protein and fibre hold ONE line on a 320px card — tightened
-   spacing, never smaller type. */
-.card[data-variant='rail'] .facts {
-  gap: 8px 10px;
-}
-
-.card[data-variant='rail'] .heat {
-  gap: 10px;
-}
-
-/* The pips themselves (HeatPips' labelled image), 3px apart as the design
-   sets them: at 4px the row is 226.4px on a 226px card and fibre wraps. */
-.card[data-variant='rail'] .heat [role='img'] {
-  gap: 3px;
-}
-
-.card[data-variant='rail'] .facts > * {
-  letter-spacing: 0.06em;
-}
-
-@media (min-width: 1024px) {
-  .card[data-variant='rail'] .title {
-    font-size: 26px;
-  }
-
-  .card[data-variant='rail'] .description {
-    display: -webkit-box;
-    font-size: 14.5px;
-    line-height: 1.5;
+@media (max-width: 640px) {
+  .title {
+    display: block;
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
   }
 }
+
+/* ---- Facts: heat and the two macros --------------------------------------- */
 
 .facts {
   display: flex;
@@ -375,13 +351,66 @@
   border-top: var(--border-hairline) solid var(--sand-2);
 }
 
-/* Groups the pips with their trailing rule so the pair stays together when the
-   row wraps, and so the rule sits 14px from the pips rather than at the row's
-   own 16px column gap. */
+/* The design system's .16em tracking is an eyebrow's; in a data row it reads
+   loose, so the row takes .06em. */
+.facts span {
+  letter-spacing: 0.06em;
+}
+
+/* The cards' dots: brass-ink for protein, green-mid for fibre (green-forest is
+   so dark at dot size it reads as black). */
+.facts [data-dot='protein'] {
+  background: var(--brass-ink);
+}
+
+.facts [data-dot='fibre'] {
+  background: var(--green-mid);
+}
+
+/* Groups the pips with their trailing rule (homepage) so the pair stays
+   together when the row wraps. */
 .heat {
   display: inline-flex;
   align-items: center;
   gap: 14px;
+}
+
+.heatGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pips {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.pip {
+  display: block;
+}
+
+.pip .stem,
+.pip .body {
+  fill: var(--green-mist);
+}
+
+.pip[data-lit] .stem {
+  fill: var(--green-mid);
+}
+
+.pip[data-lit] .body {
+  fill: var(--chilli);
+}
+
+.heatWord {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  text-transform: uppercase;
+  color: var(--brown);
+  white-space: nowrap;
 }
 
 .heatRule {
@@ -391,26 +420,169 @@
   background: var(--sand);
 }
 
-.personalise {
-  margin-top: 14px;
-  padding-top: 13px;
-  border-top: var(--border-hairline) solid var(--sand-2);
+.macros {
+  display: contents;
 }
 
-.personaliseHead {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
+/* ---- Homepage rail (Homepage v2) ----------------------------------------------
+   The homepage card's own sizes. Below 1024 the description is off — it
+   materially lengthens every card while browsing a taster, and display: none
+   takes it out of the accessibility tree too, so nothing is announced that is
+   not seen. The menu shows it at every width: that is where people choose. */
+
+.cell[data-variant='rail'] .title {
+  font-size: 24px;
+}
+
+.cell[data-variant='rail'] .description {
+  display: none;
+}
+
+/* Tight gaps, so heat, protein and fibre hold ONE line on a 320px card —
+   tightened spacing, never smaller type. */
+.cell[data-variant='rail'] .facts {
+  gap: 8px 10px;
+}
+
+.cell[data-variant='rail'] .heat {
+  gap: 10px;
+}
+
+@media (min-width: 1024px) {
+  .cell[data-variant='rail'] .title {
+    font-size: 26px;
+  }
+
+  .cell[data-variant='rail'] .description {
+    display: -webkit-box;
+    font-size: 14.5px;
+    line-height: 1.5;
+  }
+}
+
+/* ---- Menu grid (Menu Landing v3) ------------------------------------------------
+   Mobile is the base: one card per row, so no clamps and no reserved heights
+   (they only truncated long names and left voids). From 640, cards sit side
+   by side and rows must align, so the clamps and min-heights return. */
+
+.cell[data-variant='grid'] .body {
+  padding: 20px 18px 22px;
+}
+
+.cell[data-variant='grid'] .title,
+.cell[data-variant='grid'] .parts,
+.cell[data-variant='grid'] .description {
+  display: block;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+}
+
+.cell[data-variant='grid'] .title {
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+.cell[data-variant='grid'] .parts {
+  font-size: 17.5px;
+}
+
+/* 16px on a phone — the mobile body floor — and the approved 14.5px from 640. */
+.cell[data-variant='grid'] .description {
+  margin: 12px 0 18px;
   font-family: var(--font-sans);
-  font-weight: var(--weight-semibold);
-  font-size: var(--body-sm);
-  letter-spacing: 0.04em;
-  color: var(--text-heading);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--brown);
 }
 
-.personaliseCopy {
-  margin: 6px 0 0;
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--text-muted);
+/* Two fixed rows: heat on the first, the macros on the second. */
+.cell[data-variant='grid'] .facts {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 16px;
+}
+
+.cell[data-variant='grid'] .macros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 14px;
+}
+
+@media (min-width: 640px) {
+  .cell[data-variant='grid'] .title,
+  .cell[data-variant='grid'] .parts,
+  .cell[data-variant='grid'] .description {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+  }
+
+  .cell[data-variant='grid'] .title {
+    min-height: 2.3em;
+  }
+
+  .cell[data-variant='grid'] .parts,
+  .cell[data-variant='grid'] .description {
+    min-height: 3em;
+  }
+
+  .cell[data-variant='grid'] .description {
+    font-size: 14.5px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .cell[data-variant='grid'] .title {
+    font-size: 26px;
+  }
+
+  .cell[data-variant='grid'] .parts {
+    font-size: 19px;
+  }
+
+  .cell[data-variant='grid'] .link:hover .card {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lift);
+  }
+
+  .cell[data-variant='grid'] .link:active .card {
+    transform: translateY(-1px);
+  }
+
+  /* DESKTOP: the note sits right of the pill, its tail pointing left. */
+  .signaturePill {
+    position: relative;
+  }
+
+  .signatureNote {
+    top: -10px;
+    left: calc(100% + 13px);
+    max-width: 250px;
+    transform: translateX(-5px);
+  }
+
+  .signatureNote::after {
+    top: 15px;
+    bottom: auto;
+    left: auto;
+    right: 100%;
+    border-bottom-color: transparent;
+    border-right-color: var(--navy);
+  }
+}
+
+@media (min-width: 1024px) and (prefers-reduced-motion: reduce) {
+  .cell[data-variant='grid'] .link:hover .card,
+  .cell[data-variant='grid'] .link:active .card {
+    transform: none;
+  }
 }

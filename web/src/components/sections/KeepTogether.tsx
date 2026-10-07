@@ -30,6 +30,13 @@ export const KEEP_TOGETHER = [
   'Yaji-Crusted',
   'Slow-Braised',
   'Lime-Herb',
+  // Menu Landing v3's records hold these (with U+2011 in the prototype), and
+  // each fits a 320px card.
+  'Slow-Cooked',
+  'Slow-cooked',
+  'slow-cooked',
+  'Suya-Spiced',
+  'Melon-Seed',
 ] as const;
 
 const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

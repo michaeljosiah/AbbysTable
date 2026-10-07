@@ -12,24 +12,35 @@
 
 import type { MappedOptionGroup } from './map';
 
-export type HeatLevel = 'low' | 'medium' | 'high';
+/**
+ * A dish's heat, on the design's four-step scale (None / Mild / Medium / Hot).
+ *
+ * `Dish.heat` is OPTIONAL: a dish whose source has not published a heat level
+ * carries none, and every surface leaves the heat out rather than guess one.
+ * Live browse rows read it from the tenant's `attributesJson.heatStep` until
+ * Aonik types it (michaeljosiah/aonik#359); a row without one used to be
+ * mapped to "Medium" — a spice claim nobody had made.
+ */
+export type HeatLevel = 'none' | 'low' | 'medium' | 'high';
 
-/** Heat as a 0-3 step, so the menu's spice facet can compare numerically. */
+/** Heat as a 0-3 step, so the menu's heat facet can compare numerically. */
 export const HEAT_STEPS: Record<HeatLevel, number> = {
+  none: 0,
   low: 1,
   medium: 2,
   high: 3,
 };
 
 /**
- * Card labels. The homepage template called step 1 "Low" and the menu template
- * calls it "Mild"; "Mild" is used throughout so the card label matches the
- * vocabulary of the menu's spice filter.
+ * Card and filter labels: the design's words for the four steps (Menu Landing
+ * v3, Dish Landing v2 and Add Dishes v2 all set None / Mild / Medium / Hot), so
+ * a card's heat word matches the menu's Heat chips.
  */
 export const HEAT_LABELS: Record<HeatLevel, string> = {
+  none: 'None',
   low: 'Mild',
   medium: 'Medium',
-  high: 'High',
+  high: 'Hot',
 };
 
 /**
@@ -144,8 +155,13 @@ export interface Dish {
   parts?: string;
   description: string;
   imageUrl: string;
-  heat: HeatLevel;
-  /** Merchandising badges, e.g. "New", "Under 500 kcal". */
+  /** Absent when the source has not published one — never defaulted. */
+  heat?: HeatLevel;
+  /**
+   * Merchandising badges, e.g. "New". "Under 500 kcal" is NOT one: the card
+   * derives it from `nutrition.calories` (frontend-backend-contract §4d), and a
+   * stored tag with that label is ignored (`lib/menu/cardTags.ts`).
+   */
   tags: string[];
   /** One of Abby's specials: adds a badge and an upgrade charge. */
   isSignature: boolean;

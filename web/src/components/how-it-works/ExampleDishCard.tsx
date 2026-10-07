@@ -24,27 +24,30 @@ export function ExampleDishCard({ dish }: { dish: Dish }) {
           <p className={styles.eyebrow}>Example dish</p>
           <h3 className={styles.name}>{facts.title}</h3>
         </div>
-        <p className={styles.heat}>
-          {/* Three pips, the unlit ones muted: the muted pip IS the
-              denominator. Graphic only — the word carries the level. */}
-          <span className={styles.pips} aria-hidden="true">
-            {Array.from({ length: PIP_COUNT }, (_, index) => (
-              <svg
-                key={index}
-                width="13"
-                height="13"
-                viewBox={CHILLI_VIEW_BOX}
-                className={styles.pip}
-                data-lit={index < facts.heatSteps || undefined}
-              >
-                <path className={styles.stem} d={CHILLI_STEM_PATH} />
-                <path className={styles.body} d={CHILLI_BODY_PATH} />
-              </svg>
-            ))}
-          </span>
-          <span className="visuallyHidden">Heat: </span>
-          {facts.heatLabel}
-        </p>
+        {/* No published heat, no line — never a guessed level. */}
+        {facts.heatLabel !== null && facts.heatSteps !== null ? (
+          <p className={styles.heat}>
+            {/* Three pips, the unlit ones muted: the muted pip IS the
+                denominator. Graphic only — the word carries the level. */}
+            <span className={styles.pips} aria-hidden="true">
+              {Array.from({ length: PIP_COUNT }, (_, index) => (
+                <svg
+                  key={index}
+                  width="13"
+                  height="13"
+                  viewBox={CHILLI_VIEW_BOX}
+                  className={styles.pip}
+                  data-lit={index < (facts.heatSteps ?? 0) || undefined}
+                >
+                  <path className={styles.stem} d={CHILLI_STEM_PATH} />
+                  <path className={styles.body} d={CHILLI_BODY_PATH} />
+                </svg>
+              ))}
+            </span>
+            <span className="visuallyHidden">Heat: </span>
+            {facts.heatLabel}
+          </p>
+        ) : null}
       </div>
 
       {publishedCount > 0 ? (

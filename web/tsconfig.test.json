@@ -31,6 +31,7 @@
     "tests/homepage.test.tsx",
     "tests/contact.test.tsx",
     "tests/delivery-faqs.test.tsx",
+    "tests/menu.test.tsx",
     "tests/email.test.ts",
     "tests/support/*.ts",
     "src/components/personalisation/OptionGroupsControl.tsx",

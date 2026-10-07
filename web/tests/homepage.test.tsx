@@ -129,8 +129,6 @@ test('nothing elsewhere points at the removed bands: the /menu grid’s "handpic
     <MenuGrid
       dishes={DISH_FIXTURES.slice(0, 2)}
       resultLabel="2 dishes"
-      active={[]}
-      onRemoveFilter={noop}
       onClearAll={noop}
       showLoadMore={false}
       onLoadMore={noop}
@@ -301,11 +299,27 @@ test('the Signature note is the v2 copy, on every card variant', () => {
 test('the homepage rail card leaves the heat word off; the menu grid card states it', () => {
   const rail = renderToStaticMarkup(<DishCard dish={signatureDish} variant="rail" />);
   const grid = renderToStaticMarkup(<DishCard dish={signatureDish} variant="grid" />);
-  // Both name the level to assistive tech through the pips.
-  assert.match(rail, /role="img" aria-label="Heat: /);
-  assert.match(grid, /role="img" aria-label="Heat: /);
-  assert.equal(rail.match(/class="label"/g), null);
-  assert.equal(grid.match(/class="label"/g)?.length, 1);
+  // Both name the level to assistive tech through the pips, in the design's words.
+  assert.match(rail, /role="img" aria-label="Heat level: Hot"/);
+  assert.match(grid, /role="img" aria-label="Heat level: Hot"/);
+  assert.equal(rail.match(/class="heatWord"/g), null);
+  assert.equal(grid.match(/class="heatWord"/g)?.length, 1);
+});
+
+test('the v2 card: the Signature "i" is a real button OUTSIDE the card link, and no navy banner', () => {
+  const html = renderToStaticMarkup(
+    <DishCard dish={signatureDish} variant="rail" href={`/menu/${signatureDish.slug}`} />,
+  );
+  const link = /<a[^>]*href="\/menu\/[^"]+"[^>]*>([\s\S]*?)<\/a>/.exec(html)?.[1] ?? '';
+  assert.ok(link, 'the card is a link');
+  assert.doesNotMatch(link, /<button/, 'no control inside the link');
+  assert.match(html, /<button[^>]*aria-label="What does Signature mean\?"[^>]*aria-describedby="([^"]+)"/);
+  const describedBy = /aria-describedby="([^"]+)"/.exec(html)?.[1];
+  assert.match(html, new RegExp(`id="${describedBy}" role="tooltip"`));
+  assert.doesNotMatch(html, /Abby(&#x27;|’|')s Signature/);
+  // Signature and its upgrade sit in the left tag stack, after the cream tags.
+  const stack = html.slice(html.indexOf('class="tags"'));
+  assert.ok(stack.indexOf('Signature') < stack.indexOf('+£4 upgrade'));
 });
 
 /* ---- Hyphenated compounds --------------------------------------------------------- */

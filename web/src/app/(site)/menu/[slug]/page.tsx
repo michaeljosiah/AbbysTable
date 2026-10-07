@@ -137,10 +137,13 @@ export default async function DishPage({ params }: DishPageProps) {
 
           <h1 className={styles.title}>{dish.title}</h1>
 
-          <div className={styles.heatRow}>
-            <span className={styles.heatLabel}>Heat</span>
-            <HeatPips heat={dish.heat} />
-          </div>
+          {/* No published heat, no row — never a guessed level. */}
+          {dish.heat ? (
+            <div className={styles.heatRow}>
+              <span className={styles.heatLabel}>Heat</span>
+              <HeatPips heat={dish.heat} />
+            </div>
+          ) : null}
 
           <p className={styles.description}>{dish.description}</p>
 

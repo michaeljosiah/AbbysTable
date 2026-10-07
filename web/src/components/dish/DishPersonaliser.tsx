@@ -315,8 +315,15 @@ export function DishPersonaliser({
           <>Personalisation reduces this dish by <strong>{formatPrice(Math.abs(surchargePence))}</strong>.</>
         ) : (
           <>
-            Served {enabled ? 'as selected' : `at ${HEAT_LABELS[dish.heat].toLowerCase()} heat`} with
-            no surcharge.
+            {/* A dish with no published heat (or none at all) is "as standard",
+                never a guessed level. */}
+            Served{' '}
+            {enabled
+              ? 'as selected'
+              : dish.heat && dish.heat !== 'none'
+                ? `at ${HEAT_LABELS[dish.heat].toLowerCase()} heat`
+                : 'as standard'}{' '}
+            with no surcharge.
           </>
         )}
       </p>

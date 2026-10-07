@@ -458,12 +458,17 @@ function readAttributes(attributesJson: string): DishAttributes {
   };
 }
 
-/** `HEAT_STEPS` in reverse: 1→low, 2→medium, 3→high. Anything else is medium. */
-function heatFromStep(step: number | undefined): HeatLevel {
+/**
+ * `HEAT_STEPS` in reverse: 0→none, 1→low, 2→medium, 3→high. Anything else —
+ * absent, fractional, out of range — is NO heat level, not a guessed one: this
+ * used to answer "medium", which put "Medium" heat on every live card whose
+ * product had no `heatStep` (typed heat waits on michaeljosiah/aonik#359).
+ */
+export function heatFromStep(step: number | undefined): HeatLevel | undefined {
   const match = (Object.entries(HEAT_STEPS) as [HeatLevel, number][]).find(
     ([, value]) => value === step,
   );
-  return match?.[0] ?? 'medium';
+  return match?.[0];
 }
 
 /**
