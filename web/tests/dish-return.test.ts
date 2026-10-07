@@ -10,6 +10,7 @@ import {
   DISH_RETURN_STORAGE_KEY,
   DISH_RETURN_TTL_MS,
   createDishReturnRecord,
+  departDishReturn,
   dishPath,
   dishReturnGateScript,
   discardDishReturn,
@@ -163,6 +164,12 @@ const RECORD_CASES: { name: string; raw: string | null; valid: boolean }[] = [
   { name: 'a record with no entry token', raw: recordFor({ entry: undefined }), valid: false },
   { name: 'a record with no departed flag', raw: recordFor({ departed: undefined }), valid: false },
   { name: 'a departed record', raw: recordFor({ departed: true }), valid: true },
+  { name: 'a departed record marked returning', raw: recordFor({ departed: true, returning: true }), valid: true },
+  {
+    name: 'a live record carrying a key it does not define',
+    raw: JSON.stringify({ ...JSON.parse(recordFor()), note: 'not part of the record' }),
+    valid: true,
+  },
   { name: 'a record with a string time', raw: recordFor({ t: String(NOW) as unknown as number }), valid: false },
 ];
 
@@ -174,9 +181,23 @@ for (const { name, raw, valid } of RECORD_CASES) {
 
 /* ---- The gate script ---------------------------------------------------- */
 
-function runGate(storage: { getItem(key: string): string | null }) {
+/**
+ * Runs the inline gate in a bare context. Returns the control and what the
+ * record was at the moment the control was revealed (undefined if never).
+ */
+function runGate(storage: Partial<ReturnStorage>) {
+  let hidden = true;
+  let storedWhenRevealed: string | null | undefined;
   // The server renders the control hidden; the script may only reveal it.
-  const element = { hidden: true };
+  const element = {
+    get hidden() {
+      return hidden;
+    },
+    set hidden(value: boolean) {
+      if (hidden && !value) storedWhenRevealed = storage.getItem?.(DISH_RETURN_STORAGE_KEY) ?? null;
+      hidden = value;
+    },
+  };
   vm.runInNewContext(dishReturnGateScript('royal-seafood-okra', 'gate'), {
     window: { sessionStorage: storage },
     document: { getElementById: (id: string) => (id === 'gate' ? element : null) },
@@ -184,23 +205,120 @@ function runGate(storage: { getItem(key: string): string | null }) {
     JSON,
     isFinite,
   });
-  return element;
+  return { element, storedWhenRevealed };
+}
+
+/** The storage after each path: the gate on a full load, `departDishReturn` (the layout effect) on a client one. */
+function bothPaths(raw: string | null) {
+  const forGate = memoryStorage(raw === null ? {} : { [DISH_RETURN_STORAGE_KEY]: raw });
+  const forEffect = memoryStorage(raw === null ? {} : { [DISH_RETURN_STORAGE_KEY]: raw });
+  const gate = runGate(forGate);
+  const record = departDishReturn(forEffect, 'royal-seafood-okra', NOW);
+  return {
+    gate: { revealed: !gate.element.hidden, stored: forGate.data.get(DISH_RETURN_STORAGE_KEY) },
+    effect: { revealed: record !== null, stored: forEffect.data.get(DISH_RETURN_STORAGE_KEY) },
+    storedWhenRevealed: gate.storedWhenRevealed,
+    record,
+  };
 }
 
 test('the inline gate script makes exactly the same decision as readDishReturnRecord', () => {
   for (const { name, raw, valid } of RECORD_CASES) {
-    const element = runGate({ getItem: (key) => (key === DISH_RETURN_STORAGE_KEY ? raw : null) });
+    const { element } = runGate({ getItem: (key) => (key === DISH_RETURN_STORAGE_KEY ? raw : null) });
     assert.equal(element.hidden, !valid, `gate script disagreed on: ${name}`);
   }
 });
 
+test('the gate and the layout effect leave storage byte-for-byte the same, case by case', () => {
+  for (const { name, raw, valid } of RECORD_CASES) {
+    const { gate, effect } = bothPaths(raw);
+    assert.equal(gate.revealed, valid, `gate: ${name}`);
+    assert.equal(effect.revealed, valid, `departDishReturn: ${name}`);
+    assert.equal(gate.stored, effect.stored, `the two paths wrote different records for: ${name}`);
+  }
+});
+
+test('opening Our Standards marks a live record departed BEFORE revealing "Back to dish"', () => {
+  const { gate, storedWhenRevealed, record } = bothPaths(recordFor());
+  assert.equal(gate.revealed, true);
+  // The gate wrote the departure first: the record was already departed at the reveal.
+  assert.equal(JSON.parse(storedWhenRevealed!).departed, true);
+  // The layout effect's path hands back the departed record it wrote.
+  assert.equal(record?.departed, true);
+  // Exactly the record as read, departed: nothing else changes, and the whole selection is kept.
+  assert.deepEqual(JSON.parse(gate.stored!), {
+    ...readDishReturnRecord(recordFor(), 'royal-seafood-okra', NOW),
+    departed: true,
+  });
+  assert.deepEqual(JSON.parse(gate.stored!).selection, CHOSEN);
+
+  // A browser Back to the stamped dish entry is now a genuine return, without
+  // Our Standards' JavaScript ever having run.
+  const storage = memoryStorage({ [DISH_RETURN_STORAGE_KEY]: gate.stored! });
+  const back = takeDishReturn(storage, {
+    slug: 'royal-seafood-okra',
+    groups,
+    now: NOW,
+    entryStamps: [ENTRY, undefined],
+    reloaded: false,
+  });
+  assert.deepEqual(back?.selection, restorableSelection(groups, CHOSEN));
+  assert.equal(back?.y, 716);
+
+  // Before this change the gate revealed the link and wrote nothing: the same
+  // Back found an undeparted record and restored nothing.
+  const undeparted = memoryStorage({ [DISH_RETURN_STORAGE_KEY]: recordFor() });
+  assert.equal(
+    takeDishReturn(undeparted, {
+      slug: 'royal-seafood-okra',
+      groups,
+      now: NOW,
+      entryStamps: [ENTRY, undefined],
+      reloaded: false,
+    }),
+    null,
+  );
+});
+
+test('a record that already departed is left exactly as it is', () => {
+  for (const raw of [recordFor({ departed: true }), recordFor({ departed: true, returning: true })]) {
+    const { gate, effect } = bothPaths(raw);
+    assert.equal(gate.revealed, true);
+    assert.equal(gate.stored, raw, 'the gate rewrote a departed record');
+    assert.equal(effect.stored, raw, 'departDishReturn rewrote a departed record');
+  }
+});
+
+test('no live record: nothing revealed and nothing written, on either path', () => {
+  for (const raw of [null, recordFor({ slug: 'jollof-quinoa-bowl' }), recordFor({ t: NOW - DISH_RETURN_TTL_MS })]) {
+    const { gate, effect } = bothPaths(raw);
+    assert.equal(gate.revealed, false);
+    assert.equal(effect.revealed, false);
+    assert.equal(gate.stored, raw ?? undefined);
+    assert.equal(effect.stored, raw ?? undefined);
+  }
+});
+
 test('the gate script leaves the link hidden when storage throws', () => {
-  const element = runGate({
+  const { element } = runGate({
     getItem() {
       throw new Error('SecurityError');
     },
   });
   assert.equal(element.hidden, true);
+});
+
+test('a departure that cannot be written still reveals the link, as the guarded effect does', () => {
+  // Storage full: reads work, writes throw. `returnStorage()` swallows the
+  // failed write and the layout effect reveals the control; so does the gate.
+  const { element } = runGate({
+    getItem: (key) => (key === DISH_RETURN_STORAGE_KEY ? recordFor() : null),
+    setItem() {
+      throw new Error('QuotaExceededError');
+    },
+    removeItem() {},
+  });
+  assert.equal(element.hidden, false);
 });
 
 test('no value can close the inline script element', () => {
