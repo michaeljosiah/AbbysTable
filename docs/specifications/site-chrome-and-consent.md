@@ -376,7 +376,8 @@ and the icons. The page links nowhere into the site.
 
 Each information link SHALL point at its real route as the page lands: `/privacy`,
 `/terms-of-sale` and `/allergens` (done); `/delivery-and-faqs` and `/contact` (not built). Until
-then they resolve to `/#contact`. Once `/contact` exists no internal link SHALL point at
+then Contact resolves to `/#contact`, and Delivery & FAQs to wherever Contact does (so to
+`/contact` if Contact lands first). Once `/contact` exists no internal link SHALL point at
 `/#contact`: the checkout footer's Delivery & FAQs and Contact Us, checkout's "Questions about your
 order? Contact us", the dish page's allergen fallback, Log in's "Forgotten it?" (open question
 10), the confirmation page's "Contact us", the order page's "Questions about this order?",

@@ -92,6 +92,9 @@ export function documentQuery(search: string): string {
  */
 export const CHECKOUT_JOURNEY_PATH = BOX_BUILDER_PATH;
 
+/** Under the journey's path but past it: the order is placed, nothing to go back to. */
+const ORDER_PLACED_PATH = `${CHECKOUT_JOURNEY_PATH}/confirmation`;
+
 /** The parts of a window `reachableCheckout` reads; any of them may throw cross-origin. */
 export interface OpenerLike {
   readonly closed: boolean;
@@ -102,7 +105,7 @@ export interface OpenerLike {
 /**
  * The checkout tab this one could focus, or `null`. Only an opener that is
  * still open, on this origin (reading a cross-origin `location` throws) and
- * still in the purchase journey. `null` is the ordinary case — a severed
+ * still in the purchase journey — not on the confirmation page. `null` is the ordinary case — a severed
  * opener, a closed or navigated checkout tab — and is never an error.
  */
 export function reachableCheckout(opener: OpenerLike | null | undefined, origin: string): OpenerLike | null {
@@ -111,7 +114,8 @@ export function reachableCheckout(opener: OpenerLike | null | undefined, origin:
     if (opener.location.origin !== origin) return null;
     const path = opener.location.pathname;
     const inJourney = path === CHECKOUT_JOURNEY_PATH || path.startsWith(`${CHECKOUT_JOURNEY_PATH}/`);
-    return inJourney ? opener : null;
+    const placed = path === ORDER_PLACED_PATH || path.startsWith(`${ORDER_PLACED_PATH}/`);
+    return inJourney && !placed ? opener : null;
   } catch {
     return null;
   }

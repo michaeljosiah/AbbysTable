@@ -150,6 +150,9 @@ test('only a live checkout tab on this origin is focused; anything else is no sw
   assert.equal(reachableCheckout(opener('/'), ORIGIN), null);
   assert.equal(reachableCheckout(opener('/boxes'), ORIGIN), null);
   assert.equal(reachableCheckout(opener('/privacy'), ORIGIN), null);
+  // The order is placed: the confirmation page is no checkout to go back to.
+  assert.equal(reachableCheckout(opener('/box/confirmation'), ORIGIN), null);
+  assert.equal(reachableCheckout(opener('/box/confirmation/'), ORIGIN), null);
   assert.equal(reachableCheckout(opener('/box/review', { origin: 'https://elsewhere.test' }), ORIGIN), null);
   // Cross-origin: reading its location throws.
   const foreign = {
