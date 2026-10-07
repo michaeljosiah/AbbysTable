@@ -63,6 +63,19 @@ Conventions inside `web/` that are easy to get wrong:
   (`useDocumentFlag`, `src/lib/dom/`) and the bar yields to them, as it does to the consent layer.
 - **Menu faceting lives in `src/lib/menu/filters.ts`**, deliberately free of React. Change matching
   rules there, not in components.
+- **Dish → Our Standards → dish (#17)** is specified in `src/lib/dish-return.ts`, also React-free.
+  "Back to dish" needs BOTH a real dish in `?from=dish&dish=<slug>` (checked on the server against
+  the catalogue) AND a live `at-dish-return-v1` sessionStorage record written by the dish page's
+  `StandardsLink` (a pasted link has none). The control is server-rendered HIDDEN and revealed only
+  by the browser (an inline gate script before first paint, a layout effect on client navigation).
+  The record carries the WHOLE personaliser selection and scroll position, and a token also stamped
+  in the dish entry's `history.state`. It is written only for a plain same-tab click, and counts
+  only once Our Standards has opened with it (`departed`). The dish page (`useDishReturn`) restores
+  only on a genuine return — departed, and either marked `returning` by Back to dish's replace or
+  back on that very stamped entry — never on a reload of the dish, then disarms the record (an edit
+  drops it). Never put the selection in a URL: a link must not carry one customer's choices to
+  another. React renders a popstate navigation synchronously inside Next's own listener, so a
+  popstate listener added later never runs first.
 - **Internal links go through `next/link`.** `Button` and `NavLink` route on `href` automatically
   (`isExternalHref` in `src/lib/links.ts`); nav anchors are root-relative (`/#founder`) so they work
   from `/menu` as well as `/`.

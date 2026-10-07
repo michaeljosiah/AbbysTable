@@ -4,20 +4,39 @@ import { hasOptionChoices } from '@/lib/aonik/personalisation';
 
 import { DishPersonaliser } from './DishPersonaliser';
 import { useDishOrder } from './DishOrderProvider';
+import { StandardsLink } from './StandardsLink';
+import { useDishReturn } from './useDishReturn';
 import styles from './DishOrderPanel.module.css';
 
 /**
  * Joins the personaliser to the cart through `DishOrderProvider`, which owns
  * the current choice and the add-to-box action this button shares with the
  * mobile purchase bar.
+ *
+ * It also holds both dish-side ends of the Our Standards round trip
+ * (`lib/dish-return.ts`), because it is what knows the current choice: "See
+ * our standards" records the whole selection, and on a genuine return
+ * `useDishReturn` hands it back for the personaliser to restore.
  */
 export function DishOrderPanel() {
-  const { dish, optionGroups, setChoice, addToBox, pending, error } = useDishOrder();
+  const { dish, optionGroups, choice, setChoice, addToBox, pending, error } = useDishOrder();
+  const { selection: restoredSelection, discard: discardReturn } = useDishReturn(
+    dish.slug,
+    optionGroups,
+  );
 
   return (
     <>
+      <StandardsLink slug={dish.slug} selection={choice.complete} />
+
       {hasOptionChoices(optionGroups) ? (
-        <DishPersonaliser dish={dish} optionGroups={optionGroups} onChange={setChoice} />
+        <DishPersonaliser
+          dish={dish}
+          optionGroups={optionGroups}
+          onChange={setChoice}
+          onEdit={discardReturn}
+          restoredSelection={restoredSelection}
+        />
       ) : null}
 
       {/* Scrolling past this button is what reveals the mobile bar's "Add to

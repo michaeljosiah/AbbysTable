@@ -1,0 +1,231 @@
+/* ===========================================================================
+   Example dish panel — design/Abby's Table - Standards v2.dc.html, band 05
+   (`.st-panelfig`). Mobile-first: two nutrition columns on a phone, four from
+   640. The panel is a card, not a photograph, so it keeps the 18px panel
+   radius at every width (the page's band photographs go to 24 from 1024).
+   =========================================================================== */
+
+.panel {
+  overflow: hidden;
+  background: var(--surface-bright);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 20px 22px;
+}
+
+.titles {
+  min-width: 0;
+}
+
+/* 13px caps eyebrow; brass as small type on the cream panel is brass-ink. */
+.eyebrow {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--eyebrow-sm);
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--brass-ink);
+}
+
+.title {
+  margin-top: 10px;
+  max-width: 400px;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 22px;
+  line-height: 1.25;
+  color: var(--text-heading);
+  text-wrap: pretty;
+}
+
+/* Heat: pips plus the word, on a cream-2 pill. The word is the visible
+   label; the pips carry the accessible one. */
+.heat {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-raised);
+}
+
+.pips {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.pip .stem,
+.pip .body {
+  fill: var(--green-mist);
+}
+
+/* --chilli is the heat-pip token: graphic only, never type. */
+.pip[data-lit] .stem {
+  fill: var(--green-mid);
+}
+
+.pip[data-lit] .body {
+  fill: var(--chilli);
+}
+
+.heatLabel {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 16px;
+  color: var(--text-heading);
+}
+
+/* ---- Nutrition grid ---- */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+/* column-reverse puts the figure above its label while the DOM keeps dt
+   before dd. Safe: the cells hold no interactive content. */
+.cell {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 18px 10px 16px;
+  text-align: center;
+  border-top: var(--border-hairline) solid var(--sand-2);
+  border-left: var(--border-hairline) solid var(--sand-2);
+}
+
+.cell:nth-child(2n + 1) {
+  border-left: none;
+}
+
+.label {
+  margin-top: 8px;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--eyebrow-sm);
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--text-body);
+}
+
+.value {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 22px;
+  line-height: 1;
+  color: var(--text-heading);
+}
+
+/* An unpublished figure: a dash in the figure's place, quieter than a value
+   so it cannot be read as one. Named in words in the note below. */
+.unpublished {
+  color: var(--text-muted);
+}
+
+/* ---- Notes: what is not published, and Aonik's figure captions ---- */
+
+.notes {
+  display: grid;
+  gap: 6px;
+  padding: 14px 20px;
+  border-top: var(--border-hairline) solid var(--sand-2);
+}
+
+/* Tertiary metadata: 14px, --brown (taupe is never small text). */
+.note {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: var(--line-snug);
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+/* ---- Allergens + link ---- */
+
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 14px;
+  padding: 12px 20px;
+  border-top: var(--border-hairline) solid var(--sand-2);
+}
+
+/* The declaration is printed verbatim. The design shows each allergen as a
+   pill, which needs controlled allergen values (frontend-backend contract §3);
+   the catalogue still carries one free-text string, and splitting it would be
+   reinterpreting safety copy. */
+.allergens {
+  flex: 1 1 220px;
+  padding: 10px 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: var(--line-snug);
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+.allergensLabel {
+  margin-right: 6px;
+}
+
+.allergensValue {
+  font-weight: var(--weight-semibold);
+  color: var(--text-heading);
+}
+
+/* Text link with the brass underline on the label; 44px hit area from the
+   visible control. A colour shift on hover, never a fade. */
+.link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  color: var(--text-heading);
+  text-decoration: none;
+  transition: color 0.16s ease;
+}
+
+.link:hover {
+  color: var(--action-primary-hover);
+}
+
+.linkLabel {
+  padding-bottom: 2px;
+  border-bottom: 1.5px solid var(--rule-brass);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .link {
+    transition: none;
+  }
+}
+
+@media (min-width: 640px) {
+  .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .cell:nth-child(2n + 1) {
+    border-left: var(--border-hairline) solid var(--sand-2);
+  }
+
+  .cell:nth-child(4n + 1) {
+    border-left: none;
+  }
+}

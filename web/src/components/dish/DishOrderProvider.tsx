@@ -33,6 +33,8 @@ import styles from './DishOrderPanel.module.css';
  */
 interface DishChoice {
   personalisation?: PersonalisationSelection;
+  /** The whole selection while personalising — what the Our Standards trip carries. */
+  complete?: PersonalisationSelection;
   surchargePence: number | undefined;
 }
 
