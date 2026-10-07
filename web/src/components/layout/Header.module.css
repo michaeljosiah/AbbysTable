@@ -1,193 +1,270 @@
+/*
+ * The v2 marketing header (Homepage v2, approved). Mobile first: the styles
+ * with no media query are the phone; 640 widens the gutter and the pill; 1024
+ * is the desktop composition (nav and Log in in the row, burger gone).
+ *
+ * On the 1280 shell: the row's max-width includes its gutters (border-box), so
+ * the wordmark lines up with the content bands below it.
+ *
+ * Stacking: z-index 60 — over the page and its sticky bands, under the mobile
+ * purchase bar (70), the cookie banner (70) and every drawer, sheet and dialog.
+ */
+
 .header {
   position: sticky;
   top: 0;
-  z-index: 50;
+  z-index: 60;
   background: var(--surface-raised);
   border-bottom: var(--border-hairline) solid var(--border-light);
+  transition: transform 0.22s ease;
+}
+
+/* Moved out of view on scroll (lib/site-header/visibility.ts). Only the
+   transform changes: it stays sticky and in flow, so nothing below shifts. */
+.header[data-hidden] {
+  transform: translateY(-100%);
+}
+
+/* Keyboard focus arriving in a hidden header shows it at once, in CSS: the
+   browser scrolls a focused element into view before React can reveal the
+   header, and a still-translated header would drag the page up with it. */
+.header[data-hidden]:has(:focus-visible) {
+  transform: none;
 }
 
 .row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  /* Like `.band`, the template sizes this row content-box, so the 1440 frame is
-     the column width and the gutter sits outside it. */
-  max-width: calc(var(--frame-max) + 2 * var(--space-7));
-  margin-inline: auto;
-  padding: 18px var(--space-7);
+  gap: 8px;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 10px 14px;
 }
 
-.logoLink {
-  --logo-width: 186px;
-  --logo-height: 32px;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 5px;
-  color: var(--green-forest);
-  text-decoration: none;
+/* One focus language on the cream ground: a brass ring. */
+.header :focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+  border-radius: 3px;
 }
 
-/*
- * Sits under the wordmark and stays legible all the way down to 344px, so it
- * shrinks rather than dropping out — it is the only place the proposition is
- * stated in the chrome.
- */
-.strapline {
-  display: block;
-  font-family: var(--font-sans);
-  font-weight: var(--weight-medium);
-  font-size: 9.5px;
-  letter-spacing: 0.17em;
-  text-transform: uppercase;
-  color: var(--brass-deep);
-  white-space: nowrap;
-}
-
-.straplineDot {
-  color: var(--brass);
-}
-
-.desktopNav {
-  display: flex;
-  align-items: center;
-  gap: var(--space-5);
-}
-
-/* The header runs its nav one step larger than the default NavLink size.
-   Doubled class so it outranks NavLink's own `font-size` — both are single
-   class selectors, so otherwise it comes down to which stylesheet lands last. */
-.navLink.navLink {
-  font-size: var(--btn-size);
-}
-
-.actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-5);
-  margin-left: 26px;
-}
-
-/* ---- Small-viewport affordances ------------------------------------------- */
+/* ---- Burger ------------------------------------------------------------------ */
 
 .burger {
-  display: none;
-  flex-direction: column;
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-  gap: 5px;
-  width: 40px;
-  height: 40px;
-  padding: 9px;
+  width: 44px;
+  height: 44px;
+  margin-left: -10px;
+  padding: 0;
   border: none;
   background: transparent;
+  color: var(--green-forest);
   cursor: pointer;
+  transition: color 0.16s ease;
 }
 
-.burger span {
-  height: 2px;
-  border-radius: 2px;
-  background: var(--green-forest);
+.burger:hover {
+  color: var(--terracotta-deep);
 }
 
-/*
- * Below 1240px the row stops being a three-part flex layout and becomes a
- * centred wordmark with the burger and Order button pinned to the edges. The
- * Order button stays the real Button component rather than swapping to a
- * separate pill — it only tightens its padding and drops the tracking.
- */
-@media (max-width: 1240px) {
+/* Three 1.6px strokes: the box's top and bottom borders plus a middle bar. */
+.burgerIcon {
+  position: relative;
+  display: block;
+  width: 22px;
+  height: 14px;
+  border-top: 1.6px solid currentColor;
+  border-bottom: 1.6px solid currentColor;
+}
+
+.burgerIcon::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1.6px;
+  margin-top: -0.8px;
+  background: currentColor;
+}
+
+/* ---- Wordmark ---------------------------------------------------------------- */
+
+.logo {
+  --logo-width: clamp(108px, 36vw, 168px);
+  --logo-height: calc(var(--logo-width) * 32 / 186);
+  justify-self: center;
+  /* Flex, not block: the mark is an inline-flex lockup, and a block would add
+     a line box's descender gap under it. */
+  display: flex;
+  min-width: 0;
+  color: var(--green-forest);
+  text-decoration: none;
+  /* The one fade: the wordmark is a mark, not a control (design/CLAUDE.md). */
+  transition: opacity 0.16s ease;
+}
+
+.logo:hover {
+  opacity: 0.78;
+}
+
+/* ---- Nav (desktop) ----------------------------------------------------------- */
+
+.nav {
+  display: none;
+  justify-self: center;
+  align-items: center;
+  gap: 30px;
+}
+
+.navLink {
+  padding-bottom: 2px;
+  border-bottom: 1.5px solid transparent;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  color: var(--text-body);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.16s ease, border-color 0.16s ease;
+}
+
+/* Current page: three signals, never colour alone — ink, weight and the brass
+   rule the hover uses (design/CLAUDE.md, "Current-page state"). */
+.navLink[aria-current] {
+  color: var(--text-heading);
+  font-weight: var(--weight-semibold);
+  border-bottom-color: var(--rule-brass);
+}
+
+/* After the current state on purpose: the pointer reports what it is over. */
+.navLink:hover {
+  color: var(--terracotta-deep);
+  border-bottom-color: var(--rule-brass);
+}
+
+/* ---- Log in / My Account (desktop; the drawer carries it below 1024) -------- */
+
+.login {
+  display: none;
+  align-items: center;
+  height: 44px;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  color: var(--text-body);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.16s ease;
+}
+
+.login span {
+  display: inline-block;
+  padding-bottom: 2px;
+  border-bottom: 1.5px solid transparent;
+  transition: border-color 0.16s ease;
+}
+
+.login[aria-current] {
+  color: var(--text-heading);
+  font-weight: var(--weight-semibold);
+}
+
+.login[aria-current] span {
+  border-bottom-color: var(--rule-brass);
+}
+
+.login:hover {
+  color: var(--terracotta-deep);
+}
+
+.login:hover span {
+  border-bottom-color: var(--rule-brass);
+}
+
+/* ---- Order pill ---------------------------------------------------------------
+   GET STARTED in terracotta (it starts a purchase); VIEW BOX in green-forest
+   with blush type once a box is active (it continues one). 44px on the button
+   ladder, intrinsic width at every size. */
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 13px;
+  border-radius: var(--radius-pill);
+  background: var(--action-primary);
+  color: var(--white);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.16s ease;
+}
+
+.cta:hover,
+.cta:active {
+  background: var(--action-primary-hover);
+}
+
+.cta:active {
+  filter: brightness(0.94);
+}
+
+.cta[data-continuing] {
+  background: var(--action-dark);
+  color: var(--blush);
+  letter-spacing: 0.12em;
+}
+
+.cta[data-continuing]:hover,
+.cta[data-continuing]:active {
+  background: var(--green-deep);
+}
+
+/* ---- 640: more room ------------------------------------------------------------ */
+
+@media (min-width: 640px) {
   .row {
-    position: relative;
-    justify-content: center;
-    padding: 14px 28px;
+    gap: 14px;
+    padding: 14px 34px;
   }
 
-  .desktopNav,
-  .identity {
+  .cta {
+    padding: 0 20px;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+  }
+}
+
+/* ---- 1024: the desktop composition --------------------------------------------- */
+
+@media (min-width: 1024px) {
+  .row {
+    grid-template-columns: auto 1fr auto auto;
+    gap: 34px;
+    padding: 18px 48px;
+  }
+
+  .burger {
     display: none;
   }
 
-  .burger {
+  .logo {
+    justify-self: start;
+  }
+
+  .nav,
+  .login {
     display: flex;
-    position: absolute;
-    left: 22px;
-    top: 50%;
-    transform: translateY(-50%);
   }
 
-  .actions {
-    position: absolute;
-    right: 28px;
-    top: 50%;
-    transform: translateY(-50%);
-    gap: 0;
-    margin-left: 0;
-  }
-
-  .logoLink {
-    align-items: center;
-    text-align: center;
-  }
-
-  /* Scoped AND doubled to reach (0,3,0). `.button[data-size='sm']` is (0,2,0) —
-     a class plus an attribute selector — so a doubled class alone only ties it,
-     and the winner then depends on which stylesheet the bundler emits last. */
-  .actions .order.order {
-    padding: 7px 15px;
-    font-size: 12.5px;
-    /* Kept uppercase at Esther's request. The template drops to sentence case
-       here; the tighter 0.04em track is what keeps it from growing much. */
-    letter-spacing: 0.04em;
-  }
-}
-
-@media (max-width: 1080px) {
-  .row {
-    padding: 12px 20px;
-  }
-
-  .burger {
-    left: 14px;
-  }
-
-  .actions {
-    right: 18px;
-  }
-
-  .logoLink {
-    --logo-width: 150px;
-    --logo-height: 26px;
-  }
-
-  .strapline {
-    font-size: 8.5px;
-    letter-spacing: 0.13em;
-  }
-}
-
-@media (max-width: 400px) {
-  .row {
-    padding: 12px var(--space-4);
-  }
-
-  .logoLink {
-    --logo-width: 140px;
-  }
-
-  .strapline {
-    font-size: 7px;
-    letter-spacing: 0.1em;
-  }
-
-  .actions .order.order {
-    padding: 6px 13px;
-    font-size: 12px;
-  }
-}
-
-@media (max-width: 344px) {
-  .logoLink {
-    --logo-width: 126px;
+  .login {
+    margin-left: 12px;
   }
 }

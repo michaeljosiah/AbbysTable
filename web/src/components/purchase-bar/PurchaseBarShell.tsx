@@ -3,16 +3,14 @@
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 
 import { holdDocumentFlag, PURCHASE_BAR_ATTR } from '@/lib/dom/documentFlag';
+import { readPageScroll, subscribePageScroll } from '@/lib/dom/pageScroll';
 import {
   firstStopTop,
   hasScrolledPast,
-  initialDirection,
   isSuppressed,
-  nextDirection,
   REVEAL_ATTR,
   scrollerView,
   shouldShowBar,
-  SITE_HEADER_ATTR,
   STOP_ATTR,
 } from '@/lib/purchase-bar/visibility';
 
@@ -56,7 +54,7 @@ export function PurchaseBarShell({
   followsDirection = true,
 }: PurchaseBarShellProps) {
   const barRef = useRef<HTMLDivElement>(null);
-  const on = useBarVisibility(barRef, followsDirection);
+  const on = useBarVisibility(followsDirection);
   useBarHeight(barRef);
 
   return (
@@ -77,49 +75,40 @@ export function PurchaseBarShell({
 /**
  * The page's scroll state through the rules, re-read once per frame.
  *
- * Scroll is heard on the document in the CAPTURE phase, not on window alone
- * (design/CLAUDE.md, Choose Box "Bar suppression"): when an ancestor container
- * does the scrolling — a host preview, an embedded frame — window `scroll`
- * never fires and `window.scrollY` stays 0. The position is then read from
- * that container. Scrolls inside an element that does not hold the bar (a
- * dish rail, a sheet's list) only trigger a re-read: they are not the page
- * moving, so they never count towards the direction. The markers are then
- * measured against that container's visible box rather than the window's, so
- * a CTA it has clipped counts as passed and the footer line sits where the
- * reader can see it.
+ * The scroll position and DIRECTION come from the one page-scroll tracker
+ * (`lib/dom/pageScroll.ts`) the header follows too, so the bar slides in on
+ * exactly the scroll that slides the header out, and never otherwise. That
+ * tracker hears scroll on the document in the capture phase and follows an
+ * ancestor scroller (a host preview, an embedded frame) when one does the
+ * scrolling; the markers are then measured against that container's visible
+ * box rather than the window's, so a CTA it has clipped counts as passed and
+ * the footer line sits where the reader can see it. Scrolls inside something
+ * that does not hold the page (a dish rail, a sheet's list) only trigger a
+ * re-read.
  */
-function useBarVisibility(
-  barRef: RefObject<HTMLDivElement | null>,
-  followsDirection: boolean,
-): boolean {
+function useBarVisibility(followsDirection: boolean): boolean {
   const [on, setOn] = useState(false);
 
   useEffect(() => {
-    let y = window.scrollY;
-    let direction = initialDirection(y);
     let frame = 0;
-    /** The ancestor doing the scrolling, or null while the window does. */
-    let scroller: Element | null = null;
 
     /** The visible area the markers are measured against, in viewport terms. */
-    const view = () =>
-      scroller?.isConnected
+    const view = () => {
+      const scroller = readPageScroll()?.scroller;
+      return scroller?.isConnected
         ? scrollerView(
             scroller.getBoundingClientRect().top + scroller.clientTop,
             scroller.clientHeight,
             window.innerHeight,
           )
         : { top: 0, height: window.innerHeight };
+    };
 
     // Queried from the document on every pass, never held: a held node can be
     // a detached one after a re-render, and a detached node has no layout.
     const evaluate = () => {
       frame = 0;
-      const header = document.querySelector(`[${SITE_HEADER_ATTR}]`);
-      direction = nextDirection(direction, y, {
-        holdDown: Boolean(header?.contains(document.activeElement)),
-      });
-
+      const down = readPageScroll()?.direction.down ?? false;
       const { top: viewTop, height: viewHeight } = view();
 
       const reveal = document.querySelector(`[${REVEAL_ATTR}]`);
@@ -135,44 +124,26 @@ function useBarVisibility(
       });
       const suppressed = isSuppressed(firstStopTop(tops), viewHeight);
 
-      setOn(shouldShowBar({ revealed, down: direction.down, suppressed, followsDirection }));
+      setOn(shouldShowBar({ revealed, down, suppressed, followsDirection }));
     };
 
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(evaluate);
     };
 
-    const onScroll = (event: Event) => {
-      const source = event.target;
-      if (!(source instanceof Element)) {
-        scroller = null;
-        y = window.scrollY;
-      } else if (
-        barRef.current &&
-        source.contains(barRef.current) &&
-        // A container that only scrolls sideways is not the page moving.
-        source.scrollHeight > source.clientHeight
-      ) {
-        scroller = source;
-        y = source.scrollTop;
-      }
-      schedule();
-    };
-
-    const listen = { capture: true, passive: true } as const;
-    document.addEventListener('scroll', onScroll, listen);
+    const unsubscribe = subscribePageScroll(schedule);
     window.addEventListener('resize', schedule);
     schedule();
     // Again once images and fonts have settled the layout under the markers.
     const settle = window.setTimeout(schedule, 500);
 
     return () => {
-      document.removeEventListener('scroll', onScroll, listen);
+      unsubscribe();
       window.removeEventListener('resize', schedule);
       window.clearTimeout(settle);
       cancelAnimationFrame(frame);
     };
-  }, [barRef, followsDirection]);
+  }, [followsDirection]);
 
   return on;
 }

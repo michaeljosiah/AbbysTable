@@ -24,7 +24,7 @@ export interface CustomerSession {
   /** Present only when the grant issued one; enables silent refresh. */
   refreshToken?: string;
   /**
-   * Display only — for the header's account menu, so it need not decode a JWT
+   * Display only — for the account area's "Signed in as", so it need not decode a JWT
    * or make a round trip just to greet someone.
    */
   email?: string;

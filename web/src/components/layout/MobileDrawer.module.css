@@ -1,16 +1,44 @@
-.overlay {
+/*
+ * The v2 mobile drawer (Homepage v2, approved). Always mounted; closed with
+ * `display: none`, which also keeps it out of the accessibility tree and the
+ * tab order, and replays the slide-in on every open.
+ *
+ * Stacking: scrim 90, panel 95 — over the header (60), the mobile purchase
+ * bar (70) and the cookie banner (70), under the consent panel (310/311).
+ */
+
+.wrap {
+  display: none;
+}
+
+.wrap[data-open] {
+  display: block;
+}
+
+@keyframes drawerIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes scrimIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.scrim {
   position: fixed;
   inset: 0;
   z-index: 90;
   background: rgb(21 41 31 / 0.5);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.22s ease;
-}
-
-.overlay[data-open] {
-  opacity: 1;
-  pointer-events: auto;
+  animation: scrimIn 0.2s ease;
 }
 
 .panel {
@@ -18,40 +46,59 @@
   top: 0;
   left: 0;
   bottom: 0;
-  width: 286px;
-  max-width: 86vw;
   z-index: 95;
   display: flex;
   flex-direction: column;
-  padding: 26px;
+  width: min(300px, 84vw);
+  padding: 18px 22px calc(26px + env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--surface-dark);
-  transform: translateX(-100%);
-  transition: transform 0.24s ease;
+  animation: drawerIn 0.2s ease;
 }
 
-.panel[data-open] {
-  transform: translateX(0);
-}
-
-.head {
+.top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 34px;
+  gap: 12px;
 }
 
+/* The wordmark is a link home: a 44px row, 142px mark, blush. */
 .logo {
-  color: var(--blush);
+  --logo-width: 142px;
+  --logo-height: calc(142px * 32 / 186);
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--text-on-dark);
+  text-decoration: none;
+  transition: opacity 0.16s ease;
 }
 
+.logo:hover {
+  opacity: 0.78;
+}
+
+/* Plain 44px cross, no ring and no disc; blush on this ground, brass on hover. */
 .close {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-right: -10px;
+  padding: 0;
   border: none;
   background: transparent;
-  color: var(--blush);
-  font-size: 24px;
-  line-height: 1;
+  color: var(--text-on-dark);
   cursor: pointer;
-  padding: 0;
+  transition: color 0.16s ease;
+}
+
+.close:hover {
+  color: var(--brass);
 }
 
 .nav {
@@ -59,41 +106,105 @@
   flex-direction: column;
 }
 
+/* 48px rows — the drawer is a touch surface, above the 44px floor. */
 .link {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
   font-family: var(--font-sans);
-  font-size: 17px;
-  font-weight: var(--weight-medium);
-  letter-spacing: 0.01em;
-  color: var(--cream-2);
+  font-size: 16.5px;
+  color: var(--text-on-dark);
   text-decoration: none;
-  padding: 15px 0;
-  border-bottom: var(--border-hairline) solid var(--border-dark);
-  transition: color 0.16s ease, padding-left 0.16s ease;
+  transition: color 0.16s ease;
 }
 
 .link:hover {
   color: var(--brass);
-  padding-left: 6px;
+}
+
+/* "Log in" / "My Account": first, and semibold. */
+.account {
+  margin-top: 20px;
+  font-weight: var(--weight-semibold);
+}
+
+.rule {
+  display: block;
+  height: 1px;
+  margin: 4px 0 6px;
+  background: var(--border-dark);
+}
+
+/* The drawer primary: 54px on the button ladder, terracotta (one of the three
+   persistent primaries — header pill, hero CTA, drawer CTA). */
+.cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 54px;
+  margin-top: 26px;
+  border-radius: var(--radius-pill);
+  background: var(--action-primary);
+  color: var(--white);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: background 0.16s ease;
+}
+
+.cta:hover,
+.cta:active {
+  background: var(--action-primary-hover);
+}
+
+.cta:active {
+  filter: brightness(0.94);
+}
+
+/* VIEW BOX continues an order: green on this green ground would vanish, so it
+   takes the bar's VIEW BOX colours inverted — a blush pill, forest type. */
+.cta[data-continuing] {
+  background: var(--blush);
+  color: var(--green-forest);
+  letter-spacing: 0.12em;
+}
+
+.cta[data-continuing]:hover,
+.cta[data-continuing]:active {
+  background: var(--cream-2);
 }
 
 .foot {
   margin-top: auto;
-  padding-top: var(--space-5);
+  padding-top: 22px;
+  border-top: 1px solid var(--border-dark);
 }
 
+/* The design's spacing: 20px gaps between 44px targets pulled in by 10px. */
 .social {
-  gap: var(--space-5);
+  gap: 20px;
 }
 
-.social svg {
-  width: 20px;
-  height: 20px;
+.social a {
+  margin: -10px;
 }
 
-/* The drawer is a small-viewport affordance only. */
-@media (min-width: 1041px) {
-  .overlay,
-  .panel {
+/* Brass is only 1.9:1 on these greens, so the ring is cream with a gold edge
+   (Homepage v2, one focus language on dark grounds). */
+.panel :focus-visible {
+  outline: 2px solid var(--cream-3);
+  outline-offset: 0;
+  box-shadow: 0 0 0 3px var(--gold);
+  border-radius: 3px;
+}
+
+/* A phone and tablet affordance: the header carries the nav from 1024. */
+@media (min-width: 1024px) {
+  .wrap,
+  .wrap[data-open] {
     display: none;
   }
 }

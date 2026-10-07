@@ -26,8 +26,9 @@
 .dishes {
   background: var(--surface-page);
   padding: 22px var(--space-7) 76px;
-  /* Offset the sticky filter bar by the header's height. */
-  --stick-top: 70px;
+  /* Offset the sticky filter bar by what the header covers: its height while
+     shown, 0 while it has scrolled away (the header publishes it — #10). */
+  --stick-top: var(--site-header-offset, 70px);
 }
 
 .inner {
@@ -42,7 +43,7 @@
 
   .dishes {
     padding: 6px 20px 76px;
-    --stick-top: 52px;
+    --stick-top: var(--site-header-offset, 52px);
   }
 
   .inner {
