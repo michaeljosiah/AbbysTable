@@ -201,6 +201,8 @@ export default async function HowItWorksPage() {
               </div>
             </div>
 
+            {/* The page's one fetchpriority="high" image: the hero, its likely
+                LCP. `priority` alone only preloads it in Next 15 (FR-06). */}
             <figure className={styles.media}>
               {exampleDish ? (
                 <>
@@ -212,6 +214,7 @@ export default async function HowItWorksPage() {
                     alt=""
                     fill
                     priority
+                    fetchPriority="high"
                     sizes={MEDIA_SIZES}
                     className={styles.mediaImage}
                   />
@@ -223,6 +226,7 @@ export default async function HowItWorksPage() {
                   alt="A hand holding a phone open on the Abby’s Table menu"
                   fill
                   priority
+                  fetchPriority="high"
                   sizes={MEDIA_SIZES}
                   className={styles.mediaImage}
                 />

@@ -8,6 +8,7 @@
 import {
   DISH_ENTRY_STATE_KEY,
   DISH_RETURN_STORAGE_KEY,
+  departDishReturn,
   discardDishReturn,
   readDishReturnRecord,
   type DishReturnRecord,
@@ -43,6 +44,11 @@ export function returnStorage(): ReturnStorage {
 
 export function loadDishReturn(slug: string): DishReturnRecord | null {
   return readDishReturnRecord(returnStorage().getItem(DISH_RETURN_STORAGE_KEY), slug, Date.now());
+}
+
+/** Our Standards has opened in this tab: the live record, marked departed (`departDishReturn`). */
+export function departDishReturnHere(slug: string): DishReturnRecord | null {
+  return departDishReturn(returnStorage(), slug, Date.now());
 }
 
 export function saveDishReturn(record: DishReturnRecord): void {

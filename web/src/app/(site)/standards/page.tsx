@@ -32,7 +32,8 @@ import styles from './page.module.css';
  * an index of the five standards, bands 01–05 alternating cream and blush,
  * then the closing CTA on the hero's ground. Copy lives in
  * `lib/content/standards.ts`; the only commerce data — the example dish and
- * the box minimum — is fetched here, once, and passed down.
+ * the box plan behind the minimum and the bar's offer — is fetched here,
+ * once, and passed down.
  *
  * Rendered per request: it reads its query to decide whether to offer "Back to
  * dish" (`lib/dish-return.ts`), and validates that dish against the catalogue
@@ -165,10 +166,15 @@ export default async function StandardsPage({
 
   // Each piece is optional and degrades on its own (see getStandardsPageData
   // and getPurchaseBarData).
-  const [{ exampleDish, minDishes, returnDish }, purchaseBar] = await Promise.all([
+  const [{ exampleDish, returnDish }, purchaseBar] = await Promise.all([
     getStandardsPageData({ exampleDishSlug: STANDARDS_EXAMPLE_DISH_SLUG, returnSlug }),
     getPurchaseBarData(),
   ]);
+
+  // The closing line's minimum is the storefront plan's, read once with the
+  // bar's offer — the bar says "Minimum 6 dishes" from the same figure, so the
+  // two can never disagree (FR-02). No plan, no number.
+  const minDishes = purchaseBar.offer?.minDishes ?? null;
 
   // Null unless the query names a dish the catalogue actually has.
   const dishReturn = resolveDishReturn(returnSlug, returnDish);

@@ -5,6 +5,7 @@ import test from 'node:test';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
+import StandardsPage from '../src/app/(site)/standards/page';
 import { MobilePurchaseBar } from '../src/components/purchase-bar/MobilePurchaseBar';
 import { purchaseBarClasses } from '../src/components/purchase-bar/classes';
 import { PurchaseBarShell } from '../src/components/purchase-bar/PurchaseBarShell';
@@ -32,6 +33,16 @@ import {
   shouldShowBar,
   type ScrollDirection,
 } from '../src/lib/purchase-bar/visibility';
+
+// Aliased: `useAonik` stubs fetch, it is not a React hook.
+import {
+  aonikRequests,
+  configureAonik,
+  useAonik as stubAonik,
+  type AonikReply,
+  type AonikRequest,
+} from './support/aonik';
+import { resetCookies } from './support/next-headers';
 
 /*
  * Mobile purchase bar (#12). Sources: design/build-handoff.md §3j,
@@ -196,6 +207,71 @@ test('no "From" figure the plan does not publish', () => {
 
 test('the demo fixtures flow through unchanged (still the £95 box until #28)', () => {
   assert.deepEqual(purchaseBarOffer(STOREFRONT_CONFIG_FIXTURE.box), { minDishes: 6, fromPence: 9500 });
+});
+
+/* ---- Our Standards: its minimum and its bar are one read (marketing FR-02, T10) ---- */
+
+async function renderStandardsLive(storefront: (request: AonikRequest) => AonikReply | undefined) {
+  const saved = { ...process.env };
+  configureAonik({ AONIK_DATA_MODE: 'live' });
+  // Everything but the storefront config fails: each other piece degrades on its own.
+  stubAonik((request) => storefront(request) ?? { status: 503, body: { title: 'Service Unavailable' } });
+  const quiet = console.error;
+  console.error = () => {};
+  try {
+    resetCookies();
+    const page = await StandardsPage({ searchParams: Promise.resolve({}) });
+    const html = renderToStaticMarkup(<CartProvider>{page}</CartProvider>);
+    return { html, paths: aonikRequests.map((request) => request.path) };
+  } finally {
+    console.error = quiet;
+    process.env = saved;
+  }
+}
+
+/** The text a reader gets: tags dropped, whitespace collapsed. */
+const readable = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+
+test('Our Standards: the closing minimum is the plan the bar quotes, read once — never box pricing', async () => {
+  // A plan whose minimum (8) is nothing a default could produce.
+  const { html, paths } = await renderStandardsLive((request) =>
+    request.path === '/commerce/config/storefront'
+      ? {
+          status: 200,
+          body: {
+            currency: 'GBP',
+            recommendedChoiceLabel: 'Abby’s choice',
+            resultsPageSize: 12,
+            backToTopTrigger: null,
+            delivery: { listAmount: 4.95, chargedAmount: 0 },
+            defaultBoxSlug: 'abbys-box',
+            extrasCollectionSlug: null,
+            box: {
+              minSize: 8,
+              maxSize: 40,
+              currency: 'GBP',
+              perSpacePrice: 17,
+              presets: [{ size: 8, price: 199, badge: null, blurb: null, saving: null }],
+            },
+          },
+        }
+      : undefined,
+  );
+  const text = readable(html);
+
+  assert.match(text, /Choose at least eight dishes, personalise where available, and pick your delivery date\./);
+  assert.match(text, /Minimum 8 dishes/, 'the bar quotes the same minimum');
+  assert.match(text, /From £199/);
+  assert.equal(paths.filter((path) => path === '/commerce/config/storefront').length, 1, 'the plan, once');
+  assert.ok(!paths.some((path) => path.endsWith('/box-plan')), 'box pricing is not read for the minimum');
+});
+
+test('Our Standards: no plan, no number — and the page still renders', async () => {
+  const { html } = await renderStandardsLive(() => undefined);
+  const text = readable(html);
+  assert.match(text, /Ready to fill your box\?/);
+  assert.match(text, /Choose your dishes, personalise where available, and pick your delivery date\./);
+  assert.doesNotMatch(text, /Choose at least|Minimum \d/);
 });
 
 /* ---- The active box -------------------------------------------------------- */

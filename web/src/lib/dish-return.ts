@@ -29,9 +29,12 @@
  *     client-side navigation. With JavaScript off it never shows.
  *
  *     Opening in this tab is also what proves the customer LEFT: Our Standards
- *     marks the record `departed`. The link writes nothing at all for a click
- *     that will not navigate this tab (modifier keys, middle button), and a
- *     record that never departed — an aborted navigation — restores nothing.
+ *     marks the record `departed` (`departDishReturn`), BEFORE it reveals the
+ *     control — in the gate script and the layout effect alike — so the
+ *     browser's Back to the dish counts as a return even before Our Standards
+ *     has hydrated. The link writes nothing at all for a click that will not
+ *     navigate this tab (modifier keys, middle button), and a record that
+ *     never departed — an aborted navigation — restores nothing.
  *
  *  3. "Back to dish" makes a TRUE return: `history.back()` when the entry
  *     behind is the dish, otherwise it marks the record `returning` and
@@ -248,6 +251,34 @@ export function markDeparted(record: DishReturnRecord): DishReturnRecord {
   return { ...record, departed: true };
 }
 
+/**
+ * Our Standards has opened in this tab: the live record for `slug`, marked
+ * `departed` — written back only when it was not already — or null, writing
+ * nothing, when the tab holds no live record (and "Back to dish" stays
+ * hidden). The departure is recorded BEFORE the control is revealed, so the
+ * record is right from the first frame the customer can act in: the browser's
+ * Back to the dish before React hydrates is still a genuine return. (A click
+ * on "Back to dish" itself before hydration is its plain `href`, as with
+ * JavaScript off: a forward visit to the dish, which restores nothing.)
+ *
+ * Runs on every opening: on a full page load the inline gate script does it
+ * before first paint (`dishReturnGateScript` — the same decision and the same
+ * bytes written; the tests run the same cases through both), and
+ * `BackToDish`'s layout effect does it on a client-side navigation (after the
+ * gate, it finds the record departed and writes nothing).
+ */
+export function departDishReturn(
+  storage: ReturnStorage,
+  slug: string,
+  now: number,
+): DishReturnRecord | null {
+  const record = readDishReturnRecord(storage.getItem(DISH_RETURN_STORAGE_KEY), slug, now);
+  if (!record || record.departed) return record;
+  const departed = markDeparted(record);
+  storage.setItem(DISH_RETURN_STORAGE_KEY, JSON.stringify(departed));
+  return departed;
+}
+
 /** "Back to dish" is replacing Our Standards with the dish (a new entry). */
 export function markReturning(record: DishReturnRecord): DishReturnRecord {
   return { ...record, returning: true };
@@ -409,9 +440,12 @@ export function discardDishReturn(
 /**
  * The inline script that gates the back link before first paint on a FULL
  * page load: the server renders it hidden, and this reveals it only when the
- * tab holds a live record for `slug`. The same checks as
- * `readDishReturnRecord`, in ES5 so it runs as written, and with no `<`
- * anywhere in it (`ttl > age`, not `age < ttl`).
+ * tab holds a live record for `slug` — after marking that record departed,
+ * exactly as `departDishReturn` does (the same checks as
+ * `readDishReturnRecord`, and the same normalised record, key for key, written
+ * back only when it had not departed yet). A write that fails still reveals
+ * the control, as `BackToDish`'s guarded storage does. In ES5 so it runs as
+ * written, and with no `<` anywhere in it (`ttl > age`, not `age < ttl`).
  *
  * Every argument is JSON-encoded with `<` escaped, so no value can close the
  * script element. The slug has already been validated against the catalogue.
@@ -422,13 +456,19 @@ export function dishReturnGateScript(slug: string, elementId: string): string {
     .join(',');
 
   return (
-    '(function(k,s,ttl,id){var ok=false;' +
-    'try{var r=JSON.parse(window.sessionStorage.getItem(k)||"null");' +
+    '(function(k,s,ttl,id){var ok=false,st,r,o;' +
+    'try{st=window.sessionStorage;r=JSON.parse(st.getItem(k)||"null");' +
     'ok=!!(r&&typeof r==="object"&&r.v===1&&r.slug===s&&typeof r.hl==="number"' +
     '&&typeof r.y==="number"&&typeof r.entry==="string"&&typeof r.departed==="boolean"' +
     '&&typeof r.returning==="boolean"' +
     '&&typeof r.t==="number"&&isFinite(r.t)&&ttl>Date.now()-r.t)}catch(e){}' +
-    'if(ok){var el=document.getElementById(id);if(el)el.hidden=false}' +
+    'if(!ok)return;' +
+    // departDishReturn: the record as `readDishReturnRecord` returns it, departed.
+    'if(!r.departed){try{o={v:1,t:r.t,slug:r.slug,hl:r.hl,y:r.y};' +
+    'if(r.selection!==void 0)o.selection=r.selection;' +
+    'o.entry=r.entry;o.departed=true;o.returning=r.returning;' +
+    'st.setItem(k,JSON.stringify(o))}catch(e){}}' +
+    'var el=document.getElementById(id);if(el)el.hidden=false' +
     `})(${args})`
   );
 }

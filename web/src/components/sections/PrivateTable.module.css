@@ -7,9 +7,17 @@
    Table v2, so neither page is changed alone.
    =========================================================================== */
 
+/* `/#private` is the chrome's Private Table destination until #25, and the
+   jump to it is often UPWARD (the footer, the drawer, Terms of Sale's clause
+   from further down): below 1024 an upward scroll brings the header back, so
+   a band landing flush with the viewport top had its h2 under the header
+   (21px at 390, 17px at 768). The design's 72px anchor offset, as How It Works
+   and Abby's Story use, clears the header (65px / 73px) with the band's own
+   top padding to spare. */
 .section {
   background: var(--surface-navy);
   padding: 44px 0 48px;
+  scroll-margin-top: 72px;
 }
 
 .inner {

@@ -74,9 +74,10 @@ export const ALL_ACCEPTED: ConsentChoices = Object.freeze({
 
 /**
  * - `pending`    — not read yet: the server render, and the moment before the
- *                  consent manager initialises (or a manager that never does).
- *                  Essential only, and no banner, so a returning visitor never
- *                  sees it flash before storage is read.
+ *                  consent manager initialises (or a manager that never does,
+ *                  or one that failed — `revoke()`). Essential only, and no
+ *                  banner, so a returning visitor never sees it flash before
+ *                  storage is read.
  * - `unresolved` — no valid choice is stored. Essential only; the banner shows.
  * - `resolved`   — a valid choice was stored and read back. It applies.
  * - `unsaved`    — the visitor chose this session but the choice could not be
@@ -255,6 +256,15 @@ export interface ConsentStore {
   /** Records a choice: Required only, Accept all, Save my choices — or a withdrawal. */
   choose(choices: ConsentChoices): ConsentSnapshot;
   /**
+   * The consent manager has failed. Whatever it had applied is withdrawn at
+   * once — `pending` is published, so every `ConsentGate` closes and every
+   * `whileGranted` cleanup runs — and the store stays essential only for the
+   * rest of the page session: `init()` and `choose()` read and write nothing
+   * more, so no listener the failed manager left behind can grant again. The
+   * stored choice itself is untouched; the next page reads it as usual.
+   */
+  revoke(): ConsentSnapshot;
+  /**
    * The gate for anything that is not a React component. Runs `start` while
    * `category` is granted — now, if it already is — and the cleanup it returns
    * as soon as consent is withdrawn, in the same session. The cleanup must
@@ -268,6 +278,8 @@ export interface ConsentStore {
 /** A store over a storage getter. The getter is wrapped too: `window.localStorage` itself throws when site data is blocked. */
 export function createConsentStore(getStorage: () => ConsentStorage | null): ConsentStore {
   let snapshot: ConsentSnapshot = PENDING;
+  /** Set by `revoke()`: the manager failed, and nothing may grant again this session. */
+  let revoked = false;
   const listeners = new Set<ConsentListener>();
 
   const storage = (): ConsentStorage | null => {
@@ -350,8 +362,12 @@ export function createConsentStore(getStorage: () => ConsentStorage | null): Con
   return {
     getSnapshot: () => snapshot,
     subscribe,
-    init: () => publish(readConsent(storage())),
-    choose: (choices) => publish(writeConsent(storage(), choices)),
+    init: () => (revoked ? snapshot : publish(readConsent(storage()))),
+    choose: (choices) => (revoked ? snapshot : publish(writeConsent(storage(), choices))),
+    revoke: () => {
+      revoked = true;
+      return publish(PENDING);
+    },
     whileGranted,
   };
 }
