@@ -30,6 +30,11 @@ the v2 design in [`design/`](design/) is #9):
   [`web/src/lib/content/company.ts`](web/src/lib/content/company.ts) and print "to be confirmed"
   until set. Opened from checkout's legal line (`?from=checkout`, a new tab), each shows "← Back
   to checkout" above its h1 ([`web/src/lib/legal/checkoutReturn.ts`](web/src/lib/legal/checkoutReturn.ts)).
+- **`/contact`** — Contact us: WhatsApp, email and phone cards, opening hours with an "Open now /
+  Closed" indicator, and the message form, in one 12-column grid. Details and hours come from
+  [`web/src/lib/content/contact.ts`](web/src/lib/content/contact.ts) and print "to be confirmed"
+  until set; the form is held back until Aonik can accept an enquiry (aonik#356). Rules in
+  [`web/src/lib/contact/`](web/src/lib/contact/).
 
 > **Allergens are never inferred.** Only dishes whose data the templates actually published carry
 > ingredient and allergen text; every other dish shows an explicit "not yet published" notice
@@ -141,9 +146,9 @@ standards) · *Information* (Delivery & FAQs, Allergens, Contact us) — accordi
 columns from 1024 — then the wordmark, "Abby x", the four social icons with **@FromAbbysTable** as
 plain text, and the legal strip: © · Privacy Policy | Terms · Cookie preferences.
 
-Gifting (#26) and Private Table (#25), Delivery & FAQs (#23) and Contact (#24) are not built yet:
-Gifting stays out of the chrome until its page lands, Private Table goes to the homepage band
-(`/#private`), and Contact / Delivery & FAQs to the footer — all from one place,
+Gifting (#26), Private Table (#25) and Delivery & FAQs (#23) are not built yet: Gifting stays out
+of the chrome until its page lands, Private Table goes to the homepage band (`/#private`), and
+Delivery & FAQs to Contact (`/contact`, #24) — all from one place,
 `web/src/lib/content/navigation.ts`. Every "contact us" in the pages reads `CONTACT_HREF` and every
 Delivery & FAQs link `DELIVERY_FAQS_HREF` from there too, so each page's arrival is a one-line change.
 The homepage band's own *Find out more* is separate: it renders once `PRIVATE_TABLE_HREF`
@@ -307,6 +312,7 @@ web/                         the storefront
   src/components/dish/       dish page — personaliser, info panels, related dishes,
                              the shared add-to-box action and the dish's mobile bar
   src/components/legal/      Terms of Sale / Privacy Policy shell, index, copy blocks
+  src/components/contact/    Contact page — the grid, message form, hours disclosure, open/closed
   src/components/purchase-bar/ the mobile purchase bar — band, behaviour, Build a Box / VIEW BOX
   src/lib/aonik/             commerce seam — types, client interface, fixtures
   src/lib/menu/              pure faceting and search logic
@@ -318,6 +324,8 @@ web/                         the storefront
   src/lib/content/           navigation, editorial copy, support contact and company
                              details (unset)
   src/lib/legal/             legal documents' sections, groups and anchor contract
+  src/lib/contact/           Contact form rules and opening hours in UK time (pure), and the
+                             form's server action
   src/lib/status-pages/      generator for the static host pages below
   src/middleware.ts          maintenance mode: MAINTENANCE_MODE=true → 503 for pages and API
   src/styles/tokens.css      design tokens; target is design/ (see #9)
