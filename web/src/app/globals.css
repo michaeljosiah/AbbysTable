@@ -96,16 +96,42 @@ input:focus-visible,
   }
 }
 
+/* ---- Mobile purchase bar ---------------------------------------------------
+   While a page carries the bar (components/purchase-bar), it holds
+   `data-purchase-bar` on <html> and measures its height into `--at-bar-h`.
+   Focus scrolling then keeps clear of it below 1024 — whenever the bar COULD
+   show, not only while it does, because the scroll that brings a focused
+   control into view is the same downward scroll that slides the bar in over
+   it. Above 1024 there is no bar. Before the consent rules on purpose: the
+   banner's clearance wins while it shows (the bar has yielded to it then). */
+@media (max-width: 1023px) {
+  html[data-purchase-bar] {
+    scroll-padding-bottom: var(--at-bar-h, 0px);
+  }
+}
+
+/* ---- Overlay layer -------------------------------------------------------------
+   While the mobile drawer or a phone bottom sheet (the /menu filters, the dish
+   personaliser) is open, it holds `data-overlay-open` on <html>
+   (lib/dom/documentFlag.ts). Bottom-fixed chrome that would compete with it —
+   the mobile purchase bar — opts in with `data-overlay-yield` and is
+   suppressed: gone from sight, the tab order and the accessibility tree. It
+   returns as the overlay closes; scroll direction decides from there. */
+html[data-overlay-open] [data-overlay-yield] {
+  visibility: hidden;
+}
+
 /* ---- Consent layer priority -------------------------------------------------
    The cookie banner sits over the page and its chrome, and under every drawer,
    sheet and dialog the customer opens; the preferences panel sits over
    everything (the prototype's order — ConsentManager.module.css, "Stacking").
    While the banner or the panel shows, ConsentManager sets
    `data-consent-layer` on <html>, and:
-   - bottom-fixed chrome that would collide with it — the mobile purchase bars,
-     the ↑ Top control — opts in with `data-consent-yield` and is suppressed:
-     gone from sight, the tab order and the accessibility tree, so no control is
-     left focusable behind the banner. It returns as soon as a choice is made;
+   - bottom-fixed chrome that would collide with it — the site's mobile
+     purchase bar, the checkout's mobile bars, the ↑ Top control — opts in with
+     `data-consent-yield` and is suppressed: gone from sight, the tab order and
+     the accessibility tree, so no control is left focusable behind the
+     banner. It returns as soon as a choice is made;
    - the page gains the banner's height at its end, and focus scrolling keeps
      clear of it, so nothing on the page can only be reached behind the banner;
    - the page h1 the layer may move focus to (a reading start, tabindex="-1")

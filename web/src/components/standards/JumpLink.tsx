@@ -7,6 +7,8 @@ interface JumpLinkProps {
   targetId: string;
   className?: string;
   children: ReactNode;
+  /** Marks this link as the element the mobile purchase bar waits to lose sight of. */
+  'data-purchase-bar-reveal'?: string;
 }
 
 /**
@@ -18,7 +20,7 @@ interface JumpLinkProps {
  * it is an ordinary anchor. The offset is the target's own
  * `scroll-margin-top`, so the jump and a plain anchor land in the same place.
  */
-export function JumpLink({ targetId, className, children }: JumpLinkProps) {
+export function JumpLink({ targetId, className, children, ...data }: JumpLinkProps) {
   const onClick = (event: MouseEvent<HTMLAnchorElement>) => {
     if (
       event.defaultPrevented ||
@@ -43,7 +45,7 @@ export function JumpLink({ targetId, className, children }: JumpLinkProps) {
   };
 
   return (
-    <a href={`#${targetId}`} className={className} onClick={onClick}>
+    <a href={`#${targetId}`} className={className} onClick={onClick} {...data}>
       {children}
     </a>
   );

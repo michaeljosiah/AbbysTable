@@ -6,9 +6,12 @@ import type { ReactNode } from 'react';
 import { BoxSizePicker } from '@/components/how-it-works/BoxSizePicker';
 import { BoxSizeLink, BoxSizeProvider } from '@/components/how-it-works/BoxSizeProvider';
 import { ExampleDishCard } from '@/components/how-it-works/ExampleDishCard';
+import { purchaseBarClasses } from '@/components/purchase-bar/classes';
+import { MobilePurchaseBar } from '@/components/purchase-bar/MobilePurchaseBar';
 import { getHowItWorksPageData } from '@/lib/aonik/client';
 import { HOW_IT_WORKS_EXAMPLE_DISH_SLUG } from '@/lib/content/marketing';
 import { buildBoxSizeModel, closingSentence, sizesSentence } from '@/lib/how-it-works/boxSizes';
+import { getPurchaseBarData } from '@/lib/purchase-bar/data';
 
 import styles from './page.module.css';
 
@@ -18,13 +21,19 @@ import styles from './page.module.css';
  *
  * Server Component. Commerce data — the box plan behind the size picker and
  * the example dish — is resolved here, once, and passed down. The only client
- * pieces are the size picker (it holds the selection) and the purchase links
- * that carry that selection (`BoxSizeLink`); `BoxSizeProvider` shares it
+ * pieces are the size picker (it holds the selection), the purchase links
+ * that carry that selection (`BoxSizeLink`) and the mobile purchase bar, whose
+ * Build a Box is one of those links; `BoxSizeProvider` shares the selection
  * between them while every section below stays server-rendered.
  *
- * Out of scope here, by issue: the mobile purchase bar and its footer
- * suppression (#12), the v2 header/footer and the desktop header auto-hide this
- * marketing page opts into (#10), and Choose Box reading `?dishes=` (#28).
+ * The mobile purchase bar (#12) is revealed once the hero's Build a Box has
+ * been scrolled past and suppressed at the footer — this page has no Private
+ * Table band, so the footer is tracked directly — with no bottom spacer, since
+ * it can never be visible at the end of the page.
+ *
+ * Out of scope here, by issue: the v2 header/footer and the desktop header
+ * auto-hide this marketing page opts into (#10), and Choose Box reading
+ * `?dishes=` (#28).
  *
  * Photography is placeholder (#38). Steps 02–04 use the design's own
  * photographs (design/assets/hw-*.jpg, copied to public/assets/how-it-works/,
@@ -165,6 +174,8 @@ function StepPhoto({ src, alt, label }: { src: string; alt: string; label: strin
 export default async function HowItWorksPage() {
   const { boxPlan, exampleDish } = await getHowItWorksPageData(HOW_IT_WORKS_EXAMPLE_DISH_SLUG);
   const sizes = buildBoxSizeModel(boxPlan);
+  // The plan is already in hand, so the bar's offer costs no second read.
+  const purchaseBar = await getPurchaseBarData({ plan: boxPlan ?? null });
 
   return (
     <BoxSizeProvider defaultId={sizes.defaultId}>
@@ -178,7 +189,9 @@ export default async function HowItWorksPage() {
               <div className={styles.heroCtas}>
                 {/* Carries the picker's choice, like every purchase link here:
                     pick 18, scroll back up, tap this, and 18 survives. */}
-                <BoxSizeLink className={styles.heroCta}>Build a Box</BoxSizeLink>
+                <BoxSizeLink className={styles.heroCta} data-purchase-bar-reveal="">
+                  Build a Box
+                </BoxSizeLink>
                 <Link href={MENU_HREF} className={styles.textLink}>
                   <span>
                     See the menu
@@ -425,6 +438,13 @@ export default async function HowItWorksPage() {
           </div>
         </div>
       </section>
+
+      {/* Inside the provider, so its Build a Box carries the chosen size too
+          (contract §4c). */}
+      <MobilePurchaseBar
+        data={purchaseBar}
+        cta={<BoxSizeLink className={purchaseBarClasses.cta}>Build a Box</BoxSizeLink>}
+      />
     </BoxSizeProvider>
   );
 }

@@ -1,7 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useMemo,
+  useState,
+  type ComponentPropsWithoutRef,
+  type ReactNode,
+} from 'react';
 
 import { boxBuilderHref } from '@/lib/how-it-works/boxSizes';
 
@@ -43,11 +50,22 @@ export function useBoxSize(): BoxSizeState {
 /**
  * A purchase link to Choose Box carrying the current choice. Server-rendered
  * with the default, so without JavaScript it still lands on a valid size.
+ *
+ * Other anchor attributes pass through — the hero's carries the mobile
+ * purchase bar's `data-purchase-bar-reveal`, and the bar's own CTA is one of
+ * these, so it carries the size too.
  */
-export function BoxSizeLink({ className, children }: { className?: string; children: ReactNode }) {
+export function BoxSizeLink({
+  className,
+  children,
+  ...rest
+}: { className?: string; children: ReactNode } & Omit<
+  ComponentPropsWithoutRef<'a'>,
+  'href' | 'className' | 'children'
+>) {
   const { selectedId } = useBoxSize();
   return (
-    <Link href={boxBuilderHref(selectedId)} className={className}>
+    <Link {...rest} href={boxBuilderHref(selectedId)} className={className}>
       {children}
     </Link>
   );

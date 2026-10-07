@@ -6,6 +6,7 @@ import { Fragment, type ReactNode } from 'react';
 import { BackToDish } from '@/components/standards/BackToDish';
 import { ExampleDishPanel } from '@/components/standards/ExampleDishPanel';
 import { JumpLink } from '@/components/standards/JumpLink';
+import { MobilePurchaseBar } from '@/components/purchase-bar/MobilePurchaseBar';
 import { ProhibitionMark } from '@/components/standards/ProhibitionMark';
 import { getStandardsPageData } from '@/lib/aonik/client';
 import type { Dish } from '@/lib/aonik/types';
@@ -19,6 +20,7 @@ import {
 } from '@/lib/content/standards';
 import { readDishReturnSlug, resolveDishReturn } from '@/lib/dish-return';
 import { formatCountInWords } from '@/lib/format';
+import { getPurchaseBarData } from '@/lib/purchase-bar/data';
 
 import styles from './page.module.css';
 
@@ -36,9 +38,10 @@ import styles from './page.module.css';
  * dish" (`lib/dish-return.ts`), and validates that dish against the catalogue
  * on the server.
  *
- * Out of scope here, deliberately: the mobile purchase bar and its suppression
- * from the closing CTA through the footer (issue #12 owns the bar), the "↑ Top"
- * control, and the header's desktop auto-hide (the chrome overhaul, #10).
+ * The mobile purchase bar (#12) waits for the hero's "See what goes in" and is
+ * suppressed from the closing CTA through the footer. Out of scope here,
+ * deliberately: the "↑ Top" control, and the header's desktop auto-hide (the
+ * chrome overhaul, #10).
  */
 
 const DESCRIPTION =
@@ -160,11 +163,12 @@ export default async function StandardsPage({
 }) {
   const returnSlug = readDishReturnSlug(await searchParams);
 
-  // Each piece is optional and degrades on its own (see getStandardsPageData).
-  const { exampleDish, minDishes, returnDish } = await getStandardsPageData({
-    exampleDishSlug: STANDARDS_EXAMPLE_DISH_SLUG,
-    returnSlug,
-  });
+  // Each piece is optional and degrades on its own (see getStandardsPageData
+  // and getPurchaseBarData).
+  const [{ exampleDish, minDishes, returnDish }, purchaseBar] = await Promise.all([
+    getStandardsPageData({ exampleDishSlug: STANDARDS_EXAMPLE_DISH_SLUG, returnSlug }),
+    getPurchaseBarData(),
+  ]);
 
   // Null unless the query names a dish the catalogue actually has.
   const dishReturn = resolveDishReturn(returnSlug, returnDish);
@@ -224,8 +228,13 @@ export default async function StandardsPage({
               {/* 54px hero CTA. Green-forest, not terracotta: a named
                   departure approved for this page only (design/CLAUDE.md,
                   Standards page). An in-page jump that adds no history
-                  entry, as the design's goStandards does. */}
-              <JumpLink targetId="standards" className={`${styles.cta} ${styles.heroCta}`}>
+                  entry, as the design's goStandards does. Also what the
+                  mobile purchase bar waits to lose sight of. */}
+              <JumpLink
+                targetId="standards"
+                className={`${styles.cta} ${styles.heroCta}`}
+                data-purchase-bar-reveal=""
+              >
                 See what goes in
               </JumpLink>
             </div>
@@ -299,8 +308,13 @@ export default async function StandardsPage({
 
       {/* Closing CTA on the hero's ground, so the page opens and closes on the
           same colour. Green-forest by role: terracotta is reserved for the
-          header pill, the hero CTA and the drawer CTA. */}
-      <section className={`${styles.band} ${styles.sage} ${styles.closing}`}>
+          header pill, the hero CTA and the drawer CTA. The purchase bar is
+          suppressed from here through the footer: this band has its own
+          Build a Box. */}
+      <section
+        className={`${styles.band} ${styles.sage} ${styles.closing}`}
+        data-purchase-bar-stop=""
+      >
         <div className={styles.inner}>
           <h2 className={styles.sectionTitle}>
             Ready to fill your box?
@@ -320,6 +334,8 @@ export default async function StandardsPage({
           </div>
         </div>
       </section>
+
+      <MobilePurchaseBar data={purchaseBar} />
     </>
   );
 }

@@ -22,6 +22,7 @@
     "tests/consent.test.ts",
     "tests/dish-return.test.ts",
     "tests/how-it-works.test.tsx",
+    "tests/purchase-bar.test.tsx",
     "tests/legal-documents.test.ts",
     "tests/legal-pages.test.tsx",
     "tests/support/*.ts",

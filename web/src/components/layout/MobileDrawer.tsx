@@ -7,6 +7,8 @@ import { Logo } from '@/components/brand/Logo';
 import { SocialIcons } from '@/components/brand/SocialIcons';
 import type { SessionView } from '@/lib/auth/session';
 import { ACCOUNT_ITEM, LOGIN_ITEM, NAV_ITEMS } from '@/lib/content/navigation';
+import { OVERLAY_OPEN_ATTR } from '@/lib/dom/documentFlag';
+import { useDocumentFlag } from '@/lib/dom/hooks';
 
 import styles from './MobileDrawer.module.css';
 
@@ -23,6 +25,11 @@ export function MobileDrawer({ open, onClose, session }: MobileDrawerProps) {
   // The last link is the account slot: "My Account" for a signed-in customer,
   // "Login" otherwise — the drawer's half of what `AccountMenu` does above it.
   const links = [...NAV_ITEMS, session.isSignedIn ? ACCOUNT_ITEM : LOGIN_ITEM];
+
+  // Tells the page an overlay is up, without either side knowing the other:
+  // bottom-fixed chrome such as the mobile purchase bar yields to it
+  // (globals.css, `data-overlay-yield`).
+  useDocumentFlag(OVERLAY_OPEN_ATTR, open);
 
   // Close on Escape and lock the page behind the drawer while it is open.
   useEffect(() => {

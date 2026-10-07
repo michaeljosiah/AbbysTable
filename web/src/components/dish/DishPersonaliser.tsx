@@ -17,6 +17,8 @@ import {
   type PersonalisationDraft,
 } from '@/lib/aonik/personalisation';
 import { HEAT_LABELS, type Dish } from '@/lib/aonik/types';
+import { OVERLAY_OPEN_ATTR } from '@/lib/dom/documentFlag';
+import { useDocumentFlag, useMediaQuery } from '@/lib/dom/hooks';
 import { formatPrice, formatSignedPrice } from '@/lib/format';
 
 import styles from './DishPersonaliser.module.css';
@@ -101,6 +103,11 @@ export function DishPersonaliser({
   const [enabled, setEnabled] = useState(false);
   const [selection, setSelection] = useState<PersonalisationDraft>(initial);
   const [sheetOpen, setSheetOpen] = useState(false);
+
+  // Below 640px the options open as a bottom sheet, and the mobile purchase
+  // bar yields to it — two fixed layers on the same edge.
+  const sheetLayout = useMediaQuery('(max-width: 640px)');
+  useDocumentFlag(OVERLAY_OPEN_ATTR, enabled && sheetOpen && sheetLayout);
 
   /*
    * Back from Our Standards (`lib/dish-return.ts`): the customer's whole

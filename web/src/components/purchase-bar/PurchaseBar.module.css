@@ -1,0 +1,212 @@
+/* ===========================================================================
+   Mobile purchase bar — ported from the canonical source,
+   design/Abby's Table - Homepage v2.dc.html (`.at-mobbar`, its markup comment
+   and the box summary in design/at-order-state.js). Dish Landing v2
+   (`.dl-bar`) and Private Table v2 (`.pt-bar`) use the same treatment with
+   other content, so they are variants of this one band, not copies of it.
+
+   Cream-2 band, 1px sand top rule, 18px/16px padding plus the safe-area inset,
+   a text block left and a 48px green-forest pill right (the button ladder's
+   "mobile sticky purchase CTA"). 85px tall at 390 — reached with padding, never
+   set: the price label wraps at 320 and the bar grows, which is why its height
+   is measured into `--at-bar-h` rather than restated.
+
+   Phone and tablet only: from 1024 the header keeps the purchase CTA and the
+   bar is not rendered at all (design/CLAUDE.md, "Mobile purchase CTA").
+
+   Stacking: z-index 70, the design's value — above the page and its sticky
+   chrome (header 50, toolbars 30), beneath the drawer (90/95), the bottom
+   sheets (99/100) and the consent panel (310/311). It shares 70 with the
+   cookie banner but never meets it: while the banner or panel shows, the bar
+   yields outright (`data-consent-yield`, globals.css).
+   =========================================================================== */
+
+.bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 70;
+  display: grid;
+  /* A flexible text column that may shrink and an intrinsic CTA column: no
+     fixed widths, so the pill cannot be pushed past the 16px gutter at any
+     phone width (320–430 all hold). */
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  background: var(--surface-raised);
+  border-top: var(--border-hairline) solid var(--border-light);
+  padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px));
+
+  /* Retracted: below the viewport AND out of the tab order and the
+     accessibility tree. Visibility flips only once the slide has finished. */
+  transform: translateY(100%);
+  visibility: hidden;
+  transition:
+    transform 0.22s ease,
+    visibility 0s linear 0.22s;
+}
+
+.bar[data-on] {
+  transform: translateY(0);
+  visibility: visible;
+  transition:
+    transform 0.22s ease,
+    visibility 0s;
+}
+
+/* A lone centred CTA — Private Table v2's waitlist bar, or a bar whose offer
+   could not be read. */
+.bar[data-layout='centre'] {
+  grid-template-columns: auto;
+  justify-content: center;
+}
+
+/* The drawer, a bottom sheet or the consent layer is up: the bar slides away
+   beneath it (globals.css hides it from the tab order at the same moment). */
+:global(html[data-overlay-open]) .bar,
+:global(html[data-consent-layer]) .bar {
+  transform: translateY(100%);
+  transition:
+    transform 0.22s ease,
+    visibility 0s linear 0.22s;
+}
+
+@media (min-width: 1024px) {
+  .bar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar,
+  .bar[data-on],
+  :global(html[data-overlay-open]) .bar,
+  :global(html[data-consent-layer]) .bar {
+    transition: none;
+  }
+}
+
+/* ---- Text block ------------------------------------------------------------ */
+
+/* Two deliberate lines rather than a wrapped one: at 390 a single line broke
+   after "From" and stranded the price. The second line carries the heavier
+   weight because that is what gets scanned. */
+.text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 3px;
+  font-family: var(--font-sans);
+  font-size: var(--body-md);
+  line-height: 1.2;
+  color: var(--text-body);
+}
+
+.textLead {
+  font-weight: var(--weight-medium);
+}
+
+.textStrong {
+  font-weight: var(--weight-semibold);
+  /* A personalised dish's summary can run long; two lines, then an ellipsis. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* ---- Active box summary (at-order-state.js `applyBar`) ---------------------- */
+
+.summary {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+}
+
+.summaryDisc {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--sand);
+  color: var(--text-heading);
+}
+
+.summaryText {
+  display: block;
+  min-width: 0;
+}
+
+.summaryLabel {
+  display: block;
+  margin-bottom: 3px;
+  font-family: var(--font-sans);
+  font-size: var(--body-lg);
+  color: var(--text-body);
+}
+
+.summaryTotal {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 21px;
+  line-height: 1.1;
+  color: var(--text-heading);
+}
+
+/* ---- The pill --------------------------------------------------------------- */
+
+/* In-page CTAs are green-forest; terracotta stays reserved for the header,
+   hero and drawer primaries (design/CLAUDE.md, "Fill colour by role"). */
+.cta {
+  flex: 0 0 auto;
+  min-width: max-content;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  margin: 0;
+  padding: 0 clamp(16px, 5vw, 24px);
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--action-dark);
+  color: var(--text-inverse);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--btn-size);
+  line-height: normal;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.16s ease;
+}
+
+.cta:hover {
+  background: var(--green-deep);
+  color: var(--text-inverse);
+}
+
+/* Every button has a press state (design/CLAUDE.md). */
+.cta:active {
+  filter: brightness(0.94);
+}
+
+/* The global ring is currentColor — white on this pill, so invisible against
+   the cream band — and squares the corners. Brass, as the design's bars draw
+   it (`.dl-bar :focus-visible`), keeping the pill shape. */
+.cta:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+  border-radius: var(--radius-pill);
+}
+
+.cta:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}

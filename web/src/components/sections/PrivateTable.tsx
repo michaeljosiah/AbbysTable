@@ -30,7 +30,10 @@ function Divider({ className }: { className?: string }) {
  */
 export function PrivateTable() {
   return (
-    <section id="private" className={styles.section}>
+    // The mobile purchase bar is suppressed from this section's top through
+    // the footer: "Build a Box" beside a bespoke service reads as an upsell
+    // (design/CLAUDE.md, "Mobile purchase CTA").
+    <section id="private" className={styles.section} data-purchase-bar-stop="">
       <div className={`band ${styles.split}`}>
         <div className={styles.content}>
           <Eyebrow tone="brass" align="center">

@@ -31,3 +31,44 @@
   transform: translateY(0);
   box-shadow: none;
 }
+
+/* ---- Confirmation toast (DishOrderProvider) ----------------------------------
+   Dish Landing v2's flash: a green-forest pill with blush type, rising from
+   below the bottom edge. z-index 110 — above the purchase bar (70) and the
+   bottom sheets (100), beneath the consent panel (310). Parked off-screen
+   rather than hidden, so its live region is always in the accessibility tree
+   to announce what arrives in it. */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+  z-index: 110;
+  max-width: calc(100vw - 32px);
+  padding: 14px 22px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-dark);
+  color: var(--text-on-dark);
+  font-family: var(--font-sans);
+  font-size: var(--body-lg);
+  letter-spacing: 0.01em;
+  text-align: center;
+  box-shadow: var(--shadow-raised);
+  pointer-events: none;
+  transform: translateX(-50%) translateY(calc(100% + 48px));
+  transition: transform 0.28s ease;
+}
+
+.toast:empty {
+  padding: 0;
+  box-shadow: none;
+}
+
+.toast[data-show] {
+  transform: translateX(-50%) translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    transition: none;
+  }
+}
