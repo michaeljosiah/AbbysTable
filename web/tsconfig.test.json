@@ -30,6 +30,7 @@
     "tests/checkout-legal-return.test.tsx",
     "tests/homepage.test.tsx",
     "tests/delivery-faqs.test.tsx",
+    "tests/email.test.ts",
     "tests/support/*.ts",
     "src/components/personalisation/OptionGroupsControl.tsx",
     "src/lib/aonik/dataMode.ts",
