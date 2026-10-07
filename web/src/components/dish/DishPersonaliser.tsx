@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 
 import { Nutrition } from '@/components/checkout/DishPicker';
 import {
@@ -17,6 +17,7 @@ import {
   type PersonalisationDraft,
 } from '@/lib/aonik/personalisation';
 import { HEAT_LABELS, type Dish } from '@/lib/aonik/types';
+import { PORTION_GROUP_KEY, returnedPortion } from '@/lib/dish-return';
 import { formatPrice, formatSignedPrice } from '@/lib/format';
 
 import styles from './DishPersonaliser.module.css';
@@ -80,6 +81,20 @@ export function DishPersonaliser({ dish, optionGroups, onChange }: DishPersonali
   const [enabled, setEnabled] = useState(false);
   const [selection, setSelection] = useState<PersonalisationDraft>(initial);
   const [sheetOpen, setSheetOpen] = useState(false);
+
+  /*
+   * Back from Our Standards: "See our standards" wrote the chosen portion into
+   * this page's own URL before leaving (`lib/dish-return.ts`), so whichever
+   * way the customer returns to that history entry, the portion is restored
+   * here — before paint on a client-side return. A fresh visit has no
+   * `?portion` and starts as Abby designed it.
+   */
+  useLayoutEffect(() => {
+    const portion = returnedPortion(window.location.search, optionGroups);
+    if (!portion) return;
+    setEnabled(true);
+    setSelection((current) => ({ ...current, [PORTION_GROUP_KEY]: [portion] }));
+  }, [optionGroups]);
 
   const surchargePence = useMemo(
     () => (enabled ? localSurcharge(optionGroups, selection) : 0),

@@ -601,6 +601,39 @@ export async function getDishPageData(slug: string) {
 }
 
 /**
+ * Resolves everything Our Standards renders in one concurrent pass.
+ *
+ *  - `exampleDish`: the dish band 05 prints as "Example dish information" —
+ *    null when the catalogue has no such dish, and the panel is then omitted.
+ *  - `minDishes`: the box minimum the closing CTA's copy states.
+ *  - `returnDish` / `returnGroups`: only when the page was opened from a dish
+ *    (`?from=dish&dish=<slug>`), so "Back to dish" is validated against the
+ *    real catalogue and its portion against the dish's own option groups. A
+ *    slug with no dish behind it resolves to null and the page shows no link.
+ */
+export async function getStandardsPageData(options: {
+  exampleDishSlug: string;
+  returnSlug?: string;
+}): Promise<{
+  exampleDish: Dish | null;
+  minDishes: number;
+  returnDish: Dish | null;
+  returnGroups: MappedOptionGroup[];
+}> {
+  const client = await getAonikClient();
+  const { returnSlug } = options;
+
+  const [exampleDish, pricing, returnDish, returnGroups] = await Promise.all([
+    client.getDishBySlug(options.exampleDishSlug),
+    client.getBoxPricing(),
+    returnSlug ? client.getDishBySlug(returnSlug) : Promise.resolve(null),
+    returnSlug ? client.getDishOptionGroups(returnSlug) : Promise.resolve([]),
+  ]);
+
+  return { exampleDish, minDishes: pricing.custom.minDishes, returnDish, returnGroups };
+}
+
+/**
  * Resolves everything the /menu page renders in one concurrent pass.
  *
  * Filtering happens server-side: the browse endpoint pages its results, so the

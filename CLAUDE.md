@@ -52,6 +52,13 @@ Conventions inside `web/` that are easy to get wrong:
   serves `500.html` on an outage yet — that needs a CDN rule.
 - **Menu faceting lives in `src/lib/menu/filters.ts`**, deliberately free of React. Change matching
   rules there, not in components.
+- **Dish → Our Standards → dish (#17)** is specified in `src/lib/dish-return.ts`, also React-free.
+  "Back to dish" needs BOTH a real dish in `?from=dish&dish=<slug>` (checked on the server against
+  the catalogue) AND a live `at-dish-return-v1` sessionStorage record written by the dish page's
+  `StandardsLink` (a pasted link has none). The chosen portion travels in the dish page's own URL
+  (`?portion=`), rewritten before leaving, so Back by any route restores it. Two more client
+  components serve it: `StandardsLink` and `BackToDish` (whose inline gate script hides a pasted
+  link before first paint).
 - **Internal links go through `next/link`.** `Button` and `NavLink` route on `href` automatically
   (`isExternalHref` in `src/lib/links.ts`); nav anchors are root-relative (`/#founder`) so they work
   from `/menu` as well as `/`.

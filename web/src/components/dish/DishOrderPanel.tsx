@@ -7,13 +7,19 @@ import type { MappedOptionGroup, PersonalisationSelection } from '@/lib/aonik/ma
 import { hasOptionChoices } from '@/lib/aonik/personalisation';
 import type { Dish } from '@/lib/aonik/types';
 import { useCart } from '@/lib/cart/CartProvider';
+import { chosenPortion } from '@/lib/dish-return';
 
 import { DishPersonaliser } from './DishPersonaliser';
+import { StandardsLink } from './StandardsLink';
 import styles from './DishOrderPanel.module.css';
 
 /**
  * Joins the personaliser to the cart: owns the current choice so "Add this dish
  * to your box" can write a complete line, then hands off to Step 1.
+ *
+ * It also opens the Our Standards round trip (`lib/dish-return.ts`), because it
+ * is what knows the chosen portion: "See our standards" carries it, and the
+ * personaliser restores it when the customer comes back.
  */
 interface DishOrderPanelProps {
   dish: Dish;
@@ -58,6 +64,11 @@ export function DishOrderPanel({ dish, optionGroups }: DishOrderPanelProps) {
 
   return (
     <>
+      <StandardsLink
+        slug={dish.slug}
+        portion={chosenPortion(optionGroups, choice.personalisation)}
+      />
+
       {hasOptionChoices(optionGroups) ? (
         <DishPersonaliser dish={dish} optionGroups={optionGroups} onChange={handleChange} />
       ) : null}

@@ -1,0 +1,607 @@
+/* ===========================================================================
+   Our Standards — design/Abby's Table - Standards v2.dc.html (approved)
+   ---------------------------------------------------------------------------
+   Mobile-first (design/CLAUDE.md, "Mobile-first rebuild"): the rules with no
+   media query ARE the phone design; 640 and 1024 are min-width only. Values
+   are the design file's, which takes them from Homepage v2.
+
+   Named departures, approved for THIS PAGE ONLY (design/CLAUDE.md, Standards
+   page) — do not copy them elsewhere without a decision:
+    - band titles at clamp(26px, 7.4vw, 34px);
+    - index labels 20px on a phone, 22px from 1024;
+    - a 14px radius on the hero mark cards;
+    - the footer's 2px brass divider used mid-page, under the chapter opener;
+    - a green-forest hero CTA;
+    - hero title, lede and CTA centred for the whole single-column layout,
+      going left at 1024 when the hero splits.
+   =========================================================================== */
+
+/* Inner shell: 1280 cap, gutter 22 → 34 → 48. Border-box, as in the design,
+   so the cap includes the gutters. */
+.inner {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 22px;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+/* ---- Grounds ---- */
+
+.cream {
+  background: var(--surface-page);
+}
+
+.blush {
+  background: var(--surface-blush);
+}
+
+/* The closing CTA shares the hero's ground, so the page opens and closes on
+   the same colour. */
+.sage,
+.hero {
+  background: var(--sage);
+}
+
+/* ---- Hero ---- */
+
+.hero {
+  padding: 34px 0 44px;
+}
+
+.heroGrid {
+  display: grid;
+  gap: 22px;
+}
+
+/* Title and lede centred on a phone — the page's one centred block. */
+.heroLead {
+  text-align: center;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: clamp(38px, 11.6vw, 56px);
+  line-height: 1.04;
+  letter-spacing: -0.015em;
+  color: var(--text-heading);
+  text-wrap: pretty;
+}
+
+/* Page lede: 18px at every width. */
+.heroLede {
+  margin-top: 18px;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+/* Photographs reserve their geometry before they load (zero layout shift):
+   the box carries the aspect ratio, the image fills it. A <figure> carries a
+   40px UA side margin — zeroed by the global reset. */
+.figure {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-card);
+  background: var(--surface-card);
+}
+
+.image {
+  object-fit: cover;
+}
+
+/* The four prohibitions: stacked cards two-up on a phone (glyph above the
+   words), the inline row from 640. */
+.nos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.no {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+  background: var(--surface-bright);
+  border: var(--border-hairline) solid var(--sand-2);
+  border-radius: 14px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: var(--weight-medium);
+  line-height: 1.3;
+  color: var(--text-heading);
+  text-align: left;
+}
+
+/* A graphic mark on a cream card: brass-ink clears the 3:1 non-text minimum. */
+.noMark {
+  flex: 0 0 auto;
+  color: var(--brass-ink);
+}
+
+/* ---- CTAs ----
+   Button ladder: 54 hero primary, 52 major section CTA. Full width inside the
+   gutters on a phone, intrinsic from 640; the height never changes. Hover is
+   a colour shift, never a lift; press deepens. */
+.cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  border-radius: var(--radius-pill);
+  background-color: var(--action-dark);
+  color: var(--white);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--btn-size);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: background-color 0.16s ease;
+}
+
+/* Restated colour: a filled anchor must not take a link hover colour. */
+.cta:hover {
+  background-color: var(--surface-darker);
+  color: var(--white);
+}
+
+.cta:active {
+  filter: brightness(0.94);
+}
+
+/* currentColor would be white on sage; a green ring keeps the pill shape. */
+.cta:focus-visible {
+  outline: 2px solid var(--text-heading);
+  outline-offset: 3px;
+  border-radius: var(--radius-pill);
+}
+
+.heroCta {
+  min-height: 54px;
+  margin-top: 30px;
+  padding: 0 32px;
+}
+
+.closingCta {
+  min-height: 52px;
+  padding: 0 34px;
+}
+
+/* ---- Bands ---- */
+
+/* scroll-margin: anchor jumps (the hero CTA, the index) land clear of the
+   sticky header. */
+.band {
+  padding: 44px 0 48px;
+  scroll-margin-top: 84px;
+}
+
+/* Chapter opener: left-aligned on a phone (a second centred heading under the
+   hero would read as a competing title), centred from 1024. */
+.head {
+  margin-bottom: 44px;
+}
+
+.sectionTitle {
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: clamp(30px, 8.6vw, 40px);
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  color: var(--text-heading);
+  text-wrap: pretty;
+}
+
+.headLede {
+  max-width: 720px;
+  margin-top: 14px;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+/* Index: a list of 56px rows on a phone, hairlines between. */
+.index {
+  display: grid;
+  margin-top: 26px;
+  text-align: left;
+}
+
+.indexItem {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 14px;
+  min-height: 56px;
+  padding: 10px 0;
+  text-decoration: none;
+}
+
+.indexItem + .indexItem {
+  border-top: var(--border-hairline) solid var(--border-light);
+}
+
+/* How It Works v2's numeral device: 34px ring, 1px brass, green figure. */
+.indexNum,
+.num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: var(--border-hairline) solid var(--rule-brass);
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 15px;
+  line-height: 1;
+  color: var(--text-heading);
+}
+
+.indexLabel {
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 20px;
+  line-height: 1.2;
+  color: var(--text-heading);
+  transition: color 0.16s ease;
+}
+
+/* A direction mark, so green-forest rather than the identity brass. */
+.indexChevron {
+  color: var(--text-heading);
+  transition: color 0.16s ease, transform 0.16s ease;
+}
+
+.indexItem:hover .indexLabel,
+.indexItem:hover .indexChevron {
+  color: var(--action-primary-hover);
+}
+
+.indexItem:hover .indexChevron {
+  transform: translateX(2px);
+}
+
+.headRule {
+  height: var(--rule-thick);
+  margin-top: 26px;
+  background: var(--rule-brass);
+}
+
+/* One standard: lead, visual, facts — three direct children so the desktop
+   state can put the visual in its own column. */
+.row {
+  display: grid;
+  gap: 22px;
+  scroll-margin-top: 84px;
+}
+
+.num {
+  margin-bottom: 14px;
+}
+
+.bandTitle {
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: clamp(26px, 7.4vw, 34px);
+  line-height: 1.12;
+  color: var(--text-heading);
+  text-wrap: pretty;
+}
+
+.bandLede {
+  margin-top: 14px;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+/* Check rows: the tick spans both text rows, a hairline between rows. */
+.fact {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  column-gap: 13px;
+  align-items: start;
+  padding: 16px 0;
+}
+
+.fact + .fact {
+  border-top: var(--border-hairline) solid var(--border-light);
+}
+
+/* On blush the sand hairline disappears into the ground; a warm brown rule
+   takes its place. */
+.blush .fact + .fact {
+  border-top-color: color-mix(in srgb, var(--brown) 20%, transparent);
+}
+
+/* A status mark, not type: brass-ink (4.96:1 on cream, 3.72:1 on blush —
+   a graphic needs 3:1). */
+.tick {
+  grid-row: 1 / span 2;
+  margin-top: 3px;
+  color: var(--brass-ink);
+}
+
+.factTitle {
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 22px;
+  line-height: 1.2;
+  color: var(--text-heading);
+  text-wrap: pretty;
+}
+
+.factBody {
+  margin-top: 5px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+/* ---- Closing CTA ---- */
+
+.closing {
+  text-align: center;
+}
+
+.closingLede {
+  max-width: 540px;
+  margin: 12px auto 0;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+.closingActions {
+  display: flex;
+  justify-content: center;
+  margin-top: 28px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta,
+  .indexLabel,
+  .indexChevron {
+    transition: none;
+  }
+
+  .indexItem:hover .indexChevron {
+    transform: none;
+  }
+}
+
+/* ---- 640: more measure; marks inline; CTAs intrinsic ---- */
+
+@media (min-width: 640px) {
+  .inner {
+    padding: 0 34px;
+  }
+
+  .hero {
+    padding: 44px 0 56px;
+  }
+
+  /* Auto side margins, or the measure is anchored to the left gutter and the
+     centred copy is centred inside an off-centre block. */
+  .heroLead {
+    max-width: 560px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .no {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 16px;
+  }
+
+  .cta {
+    width: auto;
+  }
+
+  /* Centred under the centred copy until the hero splits at 1024. */
+  .heroCta {
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .band {
+    padding: 56px 0 60px;
+  }
+}
+
+/* ---- 1024: desktop compositions ---- */
+
+@media (min-width: 1024px) {
+  .inner {
+    padding: 0 48px;
+  }
+
+  .hero {
+    padding: 64px 0 72px;
+  }
+
+  /* Hero: 50/50, copy left, photograph right and vertically centred against
+     it. A flexible third row absorbs the figure's extra height — a spanning
+     item otherwise distributes it into the two auto rows and drags the marks
+     away from the copy. Row gap is zeroed so the spanning figure cannot
+     inject gaps into the copy column. */
+  .heroGrid {
+    grid-template-columns: minmax(0, 1.04fr) minmax(0, 1fr);
+    grid-template-rows: auto auto 1fr;
+    column-gap: 56px;
+    row-gap: 0;
+    align-content: center;
+  }
+
+  .heroLead {
+    grid-column: 1;
+    grid-row: 1;
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+    text-align: left;
+  }
+
+  .title {
+    font-size: 56px;
+  }
+
+  /* 28px: the homepage hero's subline → facts step, restated because the
+     grid's row gap is zero. */
+  .heroTail {
+    grid-column: 1;
+    grid-row: 2;
+    margin-top: 28px;
+  }
+
+  .heroCta {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .heroFigure {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    align-self: center;
+    aspect-ratio: 5 / 4;
+    border-radius: var(--radius-lg);
+  }
+
+  .band {
+    padding: 72px 0 76px;
+  }
+
+  /* Anchor landings clear the sticky header, which is taller from 1024
+     (85px today, against 65px on a phone; the design's 84px assumed its own
+     72px header). Revisit with the header rebuild (#10). */
+  .band,
+  .row {
+    scroll-margin-top: 100px;
+  }
+
+  .head {
+    margin-bottom: 64px;
+    text-align: center;
+  }
+
+  .sectionTitle {
+    font-size: var(--display-1);
+  }
+
+  .headLede {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Five across, numeral above the label, vertical hairlines between. */
+  .index {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    margin-top: 36px;
+    text-align: center;
+  }
+
+  .indexItem {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    row-gap: 14px;
+    padding: 4px 18px;
+  }
+
+  .indexItem + .indexItem {
+    border-top: none;
+    border-left: var(--border-hairline) solid var(--border-light);
+  }
+
+  .indexLabel {
+    font-size: 22px;
+  }
+
+  .indexChevron {
+    display: none;
+  }
+
+  /* A standard: the visual in its own column, alternating sides. Both edges
+     of each track in ONE declaration — a lone grid-column-start would cancel
+     the span. */
+  .row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto auto 1fr;
+    column-gap: 56px;
+    row-gap: 0;
+    align-content: center;
+  }
+
+  .lead {
+    grid-column: 2 / span 1;
+    grid-row: 1;
+  }
+
+  .facts {
+    grid-column: 2 / span 1;
+    grid-row: 2;
+  }
+
+  .bandFigure,
+  .panelFigure {
+    grid-column: 1 / span 1;
+    grid-row: 1 / span 3;
+    align-self: center;
+  }
+
+  /* Photographs take the large-media radius; the panel is a card and keeps
+     its own 18px. */
+  .bandFigure {
+    border-radius: var(--radius-lg);
+  }
+
+  .rowFlip .lead,
+  .rowFlip .facts {
+    grid-column: 1 / span 1;
+  }
+
+  .rowFlip .bandFigure,
+  .rowFlip .panelFigure {
+    grid-column: 2 / span 1;
+  }
+
+  /* No visual (the example dish missing from the catalogue): one column. */
+  .rowSolo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rowSolo .lead,
+  .rowSolo .facts {
+    grid-column: 1 / span 1;
+  }
+
+  .num {
+    width: 42px;
+    height: 42px;
+    margin-bottom: 18px;
+    font-size: 17px;
+  }
+}

@@ -20,6 +20,7 @@
     "tests/status-pages.test.ts",
     "tests/not-found-chrome.test.ts",
     "tests/consent.test.ts",
+    "tests/dish-return.test.ts",
     "tests/support/*.ts",
     "src/components/personalisation/OptionGroupsControl.tsx",
     "src/lib/aonik/dataMode.ts",
@@ -33,6 +34,8 @@
     "src/lib/cart/mutations.ts",
     "src/lib/cart/transport.ts",
     "src/lib/consent/consent.ts",
+    "src/lib/dish-return.ts",
+    "src/lib/standards/exampleDish.ts",
     "src/lib/status-pages/*.ts",
     "src/middleware.ts"
   ]
