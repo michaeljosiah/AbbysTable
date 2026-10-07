@@ -45,7 +45,7 @@ import {
 /* ---- Which routes auto-hide on desktop ---------------------------------------- */
 
 test('desktop auto-hide: the built marketing pages, and nothing else', () => {
-  for (const path of ['/', '/menu', '/how-it-works', '/our-story', '/standards']) {
+  for (const path of ['/', '/menu', '/how-it-works', '/our-story', '/standards', '/delivery-and-faqs']) {
     assert.equal(autoHidesOnDesktop(path), true, path);
   }
   // Trailing slash, query and hash do not change the route.
@@ -64,7 +64,7 @@ test('desktop auto-hide never reaches dish pages, Allergens, legal, account, log
   }
   // Unbuilt marketing routes join when they land: until then they are a 404,
   // and error pages keep a static header.
-  for (const path of ['/gifting', '/private-table', '/delivery-and-faqs', '/contact', '/nope']) {
+  for (const path of ['/gifting', '/private-table', '/contact', '/nope']) {
     assert.equal(autoHidesOnDesktop(path), false, path);
   }
   assert.equal(autoHidesOnDesktop(null), false);
@@ -265,7 +265,7 @@ test('the header links: the v2 five, in order — Gifting only once its page exi
 });
 
 test('no chrome link 404s or points at an anchor the v2 homepage drops', () => {
-  const BUILT = new Set(['/menu', '/how-it-works', '/our-story', '/standards', '/allergens', '/privacy', '/terms-of-sale', '/box', '/login', '/account/orders']);
+  const BUILT = new Set(['/menu', '/how-it-works', '/our-story', '/standards', '/delivery-and-faqs', '/allergens', '/privacy', '/terms-of-sale', '/box', '/login', '/account/orders']);
   // The v2 homepage keeps Private Table (#private); the footer is #contact.
   const ANCHORS = new Set(['/#private', '/#contact']);
   const links = [...NAV_ITEMS, ...FOOTER_COLUMNS.flatMap((column) => column.links)];

@@ -359,7 +359,10 @@ export const STOREFRONT_CONFIG_FIXTURE: StorefrontConfig = {
   recommendedChoiceLabel: "Abby's choice",
   resultsPageSize: 8,
   backToTopTrigger: { type: 'cardIndex', value: 10 },
-  delivery: { listPence: 1000, chargedPence: 0 },
+  // £5.95 per order, the configured charge Delivery & FAQs states
+  // (frontend-backend-contract §3d). The checkout steps still price from
+  // BOX_PRICING_FIXTURE's older "£10 → Free" until the funnel is reconciled.
+  delivery: { listPence: 595, chargedPence: 595 },
   defaultBoxSlug: 'abbys-box',
   extrasCollectionSlug: 'extras',
   box: {

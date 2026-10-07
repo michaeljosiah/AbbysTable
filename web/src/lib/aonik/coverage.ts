@@ -1,0 +1,125 @@
+/**
+ * Postcode coverage — frontend-backend-contract §3b. Powers the Delivery &
+ * FAQs checker (#23); Choose Box's delivery checker (#28) should ask the same
+ * question the same way.
+ *
+ * The authoritative source is the COURIER's coverage, not us, and the answer
+ * has three outcomes: serves / does not serve / could not check. The third is
+ * a technical failure with its own wording and a retry — never a "we don't
+ * deliver" answer — so a lookup that cannot answer THROWS rather than
+ * returning a refusal.
+ *
+ * Which lookup a request gets is the data mode's decision (`AonikClient
+ * .coverage`):
+ *   - demo: `DemoCoverageLookup` below, the design's own placeholder areas;
+ *   - live: none yet. Aonik has no coverage endpoint (michaeljosiah/aonik#352),
+ *     so `HttpAonikClient.coverage` is null and the page holds its checker
+ *     back rather than answering a question it cannot ask. Wiring it is an
+ *     implementation of `CoverageLookup` over that endpoint.
+ *
+ * Rate limiting and abuse protection belong to the endpoint (contract §3b).
+ */
+
+import { normalisePostcode, postcodeArea } from '@/lib/delivery/postcode';
+
+export type CoverageAnswer =
+  | {
+      status: 'serves';
+      /** Normalised for display; the page echoes it back. */
+      postcode: string;
+      /**
+       * ISO date of the earliest delivery for this postcode, when the lookup
+       * knows one. Absent: the page falls back to the tenant's delivery window.
+       */
+      earliestDeliveryDate?: string;
+    }
+  | { status: 'not-served'; postcode: string };
+
+export interface CoverageLookup {
+  /**
+   * Whether we deliver to a postcode (already normalised). THROWS when it
+   * cannot tell — "could not check", which is never a refusal.
+   */
+  check(postcode: string): Promise<CoverageAnswer>;
+  /**
+   * The postcode at a point, for "Use my current location": the contract's
+   * coordinates-to-postcode lookup. Null when no postcode can be placed there.
+   * Absent when this source has no such lookup — the page then offers no
+   * location control at all.
+   */
+  postcodeAt?(latitude: number, longitude: number): Promise<string | null>;
+}
+
+/* ---- Demo ------------------------------------------------------------------- */
+
+/**
+ * PLACEHOLDER coverage, verbatim from the design's not-yet list: the outward-code
+ * AREAS not yet served. Demo data for review only — the real list is the
+ * courier's. AB is in it so the design's sample "AB12 3CD" reads as not in the
+ * area; "DA1 2AB" is served.
+ */
+export const DEMO_UNSERVED_AREAS: readonly string[] = [
+  'AB',
+  'BT',
+  'GY',
+  'HS',
+  'IM',
+  'IV',
+  'JE',
+  'KW',
+  'ZE',
+];
+
+/**
+ * Demo stand-ins for a coordinates-to-postcode lookup: the design's two
+ * sample postcodes, each at a point in its area (Dartford, Aberdeen). A
+ * location within `DEMO_LOCATION_RADIUS_KM` of one resolves to it; anywhere
+ * else resolves to nothing, and the page says it could not use the location
+ * — it never puts a postcode the customer is not at in their field.
+ */
+export const DEMO_LOCATIONS: ReadonlyArray<{ postcode: string; latitude: number; longitude: number }> = [
+  { postcode: 'DA1 2AB', latitude: 51.4446, longitude: 0.2175 },
+  { postcode: 'AB12 3CD', latitude: 57.1209, longitude: -2.0983 },
+];
+
+export const DEMO_LOCATION_RADIUS_KM = 25;
+
+/** Great-circle distance in km (haversine). */
+export function distanceKm(
+  a: { latitude: number; longitude: number },
+  b: { latitude: number; longitude: number },
+): number {
+  const rad = (degrees: number) => (degrees * Math.PI) / 180;
+  const dLat = rad(b.latitude - a.latitude);
+  const dLon = rad(b.longitude - a.longitude);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(rad(a.latitude)) * Math.cos(rad(b.latitude)) * Math.sin(dLon / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+/**
+ * The demo lookup. Deterministic and network-free, like every demo read. It
+ * names no delivery date of its own: the page takes the tenant's delivery
+ * window, which is what demo mode shows everywhere else.
+ */
+export class DemoCoverageLookup implements CoverageLookup {
+  async check(postcode: string): Promise<CoverageAnswer> {
+    const normalised = normalisePostcode(postcode);
+    // The action validates first; a malformed postcode reaching here is a
+    // fault, and a fault is "could not check", never an answer.
+    if (!normalised) throw new Error(`Not a postcode: ${postcode}`);
+    return DEMO_UNSERVED_AREAS.includes(postcodeArea(normalised))
+      ? { status: 'not-served', postcode: normalised }
+      : { status: 'serves', postcode: normalised };
+  }
+
+  async postcodeAt(latitude: number, longitude: number): Promise<string | null> {
+    let nearest: { postcode: string; km: number } | null = null;
+    for (const place of DEMO_LOCATIONS) {
+      const km = distanceKm({ latitude, longitude }, place);
+      if (!nearest || km < nearest.km) nearest = { postcode: place.postcode, km };
+    }
+    return nearest && nearest.km <= DEMO_LOCATION_RADIUS_KM ? nearest.postcode : null;
+  }
+}
