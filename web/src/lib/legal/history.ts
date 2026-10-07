@@ -1,3 +1,4 @@
+import { documentQuery } from './checkoutReturn';
 import { resolveLegalAnchor, type LegalDocument, type LegalSection } from './document';
 
 /*
@@ -38,6 +39,11 @@ export function fragmentUrl(location: LocationLike, documentPath: string, slug: 
  * or legacy number — and `null` for anywhere else. It must be this very
  * document: same origin, path and query. A link from the header or the cookie panel to
  * `/privacy#cookies`, followed while already on it, counts.
+ *
+ * Checkout's origin marker (`?from=checkout`) is not part of the document's
+ * address (`documentQuery`): on `/privacy?from=checkout` those same links are
+ * jumps within the page, so the URL keeps the marker and the page keeps
+ * "← Back to checkout", instead of a navigation to the bare address losing both.
  */
 export function linkTarget(
   doc: LegalDocument,
@@ -51,7 +57,11 @@ export function linkTarget(
   } catch {
     return null;
   }
-  if (url.origin !== location.origin || url.pathname !== location.pathname || url.search !== location.search) {
+  if (
+    url.origin !== location.origin ||
+    url.pathname !== location.pathname ||
+    documentQuery(url.search) !== documentQuery(location.search)
+  ) {
     return null;
   }
   // The page's own bare address (the footer's "Privacy Policy" on /privacy)
