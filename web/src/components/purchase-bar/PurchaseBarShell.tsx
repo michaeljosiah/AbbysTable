@@ -82,7 +82,10 @@ export function PurchaseBarShell({
  * never fires and `window.scrollY` stays 0. The position is then read from
  * that container. Scrolls inside an element that does not hold the bar (a
  * dish rail, a sheet's list) only trigger a re-read: they are not the page
- * moving, so they never count towards the direction.
+ * moving, so they never count towards the direction. The markers are then
+ * measured against that container's visible box rather than the window's, so
+ * a CTA it has clipped counts as passed and the footer line sits where the
+ * reader can see it.
  */
 function useBarVisibility(
   barRef: RefObject<HTMLDivElement | null>,
@@ -94,6 +97,17 @@ function useBarVisibility(
     let y = window.scrollY;
     let direction = initialDirection(y);
     let frame = 0;
+    /** The ancestor doing the scrolling, or null while the window does. */
+    let scroller: Element | null = null;
+
+    /** The visible area the markers are measured against, in viewport terms. */
+    const view = () => {
+      if (!scroller?.isConnected) return { top: 0, height: window.innerHeight };
+      const box = scroller.getBoundingClientRect();
+      const top = Math.max(0, box.top + scroller.clientTop);
+      const bottom = Math.min(window.innerHeight, box.top + scroller.clientTop + scroller.clientHeight);
+      return { top, height: Math.max(0, bottom - top) };
+    };
 
     // Queried from the document on every pass, never held: a held node can be
     // a detached one after a re-render, and a detached node has no layout.
@@ -104,16 +118,20 @@ function useBarVisibility(
         holdDown: Boolean(header?.contains(document.activeElement)),
       });
 
+      const { top: viewTop, height: viewHeight } = view();
+
       const reveal = document.querySelector(`[${REVEAL_ATTR}]`);
       const revealed = hasScrolledPast(
-        reveal && reveal.getClientRects().length > 0 ? reveal.getBoundingClientRect() : null,
+        reveal && reveal.getClientRects().length > 0
+          ? { bottom: reveal.getBoundingClientRect().bottom - viewTop }
+          : null,
       );
 
       const tops: number[] = [];
       document.querySelectorAll(`[${STOP_ATTR}]`).forEach((stop) => {
-        if (stop.getClientRects().length > 0) tops.push(stop.getBoundingClientRect().top);
+        if (stop.getClientRects().length > 0) tops.push(stop.getBoundingClientRect().top - viewTop);
       });
-      const suppressed = isSuppressed(firstStopTop(tops), window.innerHeight);
+      const suppressed = isSuppressed(firstStopTop(tops), viewHeight);
 
       setOn(shouldShowBar({ revealed, down: direction.down, suppressed, followsDirection }));
     };
@@ -125,8 +143,10 @@ function useBarVisibility(
     const onScroll = (event: Event) => {
       const source = event.target;
       if (!(source instanceof Element)) {
+        scroller = null;
         y = window.scrollY;
       } else if (barRef.current && source.contains(barRef.current)) {
+        scroller = source;
         y = source.scrollTop;
       }
       schedule();

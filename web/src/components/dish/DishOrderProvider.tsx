@@ -62,6 +62,9 @@ const TOAST_MS = 2400;
  */
 const GHOST_TAP_MS = 500;
 
+/** How long a successful add holds both buttons while the box flow loads. */
+const HANDOFF_RELEASE_MS = 10_000;
+
 interface Toast {
   message: string;
   /**
@@ -86,7 +89,9 @@ export function DishOrderProvider({
   const [toast, setToast] = useState<Toast | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // `pending` is a render behind (and always false in demo): two activations
-  // in one frame both read it as false. This is read synchronously.
+  // in one frame both read it as false. This is read synchronously, and stays
+  // set once the add has succeeded: the page is on its way out, and a tap on
+  // the still-visible button during a slow route change must not add again.
   const inFlight = useRef(false);
 
   const flash = useCallback((message: string, error = false) => {
@@ -124,15 +129,19 @@ export function DishOrderProvider({
       // whoever tapped the bar with the panel scrolled out of sight.
       const message = cause instanceof Error ? cause.message : 'The box could not be updated.';
       flash(`${message} Please try again.`, true);
-      return;
-    } finally {
       inFlight.current = false;
+      return;
     }
 
     // Only after the authoritative cart has adopted the line.
     flash('Added to your box');
     swallowClicksFor(GHOST_TAP_MS);
     router.push(boxResumeHref(boxSize));
+    // Should the hand-off never land (the customer goes Back mid-route, say),
+    // the buttons come back rather than staying silently dead.
+    window.setTimeout(() => {
+      inFlight.current = false;
+    }, HANDOFF_RELEASE_MS);
   }, [pending, addLine, dish, choice, flash, router, boxSize]);
 
   const value = useMemo<DishOrderState>(
