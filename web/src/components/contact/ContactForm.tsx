@@ -4,6 +4,7 @@ import Link from 'next/link';
 import {
   startTransition,
   useActionState,
+  useCallback,
   useEffect,
   useId,
   useRef,
@@ -109,8 +110,12 @@ export function ContactForm({ action }: { action: EnquiryAction }) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [imageProblems, setImageProblems] = useState<string[]>([]);
   const [dragOver, setDragOver] = useState(false);
-  /** The `sent` result the customer has moved on from with "Send another message". */
-  const [dismissed, setDismissed] = useState<EnquiryState | null>(null);
+  /**
+   * The action's last answer once the customer has moved past it — by sending
+   * again, or "Send another message" — so a stale "sent" or failure never
+   * shows beside what they are doing now.
+   */
+  const [settled, setSettled] = useState<EnquiryState | null>(null);
 
   const id = useId();
   const ids = {
@@ -176,8 +181,17 @@ export function ContactForm({ action }: { action: EnquiryAction }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
-  const sent = state.status === 'sent' && state !== dismissed;
-  const failed = !isPending && (state.status === 'error' || state.status === 'unavailable');
+  const current = state !== settled;
+  const sent = current && state.status === 'sent';
+  const failed = current && !isPending && (state.status === 'error' || state.status === 'unavailable');
+
+  // Stable, so a re-render never takes focus back: it runs once, as the
+  // confirmation mounts — announced, and where a keyboard user continues.
+  const successRef = useCallback((element: HTMLDivElement | null) => {
+    if (!element) return;
+    element.focus({ preventScroll: true });
+    revealUnderHeader(element, 16);
+  }, []);
 
   const update =
     (field: keyof EnquiryDraft) =>
@@ -198,6 +212,7 @@ export function ContactForm({ action }: { action: EnquiryAction }) {
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (isPending) return;
+    setSettled(state);
     const found = validateEnquiry(draft);
     const first = firstInvalidField(found);
     setErrors(found);
@@ -276,20 +291,14 @@ export function ContactForm({ action }: { action: EnquiryAction }) {
     setImageProblems([]);
     setDraft(EMPTY_ENQUIRY);
     setErrors({});
-    setDismissed(state);
+    setSettled(state);
     requestAnimationFrame(() => nameRef.current?.focus());
   };
 
   if (sent) {
     return (
       <div
-        ref={(element) => {
-          // Focus moves to the confirmation as it mounts, so it is announced
-          // and a keyboard user continues from it.
-          if (!element) return;
-          element.focus({ preventScroll: true });
-          revealUnderHeader(element, 16);
-        }}
+        ref={successRef}
         className={styles.success}
         role="status"
         tabIndex={-1}
