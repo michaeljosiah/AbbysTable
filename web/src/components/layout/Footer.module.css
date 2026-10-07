@@ -194,8 +194,9 @@
   color: var(--green-sage);
 }
 
-/* "Cookie preferences", as the Homepage v2 legal strip sets it: 13px sand-2,
-   brass on hover, a 44px target because it is reachable on a phone. */
+/* The legal strip's links (Privacy Policy, Terms, Cookie preferences), as
+   Homepage v2 sets them: 13px sand-2, brass on hover, a 44px target because it
+   is reachable on a phone. */
 .cookieLink {
   display: inline-flex;
   align-items: center;
@@ -208,6 +209,19 @@
 
 .cookieLink:hover {
   color: var(--brass);
+}
+
+/* Privacy Policy | Terms — the strip's 12px gap and green-mid bar. */
+.legalRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.legalSep {
+  font-size: var(--body-sm);
+  line-height: 1;
+  color: var(--green-mid);
 }
 
 .follow {

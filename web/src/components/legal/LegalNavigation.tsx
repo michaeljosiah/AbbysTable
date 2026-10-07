@@ -238,11 +238,18 @@ export function LegalNavigation({
    * The passive URL write, from the scroll-stop pass only: the section being
    * read, or no fragment above the first one (the reader is at the top of the
    * document, not in clause 1). At most one write a second; a write held back
-   * re-reads the position when it runs.
+   * re-reads the position when it runs. A deliberate move (a click, Back or
+   * Forward) cancels a held-back write, and one that fires while such a move
+   * still has the spy locked writes nothing: mid-scroll it would replace the
+   * entry the reader just chose with whatever section was passing. The settle
+   * pass that releases the lock calls this again.
    */
   const syncUrl = useCallback(() => {
     clearTimeout(urlTimer.current);
-    const write = () => writeUrl(readPosition()?.slug ?? null, 'replace');
+    const write = () => {
+      if (lockRef.current) return;
+      writeUrl(readPosition()?.slug ?? null, 'replace');
+    };
     const wait = lastUrlWrite.current + URL_INTERVAL_MS - Date.now();
     if (wait <= 0) write();
     else urlTimer.current = setTimeout(write, wait);
@@ -324,6 +331,7 @@ export function LegalNavigation({
   const goSection = useCallback(
     (section: LegalSection, mode: HistoryMode, behavior: ScrollBehavior) => {
       closeSheet({ returnFocus: false });
+      clearTimeout(urlTimer.current);
       lockRef.current = true;
       select(section);
       writeUrl(section.slug, mode);
@@ -334,6 +342,7 @@ export function LegalNavigation({
 
   const goTop = useCallback(() => {
     closeSheet({ returnFocus: false });
+    clearTimeout(urlTimer.current);
     window.scrollTo({ top: 0, behavior: motion() });
     // Focus travels with the scroll, or Tab would resume thirty screens down.
     focusTop();
@@ -516,6 +525,8 @@ export function LegalNavigation({
   // Back / Forward through the reader's selections.
   useEffect(() => {
     const onPopState = () => {
+      // A held-back passive write would land on the entry just returned to.
+      clearTimeout(urlTimer.current);
       // Back to another page (client-side history): not ours to resolve, even
       // where its fragment looks like one of this document's.
       if (!isCurrent()) return;
