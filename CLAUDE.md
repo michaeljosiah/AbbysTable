@@ -34,7 +34,9 @@ Conventions inside `web/` that are easy to get wrong:
   "not yet published" notice — do not fill the gap with plausible-looking data.
 - **Server Components by default.** Client components are `Header`, `MobileDrawer`, `Footer`, the
   homepage `Menu` rail, and the `/menu` browser (`MenuBrowser`, `MenuToolbar`, `MenuGrid`,
-  `FilterChip`, `FilterPill`) — each for a specific piece of state — plus `app/error.tsx` and
+  `FilterChip`, `FilterPill`), the `/how-it-works` size picker (`BoxSizePicker`, with
+  `BoxSizeProvider`/`BoxSizeLink` sharing the choice with the page's purchase links) — each for a
+  specific piece of state — plus `app/error.tsx` and
   `app/global-error.tsx`, which Next requires to be client components. Data is fetched once in
   `app/layout.tsx` / the route's `page.tsx` and passed down; sections never fetch for themselves.
 - **Status pages (#13).** Unmatched URLs get the root `app/not-found.tsx`, which renders
