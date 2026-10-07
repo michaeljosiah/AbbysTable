@@ -6,6 +6,14 @@
   border-bottom: 1px solid var(--sand);
 }
 
+/* The help drawer (HelpPanel, z 200) renders inside this header, so the
+   header's stacking context caps it at 50: under the purchase bars (60 / 90)
+   and the cookie banner (70). While it is open, the header rises to the
+   drawer's own level. */
+.header[data-help-open] {
+  z-index: 200;
+}
+
 .row {
   display: flex;
   align-items: center;

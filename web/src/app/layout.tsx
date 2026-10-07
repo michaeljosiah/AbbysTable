@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Cormorant_Garamond, Figtree, Playfair_Display } from 'next/font/google';
 
+import { ConsentManager } from '@/components/consent/ConsentManager';
 import { DevDataMode } from '@/components/dev/DevDataMode';
 import { liveOrderingEnabled, resolveDataMode } from '@/lib/aonik/dataMode';
 import { CartProvider } from '@/lib/cart/CartProvider';
@@ -9,7 +10,7 @@ import '@/styles/tokens.css';
 import './globals.css';
 
 /**
- * Root layout: document, fonts and the cart.
+ * Root layout: document, fonts, the cart and the cookie consent manager.
  *
  * Chrome lives in the route groups — `(site)` carries the marketing header and
  * footer, `(checkout)` carries the stepper — so the builder is not wrapped in
@@ -85,6 +86,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <CartProvider mode={mode} liveOrdering={liveOrderingEnabled()}>
           {children}
         </CartProvider>
+        {/* Mounted ONCE, here, so it covers every route group — never per page
+            (design/build-handoff.md §3s). Every non-essential tag gates on it
+            through ConsentGate / onConsent. */}
+        <ConsentManager />
         {/* Renders nothing in production. */}
         <DevDataMode />
       </body>

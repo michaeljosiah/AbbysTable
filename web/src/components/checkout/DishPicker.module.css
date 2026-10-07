@@ -2983,6 +2983,13 @@
 }
 
 @media (max-width: 640px) {
+  /* As on /menu: the sheet opens inside this sticky stacking context, so the
+     context rises to the design's scrim level (Add Dishes v2 `.mn-scrim`, 90)
+     while it is open — over the cookie banner (70) and the header (50). */
+  .sticky[data-sheet-open] {
+    z-index: 90;
+  }
+
   .backdrop {
     display: block;
     position: fixed;

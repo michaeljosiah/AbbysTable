@@ -870,7 +870,7 @@ export function ExtrasStep({
       </div>
 
       {/* ---- Mobile bar + sheet ------------------------------------------------ */}
-      <div className={styles.mobileBar}>
+      <div className={styles.mobileBar} data-consent-yield>
         <button
           type="button"
           className={styles.barSummary}

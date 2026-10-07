@@ -772,7 +772,7 @@ export function ReviewStep({
       </aside>
 
       {/* ---- Mobile bar + order-summary sheet -------------------------------- */}
-      <div className={styles.mobileBar}>
+      <div className={styles.mobileBar} data-consent-yield>
         <button
           type="button"
           className={styles.barSummary}

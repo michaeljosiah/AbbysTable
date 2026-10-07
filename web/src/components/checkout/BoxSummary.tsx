@@ -865,7 +865,7 @@ export function BoxSummary({
       </div>
 
       {/* ---- Compact bar + sheet -------------------------------------------- */}
-      <div className={styles.bar}>
+      <div className={styles.bar} data-consent-yield>
         <button
           type="button"
           className={styles.barSummary}

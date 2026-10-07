@@ -52,7 +52,9 @@ export function CheckoutHeader() {
       .sort((a, b) => b.path!.length - a.path!.length)[0]?.step ?? CHECKOUT_STEPS[0];
 
   return (
-    <header className={styles.header}>
+    // data-help-open lifts this stacking context while the help drawer, which
+    // renders inside it, is open (CheckoutHeader.module.css).
+    <header className={styles.header} data-help-open={helpOpen || undefined}>
       <div className={styles.row}>
         <Link href="/" aria-label="Abby's Table — home" className={styles.logoLink}>
           {/* Sized entirely from CSS so the ≤640px / ≤440px overrides apply. */}

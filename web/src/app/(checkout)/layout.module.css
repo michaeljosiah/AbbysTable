@@ -104,6 +104,24 @@
   color: rgb(233 205 184 / 0.5);
 }
 
+/* The design's checkout © row: 14px semibold blush, brass on hover, and a 44px
+   target — a flex item in the row, not a link inside running text. */
+.cookieLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--btn-size);
+  color: var(--text-on-dark);
+  text-decoration: none;
+  transition: color 0.16s ease;
+}
+
+.cookieLink:hover {
+  color: var(--brass);
+}
+
 .legalDivider {
   width: 1px;
   height: 18px;
@@ -170,5 +188,26 @@
     align-items: center;
     gap: var(--space-3);
     text-align: center;
+  }
+
+  /* As the design's checkout footer sets it on a phone: © and Cookie
+     preferences share a row, "Abby x" takes its own line beneath. */
+  .legal {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0 16px;
+  }
+
+  .copyright,
+  .cookieLink {
+    white-space: nowrap;
+  }
+
+  .legalDivider {
+    display: none;
+  }
+
+  .signoff {
+    flex-basis: 100%;
   }
 }

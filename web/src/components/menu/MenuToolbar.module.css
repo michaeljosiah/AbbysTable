@@ -236,6 +236,14 @@
 /* ---- Panel becomes a bottom sheet -------------------------------------------- */
 
 @media (max-width: 760px) {
+  /* The sheet and its backdrop live inside this sticky stacking context, which
+     would hold them under the cookie banner (70) and the header (50). While it
+     is open, lift the context to the design's scrim level (Menu Landing v3
+     `.mn-scrim`, 90), as the consent stacking order requires. */
+  .sticky[data-sheet-open] {
+    z-index: 90;
+  }
+
   .backdrop {
     display: block;
     position: fixed;
