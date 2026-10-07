@@ -20,13 +20,15 @@ import './globals.css';
  * Fonts are declared in `./fonts`, shared with `global-error.tsx`.
  */
 export const metadata: Metadata = {
-  title: "Abby's Table — Nigerian fusion food, rooted in tradition",
+  // The v2 homepage's headline, and its "mainland UK" — deliberate wording:
+  // non-mainland delivery is still an open question (CLAUDE.md).
+  title: "Abby's Table — Nigerian fusion food, nutrition at the core",
   description:
-    'Nigerian fusion food, made from scratch and delivered chilled UK-wide. No seed oils, no ultra-processed foods, no added MSG, no refined sugars.',
+    'Nigerian fusion food, made from scratch and delivered chilled to mainland UK. No seed oils, no ultra-processed foods, no added MSG, no refined sugars.',
   openGraph: {
     title: "Abby's Table",
     description:
-      'Nigerian fusion food, made from scratch and delivered chilled UK-wide. Heat, eat, live well.',
+      'Nigerian fusion food, made from scratch and delivered chilled to mainland UK. Heat, enjoy, live well.',
     type: 'website',
     locale: 'en_GB',
   },
