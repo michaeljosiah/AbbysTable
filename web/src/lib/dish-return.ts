@@ -28,27 +28,37 @@
  *     on a full load (`dishReturnGateScript`), by a layout effect on a
  *     client-side navigation. With JavaScript off it never shows.
  *
- *  3. "Back to dish" marks the record `returning: true`, then makes a TRUE
- *     return: `history.back()` when the entry behind is the dish, otherwise it
+ *     Opening in this tab is also what proves the customer LEFT: Our Standards
+ *     marks the record `departed`. The link writes nothing at all for a click
+ *     that will not navigate this tab (modifier keys, middle button), and a
+ *     record that never departed — an aborted navigation — restores nothing.
+ *
+ *  3. "Back to dish" makes a TRUE return: `history.back()` when the entry
+ *     behind is the dish, otherwise it marks the record `returning` and
  *     replaces this entry with the dish — never a forward push, so Dish →
  *     Standards → Dish can never loop.
  *
  *  4. The dish page restores ONLY on a genuine return (`isGenuineReturn`): a
- *     live record for this dish AND either the `returning` mark, or this being
- *     the very history entry the customer left from (its stamp matches the
- *     record's token). The stamp is the back/forward signal: it holds for the
- *     browser's Back button within the app (where the document's navigation
- *     type never changes) and for a back/forward document load alike, and no
- *     other entry carries it. Then the page restores the whole selection or
- *     nothing (`restorableSelection`), puts the scroll position back, and
- *     consumes the record so it can never apply twice. A fresh visit — a link,
- *     a bookmark, a reload after returning — never inherits an old selection.
+ *     live, DEPARTED record for this dish AND either the `returning` mark, or
+ *     this being the very history entry the customer left from (its stamp
+ *     matches the record's token). The stamp is the back/forward signal: it
+ *     holds for the browser's Back button within the app (where the document's
+ *     navigation type never changes) and for a back/forward document load
+ *     alike, and no other entry carries it. A RELOAD of the dish page is never
+ *     a return, and drops the record bound to it. On a genuine return the page
+ *     restores the whole selection or nothing (`restorableSelection`) and the
+ *     scroll position, then DISARMS the record: still bound to the entry (so
+ *     Forward to Our Standards and Back again keeps the choice), but restoring
+ *     nothing until Our Standards marks it departed again — and dropped the
+ *     moment the customer changes their choice (`discardDishReturn`). A fresh
+ *     visit — a link, a bookmark, a reload — never inherits an old selection.
  *
  * WHAT "THE CHOSEN PORTION" IS TODAY: the dish personaliser's `portion` option
  * group (Light table / Full table), carried with the rest of the selection.
  * Issue #22 replaces the personaliser with a portion card: that card passes its
- * selection (`{ portion: 'full' }`) to `StandardsLink`, and seeds itself from
- * the `selection` that `useDishReturn` hands back — nothing here changes.
+ * selection (`{ portion: 'full' }`) to `StandardsLink`, seeds itself from the
+ * `selection` that `useDishReturn` hands back, and calls its `discard` when the
+ * customer changes the portion — nothing here changes.
  */
 
 import { decodeSelection, type MappedOptionGroup, type PersonalisationSelection } from './aonik/map';
@@ -114,6 +124,27 @@ export function resolveDishReturn(slug: string | null, dish: { slug: string } | 
   return { slug, href: dishPath(slug) };
 }
 
+/**
+ * Will this click navigate THIS tab? Only an unmodified primary-button click
+ * on a link with no other target. Cmd/Ctrl/Shift/Alt and the middle button
+ * open a new tab or window (or download) and leave this page where it is, so
+ * nothing may be recorded for them.
+ */
+export function isSameTabClick(click: {
+  defaultPrevented: boolean;
+  button: number;
+  metaKey: boolean;
+  ctrlKey: boolean;
+  shiftKey: boolean;
+  altKey: boolean;
+  /** The link's `target` attribute, if any. */
+  target?: string | null;
+}): boolean {
+  if (click.defaultPrevented || click.button !== 0) return false;
+  if (click.metaKey || click.ctrlKey || click.shiftKey || click.altKey) return false;
+  return !click.target || click.target === '_self';
+}
+
 /* ---- The session record ------------------------------------------------- */
 
 export interface DishReturnRecord {
@@ -132,7 +163,14 @@ export interface DishReturnRecord {
   selection?: PersonalisationSelection;
   /** One-off token, also stamped on the dish's own history entry. */
   entry: string;
-  /** Set by "Back to dish". */
+  /**
+   * Set when Our Standards actually opened in this tab with the record — the
+   * proof the customer left. A record written for a click that never left
+   * (opened in a new tab, an aborted navigation) stays undeparted, and an
+   * undeparted record restores nothing.
+   */
+  departed: boolean;
+  /** Set by "Back to dish" when it has to replace rather than go back. */
   returning: boolean;
 }
 
@@ -152,6 +190,7 @@ export function createDishReturnRecord(input: {
     y: Math.max(0, Math.round(input.scrollY)),
     ...(input.selection ? { selection: input.selection } : {}),
     entry: input.entry,
+    departed: false,
     returning: false,
   };
 }
@@ -183,6 +222,7 @@ export function readDishReturnRecord(
     typeof record.hl !== 'number' ||
     typeof record.y !== 'number' ||
     typeof record.entry !== 'string' ||
+    typeof record.departed !== 'boolean' ||
     typeof record.returning !== 'boolean' ||
     typeof record.t !== 'number' ||
     !Number.isFinite(record.t)
@@ -198,11 +238,17 @@ export function readDishReturnRecord(
     y: record.y,
     ...(record.selection !== undefined ? { selection: record.selection } : {}),
     entry: record.entry,
+    departed: record.departed,
     returning: record.returning,
   };
 }
 
-/** The record with the customer's return marked. */
+/** Our Standards opened in this tab with the record: the customer has left. */
+export function markDeparted(record: DishReturnRecord): DishReturnRecord {
+  return { ...record, departed: true };
+}
+
+/** "Back to dish" is replacing Our Standards with the dish (a new entry). */
 export function markReturning(record: DishReturnRecord): DishReturnRecord {
   return { ...record, returning: true };
 }
@@ -222,19 +268,21 @@ export function returnsByHistory(record: DishReturnRecord, historyLength: number
 }
 
 /**
- * Is this mount of the dish page a GENUINE return? Only with a live record for
- * this dish, and then only if "Back to dish" marked it, or this is the very
- * history entry the customer left from — the design's
- * `returning || back_forward`, made exact. `entryStamps` are the stamps the
- * browser reports for the current entry (`history.state`, and the state the
- * last `popstate` arrived with): a new entry — a link, the menu, a bookmark —
- * has none.
+ * Is this mount of the dish page a GENUINE return? Only when the customer
+ * really went to Our Standards from this entry and came back:
+ *  - a live record for this dish that Our Standards marked `departed`, AND
+ *  - either "Back to dish" marked it `returning` (its replace path lands on a
+ *    new entry), or this is the very history entry the customer left from —
+ *    the design's `returning || back_forward`, made exact. `entryStamps` are
+ *    the stamps the browser reports for the current entry (`history.state`,
+ *    and the state the last `popstate` arrived with); a new entry — a link,
+ *    the menu, a bookmark — has none.
  */
 export function isGenuineReturn(
   record: DishReturnRecord | null,
   signals: { entryStamps: unknown[] },
 ): record is DishReturnRecord {
-  if (!record) return false;
+  if (!record || !record.departed) return false;
   return record.returning || signals.entryStamps.includes(record.entry);
 }
 
@@ -280,6 +328,7 @@ export function restorableSelection(
 
 export interface ReturnStorage {
   getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
   removeItem(key: string): void;
 }
 
@@ -288,13 +337,28 @@ export interface DishRestore {
   selection: Record<string, string[]> | null;
   /** Scroll position to put back. */
   y: number;
+  /**
+   * Whether the page must put the scroll back itself: only after "Back to
+   * dish" REPLACED Our Standards (a new entry). A history return lands on the
+   * old entry, where the browser restores the position it actually had.
+   */
+  restoreScroll: boolean;
+  /** The token to (re)stamp on the current entry, binding the record to it. */
+  entry: string;
 }
 
 /**
- * The dish page's decision on mount: on a genuine return, CONSUME the record
- * (so it can never apply twice) and say what to restore; otherwise touch
- * nothing and return null. Nothing here reads the URL — a link or bookmark
- * can never carry a selection.
+ * The dish page's decision on mount. Nothing here reads the URL — a link or a
+ * bookmark can never carry a selection.
+ *
+ *  - The dish page itself was RELOADED (`reloaded`): never a return. A record
+ *    bound to this entry is discarded — the page now shows the dish as
+ *    designed, so an old selection must not come back on a later visit.
+ *  - A genuine return (`isGenuineReturn`): say what to restore, and DISARM the
+ *    record — it stays bound to this entry but restores nothing again until
+ *    the customer next opens Our Standards from here (which marks it departed
+ *    again), so Forward then Back keeps the choice, and nothing else does.
+ *  - Anything else: touch nothing.
  */
 export function takeDishReturn(
   storage: ReturnStorage,
@@ -304,12 +368,42 @@ export function takeDishReturn(
     now: number;
     /** The stamps reported for the current history entry, if any. */
     entryStamps: unknown[];
+    /** This document was loaded by reloading this very page. */
+    reloaded: boolean;
   },
 ): DishRestore | null {
   const record = readDishReturnRecord(storage.getItem(DISH_RETURN_STORAGE_KEY), input.slug, input.now);
+
+  if (input.reloaded) {
+    if (record && input.entryStamps.includes(record.entry)) storage.removeItem(DISH_RETURN_STORAGE_KEY);
+    return null;
+  }
+
   if (!isGenuineReturn(record, input)) return null;
-  storage.removeItem(DISH_RETURN_STORAGE_KEY);
-  return { selection: restorableSelection(input.groups, record.selection), y: record.y };
+
+  storage.setItem(
+    DISH_RETURN_STORAGE_KEY,
+    JSON.stringify({ ...record, departed: false, returning: false } satisfies DishReturnRecord),
+  );
+  return {
+    selection: restorableSelection(input.groups, record.selection),
+    y: record.y,
+    restoreScroll: record.returning,
+    entry: record.entry,
+  };
+}
+
+/**
+ * The customer changed their choice on the dish page: a record bound to THIS
+ * entry no longer describes it, so it is dropped and can never bring the old
+ * selection back. A record for another entry is left alone.
+ */
+export function discardDishReturn(
+  storage: ReturnStorage,
+  input: { slug: string; now: number; entryStamp: unknown },
+): void {
+  const record = readDishReturnRecord(storage.getItem(DISH_RETURN_STORAGE_KEY), input.slug, input.now);
+  if (record && record.entry === input.entryStamp) storage.removeItem(DISH_RETURN_STORAGE_KEY);
 }
 
 /**
@@ -331,7 +425,8 @@ export function dishReturnGateScript(slug: string, elementId: string): string {
     '(function(k,s,ttl,id){var ok=false;' +
     'try{var r=JSON.parse(window.sessionStorage.getItem(k)||"null");' +
     'ok=!!(r&&typeof r==="object"&&r.v===1&&r.slug===s&&typeof r.hl==="number"' +
-    '&&typeof r.y==="number"&&typeof r.entry==="string"&&typeof r.returning==="boolean"' +
+    '&&typeof r.y==="number"&&typeof r.entry==="string"&&typeof r.departed==="boolean"' +
+    '&&typeof r.returning==="boolean"' +
     '&&typeof r.t==="number"&&isFinite(r.t)&&ttl>Date.now()-r.t)}catch(e){}' +
     'if(ok){var el=document.getElementById(id);if(el)el.hidden=false}' +
     `})(${args})`

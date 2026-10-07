@@ -12,7 +12,10 @@ import {
   createDishReturnRecord,
   dishPath,
   dishReturnGateScript,
+  discardDishReturn,
   isGenuineReturn,
+  isSameTabClick,
+  markDeparted,
   markReturning,
   readDishReturnRecord,
   readDishReturnSlug,
@@ -47,6 +50,9 @@ function memoryStorage(initial: Record<string, string> = {}): ReturnStorage & {
   return {
     data,
     getItem: (key) => data.get(key) ?? null,
+    setItem: (key, value) => {
+      data.set(key, value);
+    },
     removeItem: (key) => {
       data.delete(key);
     },
@@ -122,6 +128,7 @@ test('the record carries the whole selection and the scroll position', () => {
     y: 716,
     selection: { portion: 'full', protein: ['salmon', 'prawns'], side: 'quinoa', heat: '3' },
     entry: ENTRY,
+    departed: false,
     returning: false,
   });
   // As Abby designed it: no selection at all.
@@ -154,6 +161,8 @@ const RECORD_CASES: { name: string; raw: string | null; valid: boolean }[] = [
   { name: 'a record with no scroll position', raw: recordFor({ y: undefined }), valid: false },
   { name: 'a record with no returning flag', raw: recordFor({ returning: undefined }), valid: false },
   { name: 'a record with no entry token', raw: recordFor({ entry: undefined }), valid: false },
+  { name: 'a record with no departed flag', raw: recordFor({ departed: undefined }), valid: false },
+  { name: 'a departed record', raw: recordFor({ departed: true }), valid: true },
   { name: 'a record with a string time', raw: recordFor({ t: String(NOW) as unknown as number }), valid: false },
 ];
 
@@ -208,83 +217,174 @@ test('Back to dish goes back only when the entry behind is the dish', () => {
   assert.equal(returnsByHistory(record, 3), false);
 });
 
+/* ---- The link: only a click that leaves this tab records anything -------- */
+
+test('a modified or non-primary click on "See our standards" records nothing', () => {
+  const plain = {
+    defaultPrevented: false,
+    button: 0,
+    metaKey: false,
+    ctrlKey: false,
+    shiftKey: false,
+    altKey: false,
+  };
+  assert.equal(isSameTabClick(plain), true, 'a plain click navigates this tab');
+  assert.equal(isSameTabClick({ ...plain, target: '_self' }), true);
+  assert.equal(isSameTabClick({ ...plain, target: '' }), true);
+
+  assert.equal(isSameTabClick({ ...plain, metaKey: true }), false, 'Cmd: new tab');
+  assert.equal(isSameTabClick({ ...plain, ctrlKey: true }), false, 'Ctrl: new tab');
+  assert.equal(isSameTabClick({ ...plain, shiftKey: true }), false, 'Shift: new window');
+  assert.equal(isSameTabClick({ ...plain, altKey: true }), false, 'Alt: download');
+  assert.equal(isSameTabClick({ ...plain, button: 1 }), false, 'middle button');
+  assert.equal(isSameTabClick({ ...plain, button: 2 }), false, 'secondary button');
+  assert.equal(isSameTabClick({ ...plain, target: '_blank' }), false, 'another target');
+  assert.equal(isSameTabClick({ ...plain, defaultPrevented: true }), false, 'cancelled');
+});
+
 /* ---- Restoring on the dish page ----------------------------------------- */
 
 /** A fresh entry: a link, the menu, a bookmark — no stamp in history.state. */
-const fresh = { entryStamps: [undefined, undefined] };
+const fresh = { entryStamps: [undefined, undefined], reloaded: false };
 /** The very entry the customer left from, reached by Back (in-app or a document load). */
-const sameEntry = { entryStamps: [ENTRY, undefined] };
+const sameEntry = { entryStamps: [ENTRY, undefined], reloaded: false };
 /** Same, when Next.js rewrote the entry's state and only the popstate event kept the stamp. */
-const poppedEntry = { entryStamps: [undefined, ENTRY] };
+const poppedEntry = { entryStamps: [undefined, ENTRY], reloaded: false };
+/** This very entry, RELOADED. */
+const reloadedEntry = { entryStamps: [ENTRY, undefined], reloaded: true };
 
-test('only a genuine return restores', () => {
-  const live = readDishReturnRecord(recordFor(), 'royal-seafood-okra', NOW);
-  const marked = live && markReturning(live);
+const visit = (signals: { entryStamps: unknown[]; reloaded: boolean }) => ({
+  slug: 'royal-seafood-okra',
+  groups,
+  now: NOW,
+  ...signals,
+});
+
+const WHOLE = { portion: ['full'], protein: ['salmon', 'prawns'], side: ['quinoa'], heat: ['3'] };
+
+test('only a genuine return restores: departed, and back on this entry (or marked)', () => {
+  const armed = readDishReturnRecord(recordFor(), 'royal-seafood-okra', NOW);
+  const departed = armed && markDeparted(armed);
 
   assert.equal(isGenuineReturn(null, sameEntry), false, 'no record');
-  assert.equal(isGenuineReturn(live, fresh), false, 'a live record but a fresh entry');
-  assert.equal(isGenuineReturn(live, { entryStamps: ['another-token'] }), false, 'an older stamp');
-  assert.equal(isGenuineReturn(live, { entryStamps: [{ token: ENTRY }] }), false, 'a junk stamp');
-  assert.equal(isGenuineReturn(marked, fresh), true, '"Back to dish" marked it (replace path)');
-  assert.equal(isGenuineReturn(live, sameEntry), true, 'Back to the very entry it left from');
-  assert.equal(isGenuineReturn(live, poppedEntry), true, '…known from the popstate event');
+  assert.equal(isGenuineReturn(armed, sameEntry), false, 'armed but never departed');
+  assert.equal(isGenuineReturn(armed && markReturning(armed), fresh), false, 'marked but never departed');
+  assert.equal(isGenuineReturn(departed, fresh), false, 'departed, but this is a fresh entry');
+  assert.equal(isGenuineReturn(departed, { entryStamps: ['another-token'] }), false, 'an older stamp');
+  assert.equal(isGenuineReturn(departed, { entryStamps: [{ token: ENTRY }] }), false, 'a junk stamp');
+
+  assert.equal(isGenuineReturn(departed, sameEntry), true, 'Back to the very entry it left from');
+  assert.equal(isGenuineReturn(departed, poppedEntry), true, '…known from the popstate event');
+  assert.equal(
+    isGenuineReturn(departed && markReturning(departed), fresh),
+    true,
+    '"Back to dish" replaced Our Standards with the dish',
+  );
 });
 
 test('a fresh visit restores nothing — whatever the URL, and whatever stale or forged record', () => {
-  const visit = { slug: 'royal-seafood-okra', groups, now: NOW, ...fresh };
   const cases: Record<string, string> = {
-    'an unmarked live record': recordFor(),
-    'an expired marked record': recordFor({ returning: true, t: NOW - DISH_RETURN_TTL_MS - 1 }),
-    'a marked record for another dish': recordFor({ returning: true, slug: 'jollof-quinoa-bowl' }),
-    'a forged record': '{"v":1,"slug":"royal-seafood-okra","returning":true}',
-    'a record stamped for a different entry': recordFor({ entry: 'other-entry' }),
+    'a departed record, on a fresh entry': recordFor({ departed: true }),
+    'an expired departed, marked record': recordFor({
+      departed: true,
+      returning: true,
+      t: NOW - DISH_RETURN_TTL_MS - 1,
+    }),
+    'a record for another dish': recordFor({ departed: true, returning: true, slug: 'jollof-quinoa-bowl' }),
+    'a forged record': '{"v":1,"slug":"royal-seafood-okra","departed":true,"returning":true}',
   };
   for (const [name, raw] of Object.entries(cases)) {
     const storage = memoryStorage({ [DISH_RETURN_STORAGE_KEY]: raw });
-    assert.equal(takeDishReturn(storage, visit), null, name);
-    assert.equal(storage.data.has(DISH_RETURN_STORAGE_KEY), true, `${name}: left untouched`);
+    assert.equal(takeDishReturn(storage, visit(fresh)), null, name);
+    assert.equal(storage.data.get(DISH_RETURN_STORAGE_KEY), raw, `${name}: left untouched`);
   }
-  assert.equal(takeDishReturn(memoryStorage(), visit), null, 'no record at all');
-});
-
-test('a genuine return restores the WHOLE selection and the scroll, and consumes the record', () => {
-  const whole = {
-    selection: { portion: ['full'], protein: ['salmon', 'prawns'], side: ['quinoa'], heat: ['3'] },
-    y: 716,
-  };
-  // "Back to dish" marked it (the replace path lands on a fresh entry).
-  const marked = memoryStorage({ [DISH_RETURN_STORAGE_KEY]: recordFor({ returning: true }) });
-  const onFreshEntry = { slug: 'royal-seafood-okra', groups, now: NOW, ...fresh };
-  assert.deepEqual(takeDishReturn(marked, onFreshEntry), whole);
-  assert.equal(marked.data.has(DISH_RETURN_STORAGE_KEY), false, 'consumed');
-  assert.equal(takeDishReturn(marked, onFreshEntry), null, 'never applies twice');
-
-  // The browser's Back to the very entry (unmarked record, matching stamp).
-  const back = memoryStorage({ [DISH_RETURN_STORAGE_KEY]: recordFor() });
-  const onSameEntry = { slug: 'royal-seafood-okra', groups, now: NOW, ...sameEntry };
-  assert.deepEqual(takeDishReturn(back, onSameEntry), whole);
-  assert.equal(back.data.has(DISH_RETURN_STORAGE_KEY), false, 'consumed');
-  assert.equal(takeDishReturn(back, onSameEntry), null, 'a reload of that entry restores nothing');
-});
-
-test('a genuine return as Abby designed it restores the scroll and no selection', () => {
-  const storage = memoryStorage({
-    [DISH_RETURN_STORAGE_KEY]: recordFor({ returning: true, selection: undefined, y: 120 }),
-  });
-  assert.deepEqual(
-    takeDishReturn(storage, { slug: 'royal-seafood-okra', groups, now: NOW, ...sameEntry }),
-    { selection: null, y: 120 },
+  assert.equal(takeDishReturn(memoryStorage(), visit(sameEntry)), null, 'no record at all');
+  assert.equal(
+    takeDishReturn(memoryStorage({ [DISH_RETURN_STORAGE_KEY]: recordFor({ departed: true, entry: 'other' }) }), visit(sameEntry)),
+    null,
+    'a record bound to another entry',
   );
+});
+
+test('an armed record that never departed restores nothing, even on its own entry', () => {
+  // The P1: a modified click (or an aborted navigation) once wrote a record
+  // and stamped the entry while the customer stayed put.
+  const storage = memoryStorage({ [DISH_RETURN_STORAGE_KEY]: recordFor() });
+  assert.equal(takeDishReturn(storage, visit(sameEntry)), null);
+  assert.equal(takeDishReturn(storage, visit(poppedEntry)), null);
+});
+
+test('a reload of the stamped entry restores nothing, and drops its record', () => {
+  for (const raw of [recordFor(), recordFor({ departed: true }), recordFor({ departed: true, returning: true })]) {
+    const storage = memoryStorage({ [DISH_RETURN_STORAGE_KEY]: raw });
+    assert.equal(takeDishReturn(storage, visit(reloadedEntry)), null);
+    assert.equal(storage.data.has(DISH_RETURN_STORAGE_KEY), false, 'dropped');
+  }
+  // A reload of some OTHER entry leaves another entry's record alone.
+  const other = memoryStorage({ [DISH_RETURN_STORAGE_KEY]: recordFor({ departed: true }) });
+  assert.equal(takeDishReturn(other, visit({ entryStamps: [undefined, undefined], reloaded: true })), null);
+  assert.equal(other.data.has(DISH_RETURN_STORAGE_KEY), true);
+});
+
+test('a genuine return by history restores the WHOLE selection, leaving the scroll to the browser', () => {
+  const storage = memoryStorage({ [DISH_RETURN_STORAGE_KEY]: recordFor({ departed: true }) });
+  assert.deepEqual(takeDishReturn(storage, visit(sameEntry)), {
+    selection: WHOLE,
+    y: 716,
+    restoreScroll: false,
+    entry: ENTRY,
+  });
+  // Disarmed, not deleted: bound to the entry, restoring nothing until Our
+  // Standards marks it departed again.
+  const kept = JSON.parse(storage.data.get(DISH_RETURN_STORAGE_KEY)!);
+  assert.equal(kept.departed, false);
+  assert.equal(kept.returning, false);
+  assert.equal(takeDishReturn(storage, visit(sameEntry)), null, 'never applies twice on its own');
+
+  // Forward to Our Standards (which marks it departed) and Back again.
+  storage.data.set(DISH_RETURN_STORAGE_KEY, JSON.stringify(markDeparted(kept)));
+  assert.deepEqual(takeDishReturn(storage, visit(sameEntry))?.selection, WHOLE);
+});
+
+test('"Back to dish" replacing Our Standards restores the selection AND the scroll', () => {
+  const storage = memoryStorage({
+    [DISH_RETURN_STORAGE_KEY]: recordFor({ departed: true, returning: true }),
+  });
+  assert.deepEqual(takeDishReturn(storage, visit(fresh)), {
+    selection: WHOLE,
+    y: 716,
+    restoreScroll: true,
+    entry: ENTRY,
+  });
+  assert.equal(takeDishReturn(storage, visit(fresh)), null, 'never applies twice');
+});
+
+test('a genuine return as Abby designed it restores no selection', () => {
+  const storage = memoryStorage({
+    [DISH_RETURN_STORAGE_KEY]: recordFor({ departed: true, selection: undefined, y: 120 }),
+  });
+  assert.deepEqual(takeDishReturn(storage, visit(sameEntry)), {
+    selection: null,
+    y: 120,
+    restoreScroll: false,
+    entry: ENTRY,
+  });
+});
+
+test('an edit on the dish drops the record bound to this entry, and only that one', () => {
+  const here = memoryStorage({ [DISH_RETURN_STORAGE_KEY]: recordFor({ departed: true }) });
+  discardDishReturn(here, { slug: 'royal-seafood-okra', now: NOW, entryStamp: ENTRY });
+  assert.equal(here.data.has(DISH_RETURN_STORAGE_KEY), false);
+
+  const elsewhere = memoryStorage({ [DISH_RETURN_STORAGE_KEY]: recordFor({ departed: true }) });
+  discardDishReturn(elsewhere, { slug: 'royal-seafood-okra', now: NOW, entryStamp: undefined });
+  discardDishReturn(elsewhere, { slug: 'jollof-quinoa-bowl', now: NOW, entryStamp: ENTRY });
+  assert.equal(elsewhere.data.has(DISH_RETURN_STORAGE_KEY), true);
 });
 
 test('a selection is restored whole or not at all', () => {
   const whole = restorableSelection(groups, CHOSEN);
-  assert.deepEqual(whole, {
-    portion: ['full'],
-    protein: ['salmon', 'prawns'],
-    side: ['quinoa'],
-    heat: ['3'],
-  });
+  assert.deepEqual(whole, WHOLE);
 
   const without = (patch: Record<string, unknown>) => restorableSelection(groups, { ...CHOSEN, ...patch });
   assert.equal(without({ portion: 'jumbo' }), null, 'a choice the dish no longer offers');

@@ -8,6 +8,7 @@
 import {
   DISH_ENTRY_STATE_KEY,
   DISH_RETURN_STORAGE_KEY,
+  discardDishReturn,
   readDishReturnRecord,
   type DishReturnRecord,
   type ReturnStorage,
@@ -23,6 +24,13 @@ export function returnStorage(): ReturnStorage {
         return null;
       }
     },
+    setItem(key, value) {
+      try {
+        window.sessionStorage.setItem(key, value);
+      } catch {
+        // Storage blocked or full: nothing is kept.
+      }
+    },
     removeItem(key) {
       try {
         window.sessionStorage.removeItem(key);
@@ -34,31 +42,15 @@ export function returnStorage(): ReturnStorage {
 }
 
 export function loadDishReturn(slug: string): DishReturnRecord | null {
-  try {
-    return readDishReturnRecord(
-      window.sessionStorage.getItem(DISH_RETURN_STORAGE_KEY),
-      slug,
-      Date.now(),
-    );
-  } catch {
-    return null;
-  }
+  return readDishReturnRecord(returnStorage().getItem(DISH_RETURN_STORAGE_KEY), slug, Date.now());
 }
 
 export function saveDishReturn(record: DishReturnRecord): void {
-  try {
-    window.sessionStorage.setItem(DISH_RETURN_STORAGE_KEY, JSON.stringify(record));
-  } catch {
-    // Storage blocked or full: Our Standards simply shows no back link.
-  }
+  returnStorage().setItem(DISH_RETURN_STORAGE_KEY, JSON.stringify(record));
 }
 
 export function clearDishReturn(): void {
-  try {
-    window.sessionStorage.removeItem(DISH_RETURN_STORAGE_KEY);
-  } catch {
-    // Nothing to clear.
-  }
+  returnStorage().removeItem(DISH_RETURN_STORAGE_KEY);
 }
 
 /**
@@ -70,6 +62,7 @@ export function clearDishReturn(): void {
 export function stampDishEntry(token: string): void {
   try {
     const state = (window.history.state ?? {}) as Record<string, unknown>;
+    if (state[DISH_ENTRY_STATE_KEY] === token) return;
     window.history.replaceState({ ...state, [DISH_ENTRY_STATE_KEY]: token }, '');
   } catch {
     // No stamp: only "Back to dish" can then mark a return.
@@ -80,6 +73,15 @@ const stampOf = (state: unknown): unknown =>
   state && typeof state === 'object'
     ? (state as Record<string, unknown>)[DISH_ENTRY_STATE_KEY]
     : undefined;
+
+/** The stamp on the current history entry, if any. */
+export function currentEntryStamp(): unknown {
+  try {
+    return stampOf(window.history.state);
+  } catch {
+    return undefined;
+  }
+}
 
 /*
  * The stamp of the entry the last `popstate` landed on. There is one case
@@ -109,9 +111,26 @@ if (typeof window !== 'undefined') {
 export function takeDishEntryStamps(): unknown[] {
   const popped = poppedStamp;
   poppedStamp = undefined;
+  return [currentEntryStamp(), popped];
+}
+
+/**
+ * Was this document loaded by RELOADING the page at `path`? Read from the
+ * document's own navigation entry, so it describes the first page this
+ * document rendered — the caller asks only for its first mount.
+ */
+export function reloadedHere(path: string): boolean {
   try {
-    return [stampOf(window.history.state), popped];
+    const entry = performance.getEntriesByType('navigation')[0] as
+      | PerformanceNavigationTiming
+      | undefined;
+    return entry?.type === 'reload' && new URL(entry.name).pathname === path;
   } catch {
-    return [popped];
+    return false;
   }
+}
+
+/** The customer changed their choice on this entry: drop a record bound to it. */
+export function discardDishReturnHere(slug: string): void {
+  discardDishReturn(returnStorage(), { slug, now: Date.now(), entryStamp: currentEntryStamp() });
 }

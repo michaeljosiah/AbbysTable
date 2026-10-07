@@ -40,7 +40,10 @@ export function DishOrderPanel({ dish, optionGroups }: DishOrderPanelProps) {
   const [choice, setChoice] = useState<Choice>({ surchargePence: 0 });
 
   const handleChange = useCallback((next: Choice) => setChoice(next), []);
-  const restoredSelection = useDishReturn(dish.slug, optionGroups);
+  const { selection: restoredSelection, discard: discardReturn } = useDishReturn(
+    dish.slug,
+    optionGroups,
+  );
 
   const addToBox = async () => {
     if (pending) return;
@@ -75,6 +78,7 @@ export function DishOrderPanel({ dish, optionGroups }: DishOrderPanelProps) {
           dish={dish}
           optionGroups={optionGroups}
           onChange={handleChange}
+          onEdit={discardReturn}
           restoredSelection={restoredSelection}
         />
       ) : null}

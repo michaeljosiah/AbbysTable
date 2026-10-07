@@ -58,11 +58,13 @@ Conventions inside `web/` that are easy to get wrong:
   `StandardsLink` (a pasted link has none). The control is server-rendered HIDDEN and revealed only
   by the browser (an inline gate script before first paint, a layout effect on client navigation).
   The record carries the WHOLE personaliser selection and scroll position, and a token also stamped
-  in the dish entry's `history.state`; the dish page (`useDishReturn`) restores only on a genuine
-  return — the record marked `returning` by Back to dish, or a return to that very stamped entry
-  (browser Back, in-app or a document load) — then consumes it. Never put the selection in a URL:
-  a link must not carry one customer's choices to another. React renders a popstate navigation
-  synchronously inside Next's own listener, so a popstate listener added later never runs first.
+  in the dish entry's `history.state`. It is written only for a plain same-tab click, and counts
+  only once Our Standards has opened with it (`departed`). The dish page (`useDishReturn`) restores
+  only on a genuine return — departed, and either marked `returning` by Back to dish's replace or
+  back on that very stamped entry — never on a reload of the dish, then disarms the record (an edit
+  drops it). Never put the selection in a URL: a link must not carry one customer's choices to
+  another. React renders a popstate navigation synchronously inside Next's own listener, so a
+  popstate listener added later never runs first.
 - **Internal links go through `next/link`.** `Button` and `NavLink` route on `href` automatically
   (`isExternalHref` in `src/lib/links.ts`); nav anchors are root-relative (`/#founder`) so they work
   from `/menu` as well as `/`.

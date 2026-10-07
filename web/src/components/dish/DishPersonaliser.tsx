@@ -83,6 +83,11 @@ interface DishPersonaliserProps {
    * (`useDishReturn`) — always a whole, validated selection, never a part.
    */
   restoredSelection?: PersonalisationDraft | null;
+  /**
+   * Called whenever the CUSTOMER changes the choice (never for a restore):
+   * a return record for this entry then no longer describes the page.
+   */
+  onEdit?: () => void;
 }
 
 export function DishPersonaliser({
@@ -90,6 +95,7 @@ export function DishPersonaliser({
   optionGroups,
   onChange,
   restoredSelection,
+  onEdit,
 }: DishPersonaliserProps) {
   const initial = useMemo(() => selectionDraft(optionGroups), [optionGroups]);
   const [enabled, setEnabled] = useState(false);
@@ -126,11 +132,13 @@ export function DishPersonaliser({
     });
   }, [onChange, enabled, optionGroups, selection, surchargePence]);
 
-  const updateGroup = (group: MappedOptionGroup, key: string) =>
+  const updateGroup = (group: MappedOptionGroup, key: string) => {
+    onEdit?.();
     setSelection((current) => ({
       ...current,
       [group.key]: selectChoice(group, current[group.key] ?? [], key),
     }));
+  };
 
   return (
     <section className={styles.panel} aria-labelledby="personalise-heading">
@@ -151,6 +159,7 @@ export function DishPersonaliser({
           data-selected={enabled || undefined}
           aria-pressed={enabled}
           onClick={() => {
+            onEdit?.();
             setEnabled(true);
             setSheetOpen(true);
           }}
@@ -178,6 +187,7 @@ export function DishPersonaliser({
           data-selected={!enabled || undefined}
           aria-pressed={!enabled}
           onClick={() => {
+            onEdit?.();
             setEnabled(false);
             setSheetOpen(false);
             setSelection(initial);
@@ -257,7 +267,10 @@ export function DishPersonaliser({
               <button
                 type="button"
                 className={styles.reopen}
-                onClick={() => setSelection(initial)}
+                onClick={() => {
+                  onEdit?.();
+                  setSelection(initial);
+                }}
                 disabled={sameSelection(optionGroups, selection, initial)}
               >
                 Reset to defaults
