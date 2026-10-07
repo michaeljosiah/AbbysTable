@@ -73,6 +73,32 @@ function SignInRequired({ staleSession }: { staleSession: boolean }) {
   );
 }
 
+/** The orders could not be read: say so, and keep Sign out within reach. */
+function OrdersUnavailable({ email }: { email?: string | null }) {
+  return (
+    <div className={styles.notice}>
+      <h1 className={styles.noticeHeading}>Your orders are unavailable right now</h1>
+      <p className={styles.noticeBody}>
+        We couldn’t load your order history. Please try again in a few minutes.
+      </p>
+      <div className={styles.noticeActions}>
+        <Link href="/account/orders" className={styles.primary}>
+          Try again
+        </Link>
+        <Link href="/menu" className={styles.secondary}>
+          Browse the menu
+        </Link>
+      </div>
+      <form action={signOutAction} className={styles.signOut}>
+        {email ? <span className={styles.signedInAs}>Signed in as {email}</span> : null}
+        <button type="submit" className={styles.signOutButton}>
+          Sign out
+        </button>
+      </form>
+    </div>
+  );
+}
+
 export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const params = await searchParams;
   const requestedPage = readPage(params.page);
@@ -83,13 +109,30 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const session = await readSessionView();
 
   let historyPage;
+  let unavailable = false;
   if (session.isSignedIn) {
     try {
       historyPage = await listMyOrders(requestedPage, ORDERS_PAGE_SIZE);
     } catch (error) {
       // A session that died between the cookie check and the call lands here.
-      if (!(error instanceof SessionExpiredError)) throw error;
+      // Anything else is an outage: still a page with Sign out on it, since
+      // this is the only place the site offers it (a shared computer must
+      // never be left signed in because Aonik is down).
+      if (!(error instanceof SessionExpiredError)) {
+        console.error('[account] order history could not be read', error);
+        unavailable = true;
+      }
     }
+  }
+
+  if (unavailable) {
+    return (
+      <section className={styles.page}>
+        <div className={styles.inner}>
+          <OrdersUnavailable email={session.email} />
+        </div>
+      </section>
+    );
   }
 
   if (!historyPage) {

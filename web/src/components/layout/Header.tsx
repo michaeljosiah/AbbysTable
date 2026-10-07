@@ -8,9 +8,11 @@ import { Logo } from '@/components/brand/Logo';
 import type { SessionView } from '@/lib/auth/session';
 import { useCart } from '@/lib/cart/CartProvider';
 import { NAV_ITEMS } from '@/lib/content/navigation';
+import { hasKeyboardFocusWithin, isKeyboardFocused } from '@/lib/dom/keyboardFocus';
 import { readPageScroll, subscribePageScroll } from '@/lib/dom/pageScroll';
 import {
   ANCHOR_JUMP_HOLD_MS,
+  ANCHOR_JUMP_TAIL_MS,
   autoHidesOnDesktop,
   DESKTOP_QUERY,
   initialDesktopHeader,
@@ -59,6 +61,12 @@ export function Header({ session }: { session: SessionView }) {
     // Straight back to the control that opened it (behaviour guide §A6).
     if (returnFocus) burgerRef.current?.focus({ preventScroll: true });
   }, []);
+
+  // A route change underneath an open drawer (Back, Forward) closes it, without
+  // pulling focus to the burger on the page just arrived at.
+  useEffect(() => {
+    closeDrawer({ returnFocus: false });
+  }, [pathname, closeDrawer]);
 
   const hidden = useHeaderHidden(headerRef, drawerOpen, autoHidesOnDesktop(pathname));
   useHeaderOffset(headerRef, hidden);
@@ -171,11 +179,18 @@ function useHeaderHidden(
       const scroll = readPageScroll();
       if (!header || !scroll) return;
 
-      const focusInside = header.contains(document.activeElement);
+      // Keyboard focus only (`hasKeyboardFocusWithin`): a pointer click that
+      // leaves focus in the header must not pin it shown.
+      const focusInside = hasKeyboardFocusWithin(header);
       if (desktop.matches !== wasDesktop) {
         // Crossing the breakpoint starts the desktop regime afresh.
         wasDesktop = desktop.matches;
         desk = initialDesktopHeader(scroll.y);
+      }
+      // A smooth anchor jump can outlast the hold: keep it while the page is
+      // still moving, and let it lapse a moment after the scroll stops.
+      if (moved && Date.now() < jumpUntil) {
+        jumpUntil = Math.max(jumpUntil, Date.now() + ANCHOR_JUMP_TAIL_MS);
       }
       if (moved && desktop.matches && inputs.current.autoHides) {
         desk = nextDesktopHeader(desk, scroll.y, {
@@ -208,7 +223,8 @@ function useHeaderHidden(
     const onFocus = (event: FocusEvent) => {
       const header = headerRef.current;
       if (!header || !(event.target instanceof Node) || !header.contains(event.target)) return;
-      if (desktop.matches) desk = { hidden: false, turn: readPageScroll()?.y ?? window.scrollY };
+      const keyboard = event.type === 'focusin' && event.target instanceof Element && isKeyboardFocused(event.target);
+      if (keyboard && desktop.matches) desk = { hidden: false, turn: readPageScroll()?.y ?? window.scrollY };
       recheck();
     };
 

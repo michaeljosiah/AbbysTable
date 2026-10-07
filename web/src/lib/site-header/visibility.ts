@@ -47,6 +47,12 @@ export const DESKTOP_REVEAL_PX = 64;
 export const ANCHOR_JUMP_HOLD_MS = 450;
 
 /**
+ * Desktop: the hold outlasts a jump still in motion by this much. The site
+ * scrolls smoothly, and a long jump takes longer than the hold itself.
+ */
+export const ANCHOR_JUMP_TAIL_MS = 150;
+
+/**
  * The routes whose desktop header auto-hides — the design's opted-in list
  * (build-handoff §3v): Homepage, Menu, How it works, Gifting, Private Table,
  * Standards, Abby's Story, Delivery & FAQs, Contact. Only the BUILT ones are

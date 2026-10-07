@@ -2,6 +2,8 @@
 .sticky {
   position: sticky;
   top: var(--stick-top, 72px);
+  /* Moves with the header's own 0.22s slide rather than jumping ahead of it. */
+  transition: top 0.22s ease;
   z-index: 30;
   background: var(--surface-page);
   padding-bottom: 18px;

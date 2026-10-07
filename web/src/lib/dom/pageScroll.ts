@@ -18,8 +18,8 @@
  * moving, so it never counts towards the direction, but a subscriber that
  * measures markers may still want to look again.
  *
- * Focus moving INTO the header while the page reads "down" turns it to "not
- * down": the header comes back for the keyboard user, and the bar — which
+ * KEYBOARD focus moving into the header while the page reads "down" turns it to
+ * "not down" (a pointer click that leaves focus there does not): the header comes back for the keyboard user, and the bar — which
  * follows the same direction — steps aside for it.
  */
 
@@ -29,6 +29,8 @@ import {
   SITE_HEADER_ATTR,
   type ScrollDirection,
 } from '@/lib/purchase-bar/visibility';
+
+import { hasKeyboardFocusWithin, isKeyboardFocused } from './keyboardFocus';
 
 export interface PageScroll {
   /** The page's scroll position. */
@@ -86,7 +88,7 @@ function onScroll(event: Event) {
     y,
     scroller,
     direction: nextDirection(current.direction, y, {
-      holdDown: Boolean(header?.contains(document.activeElement)),
+      holdDown: hasKeyboardFocusWithin(header),
     }),
   };
   notify('page');
@@ -95,7 +97,9 @@ function onScroll(event: Event) {
 function onFocusIn(event: FocusEvent) {
   if (!current?.direction.down) return;
   const header = siteHeader();
-  if (!header || !(event.target instanceof Node) || !header.contains(event.target)) return;
+  if (!header || !(event.target instanceof Element) || !header.contains(event.target)) return;
+  // Keyboard focus only: a pointer click leaving focus behind is no reason.
+  if (!isKeyboardFocused(event.target)) return;
   current = { ...current, direction: { lastY: current.y, down: false } };
   notify('page');
 }
