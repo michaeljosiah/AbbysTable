@@ -30,6 +30,9 @@ export interface SearchableFaq {
 
 const KEEP_TYPING = 'Keep typing to search.';
 
+/** Announced when a search goes back to the topic groups (FR-10). */
+const BROWSE_ANNOUNCEMENT = 'Showing all FAQ topics.';
+
 /**
  * "Search our FAQs" (#23; build-handoff §3l, behaviour guide §9) — a Client
  * Component for the query it holds. The rules are `lib/faq/search.ts`: empty
@@ -90,7 +93,8 @@ export function FaqSearch({
         ? results.length > 0
           ? resultLine(results.length, search.query)
           : noResultsLine(search.query)
-        : '';
+        : // Back to browse is a change too: an emptied live region says nothing.
+          BROWSE_ANNOUNCEMENT;
 
   useEffect(() => () => clearTimeout(timer.current), []);
 

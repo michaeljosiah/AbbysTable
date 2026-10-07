@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useActionState, useId } from 'react';
+import { useActionState, useId, useState } from 'react';
 
 import type { NotifyMeAction, NotifyMeState } from '@/lib/aonik/notifyMe';
 import { PRIVACY_ITEM } from '@/lib/content/navigation';
@@ -28,6 +28,9 @@ export function NotifyMeForm({ action, postcode }: { action: NotifyMeAction; pos
   const inputId = `${id}-email`;
   const errorId = `${id}-error`;
   const failed = state.status === 'error';
+  // Controlled: a resolved form action resets uncontrolled fields, which would
+  // blank the address beside its own error and make the customer type it again.
+  const [email, setEmail] = useState('');
 
   return (
     <div className={styles.notify}>
@@ -64,6 +67,8 @@ export function NotifyMeForm({ action, postcode }: { action: NotifyMeAction; pos
               required
               autoComplete="email"
               placeholder="Your email address"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
               aria-invalid={failed || undefined}
               aria-describedby={failed ? errorId : undefined}
             />

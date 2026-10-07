@@ -188,7 +188,9 @@ rank above answer-only hits, then page order; an exact-duplicate question is ind
 and straight quotes match. Results sit under the field, each a question opening in place with the
 same answer markup as its group; any query change closes an open answer. Nothing found shows
 "We couldn't find anything for “…”." with **BROWSE ALL TOPICS** and **CONTACT US**, and hides
-"Still need help?". Enter dismisses the keyboard and, below 1024, brings results under the header.
+"Still need help?". Enter dismisses the keyboard and, below 1024, brings results — or the empty
+answer — under the header. The search status announces each state, including the return to browse
+("Showing all FAQ topics.").
 Every change is announced by one status region mounted from the start.
 
 ### Requirement: FR-11 Topics and groups

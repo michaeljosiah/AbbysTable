@@ -178,7 +178,10 @@ export function PostcodeChecker({
     const request = ++counter.current;
     dispatch({ type: 'start', busy: 'locating', request });
 
-    const failed = () => dispatch({ type: 'correct', message: 'location', request });
+    // Like the success path: a lookup the customer has moved on from says nothing.
+    const failed = () => {
+      if (request === counter.current) dispatch({ type: 'correct', message: 'location', request });
+    };
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         if (request !== counter.current) return;
