@@ -18,6 +18,7 @@
 import { getAonikClient, type AonikClient } from '@/lib/aonik/client';
 import type { NotifyMeState } from '@/lib/aonik/notifyMe';
 
+import { upcomingDeliveryDate } from './checker';
 import { normalisePostcode, readPostcodeEntry } from './postcode';
 
 export type PostcodeCheck =
@@ -61,7 +62,7 @@ export async function checkPostcode(raw: unknown): Promise<PostcodeCheck> {
     if (answer.status !== 'serves') throw new Error('Unrecognised coverage answer');
 
     const earliest = answer.earliestDeliveryDate ?? (await earliestFromWindow(client));
-    return { status: 'serves', postcode, earliestDeliveryDate: earliest };
+    return { status: 'serves', postcode, earliestDeliveryDate: upcomingDeliveryDate(earliest) };
   } catch (error) {
     log('coverage lookup failed; answering "could not check"', error);
     return { status: 'unavailable' };

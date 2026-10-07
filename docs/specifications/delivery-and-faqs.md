@@ -96,7 +96,8 @@ control SHALL NOT ship (contract §4b) — a release gate, pinned by a test.
 
 - **Serves:** "Great — we deliver to {postcode}" (normalised), "Earliest delivery" and the date
   with its weekday ("Thursday 6 August", derived from the date) and the cooking-run note — the date
-  from the lookup, else the tenant's delivery window, else the three lines are left out; a
+  from the lookup, else the tenant's delivery window, else — or when that date is already past in
+  the UK (`upcomingDeliveryDate`) — the three lines are left out; a
   terracotta 52px **BUILD A BOX** (the owner's call, design/CLAUDE.md) → `/box`; "Change postcode",
   which empties the panel and selects the field's value.
 - **Not served:** "We're not in your area yet", the postcode, "Check another postcode". No Build a
@@ -249,7 +250,8 @@ The notify-me contract proposed to aonik#357 (`NotifyList`): `join({ email, post
 5. One focus ring on the search pill (the prototype also rings the input inside it).
 6. Without JavaScript the checker and search do nothing; their fields carry no `name`, so nothing
    leaks into a URL.
-7. Demo data: the fixture earliest date (6 August) is past; the demo checkout still prices delivery
+7. Demo data: the fixture earliest date (6 August) is past, so demo answers "serves" without the
+   date lines (FR-04); the demo checkout still prices delivery
    "£10 → Free" (`BOX_PRICING_FIXTURE`) while the storefront config says £5.95 — to reconcile with
    the funnel (#28, #31).
 8. Marketing-pages FR-02 keeps the earliest date off marketing pages; here it appears only in a

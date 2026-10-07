@@ -24,7 +24,12 @@ import {
 import { PRIVATE_TABLE_FROM_PENCE } from '../src/lib/content/marketing';
 import { CONTACT_HREF, DELIVERY_FAQS_HREF, PRIVATE_TABLE_ITEM } from '../src/lib/content/navigation';
 import { checkPostcode, joinNotifyList, locatePostcode } from '../src/lib/delivery/actions';
-import { checkerReducer, INITIAL_CHECKER_STATE, type CheckerState } from '../src/lib/delivery/checker';
+import {
+  checkerReducer,
+  INITIAL_CHECKER_STATE,
+  upcomingDeliveryDate,
+  type CheckerState,
+} from '../src/lib/delivery/checker';
 import {
   CHECKED_POSTCODE_KEY,
   CHECKED_POSTCODE_TTL_MS,
@@ -358,7 +363,7 @@ test('checkPostcode (demo): serves with the earliest date, not served, invalid',
     assert.deepEqual(await checkPostcode('da1 2ab'), {
       status: 'serves',
       postcode: 'DA1 2AB',
-      earliestDeliveryDate: DELIVERY_FIXTURE.earliestDeliveryDate,
+      earliestDeliveryDate: upcomingDeliveryDate(DELIVERY_FIXTURE.earliestDeliveryDate),
     });
     assert.deepEqual(await checkPostcode('AB12 3CD'), { status: 'not-served', postcode: 'AB12 3CD' });
     assert.deepEqual(await checkPostcode('DA1ABC'), { status: 'invalid' });
@@ -578,6 +583,17 @@ test('the earliest delivery reads with its weekday, derived from the date', () =
   assert.equal(formatDeliveryDateLong(null), null);
 });
 
+test('upcomingDeliveryDate: today or later in the UK; a past date is no answer', () => {
+  // 23:30 UTC on 6 Oct is already 7 Oct in London (BST).
+  const lateEvening = new Date('2026-10-06T23:30:00Z');
+  assert.equal(upcomingDeliveryDate('2026-10-07', lateEvening), '2026-10-07');
+  assert.equal(upcomingDeliveryDate('2026-10-06', lateEvening), null);
+  assert.equal(upcomingDeliveryDate('2026-08-06', lateEvening), null, 'a stale window shows no date');
+  assert.equal(upcomingDeliveryDate('2027-01-02', lateEvening), '2027-01-02');
+  assert.equal(upcomingDeliveryDate('6 August', lateEvening), null);
+  assert.equal(upcomingDeliveryDate(null, lateEvening), null);
+});
+
 /* ---- Page data ------------------------------------------------------------------- */
 
 test('page data (demo): the checker with location, no notify-me, £5.95 from the config', async () => {
@@ -686,7 +702,14 @@ test('page (live): Aonik down — the FAQs still render, without the figures the
   const text = textOf(html);
   assert.match(text, /Search our FAQs/);
   assert.doesNotMatch(text, /How much is delivery\?/);
-  assert.match(text, /6 questions/, 'Delivery counts what renders');
+  const deliveryCard = html.match(/href="#faq-delivery"[\s\S]*?(\d+) questions?/);
+  const deliveryGroup = html.match(/id="faq-delivery"[\s\S]*?(?=id="faq-|$)/);
+  assert.ok(deliveryCard && deliveryGroup, 'the Delivery card and group render');
+  assert.equal(
+    Number(deliveryCard[1]),
+    (deliveryGroup[0].match(/<details/g) ?? []).length,
+    'Delivery counts what renders',
+  );
 });
 
 test('checker markup: labelled field, live regions, location control only where it can work', () => {

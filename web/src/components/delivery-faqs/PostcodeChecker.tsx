@@ -86,6 +86,8 @@ export function PostcodeChecker({
     const entry = readPostcodeEntry(raw);
     if (!entry.ok) {
       // A correction to make in place, not an outcome: the page holds still.
+      // Anything still in flight (a location lookup) is abandoned with it.
+      ++counter.current;
       dispatch({ type: 'correct', message: entry.reason });
       focusField(entry.reason === 'invalid');
       return;

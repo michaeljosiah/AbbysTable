@@ -93,3 +93,24 @@ export function checkerReducer(state: CheckerState, event: CheckerEvent): Checke
       return { ...state, busy: null, message: null, result: null, request: event.request };
   }
 }
+
+/** Today's date in the UK, as `YYYY-MM-DD` — the calendar delivery dates are written in. */
+function londonToday(now: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/London',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+}
+
+/**
+ * An earliest delivery date worth showing: a `YYYY-MM-DD` that is today or
+ * later in the UK. A past date — a stale window, an old fixture — is no
+ * answer at all, so the result leaves the date lines out rather than promise
+ * a day that has gone.
+ */
+export function upcomingDeliveryDate(isoDate: string | null | undefined, now: Date = new Date()): string | null {
+  if (!isoDate || !/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return null;
+  return isoDate >= londonToday(now) ? isoDate : null;
+}
