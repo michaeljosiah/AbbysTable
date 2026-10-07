@@ -260,6 +260,16 @@ test('a committed box totals box, surcharges, overflow and extras, as the checko
   assert.deepEqual(summary, { label: '12-dish box', total: '£189', href: '/box/dishes' });
 });
 
+test('a demo delivery charge is in the total, as Review and the live quote count it', () => {
+  const charged: PurchaseBarPricing = {
+    ...pricing,
+    box: { ...BOX_PRICING_FIXTURE, delivery: { listPence: 1000, pricePence: 650 } },
+  };
+  const summary = activeBoxSummary(cart({ boxSize: 6, lines: [okra], dishCount: 1 }), charged, null);
+  // £95 box + £6.50 delivery.
+  assert.equal(summary?.total, '£101.50');
+});
+
 test('a total the client cannot price is left out rather than guessed', () => {
   const unpriced = cart({ boxSize: 6, lines: [{ ...okra, surchargePence: undefined }], dishCount: 1 });
   assert.equal(activeBoxSummary(unpriced, pricing, null)?.total, null);

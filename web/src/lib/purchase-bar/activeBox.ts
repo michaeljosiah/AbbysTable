@@ -9,7 +9,8 @@
  * yet say — the furthest valid step, above all.
  */
 
-import { cartTotals, extrasTotals, type CartState, type ExtraLine } from '@/lib/cart/CartProvider';
+import type { CartState, ExtraLine } from '@/lib/cart/CartProvider';
+import { buildDemoQuote } from '@/lib/cart/quote';
 import { formatPrice } from '@/lib/format';
 import { BOX_BUILDER_PATH } from '@/lib/how-it-works/boxSizes';
 
@@ -69,9 +70,10 @@ function displaySize(cart: BarCart, pricing: PurchaseBarPricing | null, offer: P
 
 /**
  * The running total, in pence. Live: Aonik's quote, verbatim — never
- * recomputed. Demo: the same helpers the checkout steps use (box, surcharges,
- * dishes beyond the box, extras). Undefined when it cannot be known here — no
- * demo pricing, or a surcharge the client cannot price.
+ * recomputed. Demo: the checkout's own demo quote (`buildDemoQuote`, what
+ * Review renders), so the bar and Review can never disagree on what the total
+ * includes — delivery among it, as in live. Undefined when it cannot be known
+ * here — no demo pricing, or a surcharge the client cannot price.
  */
 export function boxTotalPence(
   cart: BarCart,
@@ -80,10 +82,12 @@ export function boxTotalPence(
 ): number | undefined {
   if (cart.isServerCart) return cart.quote?.totalPence;
   if (!pricing || !size) return undefined;
-  const box = cartTotals({ boxSize: size.size, isCustom: size.isCustom, lines: cart.lines }, pricing.box);
-  const extras = extrasTotals(cart.extras, pricing.extras);
-  if (box.totalPence === undefined || extras.totalPence === undefined) return undefined;
-  return box.totalPence + extras.totalPence;
+  const quote = buildDemoQuote({
+    state: { boxSize: size.size, isCustom: size.isCustom, lines: cart.lines, extras: cart.extras },
+    pricing: pricing.box,
+    extrasCatalogue: pricing.extras,
+  });
+  return quote?.totalPence;
 }
 
 /**

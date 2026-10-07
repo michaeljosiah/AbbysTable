@@ -16,6 +16,7 @@ import type { MappedOptionGroup, PersonalisationSelection } from '@/lib/aonik/ma
 import type { Dish } from '@/lib/aonik/types';
 import { useCart } from '@/lib/cart/CartProvider';
 import type { CartRequestError } from '@/lib/cart/transport';
+import { swallowClicksFor } from '@/lib/dom/ghostClicks';
 import { boxResumeHref } from '@/lib/purchase-bar/activeBox';
 
 import styles from './DishOrderPanel.module.css';
@@ -54,6 +55,22 @@ const DishOrderContext = createContext<DishOrderState | null>(null);
 /** How long the toast stays up — Dish Landing v2's `flash`. */
 const TOAST_MS = 2400;
 
+/**
+ * After the hand-off, clicks are ignored for this long: the box flow's own
+ * fixed Continue sits where the bar's ADD TO BOX was, and the second tap of a
+ * double tap would otherwise land on it (`swallowClicksFor`).
+ */
+const GHOST_TAP_MS = 500;
+
+interface Toast {
+  message: string;
+  /**
+   * A failure is already announced by the panel's inline alert; the toast then
+   * only shows it to whoever tapped the bar with the panel out of sight.
+   */
+  error: boolean;
+}
+
 export function DishOrderProvider({
   dish,
   optionGroups,
@@ -66,13 +83,16 @@ export function DishOrderProvider({
   const router = useRouter();
   const { addLine, boxSize, pending, error } = useCart();
   const [choice, setChoice] = useState<DishChoice>({ surchargePence: 0 });
-  const [toast, setToast] = useState('');
+  const [toast, setToast] = useState<Toast | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // `pending` is a render behind (and always false in demo): two activations
+  // in one frame both read it as false. This is read synchronously.
+  const inFlight = useRef(false);
 
-  const flash = useCallback((message: string) => {
-    setToast(message);
+  const flash = useCallback((message: string, error = false) => {
+    setToast({ message, error });
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(''), TOAST_MS);
+    toastTimer.current = setTimeout(() => setToast(null), TOAST_MS);
   }, []);
 
   useEffect(
@@ -83,7 +103,8 @@ export function DishOrderProvider({
   );
 
   const addToBox = useCallback(async () => {
-    if (pending) return;
+    if (pending || inFlight.current) return;
+    inFlight.current = true;
     try {
       await addLine({
         dishId: dish.id,
@@ -102,12 +123,15 @@ export function DishOrderProvider({
       // The panel's inline alert carries the failure too; the toast is for
       // whoever tapped the bar with the panel scrolled out of sight.
       const message = cause instanceof Error ? cause.message : 'The box could not be updated.';
-      flash(`${message} Please try again.`);
+      flash(`${message} Please try again.`, true);
       return;
+    } finally {
+      inFlight.current = false;
     }
 
     // Only after the authoritative cart has adopted the line.
     flash('Added to your box');
+    swallowClicksFor(GHOST_TAP_MS);
     router.push(boxResumeHref(boxSize));
   }, [pending, addLine, dish, choice, flash, router, boxSize]);
 
@@ -121,7 +145,8 @@ export function DishOrderProvider({
       {children}
       {/* Always mounted, so the live region exists before it has anything to say. */}
       <div className={styles.toast} role="status" data-show={toast ? '' : undefined}>
-        {toast}
+        {/* A failure is seen here but heard once, from the panel's alert. */}
+        {toast?.error ? <span aria-hidden="true">{toast.message}</span> : toast?.message}
       </div>
     </DishOrderContext.Provider>
   );

@@ -1,6 +1,6 @@
 /**
  * When the mobile purchase bar shows — the rules, deliberately free of React
- * and the DOM so they are unit-tested on their own (tests/purchase-bar.test.ts).
+ * and the DOM so they are unit-tested on their own (tests/purchase-bar.test.tsx).
  *
  * Sources: design/build-handoff.md §3j ("Mobile purchase bar — full visibility
  * logic"), design/CLAUDE.md "Mobile purchase CTA + header behaviour", and the
