@@ -1,0 +1,843 @@
+/* ===========================================================================
+   Abby's Story — design/Abby's Table - Abby's Story v2.dc.html
+   ---------------------------------------------------------------------------
+   Mobile-first (design/CLAUDE.md, "Mobile-first rebuild"): the rules with no
+   media query ARE the phone design; 640 and 1024 are min-width only, ascending.
+   Values are the design file's, which takes them from Homepage v2.
+
+   One DOM order at every width. Grid placement moves only non-interactive
+   things past each other — the hero CTA past the portrait, the italic line
+   past the diagnosis photograph — the one case design/CLAUDE.md allows.
+   =========================================================================== */
+
+/* ---- Bands --------------------------------------------------------------- */
+
+/* Canonical full-bleed band padding (44-48 → 56-60 → 72-76), copied from the
+   homepage's coloured bands. The gap between two bands is that split. */
+.band {
+  padding: 44px 0 48px;
+}
+
+/* Coloured bands are a named list, and Abby's Story is on it: blush hero,
+   cream chapters, the near-black diagnosis band, cream again, sage close. */
+.heroBand {
+  background: var(--surface-blush);
+}
+
+.chaptersBand {
+  background: var(--surface-page);
+}
+
+.diagnosisBand {
+  background: var(--surface-story);
+}
+
+/* Same cream as the chapters band: between cream bands the transition comes
+   from the heading and the spacing, never a divider or a second cream. */
+.learnBand {
+  background: var(--surface-page);
+}
+
+.todayBand {
+  background: var(--sage);
+}
+
+/* Inner shell: 1280 cap, gutter 22 → 34 → 48. Border-box, as in the design,
+   so the cap includes the gutters. */
+.inner {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 22px;
+}
+
+/* ---- Shared type --------------------------------------------------------- */
+
+/* Page title on the recorded scale: clamp(38px, 11.6vw, 56px), 56 on desktop. */
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: clamp(38px, 11.6vw, 56px);
+  line-height: 1.04;
+  letter-spacing: -0.015em;
+  color: var(--text-heading);
+  text-wrap: pretty;
+}
+
+/* Section title: 40px is the mobile ceiling; 48 arrives at 1024. */
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: clamp(30px, 8.6vw, 40px);
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  color: var(--text-heading);
+  text-wrap: pretty;
+}
+
+.body {
+  margin: 14px 0 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: var(--line-body);
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+/* ---- Buttons ------------------------------------------------------------- */
+
+/* Full width inside the gutters on a phone, intrinsic from 640; height, type
+   and padding never vary. Button CTAs are caps by CSS with no arrow — the
+   source stays sentence case so screen readers don't spell it out. */
+.ctaRow {
+  display: flex;
+  margin-top: 24px;
+}
+
+/* Both CTAs are green-forest. The hero one is the user's call, taken knowingly
+   against fill-by-role (terracotta stays the header pill, the drawer CTA —
+   and nothing else on this page). Hover is a colour shift, never a lift. */
+.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  border-radius: var(--radius-pill);
+  background-color: var(--action-dark);
+  color: var(--text-inverse);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--btn-size);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: center;
+  text-decoration: none;
+  transition: background-color 0.16s ease;
+}
+
+/* 54: hero primary on the button ladder. */
+.ctaHero {
+  min-height: 54px;
+  padding: 0 32px;
+}
+
+/* 52: major section CTA. */
+.ctaSection {
+  min-height: 52px;
+  padding: 0 34px;
+}
+
+/* The label is restated: a filled anchor must keep its colour on hover. */
+.cta:hover {
+  background-color: var(--surface-darker);
+  color: var(--text-inverse);
+}
+
+.cta:active {
+  filter: brightness(0.94);
+}
+
+/* --brass-ink, not --brass: both CTAs sit on light warm grounds (blush, sage),
+   where the homepage's founder-band CTA rings in brass-ink for that reason.
+   The pill radius is restated, or the global focus rule's 3px squares it. */
+.cta:focus-visible {
+  outline: 2px solid var(--brass-ink);
+  outline-offset: 3px;
+  border-radius: var(--radius-pill);
+}
+
+/* ---- Media --------------------------------------------------------------- */
+
+/* Geometry reserved by aspect-ratio before any image loads: zero layout shift. */
+.media {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  border: var(--border-hairline) solid var(--border-light);
+  background: var(--surface-bright);
+}
+
+.cover {
+  object-fit: cover;
+}
+
+/* ---- Hero ---------------------------------------------------------------- */
+
+/* Title, lede and signature centred on the phone composition; released at
+   1024, where the hero becomes a split and a centred column would be adrift. */
+.heroCopy {
+  text-align: center;
+}
+
+/* Page lede: 18px at every width — it never bumps up on desktop. */
+.lede {
+  margin: 14px 0 0;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+/* The founder's name, as the homepage's founder band writes it: display face,
+   upright, 26 → 32px, leading em dash. --terracotta-ink, not --terracotta: on
+   blush the accent is 3.14:1 and only passes at headline scale; the ink is
+   4.63:1, AA at any size. */
+.signature {
+  margin: 10px 0 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 26px;
+  line-height: 1.15;
+  color: var(--terracotta-ink);
+}
+
+.heroFigure {
+  position: relative;
+  margin-top: 26px;
+}
+
+/* Squared at every width. Anchored at 12% so the paper never covers her face. */
+.heroMedia {
+  composes: media;
+  aspect-ratio: 1 / 1;
+}
+
+.heroImage {
+  object-fit: cover;
+  object-position: 50% 12%;
+}
+
+/* The collage sits ON the photograph, inset against the figure — never in
+   viewport percentages — so it reflows: at 320 it is ~250px across and still
+   reads. Cleaner paper than the original: a flat bright ground, a sand
+   hairline, and only enough shadow to lift it off the photograph. */
+.collage {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  left: 12px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.logos {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.logoCard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 8px 12px;
+  background: var(--surface-bright);
+  border: var(--border-hairline) solid var(--border-light);
+  border-radius: 14px;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--green-forest) 8%, transparent);
+}
+
+.logo {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 30px;
+  mix-blend-mode: multiply;
+}
+
+.prints {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  align-items: end;
+}
+
+/* No crop box: the white print frame and its tape tab are part of each image
+   (baked into the files), so `object-fit: cover` would slice the frame off —
+   and unevenly, because the fourth print has a different native ratio. */
+.print {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+/* ---- Chapters ------------------------------------------------------------ */
+
+/* "Start at the beginning" lands here. 72px is the design's value: it covers
+   the v2 header's tallest row. Today's header measures 65px on a phone and
+   85px from 1240, so on desktop the band's top edge sits 13px under it — but
+   the band's own top padding keeps the h2 clear at every width (measured: h2
+   top 116px at 390, 144px at 1280). Revisit when the header is rebuilt (#10). */
+.chaptersBand {
+  scroll-margin-top: 72px;
+}
+
+.chapters {
+  display: grid;
+  gap: 30px;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chapter {
+  display: grid;
+  gap: 8px;
+}
+
+/* The ringed numeral from How It Works v2: a 1px brass ring (a mark, so plain
+   brass) around a green-forest figure, 34px here and 42px from 1024. */
+.num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: var(--border-hairline) solid var(--rule-brass);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text-heading);
+}
+
+/* Card / step heading tier: 22 → 26. */
+.chapterTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: var(--display-3);
+  line-height: 1.2;
+  color: var(--text-heading);
+  text-wrap: pretty;
+}
+
+.chapterMedia {
+  composes: media;
+  margin-bottom: 8px;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-card);
+}
+
+.chapter .body {
+  margin: 0;
+}
+
+/* ---- The diagnosis ------------------------------------------------------- */
+
+/* On --story-ink: blush 12.3:1, sand-2 12.1:1, brass 6.4:1. */
+.diagnosisBand .heading {
+  color: var(--text-on-dark);
+}
+
+.diagnosisBand .body {
+  color: var(--text-on-dark-soft);
+}
+
+.diagnosisMedia {
+  margin-top: 24px;
+  aspect-ratio: 5 / 4;
+  border-color: var(--rule-brass);
+}
+
+/* The accent line is brass, not gold: gold is the homepage's dark-ground
+   accent but never type there; brass matches the footer eyebrow treatment. */
+.remission {
+  margin: 18px 0 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: var(--weight-medium);
+  font-size: 22px;
+  line-height: 1.35;
+  color: var(--brass);
+}
+
+/* ---- Remission became a mission ------------------------------------------ */
+
+.studies {
+  display: grid;
+  gap: 16px;
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.study {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.studyRing {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: var(--border-hairline) solid var(--rule-brass);
+}
+
+/* Identity marks, so brass-ink (design/CLAUDE.md, icon colour by job). */
+.studyIcon {
+  stroke: var(--brass-ink);
+}
+
+.studyLabel {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--text-heading);
+}
+
+.certsCell,
+.quoteCell {
+  margin-top: 26px;
+}
+
+/* Flat --sand, the dish card's text-panel ground: the design system forbids
+   gradients on UI surfaces. No border, no shadow on the panel. */
+.certs {
+  padding: 22px;
+  background: var(--surface-card);
+  border-radius: var(--radius-card);
+}
+
+/* A real heading inside the panel. --brass-ink, not --brass: brass is 2.0:1 on
+   sand and would vanish; brass-ink is 3.97:1, which clears the 3:1 LARGE-text
+   minimum but not 4.5:1 — so the size is set by that number: 24px (WCAG large
+   at normal weight) rising to 26px. At 22px it would fail. */
+.certsHeading {
+  margin: 0 0 18px;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 24px;
+  line-height: 1.25;
+  letter-spacing: 0.12em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--brass-ink);
+}
+
+/* Slanted, as the original. Width held under 100% so the rotated corners stay
+   inside the panel, and the gap absorbs the height a rotated box gains. The
+   hairline is --sand-2 (--sand is invisible on sand); the shadow is the hero
+   collage's paper value. */
+.marks {
+  display: grid;
+  gap: 20px;
+}
+
+.mark {
+  width: 90%;
+  height: auto;
+  margin: 0 auto;
+  background: var(--white);
+  border: var(--border-hairline) solid var(--sand-2);
+  border-radius: 4px;
+  box-shadow: 0 10px 20px color-mix(in srgb, var(--green-forest) 8%, transparent);
+}
+
+.mark:first-child {
+  transform: rotate(-3.2deg);
+}
+
+.mark:last-child {
+  transform: rotate(2.4deg);
+}
+
+/* --surface-bright, not cream-2: on a cream ground cream-2 reads as an
+   unexplained tint rather than a panel; cream-3 genuinely lifts. */
+.quote {
+  margin: 0;
+  padding: 26px 22px 28px;
+  background: var(--surface-bright);
+  border: var(--border-hairline) solid var(--border-light);
+  border-radius: var(--radius-card);
+}
+
+.quoteMark {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 26px;
+  line-height: 1;
+  color: var(--brass-ink);
+}
+
+.quoteText {
+  margin: 14px 0 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: var(--weight-medium);
+  font-size: 22px;
+  line-height: 1.4;
+  color: var(--text-heading);
+  text-wrap: pretty;
+}
+
+.quoteRule {
+  display: block;
+  width: 48px;
+  height: var(--rule-thick);
+  margin-top: 22px;
+  background: var(--rule-brass);
+}
+
+/* ---- Nigerian food, from a different perspective ------------------------- */
+
+.principles {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.principle {
+  display: flex;
+  gap: 12px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: var(--line-body);
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+.lozenge {
+  flex: 0 0 auto;
+  color: var(--brass-ink);
+}
+
+.film {
+  margin: 26px 0 0;
+}
+
+.filmMedia {
+  composes: media;
+  aspect-ratio: 1 / 1;
+}
+
+.filmCaption {
+  margin-top: 16px;
+}
+
+/* The panel heading tier (22 → 26), not a new display size — and a caption,
+   not a heading: the film has no content of its own yet. */
+.filmTitle {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: var(--display-3);
+  line-height: 1.2;
+  color: var(--text-heading);
+}
+
+.filmLine {
+  display: block;
+  margin-top: 6px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--text-body);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta {
+    transition: none;
+  }
+}
+
+/* ---- 640: more measure; chapters side by side; CTAs become intrinsic ----- */
+
+@media (min-width: 640px) {
+  .band {
+    padding: 56px 0 60px;
+  }
+
+  .inner {
+    padding: 0 34px;
+  }
+
+  .cta {
+    width: auto;
+  }
+
+  /* The HERO's CTA only: intrinsic now, it would sit hard left under centred
+     copy. The sage band's CTA sits in a left-aligned column and stays left. */
+  .heroCtaRow {
+    justify-content: center;
+  }
+
+  .collage {
+    right: 16px;
+    bottom: 16px;
+    left: 16px;
+    gap: 10px;
+  }
+
+  .logos {
+    gap: 10px;
+  }
+
+  .logoCard {
+    min-height: 66px;
+    padding: 12px 16px;
+  }
+
+  .logo {
+    max-height: 40px;
+  }
+
+  .prints {
+    gap: 10px;
+  }
+
+  /* Photograph left, text right. Two flexible spacer tracks centre the text
+     group against the photograph as a unit, whichever column is taller. Every
+     cell is placed explicitly because the DOM is the phone order (numeral,
+     title, photograph, body); the photograph holds no controls. */
+  .chapter {
+    grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
+    grid-template-rows: 1fr auto auto auto 1fr;
+    column-gap: 24px;
+    row-gap: 8px;
+    align-items: start;
+  }
+
+  .chapter > .num {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .chapter > .chapterTitle {
+    grid-column: 2;
+    grid-row: 3;
+  }
+
+  .chapter > .body {
+    grid-column: 2;
+    grid-row: 4;
+  }
+
+  .chapter > .chapterMedia {
+    grid-column: 1;
+    grid-row: 1 / span 5;
+    align-self: center;
+    margin-bottom: 0;
+  }
+
+  .studies {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .study {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  /* Breakpoint exception (build-handoff §3u): two-up from 640, stacked again
+     at 1024. In the single-column band a stacked certificate would render
+     ~950px wide, far past a readable document size. */
+  .marks {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+}
+
+/* ---- 1024: desktop compositions ------------------------------------------ */
+
+@media (min-width: 1024px) {
+  .band {
+    padding: 72px 0 76px;
+  }
+
+  .inner {
+    padding: 0 48px;
+  }
+
+  .title {
+    font-size: 56px;
+  }
+
+  .heading {
+    font-size: var(--display-1);
+  }
+
+  .chapterTitle,
+  .filmTitle {
+    font-size: 26px;
+  }
+
+  /* Copy beside the portrait. Spacer rows (1fr) above and below centre the
+     copy + CTA group against the portrait, which spans every row. */
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    grid-template-rows: 1fr auto auto 1fr;
+    column-gap: 56px;
+    align-items: center;
+  }
+
+  .heroCopy {
+    max-width: 520px;
+    grid-column: 1;
+    grid-row: 2;
+    text-align: left;
+  }
+
+  .heroCtaRow {
+    grid-column: 1;
+    grid-row: 3;
+    justify-content: flex-start;
+  }
+
+  .heroFigure {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    margin-top: 0;
+  }
+
+  .signature {
+    font-size: 32px;
+  }
+
+  .collage {
+    right: 20px;
+    bottom: 20px;
+    left: 20px;
+  }
+
+  /* Shared row tracks: numeral, title, photograph and body each get their own
+     row across all three columns, so they line up however long the copy runs.
+     Degrades to ragged (not broken) where subgrid is unsupported. */
+  .chapters {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(4, auto);
+    column-gap: 40px;
+    row-gap: 0;
+  }
+
+  .chapter {
+    grid-template-columns: none;
+    grid-template-rows: subgrid;
+    grid-row: span 4;
+    row-gap: 10px;
+  }
+
+  /* Back to auto placement: with the title-first DOM that gives the rows
+     numeral / title / photograph / body. */
+  .chapter > .num,
+  .chapter > .chapterTitle,
+  .chapter > .body,
+  .chapter > .chapterMedia {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .chapter > .chapterMedia {
+    margin-bottom: 6px;
+  }
+
+  .num {
+    width: 42px;
+    height: 42px;
+    font-size: 17px;
+  }
+
+  /* The italic line returns under the copy and the photograph spans the whole
+     column. The spanning figure pours its extra height into the two 1fr
+     tracks, which centres the text block against it. */
+  .diagnosis {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.86fr);
+    grid-template-rows: 1fr auto auto 1fr;
+    column-gap: 56px;
+    align-items: center;
+  }
+
+  .diagnosisCopy {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .remission {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .diagnosisMedia {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    margin-top: 0;
+  }
+
+  /* The original three-up: copy | certificates | quote. */
+  .learn {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 0.92fr);
+    gap: 44px;
+    align-items: center;
+  }
+
+  .certsCell,
+  .quoteCell {
+    margin-top: 0;
+  }
+
+  /* Stacked again: the copy column is only ~323px at 1024 and ~421px at 1280,
+     so three across would break "College of Naturopathic Medicine" onto four
+     or five lines. */
+  .studies {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .study {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .certs {
+    padding: 26px;
+  }
+
+  .certsHeading {
+    margin-bottom: 16px;
+    font-size: 26px;
+  }
+
+  .marks {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .quote {
+    padding: 34px 32px 36px;
+  }
+
+  .quoteText {
+    font-size: 26px;
+  }
+
+  .today {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.86fr);
+    gap: 56px;
+    align-items: center;
+  }
+
+  .film {
+    margin-top: 0;
+  }
+}

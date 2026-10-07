@@ -46,7 +46,9 @@ export function Founder() {
           </div>
 
           <div className={styles.cta}>
-            <Button variant="outline">Read Abby&apos;s story</Button>
+            <Button variant="outline" href="/our-story">
+              Read Abby&apos;s story
+            </Button>
           </div>
         </div>
       </div>

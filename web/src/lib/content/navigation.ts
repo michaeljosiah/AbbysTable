@@ -38,7 +38,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Gifting', href: '/#gifting' },
   { label: 'Private Table', href: '/#private' },
   { label: 'Our Standards', href: '/#standards' },
-  { label: "Abby's Story", href: '/#founder' },
+  { label: "Abby's Story", href: '/our-story' },
   { label: 'Contact', href: '/#contact' },
 ];
 
@@ -106,7 +106,7 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
   {
     heading: 'Learn',
     links: [
-      { label: "Abby's Story", href: '/#founder' },
+      { label: "Abby's Story", href: '/our-story' },
       { label: 'Our Standards', href: '/#standards' },
       { label: 'Journal', href: '/#contact' },
     ],
