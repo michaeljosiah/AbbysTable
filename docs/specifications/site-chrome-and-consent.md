@@ -17,8 +17,10 @@ updated: 2026-10-07
 > manager (#11, PR #50), the 404, 500 and maintenance pages (#13, PRs #51 and #53), the mobile
 > purchase bar (#12, PR #57), and the legal half of #8 (Allergens link in PR #49, Privacy and
 > Terms links in PR #56). **Pending:** the v2 header, drawer and footer and the removal of the
-> announcement bar (#10, being built now); the remaining information links and the checkout legal
-> return (#8). Pending parts are specified from the issues and `design/` (Homepage v2's chrome,
+> announcement bar (#10, being built now); from #8, the Contact and Delivery & FAQs routes (they
+> wait on #24 and #23; every link already reads one constant each) and checkout's legal line (it
+> arrives with Checkout, #31; "← Back to checkout" on the legal pages is built). Pending parts are
+> specified from the issues and `design/` (Homepage v2's chrome,
 > `design/CLAUDE.md` "Canonical shared components", behaviour guide §A2/§A3/§A5,
 > `design/SHOPPING-STATE.md` §40). Where an issue and the design disagree, the design wins and the
 > requirement says so.
@@ -474,14 +476,24 @@ the session; only the header, drawer, footer, consent manager and bar are client
 - [ ] `T8` v2 drawer as a dialog (FR-04–FR-06) (#10)
 - [ ] `T9` v2 footer (FR-07) (#10)
 - [ ] `T10` Delete the announcement bar and its delivery read (FR-08) (#10)
-- [ ] `T11` Contact and Delivery & FAQs links (FR-21) (#8)
-- [ ] `T12` Checkout legal line and "← Back to checkout" (FR-22) (#8)
+- [ ] `T11` Contact and Delivery & FAQs links (FR-21) (#8). Done: every link reads
+  `CONTACT_HREF` or `DELIVERY_FAQS_HREF` in `src/lib/content/navigation.ts`, the only `/#contact`
+  left in `web/src` (`tests/information-links.test.ts`). **Waits on #24 and #23:** set
+  `CONTACT_HREF = '/contact'` when Contact lands (Delivery & FAQs follows it, and the footer's
+  `id="contact"` can go) and `DELIVERY_FAQS_HREF = '/delivery-and-faqs'` when Delivery & FAQs
+  does; the test fails until each line is changed.
+- [x] `T12` "← Back to checkout" on the legal pages, and `checkoutLegalHref` for checkout's legal
+  line (FR-22) (#8)
+- [ ] `T14` Checkout's legal line — new tab, `?from=checkout`, hidden "(opens in a new tab)" —
+  wired by Checkout v2 (#31) with `checkoutLegalHref` and `CHECKOUT_LEGAL_LINK`. No built step
+  carries it: Review v2 has no legal line, and live ordering stays closed until Checkout ships.
 - [ ] `T13` `ConsentBoundary` revokes a loaded grant when the manager crashes after init (FR-09)
 
 ### Testing
 
 - Unit (exists): `tests/consent.test.ts`, `tests/purchase-bar.test.tsx`,
-  `tests/status-pages.test.ts`, `tests/not-found-chrome.test.ts`, `tests/legal-documents.test.ts`.
+  `tests/status-pages.test.ts`, `tests/not-found-chrome.test.ts`, `tests/legal-documents.test.ts`,
+  `tests/information-links.test.ts` (FR-21), `tests/checkout-legal-return.test.tsx` (FR-22).
 - Unit (to add with #10): header pill state from the active-box rule; hide-on-scroll thresholds as
   a React-free module; drawer trap and focus return; footer heads by width; chrome makes no Aonik
   request on any route (the not-found control test changes with FR-08).

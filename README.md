@@ -27,7 +27,8 @@ the v2 design in [`design/`](design/) is #9):
   grouped index (sticky column on desktop, bottom sheet on a phone). Section slugs are a public
   contract ([`web/src/lib/legal/`](web/src/lib/legal/)); company details come from
   [`web/src/lib/content/company.ts`](web/src/lib/content/company.ts) and print "to be confirmed"
-  until set.
+  until set. Opened from checkout's legal line (`?from=checkout`, a new tab), each shows "← Back
+  to checkout" above its h1 ([`web/src/lib/legal/checkoutReturn.ts`](web/src/lib/legal/checkoutReturn.ts)).
 
 > **Allergens are never inferred.** Only dishes whose data the templates actually published carry
 > ingredient and allergen text; every other dish shows an explicit "not yet published" notice
@@ -147,7 +148,8 @@ plain text, and the legal strip: © · Privacy Policy | Terms · Cookie preferen
 Gifting (#26) and Private Table (#25), Delivery & FAQs (#23) and Contact (#24) are not built yet:
 Gifting stays out of the chrome until its page lands, Private Table goes to the homepage band
 (`/#private`), and Contact / Delivery & FAQs to the footer — all from one place,
-`web/src/lib/content/navigation.ts`.
+`web/src/lib/content/navigation.ts`. Every "contact us" in the pages reads `CONTACT_HREF` and every
+Delivery & FAQs link `DELIVERY_FAQS_HREF` from there too, so each page's arrival is a one-line change.
 
 ---
 
