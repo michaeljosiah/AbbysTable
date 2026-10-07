@@ -1,22 +1,28 @@
 .row {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+.item {
+  display: flex;
+}
+
+/* A 44px target at every width: the row is reachable on a phone (drawer,
+   footer), so the touch floor applies (design/CLAUDE.md). */
 .link {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--blush);
+  width: 44px;
+  height: 44px;
+  color: var(--text-on-dark);
   text-decoration: none;
-  transition: transform 0.16s ease, color 0.16s ease;
+  transition: color 0.16s ease;
 }
 
 .link:hover {
-  transform: translateY(-2px);
   color: var(--brass);
 }
