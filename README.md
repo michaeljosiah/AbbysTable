@@ -30,6 +30,12 @@ the v2 design in [`design/`](design/) is #9):
   [`web/src/lib/content/company.ts`](web/src/lib/content/company.ts) and print "to be confirmed"
   until set. Opened from checkout's legal line (`?from=checkout`, a new tab), each shows "← Back
   to checkout" above its h1 ([`web/src/lib/legal/checkoutReturn.ts`](web/src/lib/legal/checkoutReturn.ts)).
+- **`/delivery-and-faqs`** — the postcode checker (shown only where a coverage lookup exists: the
+  demo fixtures today; live waits on Aonik's coverage endpoint) and the FAQs: live search and eight
+  topic groups. Prices in the answers come from the storefront config; a served postcode is handed
+  to the box builder in session storage, never a URL
+  ([`web/src/lib/delivery/`](web/src/lib/delivery/), spec
+  [`delivery-and-faqs.md`](docs/specifications/delivery-and-faqs.md)).
 
 > **Allergens are never inferred.** Only dishes whose data the templates actually published carry
 > ingredient and allergen text; every other dish shows an explicit "not yet published" notice
@@ -141,11 +147,11 @@ standards) · *Information* (Delivery & FAQs, Allergens, Contact us) — accordi
 columns from 1024 — then the wordmark, "Abby x", the four social icons with **@FromAbbysTable** as
 plain text, and the legal strip: © · Privacy Policy | Terms · Cookie preferences.
 
-Gifting (#26) and Private Table (#25), Delivery & FAQs (#23) and Contact (#24) are not built yet:
-Gifting stays out of the chrome until its page lands, Private Table goes to the homepage band
-(`/#private`), and Contact / Delivery & FAQs to the footer — all from one place,
-`web/src/lib/content/navigation.ts`. Every "contact us" in the pages reads `CONTACT_HREF` and every
-Delivery & FAQs link `DELIVERY_FAQS_HREF` from there too, so each page's arrival is a one-line change.
+Gifting (#26), Private Table (#25) and Contact (#24) are not built yet: Gifting stays out of the
+chrome until its page lands, Private Table goes to the homepage band (`/#private`), and Contact to
+the footer — all from one place, `web/src/lib/content/navigation.ts`. Every "contact us" in the
+pages reads `CONTACT_HREF` and every Delivery & FAQs link `DELIVERY_FAQS_HREF` (its page,
+`/delivery-and-faqs`) from there too, so each page's arrival is a one-line change.
 The homepage band's own *Find out more* is separate: it renders once `PRIVATE_TABLE_HREF`
 (`web/src/lib/content/marketing.ts`) is set, when #25 lands.
 

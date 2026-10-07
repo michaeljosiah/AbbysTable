@@ -39,8 +39,10 @@ Conventions inside `web/` that are easy to get wrong:
   `BoxSizeProvider`/`BoxSizeLink` sharing the choice with the page's purchase links), the legal
   pages' `LegalNavigation` (index, sheet, Sections/Top pair, scroll-spy) and `CheckoutReturn`
   ("← Back to checkout"), the mobile purchase bar
-  (`PurchaseBarShell`, `MobilePurchaseBar`, `DishPurchaseBar`) and the dish page's
-  `DishOrderProvider` — each for a specific piece of state — plus `app/error.tsx` and
+  (`PurchaseBarShell`, `MobilePurchaseBar`, `DishPurchaseBar`), the dish page's
+  `DishOrderProvider`, and Delivery & FAQs' postcode checker (`PostcodeChecker`, with
+  `NotifyMeForm`), FAQ search (`FaqSearch`) and each group's `ExpandAllButton` — each for a
+  specific piece of state — plus `app/error.tsx` and
   `app/global-error.tsx`, which Next requires to be client components. Data is fetched once in
   `app/layout.tsx` / the route's `page.tsx` and passed down; sections never fetch for themselves.
 - **Status pages (#13).** Unmatched URLs get the root `app/not-found.tsx`, which renders
@@ -75,7 +77,7 @@ Conventions inside `web/` that are easy to get wrong:
   out of the header, drawer and footer until `/gifting` lands (`GIFTING_LIVE`, #26); Private Table
   is `/#private` until #25; Contact is `CONTACT_HREF` (the footer, `/#contact` — its only literal in
   `src`, pinned by `tests/information-links.test.ts`) until #24, and Delivery & FAQs is
-  `DELIVERY_FAQS_HREF` (Contact's destination) until #23. Every in-page "contact us" reads those
+  `DELIVERY_FAQS_HREF` (`/delivery-and-faqs`, #23). Every in-page "contact us" reads those
   constants too — never write `/#contact`, `/contact` or `/delivery-and-faqs` in a page.
   What the chrome says (current page, Log in / My Account, GET STARTED / VIEW BOX) and when the
   header hides are React-free in `src/lib/site-header/` (`tests/site-header.test.ts`). The header
@@ -105,6 +107,18 @@ Conventions inside `web/` that are easy to get wrong:
   footer links stay same-tab with no marker.
 - **Menu faceting lives in `src/lib/menu/filters.ts`**, deliberately free of React. Change matching
   rules there, not in components.
+- **Delivery & FAQs (#23): never fake an answer.** "We deliver" / "not in your area" come only from
+  `AonikClient.coverage` (contract §3b); it is the design's placeholder areas in demo and `null` in
+  live until michaeljosiah/aonik#352, and with no lookup the page renders NO checker. The nine
+  states are `src/lib/delivery/checker.ts`, reached only by real input — the prototype's
+  `stateOverride` must never ship (contract §4b). "Use my current location" asks only on a click
+  and renders only where the lookup can place a postcode. A served postcode goes to the box
+  builder in sessionStorage `at-checked-postcode-v1` (`src/lib/delivery/handoff.ts`), never a URL;
+  Choose Box (#28) reads it into an empty field and re-checks. Notify-me renders only where
+  `AonikClient.notifyList` exists — nowhere until aonik#357, in either mode (#6's rule: demo never
+  pretends a write). FAQ copy is `src/lib/content/deliveryFaqs.ts`, verbatim and awaiting #38;
+  prices are `{ value }` slots (the delivery charge is `StorefrontConfig.delivery.chargedPence`), and
+  a question whose figure is unknown is left out. Search rules: `src/lib/faq/search.ts`.
 - **Dish → Our Standards → dish (#17)** is specified in `src/lib/dish-return.ts`, also React-free.
   "Back to dish" needs BOTH a real dish in `?from=dish&dish=<slug>` (checked on the server against
   the catalogue) AND a live `at-dish-return-v1` sessionStorage record written by the dish page's
