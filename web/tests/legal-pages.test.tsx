@@ -62,8 +62,12 @@ test('Privacy Policy renders its 11 sections and the closing section', () => {
 
 test('section 7 carries the committed #cookies anchor and the consent trigger', () => {
   const cookies = privacy.slice(privacy.indexOf('<div id="cookies"'), privacy.indexOf('<div id="how-long-we-keep'));
-  // The in-page trigger is a button bound only by `data-consent-open`, hidden until the manager is ready.
-  assert.match(cookies, /<div class="prefs">[\s\S]*<button type="button" class="cta" data-consent-open="true">/);
+  // The in-page trigger is a button bound only by `data-consent-open`, hidden until the manager is
+  // ready, and a disclosure for the consent panel (the manager keeps `aria-expanded` in step).
+  assert.match(
+    cookies,
+    /<div class="prefs">[\s\S]*<button type="button" class="cta" data-consent-open="true" aria-controls="consent-panel" aria-expanded="false">/,
+  );
   assert.match(cookies, /Cookie preferences/);
 });
 
@@ -113,7 +117,10 @@ test('unset company details print as "to be confirmed", in both documents', () =
   assert.equal(count(clause1, /data-tbc="config"/g), 5);
   // Terms clause 12 names no provider until one is configured.
   const clause12 = terms.slice(terms.indexOf('<div id="payment"'), terms.indexOf('<div id="where-we-deliver"'));
-  assert.match(clause12, /a third-party payment provider such as <span class="tbc" data-tbc="config">to be confirmed<\/span>\./);
+  assert.match(
+    clause12,
+    /a third-party payment provider such as \(<span class="tbc" data-tbc="config">provider name to be confirmed<\/span>\)\./,
+  );
 });
 
 test('internal links route through the site, the ICO opens in a new tab', () => {
@@ -121,6 +128,26 @@ test('internal links route through the site, the ICO opens in a new tab', () => 
   assert.match(privacy, /<a href="https:\/\/ico\.org\.uk" class="cta" target="_blank" rel="noopener noreferrer">/);
   // No link is left on a design-file path.
   for (const html of [terms, privacy]) assert.doesNotMatch(html, /\.dc\.html/);
+});
+
+test('the index has no controls until they can work', () => {
+  for (const html of [terms, privacy]) {
+    // Server-rendered (and so without JavaScript) the group rows are labels,
+    // not buttons with no handler behind them.
+    const nav = html.slice(html.indexOf('<nav id="legal-index"'), html.indexOf('</nav>'));
+    assert.doesNotMatch(nav, /<button/);
+    assert.match(nav, /<div class="groupToggle">/);
+    // And the no-script treatment drops the "Jump to a section" toggle while
+    // showing every section link.
+    assert.match(html, /<noscript><style>\.navhead\{display:none\}\.nav,\.groupList,\.navTitle\{display:block\}/);
+  }
+});
+
+test('the sheet frame is not a dialog until it is a sheet', () => {
+  for (const html of [terms, privacy]) {
+    assert.match(html, /<div class="indexPanel"><nav id="legal-index"/);
+    assert.doesNotMatch(html, /role="dialog"/);
+  }
 });
 
 test('print removes the site chrome on these two pages only', () => {

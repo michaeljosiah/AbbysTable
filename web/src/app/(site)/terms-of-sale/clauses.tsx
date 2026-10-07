@@ -340,7 +340,7 @@ export const TERMS_CLAUSES: Record<TermsSlug, ReactNode> = {
       <p>Payment must be made using one of the payment methods offered during checkout.</p>
       <p>
         Payments may be processed on our behalf by a third-party payment provider such as{' '}
-        <PaymentProvider strong />.
+        <PaymentProvider strong pending="provider name to be confirmed" />.
       </p>
       <p>Payment may be authorised or collected when your order is placed.</p>
       <p>If your order is subsequently not accepted, any payment collected will be returned.</p>

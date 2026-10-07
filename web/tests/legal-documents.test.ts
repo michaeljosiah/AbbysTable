@@ -17,6 +17,7 @@ import {
   sectionsOf,
   type LegalDocument,
 } from '../src/lib/legal/document';
+import { fragmentUrl, linkTarget, type LocationLike } from '../src/lib/legal/history';
 import { PRIVACY_COOKIES_SLUG, PRIVACY_POLICY } from '../src/lib/legal/privacy';
 import { TERMS_OF_SALE } from '../src/lib/legal/terms';
 
@@ -223,4 +224,52 @@ test('Privacy Policy and Terms links point at their pages (the legal half of #8)
   assert.equal(TERMS_ITEM.href, '/terms-of-sale');
   assert.ok(STATUS_FOOTER_LINKS.includes(PRIVACY_ITEM));
   assert.ok(STATUS_FOOTER_LINKS.includes(TERMS_ITEM));
+});
+
+/* ---- The URL rules (src/lib/legal/history.ts) --------------------------------- */
+
+const at = (pathname: string, hash = '', search = ''): LocationLike => ({
+  origin: 'https://abbystable.test',
+  pathname,
+  search,
+  hash,
+});
+
+test('the reading position is written under the document\'s own path only', () => {
+  assert.equal(fragmentUrl(at('/terms-of-sale'), '/terms-of-sale', 'refunds'), '/terms-of-sale#refunds');
+  assert.equal(fragmentUrl(at('/terms-of-sale', '#refunds'), '/terms-of-sale', null), '/terms-of-sale');
+  assert.equal(fragmentUrl(at('/privacy', '', '?from=checkout'), '/privacy', 'cookies'), '/privacy?from=checkout#cookies');
+});
+
+test('nothing is written once the reader has left the document', () => {
+  // Next pushes the next page's URL before the legal page unmounts; a write
+  // then would strip the destination's fragment (/#standards → /).
+  assert.equal(fragmentUrl(at('/', '#standards'), '/terms-of-sale', null), null);
+  assert.equal(fragmentUrl(at('/', '#standards'), '/terms-of-sale', 'refunds'), null);
+  assert.equal(fragmentUrl(at('/privacy', '#cookies'), '/terms-of-sale', null), null);
+});
+
+test('nothing is written when the URL already says so', () => {
+  assert.equal(fragmentUrl(at('/terms-of-sale', '#refunds'), '/terms-of-sale', 'refunds'), null);
+  assert.equal(fragmentUrl(at('/terms-of-sale'), '/terms-of-sale', null), null);
+  assert.equal(fragmentUrl(at('/terms-of-sale', '#'), '/terms-of-sale', null), null);
+});
+
+test('a link counts as this document\'s only on its own origin, path and query', () => {
+  const here = at('/privacy', '#who-we-are');
+  const slugOf = (href: string) => {
+    const target = linkTarget(PRIVACY_POLICY, href, here, 'top');
+    return target && target !== 'top' ? target.slug : target;
+  };
+  assert.equal(linkTarget(PRIVACY_POLICY, '#cookies', here, 'top'), sectionsOf(PRIVACY_POLICY)[6]);
+  assert.equal(slugOf('/privacy#cookies'), 'cookies');
+  assert.equal(slugOf('https://abbystable.test/privacy#s7'), 'cookies');
+  assert.equal(linkTarget(PRIVACY_POLICY, '#top', here, 'top'), 'top');
+  // Elsewhere, or not a section.
+  assert.equal(linkTarget(PRIVACY_POLICY, '/terms-of-sale#refunds', here, 'top'), null);
+  assert.equal(linkTarget(PRIVACY_POLICY, '/#standards', here, 'top'), null);
+  assert.equal(linkTarget(PRIVACY_POLICY, '/privacy?x=1#cookies', here, 'top'), null);
+  assert.equal(linkTarget(PRIVACY_POLICY, 'https://elsewhere.test/privacy#cookies', here, 'top'), null);
+  assert.equal(linkTarget(PRIVACY_POLICY, '/privacy', here, 'top'), null);
+  assert.equal(linkTarget(PRIVACY_POLICY, '#legal-index', here, 'top'), null);
 });

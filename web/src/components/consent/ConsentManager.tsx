@@ -6,6 +6,8 @@ import { Component, useCallback, useEffect, useRef, useState, type ReactNode } f
 
 import {
   ALL_ACCEPTED,
+  announceConsentReady,
+  CONSENT_PANEL_ID,
   CONSENT_STORAGE_KEY,
   consentStore,
   ESSENTIAL_ONLY,
@@ -51,7 +53,7 @@ export function ConsentManager() {
 
 /** The only selector the manager binds — never an href, never a label. */
 const TRIGGER_SELECTOR = '[data-consent-open]';
-const PANEL_ID = 'consent-panel';
+const PANEL_ID = CONSENT_PANEL_ID;
 const TITLE_ID = 'consent-title';
 
 /** The three optional rows. Copy verbatim from the canonical design; categories match Privacy section 7. */
@@ -172,9 +174,7 @@ function ConsentLayer() {
   // (or its boundary catches a failure), so the button never outlives it.
   useEffect(() => {
     if (!ready) return;
-    const root = document.documentElement;
-    root.setAttribute('data-consent-ready', '');
-    return () => root.removeAttribute('data-consent-ready');
+    return announceConsentReady(document.documentElement);
   }, [ready]);
 
   // ARIA follows behaviour: a trigger is announced as opening a dialog only
@@ -186,6 +186,15 @@ function ConsentLayer() {
       trigger.setAttribute('aria-haspopup', 'dialog');
     });
   }, [ready, pathname]);
+
+  // A trigger that is a disclosure for the panel (it names it in
+  // `aria-controls` — Privacy section 7's button) reports whether it is open.
+  useEffect(() => {
+    if (!ready) return;
+    document
+      .querySelectorAll(`${TRIGGER_SELECTOR}[aria-controls="${PANEL_ID}"]`)
+      .forEach((trigger) => trigger.setAttribute('aria-expanded', String(panelOpen)));
+  }, [ready, pathname, panelOpen]);
 
   // The layer persists across client navigation; a page change closes the panel.
   const lastPathname = useRef(pathname);

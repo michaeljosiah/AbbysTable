@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
+import { CONSENT_PANEL_ID } from '@/lib/consent/consent';
 import { COMPANY } from '@/lib/content/company';
 
 import styles from './LegalDocument.module.css';
@@ -98,13 +99,22 @@ export function OutlineLinkCta({ href, children }: { href: string; children: Rea
  * needed here; and since nothing can happen without the manager, the button
  * and its lead-in stay hidden until the manager marks itself ready.
  * Outline, not filled: a utility action, not the page's main call.
+ *
+ * It names the panel it discloses (`aria-controls`), and the manager keeps its
+ * `aria-expanded` in step with the panel.
  */
 export function CookiePreferences() {
   return (
     <div className={styles.prefs}>
       <p>You can review or change your choices at any time:</p>
       <div className={styles.ctaRow}>
-        <button type="button" className={styles.cta} data-consent-open>
+        <button
+          type="button"
+          className={styles.cta}
+          data-consent-open
+          aria-controls={CONSENT_PANEL_ID}
+          aria-expanded="false"
+        >
           <span>Cookie preferences</span>
         </button>
       </div>
@@ -318,9 +328,23 @@ export function CompanyPhone({
   );
 }
 
-/** The card-payment processor (Terms clause 12, Privacy section 5). */
-export function PaymentProvider({ strong = false }: { strong?: boolean }) {
+/**
+ * The card-payment processor (Terms clause 12, Privacy section 5). Unset, it is
+ * a mark: plain "to be confirmed" where the copy already names what is
+ * missing, or `pending` — set in brackets, as the design brackets a mark inside
+ * a sentence — where the sentence would otherwise read "such as to be
+ * confirmed".
+ */
+export function PaymentProvider({ strong = false, pending }: { strong?: boolean; pending?: string }) {
   const name = COMPANY.paymentProvider;
-  if (!name) return <Tbc source="config" />;
+  if (!name) {
+    return pending ? (
+      <>
+        (<Tbc source="config">{pending}</Tbc>)
+      </>
+    ) : (
+      <Tbc source="config" />
+    );
+  }
   return strong ? <strong>{name}</strong> : <>{name}</>;
 }
