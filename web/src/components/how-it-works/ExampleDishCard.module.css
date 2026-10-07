@@ -1,0 +1,218 @@
+/* ===========================================================================
+   How it works — the "Example dish" card (`.hw-nut` in
+   design/Abby's Table - How It Works v2.dc.html). Bright surface, flat, 18px
+   radius: the panel tier. Mobile-first; 640 and 1024 are min-width only.
+   =========================================================================== */
+
+.card {
+  margin-top: 26px;
+  background: var(--surface-bright);
+  border: var(--border-hairline) solid var(--border-light);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.head {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+}
+
+/* Brass as small type on a light cream ground: --brass-ink (4.96:1). */
+.eyebrow {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--brass-ink);
+}
+
+.name {
+  margin: 10px 0 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 22px;
+  line-height: 1.25;
+  color: var(--text-heading);
+  text-wrap: pretty;
+}
+
+.heat {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--cream-2);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  color: var(--text-heading);
+}
+
+.pips {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* Graphic only, never type: --chilli is the heat-pip red. Unlit pips are
+   green-forest at low strength, as the menu's dish card draws them. */
+.pip .stem {
+  fill: color-mix(in srgb, var(--green-forest) 28%, transparent);
+}
+
+.pip .body {
+  fill: color-mix(in srgb, var(--green-forest) 18%, transparent);
+}
+
+.pip[data-lit] .stem {
+  fill: var(--green-forest);
+}
+
+.pip[data-lit] .body {
+  fill: var(--chilli);
+}
+
+/* Six columns with each cell spanning two, so five values fall 3 + 2 with
+   the pair CENTRED under the three (the fourth cell starts at column 2). */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: var(--border-hairline) solid var(--border-light);
+}
+
+/* No rule between the two rows: a cell border would float a segment across
+   the middle of the card. The rows are separated by padding. */
+.cell {
+  grid-column: span 2;
+  padding: 16px 8px;
+  text-align: center;
+}
+
+/* Both edges in one declaration — `grid-column-start` alone would drop the
+   span and leave this cell one track wide. */
+.cell:nth-child(4) {
+  grid-column: 2 / span 2;
+}
+
+.value {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 26px;
+  line-height: 1;
+  color: var(--text-heading);
+}
+
+/* --brown, not --taupe: taupe is 3.96:1 on cream and this is small text. */
+.label {
+  display: block;
+  margin-top: 8px;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-body);
+}
+
+/* What the record does not publish, said in words. Supporting copy: 16px. */
+.note {
+  margin: 0;
+  padding: 0 20px 16px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+/* The all-unpublished note stands in for the grid, so it takes its rule. */
+.head + .note {
+  padding-top: 16px;
+  border-top: var(--border-hairline) solid var(--border-light);
+}
+
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: var(--border-hairline) solid var(--border-light);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-body);
+}
+
+.allergens,
+.ingredients {
+  margin: 0;
+}
+
+/* The declaration is shown verbatim, as supporting copy (16px, the floor for
+   a sentence). It is a free-text string today — the contract's controlled
+   `allergens_present[]` is not served yet — so it is not split into the
+   design's one-chip-per-allergen tags: "nuts (peanuts, almonds)" would break.
+   The label is set in the heading ink so it still reads apart from it. */
+.allergens {
+  min-width: 0;
+  text-wrap: pretty;
+}
+
+.allergensLabel {
+  font-weight: var(--weight-semibold);
+  color: var(--text-heading);
+}
+
+.ingredients {
+  margin-left: auto;
+}
+
+/* ---- 640: five figures in one row; name and heat side by side ---- */
+
+@media (min-width: 640px) {
+  .head {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    padding: 22px 24px;
+  }
+
+  .heat {
+    justify-self: end;
+  }
+
+  .grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .cell,
+  .cell:nth-child(4) {
+    grid-column: auto / span 1;
+  }
+}
+
+/* ---- 1024: the card sits beside the band's copy ---- */
+
+@media (min-width: 1024px) {
+  .card {
+    margin-top: 0;
+  }
+
+  .name {
+    font-size: 26px;
+  }
+
+  .value {
+    font-size: 30px;
+  }
+}

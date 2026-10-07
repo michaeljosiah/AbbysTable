@@ -23,6 +23,11 @@ the v2 design in [`design/`](design/) is #9):
   protein, side, heat, with live surcharge), nutrition, ingredients and allergens, reheating
   guidance, and related dishes. Signature dishes get their badges and upgrade price from the same
   `isSignature` flag — the two dish-detail templates are one page, not two.
+- **`/terms-of-sale`** and **`/privacy`** — the legal documents, each one continuous document with a
+  grouped index (sticky column on desktop, bottom sheet on a phone). Section slugs are a public
+  contract ([`web/src/lib/legal/`](web/src/lib/legal/)); company details come from
+  [`web/src/lib/content/company.ts`](web/src/lib/content/company.ts) and print "to be confirmed"
+  until set.
 
 > **Allergens are never inferred.** Only dishes whose data the templates actually published carry
 > ingredient and allergen text; every other dish shows an explicit "not yet published" notice
@@ -286,10 +291,17 @@ web/                         the storefront
   src/components/status/     404 and 500 pages (design: Page Not Found, Something Went Wrong)
   src/components/sections/   the ten homepage sections + DishCard
   src/components/menu/       menu browser — toolbar, facet panel, grid, flavour band
-  src/components/dish/       dish page — personaliser, info panels, related dishes
+  src/components/dish/       dish page — personaliser, info panels, related dishes,
+                             the shared add-to-box action and the dish's mobile bar
+  src/components/legal/      Terms of Sale / Privacy Policy shell, index, copy blocks
+  src/components/purchase-bar/ the mobile purchase bar — band, behaviour, Build a Box / VIEW BOX
   src/lib/aonik/             commerce seam — types, client interface, fixtures
   src/lib/menu/              pure faceting and search logic
-  src/lib/content/           navigation, editorial copy, support contact (unset)
+  src/lib/purchase-bar/      the bar's visibility rules, offer and active-box summary (pure)
+  src/lib/dom/               <html> state flags (data-overlay-open), their hooks, ghost-click guard
+  src/lib/content/           navigation, editorial copy, support contact and company
+                             details (unset)
+  src/lib/legal/             legal documents' sections, groups and anchor contract
   src/lib/status-pages/      generator for the static host pages below
   src/middleware.ts          maintenance mode: MAINTENANCE_MODE=true → 503 for pages and API
   src/styles/tokens.css      design tokens; target is design/ (see #9)

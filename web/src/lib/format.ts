@@ -85,3 +85,29 @@ export function joinWithOr(parts: string[]): string {
   if (parts.length === 1) return parts[0];
   return `${parts.slice(0, -1).join(', ')} or ${parts[parts.length - 1]}`;
 }
+
+const COUNT_WORDS = [
+  'zero',
+  'one',
+  'two',
+  'three',
+  'four',
+  'five',
+  'six',
+  'seven',
+  'eight',
+  'nine',
+  'ten',
+  'eleven',
+  'twelve',
+];
+
+/**
+ * A count as running copy sets it: words up to twelve ("six dishes"), digits
+ * above (18 -> "18"). For prose only — prices, labels and data rows keep digits.
+ */
+export function formatCountInWords(count: number): string {
+  return Number.isInteger(count) && count >= 0 && count < COUNT_WORDS.length
+    ? COUNT_WORDS[count]
+    : String(count);
+}

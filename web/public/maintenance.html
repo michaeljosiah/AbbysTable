@@ -45,7 +45,12 @@
   *, *::before, *::after { box-sizing: border-box; }
   html, body { margin: 0; background: var(--cream); color-scheme: light; }
   html { -webkit-text-size-adjust: 100%; }
-  body { font-family: var(--font-sans); color: var(--brown); }
+  /* Header, main, footer in a column at least the screen's height, so the footer
+     sits at the bottom even when the page is short — the maintenance page is,
+     on a phone, while the help panel is hidden. */
+  body { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; font-family: var(--font-sans); color: var(--brown); }
+  main { display: flex; flex-direction: column; flex: 1 0 auto; }
+  main > .se-sec { flex: 1 0 auto; }
   a { color: var(--green-forest); }
   a:hover { color: var(--terracotta-deep); }
 

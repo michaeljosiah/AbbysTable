@@ -1,68 +1,55 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useCallback, useState } from 'react';
-
-import type { MappedOptionGroup, PersonalisationSelection } from '@/lib/aonik/map';
 import { hasOptionChoices } from '@/lib/aonik/personalisation';
-import type { Dish } from '@/lib/aonik/types';
-import { useCart } from '@/lib/cart/CartProvider';
 
 import { DishPersonaliser } from './DishPersonaliser';
+import { useDishOrder } from './DishOrderProvider';
+import { StandardsLink } from './StandardsLink';
+import { useDishReturn } from './useDishReturn';
 import styles from './DishOrderPanel.module.css';
 
 /**
- * Joins the personaliser to the cart: owns the current choice so "Add this dish
- * to your box" can write a complete line, then hands off to Step 1.
+ * Joins the personaliser to the cart through `DishOrderProvider`, which owns
+ * the current choice and the add-to-box action this button shares with the
+ * mobile purchase bar.
+ *
+ * It also holds both dish-side ends of the Our Standards round trip
+ * (`lib/dish-return.ts`), because it is what knows the current choice: "See
+ * our standards" records the whole selection, and on a genuine return
+ * `useDishReturn` hands it back for the personaliser to restore.
  */
-interface DishOrderPanelProps {
-  dish: Dish;
-  optionGroups: MappedOptionGroup[];
-}
-
-interface Choice {
-  personalisation?: PersonalisationSelection;
-  surchargePence: number | undefined;
-}
-
-export function DishOrderPanel({ dish, optionGroups }: DishOrderPanelProps) {
-  const router = useRouter();
-  const { addLine, boxSize, pending, error } = useCart();
-  const [choice, setChoice] = useState<Choice>({ surchargePence: 0 });
-
-  const handleChange = useCallback((next: Choice) => setChoice(next), []);
-
-  const addToBox = async () => {
-    if (pending) return;
-    try {
-      await addLine({
-        dishId: dish.id,
-        slug: dish.slug,
-        title: dish.title,
-        imageUrl: dish.imageUrl,
-        quantity: 1,
-        personalisation: choice.personalisation,
-        // Signature dishes carry their upgrade as part of the per-unit surcharge.
-        surchargePence:
-          choice.surchargePence === undefined
-            ? undefined
-            : choice.surchargePence + (dish.upgradePence ?? 0),
-      });
-
-      // Navigate only after the authoritative cart has been adopted.
-      router.push(boxSize === null ? '/box' : '/box/dishes');
-    } catch {
-      // The inline provider error below is the actionable failure state.
-    }
-  };
+export function DishOrderPanel() {
+  const { dish, optionGroups, choice, setChoice, addToBox, pending, handingOff, error } =
+    useDishOrder();
+  const { selection: restoredSelection, discard: discardReturn } = useDishReturn(
+    dish.slug,
+    optionGroups,
+  );
 
   return (
     <>
+      <StandardsLink slug={dish.slug} selection={choice.complete} />
+
       {hasOptionChoices(optionGroups) ? (
-        <DishPersonaliser dish={dish} optionGroups={optionGroups} onChange={handleChange} />
+        <DishPersonaliser
+          dish={dish}
+          optionGroups={optionGroups}
+          onChange={setChoice}
+          onEdit={discardReturn}
+          restoredSelection={restoredSelection}
+        />
       ) : null}
 
-      <button type="button" className={styles.cta} onClick={addToBox} disabled={pending}>
+      {/* Scrolling past this button is what reveals the mobile bar's "Add to
+          box" — one add control on screen at a time (Dish Landing v2). */}
+      <button
+        type="button"
+        className={styles.cta}
+        onClick={addToBox}
+        disabled={pending}
+        aria-disabled={handingOff || undefined}
+        data-purchase-bar-reveal=""
+      >
         Add this dish to your box
         <svg
           width="20"

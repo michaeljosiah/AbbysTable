@@ -8,6 +8,8 @@
  * `href` values here and the header, drawer and footer all follow.
  */
 
+import { PRIVACY_COOKIES_SLUG } from '@/lib/legal/privacy';
+
 export const SECTION_IDS = [
   'top',
   'standards',
@@ -34,10 +36,10 @@ export interface NavItem {
  */
 export const NAV_ITEMS: NavItem[] = [
   { label: 'Menu', href: '/menu' },
-  { label: 'How it works', href: '/#howitworks' },
+  { label: 'How it works', href: '/how-it-works' },
   { label: 'Gifting', href: '/#gifting' },
   { label: 'Private Table', href: '/#private' },
-  { label: 'Our Standards', href: '/#standards' },
+  { label: 'Our Standards', href: '/standards' },
   { label: "Abby's Story", href: '/our-story' },
   { label: 'Contact', href: '/#contact' },
 ];
@@ -51,13 +53,28 @@ export const LOGIN_ITEM: NavItem = { label: 'Login', href: '/login' };
  */
 export const ACCOUNT_ITEM: NavItem = { label: 'My Account', href: '/account/orders' };
 
-/** Named by the newsletter consent line. No policy page exists yet. */
-export const PRIVACY_ITEM: NavItem = { label: 'Privacy Policy', href: '/#contact' };
+/**
+ * The two legal documents (#20). Named by the newsletter consent line, the 500
+ * page's footer and the checkout footer. The footer label stays "Privacy
+ * Policy" in full; Terms of Sale's footer label is the short "Terms", while the
+ * page's own h1 keeps the defined term (design/CLAUDE.md, footer).
+ */
+export const PRIVACY_ITEM: NavItem = { label: 'Privacy Policy', href: '/privacy' };
+
+export const TERMS_ITEM: NavItem = { label: 'Terms', href: '/terms-of-sale' };
+
+/**
+ * Contact us. The Contact page is designed but not built yet, so this is the
+ * site's placeholder (the footer) rather than a route that would 404 — swap it
+ * when the page lands.
+ */
+export const CONTACT_HREF = '/#contact';
 
 /**
  * The simplified footer on the 500 page — help and legal only, by design
- * (design/build-handoff.md §3ah). None of these pages exists yet, so like the
- * site footer they resolve to the closest real destination until they land.
+ * (design/build-handoff.md §3ah). Delivery & FAQs and Contact do not exist yet,
+ * so like the site footer they resolve to the closest real destination until
+ * they land.
  *
  * The static host copy of that page (`public/500.html`) is generated from this
  * list: regenerate it after a change (`UPDATE_STATUS_PAGES=1 npm test`).
@@ -66,16 +83,15 @@ export const STATUS_FOOTER_LINKS: NavItem[] = [
   { label: 'Delivery & FAQs', href: '/#contact' },
   { label: 'Contact us', href: '/#contact' },
   PRIVACY_ITEM,
-  { label: 'Terms', href: '/#contact' },
+  TERMS_ITEM,
 ];
 
 /**
- * The Privacy Policy's cookie section. Production MUST use `/privacy#cookies`
- * — a named routing requirement (design/build-handoff.md §3s; `cookies` is a
- * committed slug). No policy page exists yet, so this shares `PRIVACY_ITEM`'s
- * placeholder rather than pointing at a 404. Repoint both when the page lands.
+ * The Privacy Policy's cookie section: `/privacy#cookies`, a named routing
+ * requirement (design/build-handoff.md §3s). `cookies` is a committed slug
+ * (`PRIVACY_COOKIES_SLUG`), so this never changes.
  */
-export const PRIVACY_COOKIES_HREF = '/#contact';
+export const PRIVACY_COOKIES_HREF = `${PRIVACY_ITEM.href}#${PRIVACY_COOKIES_SLUG}`;
 
 /**
  * The footer's consent trigger. Rendered as a real link carrying
@@ -107,7 +123,7 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
     heading: 'Learn',
     links: [
       { label: "Abby's Story", href: '/our-story' },
-      { label: 'Our Standards', href: '/#standards' },
+      { label: 'Our Standards', href: '/standards' },
       { label: 'Journal', href: '/#contact' },
     ],
   },

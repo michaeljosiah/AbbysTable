@@ -34,14 +34,18 @@ Conventions inside `web/` that are easy to get wrong:
   "not yet published" notice — do not fill the gap with plausible-looking data.
 - **Server Components by default.** Client components are `Header`, `MobileDrawer`, `Footer`, the
   homepage `Menu` rail, and the `/menu` browser (`MenuBrowser`, `MenuToolbar`, `MenuGrid`,
-  `FilterChip`, `FilterPill`) — each for a specific piece of state — plus `app/error.tsx` and
+  `FilterChip`, `FilterPill`), the `/how-it-works` size picker (`BoxSizePicker`, with
+  `BoxSizeProvider`/`BoxSizeLink` sharing the choice with the page's purchase links), the legal
+  pages' `LegalNavigation` (index, sheet, Sections/Top pair, scroll-spy), the mobile purchase bar
+  (`PurchaseBarShell`, `MobilePurchaseBar`, `DishPurchaseBar`) and the dish page's
+  `DishOrderProvider` — each for a specific piece of state — plus `app/error.tsx` and
   `app/global-error.tsx`, which Next requires to be client components. Data is fetched once in
   `app/layout.tsx` / the route's `page.tsx` and passed down; sections never fetch for themselves.
 - **Status pages (#13).** Unmatched URLs get the root `app/not-found.tsx`, which renders
   `SiteChrome` itself so the 404 keeps the marketing header, footer and session — do not replace it
   with a catch-all route calling `notFound()`: Next sends that as an empty `__next_error__` shell
   that only JavaScript fills in. Next renders the root 404 into EVERY document request, so it must
-  never await commerce data (`withDeliveryDate={false}`, pinned by `tests/not-found-chrome.test.ts`):
+  never await commerce data (`withAnnouncement={false}`, pinned by `tests/not-found-chrome.test.ts`):
   a slow Aonik would hold every page open and a failing one would turn the 404 into a 500. The 500
   page's links are plain `<a>` on purpose — the one exception to the `next/link` rule below — so
   each is a full page load out of the failed app. `public/500.html` and `public/maintenance.html`
@@ -50,8 +54,39 @@ Conventions inside `web/` that are easy to get wrong:
   `MAINTENANCE_MODE=true` makes `src/middleware.ts` answer every page and API request with that
   page, 503 and `Retry-After`; static files under the matcher's exclusions still load. Nothing
   serves `500.html` on an outage yet — that needs a CDN rule.
+- **Mobile purchase bar (#12) is opt-in per page.** A page that carries it renders the bar itself
+  (`MobilePurchaseBar` with `getPurchaseBarData()`; the dish page renders `DishPurchaseBar`) and
+  marks its own reveal point with `data-purchase-bar-reveal`; anything the bar must not sit over
+  carries `data-purchase-bar-stop` (the footer always does; so do the homepage's Private Table and
+  Standards' closing CTA).
+  The rules live React-free in `src/lib/purchase-bar/visibility.ts`. Pages without a bar in the
+  design — Abby's Story, Gifting, Delivery & FAQs, Contact, Allergens, legal, checkout, auth —
+  simply don't render one. Drawers and phone bottom sheets hold `data-overlay-open` on `<html>`
+  (`useDocumentFlag`, `src/lib/dom/`) and the bar yields to them, as it does to the consent layer.
+- **Legal pages (#20): `/terms-of-sale` and `/privacy`.** Section slugs are a PUBLIC CONTRACT
+  (`src/lib/legal/terms.ts`, `privacy.ts`; pinned by `tests/legal-documents.test.ts`) — never
+  rename one; `#cookies` is committed. Legacy `#sN`/`#N` resolve to slugs. Clause copy is verbatim
+  from the design and awaits legal review (#38): do not reword it. Company details render from
+  `src/lib/content/company.ts` (all `null`, shown as "to be confirmed") — never copy the designs'
+  placeholder name, number, address, phone or email into it. The print stylesheet that drops the
+  site chrome is a `<style media="print">` rendered by `LegalDocument`, so it exists only on these
+  two pages. Privacy's "Cookie preferences" button relies on `html[data-consent-ready]`, which the
+  consent manager sets once its trigger listener is bound.
 - **Menu faceting lives in `src/lib/menu/filters.ts`**, deliberately free of React. Change matching
   rules there, not in components.
+- **Dish → Our Standards → dish (#17)** is specified in `src/lib/dish-return.ts`, also React-free.
+  "Back to dish" needs BOTH a real dish in `?from=dish&dish=<slug>` (checked on the server against
+  the catalogue) AND a live `at-dish-return-v1` sessionStorage record written by the dish page's
+  `StandardsLink` (a pasted link has none). The control is server-rendered HIDDEN and revealed only
+  by the browser (an inline gate script before first paint, a layout effect on client navigation).
+  The record carries the WHOLE personaliser selection and scroll position, and a token also stamped
+  in the dish entry's `history.state`. It is written only for a plain same-tab click, and counts
+  only once Our Standards has opened with it (`departed`). The dish page (`useDishReturn`) restores
+  only on a genuine return — departed, and either marked `returning` by Back to dish's replace or
+  back on that very stamped entry — never on a reload of the dish, then disarms the record (an edit
+  drops it). Never put the selection in a URL: a link must not carry one customer's choices to
+  another. React renders a popstate navigation synchronously inside Next's own listener, so a
+  popstate listener added later never runs first.
 - **Internal links go through `next/link`.** `Button` and `NavLink` route on `href` automatically
   (`isExternalHref` in `src/lib/links.ts`); nav anchors are root-relative (`/#founder`) so they work
   from `/menu` as well as `/`.

@@ -15,9 +15,12 @@
    v2: banner 70, drawer 90/95, consent scrim/panel 96/97), chosen over §3s's
    "outranks every fixed element" by user decision, 7 Oct 2026:
      - the BANNER (70) sits above the page and its chrome — sticky headers
-       and toolbars 30–50, mobile purchase bars 60 — and BENEATH everything
-       the customer opens: the drawer, sheets and dialogs 90–130, the
-       checkout help drawer 200, toasts up to 220;
+       and toolbars 30–50, the checkout's mobile bars 60 — and BENEATH
+       everything the customer opens: the drawer, sheets and dialogs 90–130,
+       the checkout help drawer 200, toasts up to 220. The site's mobile
+       purchase bar shares the banner's 70 (the design's value, under the
+       drawer and sheets as the design orders it) and never meets it: it
+       yields outright while the banner or panel shows (below);
      - the PREFERENCES PANEL (scrim 310, panel 311) sits above everything.
    Three of those overlays open inside a sticky ancestor's stacking context,
    which would hold them under the banner, so the ancestor lifts itself while

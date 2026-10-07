@@ -3,6 +3,9 @@ import test from 'node:test';
 
 import {
   ALL_ACCEPTED,
+  announceConsentReady,
+  CONSENT_PANEL_ID,
+  CONSENT_READY_ATTRIBUTE,
   CONSENT_STORAGE_KEY,
   createConsentStore,
   ESSENTIAL_ONLY,
@@ -323,4 +326,22 @@ test('one failing technology does not stop the others hearing a withdrawal', () 
   } finally {
     console.error = originalError;
   }
+});
+
+test('readiness is announced on the root while the manager runs, and withdrawn after', () => {
+  // Privacy section 7's button is shown only under this attribute.
+  assert.equal(CONSENT_READY_ATTRIBUTE, 'data-consent-ready');
+  const attributes = new Map<string, string>();
+  const root = {
+    setAttribute: (name: string, value: string) => void attributes.set(name, value),
+    removeAttribute: (name: string) => void attributes.delete(name),
+  };
+  const withdraw = announceConsentReady(root);
+  assert.equal(attributes.get('data-consent-ready'), '');
+  withdraw();
+  assert.equal(attributes.has('data-consent-ready'), false);
+});
+
+test('the panel id a disclosure trigger names is the panel\'s', () => {
+  assert.equal(CONSENT_PANEL_ID, 'consent-panel');
 });

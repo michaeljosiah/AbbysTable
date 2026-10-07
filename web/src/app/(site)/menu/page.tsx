@@ -2,9 +2,11 @@ import type { Metadata } from 'next';
 
 import { FlavourBand } from '@/components/menu/FlavourBand';
 import { MenuBrowser } from '@/components/menu/MenuBrowser';
+import { MobilePurchaseBar } from '@/components/purchase-bar/MobilePurchaseBar';
 import { Eyebrow, SectionHeading } from '@/components/ui';
 import { getMenuPageData } from '@/lib/aonik/client';
 import { formatDeliveryDate } from '@/lib/format';
+import { getPurchaseBarData } from '@/lib/purchase-bar/data';
 
 import styles from './page.module.css';
 
@@ -40,16 +42,17 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
   const limit =
     Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 200) : DEFAULT_LIMIT;
 
-  const { dishes, totalCount, facetGroups, delivery } = await getMenuPageData({
-    filters,
-    query,
-    limit,
-  });
+  const [{ dishes, totalCount, facetGroups, delivery }, purchaseBar] = await Promise.all([
+    getMenuPageData({ filters, query, limit }),
+    getPurchaseBarData(),
+  ]);
   const earliestDeliveryLabel = formatDeliveryDate(delivery?.earliestDeliveryDate);
 
   return (
     <>
-      <section className={styles.intro}>
+      {/* No hero CTA on this page, so the title band is the purchase bar's
+          reveal point (Menu Landing v3). The bar is suppressed at the footer. */}
+      <section className={styles.intro} data-purchase-bar-reveal="">
         <Eyebrow tone="brass" align="center">
           What&apos;s on the table?
         </Eyebrow>
@@ -82,6 +85,7 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
       </section>
 
       <FlavourBand />
+      <MobilePurchaseBar data={purchaseBar} />
     </>
   );
 }
