@@ -252,7 +252,12 @@ export function hoursProblems(hours: OpeningHours): string[] {
   }
   for (const closure of hours.closures) {
     // A timestamp without a zone would be read in each visitor's own zone.
-    const zoned = ZONED_INSTANT.test(closure.from) && ZONED_INSTANT.test(closure.until);
+    // Date.parse would roll an impossible day forward (02-30 → 03-02) without a word.
+    const zoned =
+      ZONED_INSTANT.test(closure.from) &&
+      ZONED_INSTANT.test(closure.until) &&
+      isCalendarDate(closure.from.slice(0, 10)) &&
+      isCalendarDate(closure.until.slice(0, 10));
     const from = Date.parse(closure.from);
     const until = Date.parse(closure.until);
     if (!zoned || !Number.isFinite(from) || !Number.isFinite(until) || !(from < until)) {

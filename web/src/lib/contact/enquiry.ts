@@ -208,6 +208,8 @@ export interface ImageCandidate {
   name: string;
   size: number;
   type: string;
+  /** A picked `File` has one; two photos can share a name and a size. */
+  lastModified?: number;
 }
 
 export const IMAGE_MESSAGES = {
@@ -254,7 +256,10 @@ export function addImages<T extends ImageCandidate>(
       problems.push(problem);
       continue;
     }
-    if (next.some((kept) => kept.name === file.name && kept.size === file.size)) continue;
+    // The same file picked twice, not two photos that happen to share a name and size.
+    const same = (kept: T) =>
+      kept.name === file.name && kept.size === file.size && kept.lastModified === file.lastModified;
+    if (next.some(same)) continue;
     if (next.length >= MAX_ENQUIRY_IMAGES) {
       if (!problems.includes(IMAGE_MESSAGES.count)) problems.push(IMAGE_MESSAGES.count);
       continue;

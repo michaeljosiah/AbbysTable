@@ -170,6 +170,14 @@ export function ContactForm({ action }: { action: EnquiryAction }) {
     });
   };
 
+  // Once sent, the images have gone with the enquiry: let their blobs go too,
+  // rather than hold up to 30MB behind the confirmation.
+  useEffect(() => {
+    if (state.status !== 'sent') return;
+    for (const attachment of liveAttachments.current) URL.revokeObjectURL(attachment.url);
+    setAttachments([]);
+  }, [state]);
+
   // The server's own verdict on the fields wins: show it, and focus the first.
   useEffect(() => {
     if (state.status !== 'invalid') return;

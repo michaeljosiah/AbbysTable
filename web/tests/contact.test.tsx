@@ -177,9 +177,11 @@ test('a configured table is checked, so a typo fails the build', () => {
       { from: '2026-07-01T14:00:00Z', until: '2026-07-01T12:00:00Z' },
       // A local timestamp: each visitor's browser would read it in its own zone.
       { from: '2026-07-01T12:00:00', until: '2026-07-01T14:00:00+01:00' },
+      // Date.parse would quietly move this to 2 March.
+      { from: '2026-02-30T12:00:00Z', until: '2026-03-03T12:00:00Z' },
     ],
   };
-  assert.equal(hoursProblems(bad).length, 7);
+  assert.equal(hoursProblems(bad).length, 8);
   assert.deepEqual(
     hoursProblems({ ...HOURS, bankHolidays: ['2028-02-29'], closures: [{ from: '2026-07-01T12:00:00.000Z', until: '2026-07-01T14:00+01:00' }] }),
     [],
@@ -327,6 +329,13 @@ test('a pick keeps the valid files, names the invalid ones, and stops at three',
   const second = addImages(first.attached, [image('a.jpg'), image('c.jpg'), image('d.jpg'), image('e.jpg')]);
   assert.deepEqual(second.attached.map((file) => file.name), ['a.jpg', 'b.png', 'c.jpg']);
   assert.deepEqual(second.problems, ['You can attach up to 3 images.']);
+
+  // Two different photos can share a name and a size (IMG_0001.jpg from two
+  // phones); only the same file picked twice is skipped.
+  const photo = { ...image('IMG_0001.jpg'), lastModified: 1 };
+  const twin = { ...image('IMG_0001.jpg'), lastModified: 2 };
+  assert.equal(addImages([photo], [twin]).attached.length, 2);
+  assert.equal(addImages([photo], [{ ...photo }]).attached.length, 1);
 });
 
 test('the server refuses what the form would have trimmed', () => {
