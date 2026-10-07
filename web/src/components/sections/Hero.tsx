@@ -94,7 +94,9 @@ export function Hero() {
         </ul>
 
         <div className={styles.actions}>
-          <Button variant="primary" size="lg" href="/menu">
+          {/* The bar's reveal point: it appears only once this has been
+              scrolled past, so the two are never on screen together. */}
+          <Button variant="primary" size="lg" href="/menu" data-purchase-bar-reveal="">
             View the menu
           </Button>
           <a className={styles.textLink} href="#howitworks">

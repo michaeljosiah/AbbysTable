@@ -5,6 +5,8 @@ import { notFound } from 'next/navigation';
 
 import { DishInfoPanels } from '@/components/dish/DishInfoPanels';
 import { DishOrderPanel } from '@/components/dish/DishOrderPanel';
+import { DishOrderProvider } from '@/components/dish/DishOrderProvider';
+import { DishPurchaseBar } from '@/components/dish/DishPurchaseBar';
 import { RelatedDishes } from '@/components/dish/RelatedDishes';
 import { FlavourBand } from '@/components/menu/FlavourBand';
 import { HeatPips } from '@/components/ui';
@@ -54,7 +56,8 @@ export default async function DishPage({ params }: DishPageProps) {
   const entryBox = [...boxes].sort((a, b) => a.pricePence - b.pricePence)[0];
 
   return (
-    <>
+    // One add-to-box action for the inline button and the mobile bar.
+    <DishOrderProvider dish={dish} optionGroups={optionGroups}>
       <div className={styles.main}>
         <div className={styles.imageColumn}>
           <Link href="/menu" className={styles.back}>
@@ -164,7 +167,7 @@ export default async function DishPage({ params }: DishPageProps) {
             </a>
           </nav>
 
-          <DishOrderPanel dish={dish} optionGroups={optionGroups} />
+          <DishOrderPanel />
 
           <p className={styles.deliveryNote}>
             <svg
@@ -213,6 +216,10 @@ export default async function DishPage({ params }: DishPageProps) {
       </div>
 
       <FlavourBand />
-    </>
+
+      {/* Mobile only; revealed once the inline button is scrolled past, gone
+          from the footer on (the footer carries data-purchase-bar-stop). */}
+      <DishPurchaseBar />
+    </DishOrderProvider>
   );
 }

@@ -33,7 +33,9 @@ export function Header({ session }: { session: SessionView }) {
 
   return (
     <>
-      <header className={styles.header}>
+      {/* data-site-header: the purchase bar's focus guard — the page never
+          counts as scrolling down while keyboard focus is in here. */}
+      <header className={styles.header} data-site-header="">
         <div className={styles.row}>
           <button
             type="button"

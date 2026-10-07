@@ -21,6 +21,7 @@
     "tests/not-found-chrome.test.ts",
     "tests/consent.test.ts",
     "tests/how-it-works.test.tsx",
+    "tests/purchase-bar.test.tsx",
     "tests/support/*.ts",
     "src/components/personalisation/OptionGroupsControl.tsx",
     "src/lib/aonik/dataMode.ts",

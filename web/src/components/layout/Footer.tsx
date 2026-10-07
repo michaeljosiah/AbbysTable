@@ -40,7 +40,10 @@ export function Footer({ subscribeAction }: { subscribeAction?: NewsletterSignup
     setOpenColumns((current) => ({ ...current, [heading]: !current[heading] }));
 
   return (
-    <footer id="contact" className={styles.footer}>
+    // The footer is on the purchase bar's named suppression list in its own
+    // right — the page has ended — so it always carries the stop marker
+    // (lib/purchase-bar/visibility.ts). Inert on pages without a bar.
+    <footer id="contact" className={styles.footer} data-purchase-bar-stop="">
       <div className={styles.brassRule} />
 
       <div className={`band band--frame ${styles.inner}`}>

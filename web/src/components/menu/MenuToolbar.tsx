@@ -4,6 +4,8 @@ import { useEffect } from 'react';
 
 import { Button } from '@/components/ui';
 import type { MappedFacetGroup } from '@/lib/aonik/map';
+import { OVERLAY_OPEN_ATTR } from '@/lib/dom/documentFlag';
+import { useDocumentFlag, useMediaQuery } from '@/lib/dom/hooks';
 import { type MenuFilters } from '@/lib/menu/filters';
 
 import { FilterChip } from './FilterChip';
@@ -61,6 +63,12 @@ export function MenuToolbar({
   totalCount,
   facetGroups,
 }: MenuToolbarProps) {
+  // Below 760px the open panel is a bottom sheet, and the mobile purchase bar
+  // yields to it — two fixed layers competing for the same edge (Menu Landing
+  // v3). The inline panel above that width competes with nothing.
+  const sheetLayout = useMediaQuery('(max-width: 760px)');
+  useDocumentFlag(OVERLAY_OPEN_ATTR, open && sheetLayout);
+
   // Escape closes the panel wherever it is; the sheet variant also traps scroll.
   useEffect(() => {
     if (!open) return;

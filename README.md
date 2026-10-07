@@ -286,9 +286,13 @@ web/                         the storefront
   src/components/status/     404 and 500 pages (design: Page Not Found, Something Went Wrong)
   src/components/sections/   the ten homepage sections + DishCard
   src/components/menu/       menu browser — toolbar, facet panel, grid, flavour band
-  src/components/dish/       dish page — personaliser, info panels, related dishes
+  src/components/dish/       dish page — personaliser, info panels, related dishes,
+                             the shared add-to-box action and the dish's mobile bar
+  src/components/purchase-bar/ the mobile purchase bar — band, behaviour, Build a Box / VIEW BOX
   src/lib/aonik/             commerce seam — types, client interface, fixtures
   src/lib/menu/              pure faceting and search logic
+  src/lib/purchase-bar/      the bar's visibility rules, offer and active-box summary (pure)
+  src/lib/dom/               <html> state flags (data-overlay-open) and their hooks
   src/lib/content/           navigation, editorial copy, support contact (unset)
   src/lib/status-pages/      generator for the static host pages below
   src/middleware.ts          maintenance mode: MAINTENANCE_MODE=true → 503 for pages and API

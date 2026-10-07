@@ -35,8 +35,9 @@ Conventions inside `web/` that are easy to get wrong:
 - **Server Components by default.** Client components are `Header`, `MobileDrawer`, `Footer`, the
   homepage `Menu` rail, and the `/menu` browser (`MenuBrowser`, `MenuToolbar`, `MenuGrid`,
   `FilterChip`, `FilterPill`), the `/how-it-works` size picker (`BoxSizePicker`, with
-  `BoxSizeProvider`/`BoxSizeLink` sharing the choice with the page's purchase links) — each for a
-  specific piece of state — plus `app/error.tsx` and
+  `BoxSizeProvider`/`BoxSizeLink` sharing the choice with the page's purchase links), the mobile
+  purchase bar (`PurchaseBarShell`, `MobilePurchaseBar`, `DishPurchaseBar`) and the dish page's
+  `DishOrderProvider` — each for a specific piece of state — plus `app/error.tsx` and
   `app/global-error.tsx`, which Next requires to be client components. Data is fetched once in
   `app/layout.tsx` / the route's `page.tsx` and passed down; sections never fetch for themselves.
 - **Status pages (#13).** Unmatched URLs get the root `app/not-found.tsx`, which renders
@@ -52,6 +53,14 @@ Conventions inside `web/` that are easy to get wrong:
   `MAINTENANCE_MODE=true` makes `src/middleware.ts` answer every page and API request with that
   page, 503 and `Retry-After`; static files under the matcher's exclusions still load. Nothing
   serves `500.html` on an outage yet — that needs a CDN rule.
+- **Mobile purchase bar (#12) is opt-in per page.** A page that carries it renders the bar itself
+  (`MobilePurchaseBar` with `getPurchaseBarData()`; the dish page renders `DishPurchaseBar`) and
+  marks its own reveal point with `data-purchase-bar-reveal`; anything the bar must not sit over
+  carries `data-purchase-bar-stop` (the footer always does; the homepage's Private Table does).
+  The rules live React-free in `src/lib/purchase-bar/visibility.ts`. Pages without a bar in the
+  design — Abby's Story, Gifting, Delivery & FAQs, Contact, Allergens, legal, checkout, auth —
+  simply don't render one. Drawers and phone bottom sheets hold `data-overlay-open` on `<html>`
+  (`useDocumentFlag`, `src/lib/dom/`) and the bar yields to them, as it does to the consent layer.
 - **Menu faceting lives in `src/lib/menu/filters.ts`**, deliberately free of React. Change matching
   rules there, not in components.
 - **Internal links go through `next/link`.** `Button` and `NavLink` route on `href` automatically
