@@ -18,11 +18,12 @@ export const metadata: Metadata = {
  * sees My Account), even though an unmatched URL never enters the `(site)`
  * route group: it renders `SiteChrome` itself.
  *
- * Without the announcement bar's delivery date, and that is load-bearing: Next
- * renders this element into the payload of EVERY document request, in every
- * route group, so whatever it awaits every page awaits. With the date, a slow
- * Aonik held `/login` open and a failing one turned this 404 into a 500. It
- * must stay free of commerce data — a cookie read is all it does.
+ * Without the announcement bar, and that is load-bearing: the bar carries the
+ * live delivery date, and Next renders this element into the payload of EVERY
+ * document request, in every route group, so whatever it awaits every page
+ * awaits. With the date, a slow Aonik held `/login` open and a failing one
+ * turned this 404 into a 500. It must stay free of commerce data — a cookie
+ * read is all it does. (The v2 Page Not Found has no bar anyway.)
  *
  * It is deliberately NOT a catch-all route inside `(site)` calling
  * `notFound()`. Next renders the root not-found for an unmatched URL as the
@@ -35,7 +36,7 @@ export const metadata: Metadata = {
  */
 export default function NotFound() {
   return (
-    <SiteChrome withDeliveryDate={false}>
+    <SiteChrome withAnnouncement={false}>
       <NotFoundMessage />
     </SiteChrome>
   );
