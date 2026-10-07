@@ -1,0 +1,518 @@
+/* ===========================================================================
+   Contact — "Send us a message" (design/Abby's Table - Contact Us.dc.html)
+   ---------------------------------------------------------------------------
+   Mobile-first: no media query is the phone design; 640 and 1024 are
+   min-width only, in ascending order. Values are the design file's. Type
+   floors (build-handoff §3m): inputs, errors and helper text 16px; labels
+   13px caps .16em; file formats and the privacy note 14px.
+   =========================================================================== */
+
+.intro,
+.introNote {
+  margin: 10px 0 0;
+  max-width: 480px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--text-body);
+}
+
+.introNote {
+  margin-top: 2px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 20px;
+}
+
+.nameRow {
+  display: grid;
+  gap: 18px;
+}
+
+/* ---- Fields ---- */
+
+.label {
+  display: block;
+  margin-bottom: 7px;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--brass-ink);
+}
+
+.field {
+  display: block;
+  width: 100%;
+  min-height: 52px;
+  margin: 0;
+  padding: 13px 16px;
+  border: var(--border-hairline) solid var(--taupe);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  font-family: var(--font-sans);
+  /* 16px: anything smaller makes iOS zoom the page on focus. */
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--text-body);
+  transition: border-color 0.16s ease;
+}
+
+.field:hover {
+  border-color: var(--brown);
+}
+
+.field:focus-visible {
+  border-color: var(--green-forest);
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.field[aria-invalid='true'] {
+  border-color: var(--chilli);
+}
+
+/* The closed control only: the open list is the device's own picker. */
+.select {
+  appearance: none;
+  padding-right: 46px;
+  cursor: pointer;
+}
+
+.selectWrap {
+  position: relative;
+}
+
+/* An action icon on a light ground: green-forest (design/CLAUDE.md, icon
+   colour follows the icon's job). */
+.selectChevron {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  margin-top: -9px;
+  color: var(--green-forest);
+  pointer-events: none;
+}
+
+.textarea {
+  min-height: 150px;
+  resize: vertical;
+}
+
+.help {
+  margin: 7px 0 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--text-body);
+}
+
+/* Errors are information, not microcopy: 16px, the design's --chilli
+   (4.8:1 on cream, 5.4:1 on white), and a glyph so colour is not the only
+   signal. */
+.error,
+.failure {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 7px 0 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--chilli);
+}
+
+.failure {
+  margin: 0 0 14px;
+}
+
+.errorGlyph {
+  flex: 0 0 auto;
+  margin-top: 3px;
+}
+
+/* ---- Images ---- */
+
+.drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 18px;
+  border: var(--border-hairline) dashed var(--taupe);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  text-align: center;
+  transition:
+    border-color 0.16s ease,
+    background 0.16s ease;
+}
+
+.drop[data-over='true'] {
+  border-color: var(--green-forest);
+  background: var(--cream-2);
+}
+
+.dropIcon {
+  flex: 0 0 auto;
+  color: var(--brass-ink);
+}
+
+.dropText {
+  min-width: 0;
+}
+
+/* Desktop only — there is nothing to drag on a phone. */
+.dropLead {
+  display: none;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+/* Outline: a utility control, not a section CTA (fill by role). */
+.browse {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 22px;
+  border: var(--border-hairline) solid var(--green-forest);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--green-forest);
+  transition:
+    border-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.browse:hover {
+  border-color: var(--terracotta-deep);
+  color: var(--terracotta-deep);
+}
+
+.browse:active {
+  filter: brightness(0.94);
+}
+
+.browse:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 3px;
+  border-radius: var(--radius-pill);
+}
+
+.dropMeta {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text-body);
+}
+
+.lozenge {
+  color: var(--brass-ink);
+}
+
+/* A line break on a phone (an empty block), the third lozenge from 1024. */
+.dropBreak {
+  display: block;
+  height: 0;
+}
+
+.dropDot {
+  display: none;
+}
+
+/* Operated through "Choose images" only. */
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.uploadStatus .error {
+  margin-top: 9px;
+}
+
+.thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.thumb {
+  position: relative;
+  width: 68px;
+  height: 68px;
+}
+
+.thumbImage {
+  width: 68px;
+  height: 68px;
+  object-fit: cover;
+  border: var(--border-hairline) solid var(--border-light);
+  border-radius: 8px;
+  background: var(--sand);
+}
+
+/* A 44px target around a 24px disc: padding the disc to 44 would cover most
+   of a 68px thumbnail. */
+.remove {
+  position: absolute;
+  top: -13px;
+  right: -13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.removeDisc {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: var(--border-hairline) solid var(--border-light);
+  border-radius: 50%;
+  background: var(--white);
+  color: var(--green-forest);
+  transition:
+    border-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.remove:hover .removeDisc {
+  border-color: var(--terracotta-deep);
+  color: var(--terracotta-deep);
+}
+
+.remove:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: -10px;
+  border-radius: 50%;
+}
+
+/* ---- Send ---- */
+
+/* A major in-page CTA: green-forest by role, full width on a phone. */
+.send {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 34px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--green-forest);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cream);
+  transition: background 0.16s ease;
+}
+
+.send:hover {
+  background: var(--green-deep);
+}
+
+.send:active {
+  filter: brightness(0.94);
+}
+
+.send:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 3px;
+  border-radius: var(--radius-pill);
+}
+
+.send:disabled {
+  cursor: progress;
+}
+
+.privacy {
+  margin: 12px 0 0;
+  max-width: 460px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-body);
+}
+
+.privacyLink {
+  color: var(--brass-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.16s ease;
+}
+
+.privacyLink:hover {
+  color: var(--terracotta-deep);
+}
+
+/* ---- Sent ---- */
+
+.success {
+  margin-top: 20px;
+  padding: 26px 22px;
+  border-radius: var(--radius-card);
+  background: var(--sage);
+}
+
+/* Focused by script as it appears — a reading start, not a control. */
+.success:focus {
+  outline: none;
+}
+
+.successMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--green-forest);
+  color: var(--white);
+}
+
+.successTitle {
+  margin: 14px 0 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 26px;
+  line-height: 1.15;
+  color: var(--text-heading);
+}
+
+.successText {
+  margin: 10px 0 0;
+  max-width: 460px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+.successEmail {
+  font-weight: var(--weight-semibold);
+  color: var(--text-heading);
+  overflow-wrap: anywhere;
+}
+
+/* An in-place action, as a text CTA. --brass-ink-warm, not the design's
+   --brass-ink: brass-ink is 4.28:1 on --sage, under the small-text minimum. */
+.again {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin-top: 14px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--brass-ink-warm);
+  transition: color 0.16s ease;
+}
+
+.againLabel {
+  padding-bottom: 1px;
+  border-bottom: var(--border-hairline) solid var(--brass);
+}
+
+.arrow {
+  display: inline-block;
+  transition: transform 0.16s ease;
+}
+
+.again:hover {
+  color: var(--terracotta-deep);
+}
+
+.again:hover .arrow {
+  transform: translateX(3px);
+}
+
+.again:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .again:hover .arrow {
+    transform: none;
+  }
+}
+
+/* ---- 640: the two name fields side by side; the send button intrinsic ---- */
+@media (min-width: 640px) {
+  .nameRow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .send {
+    width: auto;
+    min-width: 240px;
+  }
+}
+
+/* ---- 1024: the drop zone as one row, with its desktop lead ---- */
+@media (min-width: 1024px) {
+  .drop {
+    flex-direction: row;
+    align-items: center;
+    gap: 13px;
+    text-align: left;
+  }
+
+  .dropLead {
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  .dropBreak {
+    display: inline;
+    height: auto;
+  }
+
+  .dropDot {
+    display: inline;
+  }
+}

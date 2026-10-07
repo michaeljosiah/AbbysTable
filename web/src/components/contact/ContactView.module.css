@@ -1,0 +1,840 @@
+/* ===========================================================================
+   Contact us — design/Abby's Table - Contact Us.dc.html
+   ---------------------------------------------------------------------------
+   Mobile-first: the rules with no media query ARE the phone design; 640, 1024
+   and the page's own 1280 exception are min-width only, in ascending order.
+   Values are the design file's (which takes them from Homepage v2).
+
+   ONE grid for the body. Below 640 it is a single column in DOM order; from
+   640 it has 12 columns, two cards to a row; from 1024 every cell is placed
+   explicitly — cards across the top, the form in columns 1–8 and the routing
+   sidebar (hours, Private Table) in 9–12. The hours block is the same cell
+   throughout: under the Phone card on a phone, the top of the sidebar from
+   1024. Placement rules are written as `.grid > .x` everywhere, so a wider
+   breakpoint's rule always has the specificity to win (media queries add
+   none).
+
+   1280 is a content exception (the design's): the four cards go 4-up only
+   there, because at 1024 a quarter of the row leaves 164px of text column and
+   the email address needs 208px. While Delivery & FAQs has no page of its own
+   (`data-faqs="none"`) there are three cards, and they sit 3-up from 1024.
+   =========================================================================== */
+
+.head {
+  padding: 34px 0 0;
+}
+
+.body {
+  padding: 26px 0 48px;
+}
+
+/* Inner shell: 1280 cap, gutter 22 → 34 → 48. */
+.inner {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 22px;
+}
+
+/* ---- Page head ---- */
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: clamp(38px, 11.6vw, 56px);
+  line-height: 1.06;
+  letter-spacing: -0.015em;
+  color: var(--text-heading);
+  text-align: center;
+}
+
+.kicker {
+  margin: 10px auto 0;
+  max-width: 560px;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 22px;
+  line-height: 1.25;
+  color: var(--text-heading);
+  text-align: center;
+  text-wrap: pretty;
+}
+
+/* Page lede: 18px at every width — never bumped on desktop. */
+.lede {
+  margin: 8px auto 0;
+  max-width: 560px;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--text-body);
+  text-align: center;
+  text-wrap: pretty;
+}
+
+/* ---- The grid ---- */
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+/* ---- Method cards ---- */
+
+.method {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 44px;
+  padding: 16px 18px;
+  border: var(--border-hairline) solid var(--border-light);
+  border-radius: 14px;
+  background: var(--surface-raised);
+  text-decoration: none;
+  transition: border-color 0.16s ease;
+}
+
+/* The highlighted card: --sage-tint, not --sage — the 13px eyebrow in
+   brass-ink is 4.28:1 on sage and 4.58:1 on the tint. */
+.methodWa {
+  border-color: var(--sage);
+  background: var(--sage-tint);
+}
+
+/* Borders darken on hover; a card that is one link also shifts its value. The
+   Phone card is not a link — its controls carry their own hover, so lighting
+   the whole card would say "click anywhere". */
+a.method:hover {
+  border-color: var(--taupe);
+}
+
+/* Stays in the sage family: --taupe is warm and would read as another card. */
+a.methodWa:hover {
+  border-color: var(--green-sage);
+}
+
+a.method:hover .value {
+  color: var(--terracotta-deep);
+}
+
+a.method:hover .arrow {
+  transform: translateX(3px);
+}
+
+a.method:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 3px;
+  border-radius: 14px;
+}
+
+.eyebrowRow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+/* An identity mark, not an action: brass-ink. */
+.eyebrowIcon {
+  flex: 0 0 auto;
+  color: var(--brass-ink);
+}
+
+.eyebrow {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--brass-ink);
+}
+
+.lower {
+  text-transform: lowercase;
+}
+
+/* The card's action or value: 22px display at every phone width. */
+.value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 22px;
+  line-height: 1.25;
+  color: var(--text-heading);
+  transition: color 0.16s ease;
+}
+
+/* The email wraps after the "@" rather than shrinking (design/CLAUDE.md, "Long
+   unbreakable values"): two lines at every common phone width. */
+.valueEmail {
+  min-width: 0;
+  align-items: flex-start;
+}
+
+.emailText {
+  min-width: 0;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+/* At 320 the domain fits the column and the arrow does not: drop it (it is
+   decorative, and the whole card is the link). */
+.valueEmail .arrow {
+  display: none;
+}
+
+.arrow {
+  display: inline-block;
+  font-size: 15px;
+  transition: transform 0.16s ease;
+}
+
+.note {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+/* A value the owner still has to supply (the legal pages' mark). */
+.tbc {
+  border-bottom: var(--border-hairline) dotted var(--brass-ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-style: italic;
+  line-height: 1.45;
+  color: var(--text-body);
+}
+
+/* ---- WhatsApp: text column, then (desktop, when configured) the QR ---- */
+
+.waText {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.qrRule,
+.qr {
+  display: none;
+}
+
+.qrRule {
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: 1px;
+  background: var(--sage);
+}
+
+.qr {
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.qrImage {
+  width: 96px;
+  height: 96px;
+  border: var(--border-hairline) solid var(--border-light);
+  border-radius: 8px;
+  background: var(--white);
+}
+
+.qrCaption {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.25;
+  color: var(--text-body);
+  text-align: center;
+}
+
+/* ---- Phone ---- */
+
+.phoneLink {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 8px;
+  min-height: 44px;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 22px;
+  line-height: 1.25;
+  color: var(--text-heading);
+  text-decoration: none;
+  transition: color 0.16s ease;
+}
+
+.phoneLink:hover {
+  color: var(--terracotta-deep);
+}
+
+.phoneLink:hover .phoneNumber {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.phoneLink:hover .arrow {
+  transform: translateX(3px);
+}
+
+.phoneLink:focus-visible,
+.hoursLink:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.noteDivider {
+  display: inline-block;
+  width: 1px;
+  height: 11px;
+  margin: 0 5px;
+  vertical-align: -1px;
+  background: var(--taupe);
+}
+
+/* "See opening hours ↓": an inline control in body copy. */
+.hoursLink {
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  color: var(--brass-ink);
+  transition: color 0.16s ease;
+}
+
+.hoursLabel {
+  padding-bottom: 1px;
+  border-bottom: var(--border-hairline) solid var(--brass);
+}
+
+.hoursChevron {
+  display: inline-block;
+  transition: transform 0.16s ease;
+}
+
+.hoursLink:hover {
+  color: var(--terracotta-deep);
+}
+
+.hoursLink:hover .hoursLabel {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.hoursLink:hover .hoursChevron {
+  transform: translateY(2px);
+}
+
+.hoursLink[data-open='true'] .hoursChevron {
+  transform: rotate(180deg);
+}
+
+/* ---- Opening hours: one cell, two positions ---- */
+
+/* Collapsed under the Phone card, opened with grid-template-rows 0fr → 1fr so
+   nothing measures or hard-codes a height. Closed, it is still a grid item and
+   would collect a gap above AND below: the negative margin cancels one. */
+.hours {
+  display: grid;
+  grid-template-rows: 0fr;
+  margin-bottom: -12px;
+  transition:
+    grid-template-rows 0.2s ease,
+    margin-bottom 0.2s ease;
+}
+
+.hours[data-open='true'] {
+  grid-template-rows: 1fr;
+  margin-bottom: 0;
+}
+
+/* Closed is closed for assistive tech too, once the animation has run. */
+.hoursClip {
+  min-height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  transition: visibility 0s linear 0.2s;
+}
+
+.hours[data-open='true'] .hoursClip {
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.hoursBox {
+  padding: 16px 18px;
+  border-radius: var(--radius-sm);
+  background: var(--sand);
+}
+
+.hoursHeading {
+  display: none;
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 22px;
+  line-height: 1.2;
+  color: var(--text-heading);
+}
+
+/* A jump target, focused by script: no ring (design/at-focus.css rule 2). */
+.hoursHeading:focus {
+  outline: none;
+}
+
+/* One line, reserved before the status computes in the browser. */
+.status {
+  min-height: 20px;
+  margin: 0;
+  line-height: 20px;
+}
+
+.hoursHeading + .status {
+  margin-top: 10px;
+}
+
+.open {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-body);
+}
+
+.open[data-open='true'] {
+  color: var(--green-forest);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.hoursTable {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 20px;
+  margin: 14px 0 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.hoursTable dt {
+  color: var(--text-body);
+}
+
+.hoursTable dd {
+  margin: 0;
+  color: var(--text-heading);
+}
+
+.hoursTable dd[data-closed] {
+  color: var(--text-body);
+}
+
+.hoursNote {
+  margin: 12px 0 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--text-body);
+}
+
+.hoursHeading + .hoursNote {
+  margin-top: 0;
+}
+
+/* ---- Onward routes (phone layout heading) ---- */
+
+.specific {
+  margin-top: 18px;
+  padding-top: 26px;
+  border-top: var(--border-hairline) solid var(--border-light);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: clamp(30px, 8.6vw, 40px);
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  color: var(--text-heading);
+  text-wrap: pretty;
+}
+
+.specificText {
+  margin: 10px 0 0;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+/* ---- Private Table ---- */
+
+.pt {
+  margin-top: 30px;
+  padding: 24px 22px;
+  border-radius: var(--radius-card);
+  background: var(--surface-navy);
+}
+
+.ptEyebrow {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+
+.ptTitle {
+  margin: 8px 0 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 26px;
+  line-height: 1.15;
+  color: var(--cream);
+  text-wrap: pretty;
+}
+
+.ptRule {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.ptLine {
+  flex: 1;
+  height: 1px;
+  background: var(--brass);
+  opacity: 0.55;
+}
+
+.ptLozenge {
+  font-size: 8px;
+  line-height: 1;
+  color: var(--brass);
+}
+
+.ptText {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--sand-2);
+  text-wrap: pretty;
+}
+
+.ptAction {
+  display: flex;
+  margin-top: 20px;
+}
+
+.ptCta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 26px;
+  border-radius: var(--radius-pill);
+  background: var(--cream);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--navy);
+  text-decoration: none;
+  transition: background 0.16s ease;
+}
+
+/* A filled anchor re-states its colour on hover, or the global a:hover wins. */
+.ptCta:hover {
+  background: var(--blush);
+  color: var(--navy);
+}
+
+.ptCta:active {
+  filter: brightness(0.94);
+}
+
+/* Dark ground: cream flush to the control, gold a hairline outside it. */
+.ptCta:focus-visible {
+  outline: 2px solid var(--cream);
+  outline-offset: 0;
+  box-shadow: 0 0 0 3px var(--gold);
+  border-radius: var(--radius-pill);
+}
+
+/* ---- The form's column ---- */
+
+.formCol {
+  margin-top: 18px;
+  /* Clear of the sticky header after the "Send a message" jump. */
+  scroll-margin-top: 96px;
+}
+
+.heldBack {
+  margin-top: 10px;
+}
+
+.heldBackText {
+  margin: 0;
+  max-width: 480px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--text-body);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arrow,
+  .hoursChevron {
+    transform: none !important;
+  }
+}
+
+/* ---- 360: room for the email's arrow ---- */
+@media (min-width: 360px) {
+  .valueEmail .arrow {
+    display: inline-block;
+  }
+}
+
+/* ---- 640: 12 columns, two cards to a row ---- */
+@media (min-width: 640px) {
+  .head {
+    padding-top: 52px;
+  }
+
+  .inner {
+    padding: 0 34px;
+  }
+
+  .grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+
+  .grid > * {
+    grid-column: 1 / -1;
+  }
+
+  .grid > .method {
+    grid-column: span 6;
+  }
+
+  /* FAQs heads the onward group; the Phone card stands alone when there is
+     no "Send a message" card to pair with. */
+  .grid > .methodFaqs,
+  .grid > .methodWide {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ---- 1024: the desktop composition ---- */
+@media (min-width: 1024px) {
+  .head {
+    padding-top: 60px;
+  }
+
+  .inner {
+    padding: 0 48px;
+  }
+
+  /* A flexible last row: the form spans the sidebar's rows, and a spanning
+     item grows a flexible track rather than inflating the first one. */
+  .grid {
+    grid-template-rows: auto auto auto auto 1fr;
+  }
+
+  .grid > .methodWa {
+    grid-column: 1 / 7;
+    grid-row: 1;
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .grid > .methodEmail {
+    grid-column: 7 / 13;
+    grid-row: 1;
+  }
+
+  .grid > .methodFaqs {
+    grid-column: 1 / 7;
+    grid-row: 2;
+  }
+
+  .grid > .methodPhone {
+    grid-column: 7 / 13;
+    grid-row: 2;
+  }
+
+  /* Phone-layout cells. */
+  .grid > .methodForm,
+  .grid > .specific {
+    display: none;
+  }
+
+  /* The rule between the columns is on the FORM's edge: it spans every
+     sidebar row, so it is one continuous line. */
+  .grid > .formCol {
+    grid-column: 1 / 9;
+    grid-row: 3 / 6;
+    padding-right: 44px;
+    border-right: var(--border-hairline) solid var(--border-light);
+  }
+
+  .grid > .hours {
+    grid-column: 9 / 13;
+    grid-row: 3;
+    align-self: start;
+    grid-template-rows: 1fr;
+    margin-top: 18px;
+    margin-bottom: 0;
+    padding-left: 56px;
+  }
+
+  .grid > .hours .hoursClip {
+    overflow: visible;
+    visibility: visible;
+  }
+
+  .grid > .hours .hoursBox {
+    padding: 0;
+    background: none;
+  }
+
+  .hoursHeading {
+    display: block;
+  }
+
+  .hoursHeading + .hoursNote {
+    margin-top: 10px;
+  }
+
+  .grid > .ptCol {
+    grid-column: 9 / 13;
+    grid-row: 4;
+    align-self: start;
+    margin-top: 18px;
+    padding-left: 56px;
+  }
+
+  /* Three cards (no FAQs card yet): 3-up, with the 1280 rows below them. */
+  .grid[data-faqs='none'] {
+    grid-template-rows: auto auto auto 1fr;
+  }
+
+  .grid[data-faqs='none'] > .methodWa {
+    grid-column: 1 / 5;
+  }
+
+  .grid[data-faqs='none'] > .methodEmail {
+    grid-column: 5 / 9;
+  }
+
+  .grid[data-faqs='none'] > .methodPhone {
+    grid-column: 9 / 13;
+    grid-row: 1;
+  }
+
+  .grid[data-faqs='none'] > .formCol {
+    grid-row: 2 / 5;
+  }
+
+  .grid[data-faqs='none'] > .hours {
+    grid-row: 2;
+  }
+
+  .grid[data-faqs='none'] > .ptCol {
+    grid-row: 3;
+  }
+
+  /* Desktop holds the card actions at 19px (16px for the email): the 4-up
+     card leaves 124px beside the QR. A geometry exception for this row only. */
+  .value,
+  .phoneLink {
+    font-size: 19px;
+  }
+
+  .valueEmail {
+    font-size: 16px;
+  }
+
+  .qrRule {
+    display: block;
+  }
+
+  .qr {
+    display: flex;
+  }
+
+  .sectionTitle {
+    font-size: 40px;
+  }
+}
+
+/* ---- 1280 (content exception): four cards across ---- */
+@media (min-width: 1280px) {
+  .grid {
+    grid-template-rows: auto auto auto 1fr;
+  }
+
+  .grid > .methodWa {
+    grid-column: 1 / 4;
+  }
+
+  .grid > .methodEmail {
+    grid-column: 4 / 7;
+  }
+
+  .grid > .methodFaqs {
+    grid-column: 7 / 10;
+    grid-row: 1;
+  }
+
+  .grid > .methodPhone {
+    grid-column: 10 / 13;
+    grid-row: 1;
+  }
+
+  .grid > .formCol {
+    grid-row: 2 / 5;
+  }
+
+  .grid > .hours {
+    grid-row: 2;
+  }
+
+  .grid > .ptCol {
+    grid-row: 3;
+  }
+}

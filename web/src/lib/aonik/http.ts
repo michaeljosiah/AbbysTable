@@ -27,7 +27,11 @@ export interface AonikFetchOptions {
   tenantId: string;
   policy: CachePolicy;
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
-  /** JSON request body. Encoded here so no caller hand-rolls it. */
+  /**
+   * Request body. JSON, encoded here so no caller hand-rolls it — except a
+   * `FormData`, which goes as multipart (the Contact form's image attachments,
+   * contract §3e) with the boundary set by `fetch`.
+   */
   body?: unknown;
   /** Per-cart possession proof (`server-box-cart`). */
   cartToken?: string;
@@ -95,7 +99,8 @@ export async function aonikFetch<T>(path: string, options: AonikFetchOptions): P
     Accept: 'application/json',
   };
 
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  const multipart = body instanceof FormData;
+  if (body !== undefined && !multipart) headers['Content-Type'] = 'application/json';
   // Possession (cart) and identity (session) are separate proofs and can both
   // be absent: the catalogue is anonymous.
   if (cartToken) headers['X-Cart-Token'] = cartToken;
@@ -104,7 +109,7 @@ export async function aonikFetch<T>(path: string, options: AonikFetchOptions): P
   const response = await fetch(url, {
     method,
     headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined ? undefined : multipart ? body : JSON.stringify(body),
     signal,
     ...cacheInit(method === 'GET' ? policy : 'volatile'),
   });

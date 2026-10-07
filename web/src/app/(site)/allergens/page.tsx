@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
-// Contact us (#24) and Delivery & FAQs (#23) are not built yet; their links
-// follow the pages here when they land. "Browse our FAQs" is Delivery & FAQs,
-// as in the design; both "contact us" links are Contact.
+// "Browse our FAQs" is Delivery & FAQs, as in the design (it takes Contact's
+// destination until its own page lands, #23); both "contact us" links are
+// Contact.
 import { CONTACT_HREF, DELIVERY_FAQS_HREF, MENU_ITEM } from '@/lib/content/navigation';
 
 import styles from './page.module.css';

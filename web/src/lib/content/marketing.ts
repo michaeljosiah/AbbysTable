@@ -188,6 +188,17 @@ export const PRIVATE_TABLE_FROM_PENCE = 150_000;
  */
 export const PRIVATE_TABLE_HREF: string | null = null;
 
+/**
+ * The Private Table waitlist form, on that page (`#enquire`, as every design
+ * file links it). The Contact page's Private Table panel — "Join the waitlist"
+ * — renders only once it exists: its whole job is to send Private Table
+ * enquiries there rather than to the message form, which deliberately has no
+ * Private Table subject. Follows `PRIVATE_TABLE_HREF`, so #25 sets nothing new.
+ */
+export const PRIVATE_TABLE_WAITLIST_HREF: string | null = PRIVATE_TABLE_HREF
+  ? `${PRIVATE_TABLE_HREF}#enquire`
+  : null;
+
 /* ---- Dish cards ------------------------------------------------------------ */
 
 /**

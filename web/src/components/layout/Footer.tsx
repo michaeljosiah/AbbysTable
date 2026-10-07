@@ -56,10 +56,9 @@ export function Footer({ subscribeAction }: { subscribeAction?: NewsletterSignup
   return (
     // The footer is on the purchase bar's named suppression list in its own
     // right — the page has ended — so it always carries the stop marker
-    // (lib/purchase-bar/visibility.ts). Inert on pages without a bar.
-    // `id="contact"`: Contact and Delivery & FAQs resolve here until their
-    // pages land (`CONTACT_HREF`); drop it once Contact has.
-    <footer id="contact" className={styles.footer} data-purchase-bar-stop="">
+    // (lib/purchase-bar/visibility.ts). Inert on pages without a bar. No id:
+    // Contact has its own page now (`CONTACT_HREF`), so nothing jumps here.
+    <footer className={styles.footer} data-purchase-bar-stop="">
       <div className={styles.brassRule} aria-hidden="true" />
 
       <div className={styles.inner}>
