@@ -143,7 +143,8 @@ All photography and video is AI-generated placeholder (`design/README.md`) and S
 such with a comment at its use site. No other image SHALL be substituted while a real asset is
 missing. Alt text SHALL describe the image actually on screen and SHALL be reviewed whenever the
 image is replaced. The hero image of a page is eager with `fetchpriority="high"`; images further
-down load lazily. Replacing the placeholders is launch work tracked by #38.
+down load lazily. Known gap (T11): How It Works' hero sets `priority` without
+`fetchPriority="high"`. Replacing the placeholders is launch work tracked by #38.
 
 #### Scenario: A reshoot replaces a photograph
 - **WHEN** a placeholder image is replaced
@@ -180,7 +181,9 @@ FAQs and Contact will carry none, and Private Table v2 (#25) will carry its wait
 
 The homepage SHALL render, in order: Hero → How it works → A taste of the table → Our standards →
 Meet the founder → Private Table → footer. The `BoxesPromo` and `Gifting` sections SHALL be
-deleted, not hidden. Private Table SHALL stay the last band: the purchase bar's suppression is
+deleted, not hidden, and every link to their anchors repointed or removed in the same change —
+including `/menu`'s "Explore Abby's handpicked boxes" (`MenuGrid`, `/#boxes`) — so nothing is left
+pointing at a missing anchor (FR-05). Private Table SHALL stay the last band: the purchase bar's suppression is
 positional, so anything placed below it is suppressed too. All commerce data SHALL be resolved
 once in `app/(site)/page.tsx` and passed down. The page SHALL show no announcement strip and no
 earliest delivery date.
@@ -317,7 +320,10 @@ entry's `history.state` (key `atDishReturn`). Records expire after 6 hours. Our 
 show "Back to dish" only when BOTH the query names a dish the catalogue has (checked on the
 server) AND this tab holds a live record for it; the control is server-rendered `hidden` and
 revealed only in the browser (an inline gate script before first paint, a layout effect on
-client navigation). Opening Our Standards marks the record `departed`. "Back to dish" SHALL make a
+client navigation). Opening Our Standards marks the record `departed`. Known gap (T12): on a full
+page load the gate reveals the control before hydration but `departed` is written only by
+`BackToDish`'s layout effect, so a click in that window is a plain forward navigation and the dish
+page does not restore; the gate SHALL mark the record departed before revealing the control. "Back to dish" SHALL make a
 true return — `history.back()` when the entry behind is the dish, otherwise mark `returning` and
 replace — never a forward push. The dish page SHALL restore the selection and scroll only on a
 genuine return (departed, and either `returning` or on the stamped entry), never on a reload, then
@@ -465,6 +471,8 @@ Aonik failures degrade per piece; a marketing page never becomes a 500 because o
 - [ ] `T9` Root metadata to "mainland UK" / "Heat, enjoy, live well" (no issue yet)
 - [ ] `T10` Our Standards' minimum from the storefront plan, the same source as its purchase bar
   (FR-02)
+- [ ] `T11` How It Works' hero image gets `fetchPriority="high"` (FR-06)
+- [ ] `T12` The Back to dish gate marks the record departed before revealing the control (FR-16)
 
 ### Testing
 

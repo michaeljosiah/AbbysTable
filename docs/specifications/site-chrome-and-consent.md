@@ -182,10 +182,13 @@ Aonik cannot hold or fail a page through its layout.
 
 `ConsentManager` SHALL be mounted once, in `app/layout.tsx`, covering every route group; never
 per page, never copied. A manager that throws SHALL render nothing (`ConsentBoundary`), leaving
-the site on essential processing with every trigger a plain link.
+every trigger a plain link. Known gap (T13): when it throws on a LATER render, after
+`consentStore.init()` has loaded a stored grant, the boundary does not reset the store, so
+`ConsentGate` siblings and `onConsent` subscribers keep the grant; the boundary SHALL publish
+essential-only and run their cleanups.
 
 #### Scenario: A crash is safe
-- **WHEN** the manager throws during render
+- **WHEN** the manager throws on its first render
 - **THEN** no optional technology runs and "Cookie preferences" goes to `/privacy#cookies`
 
 ### Requirement: FR-10 Consent storage and fail-safe
@@ -208,7 +211,9 @@ tab applies here.
 ### Requirement: FR-11 Banner and preference panel
 `capability: consent` · `delta: ADDED (feat/site-chrome-and-consent)`
 
-The banner SHALL show whenever no valid choice is stored: `role="region"` `aria-label="Cookie
+The banner SHALL show whenever the status is `unresolved` (no valid choice stored). After a
+failed save (`unsaved`) it stays hidden for the rest of the session — the visitor has chosen;
+only storage failed — and the site runs essential-only. The banner: `role="region"` `aria-label="Cookie
 choices"`, non-modal, never taking focus on load, with no dismiss; actions Required only (outline)
 then Accept all (filled) — identical boxes, Required only first in DOM and visual order — and
 Manage preferences. The panel SHALL be `role="dialog"` `aria-modal="true"` labelled "Cookie
@@ -306,8 +311,9 @@ markers are measured against its visible box.
 With no active box the bar SHALL read "Minimum N dishes" / "From £x" from the plan
 (`purchaseBarOffer`), omitting "From" when the plan has no preset at the minimum and showing the
 CTA alone, centred, when there is no plan; the CTA is "Build a Box" → `/box` unless the page
-supplies its own (How It Works' `BoxSizeLink`). With an active box it SHALL read "N-dish box",
-the total and "View box" → `boxResumeHref`: the total is the live quote verbatim, or the demo
+supplies its own (How It Works' `BoxSizeLink`). With an active box it SHALL read "N-dish box" — or "Your box" when no size is committed and
+neither the plan nor demo pricing can say which size Step 1 would preselect — the total and
+"View box" → `boxResumeHref`: the total is the live quote verbatim, or the demo
 quote (`buildDemoQuote`) in demo mode, and is left out when it cannot be known. Band, height and
 pill never change.
 
@@ -470,6 +476,7 @@ the session; only the header, drawer, footer, consent manager and bar are client
 - [ ] `T10` Delete the announcement bar and its delivery read (FR-08) (#10)
 - [ ] `T11` Contact and Delivery & FAQs links (FR-21) (#8)
 - [ ] `T12` Checkout legal line and "← Back to checkout" (FR-22) (#8)
+- [ ] `T13` `ConsentBoundary` revokes a loaded grant when the manager crashes after init (FR-09)
 
 ### Testing
 
