@@ -1,7 +1,5 @@
 'use client';
 
-import Link from 'next/link';
-
 import { DishCard } from '@/components/sections/DishCard';
 import type { Dish } from '@/lib/aonik/types';
 import type { ActiveFilter } from '@/lib/menu/filters';
@@ -58,13 +56,6 @@ export function MenuGrid({
           </div>
         ) : null}
       </div>
-
-      <p className={styles.guidance}>
-        <span className={styles.guidanceLabel}>Not sure where to start?</span>
-        <Link href="/#boxes" className={styles.guidanceLink}>
-          Explore Abby&apos;s handpicked boxes
-        </Link>
-      </p>
 
       {dishes.length > 0 ? (
         <ul className={styles.grid}>

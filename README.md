@@ -15,7 +15,8 @@ Two routes are built and running in [`web/`](web/) — Next.js 15 App Router, Re
 CSS Modules, with design tokens that started as a port of the original template (bringing them up to
 the v2 design in [`design/`](design/) is #9):
 
-- **`/`** — the homepage, all ten sections.
+- **`/`** — the v2 homepage: hero, How it works, the dish rail, Our standards, Meet the founder and
+  Private Table.
 - **`/menu`** — the full catalogue: search, six filter facets (protein, spice, wellness goal, meal
   type, dietary, calories), removable active-filter chips, and "load more" pagination. The facet
   logic is a pure module in [`web/src/lib/menu/filters.ts`](web/src/lib/menu/filters.ts).
@@ -42,8 +43,8 @@ This repository is also an [Arke](AGENTS.md) spec-driven workspace: work is auth
 specifications in [docs/specifications/](docs/specifications/), reviewed, then implemented.
 **The design source of truth is [`design/README.md`](design/README.md)** (the v2 design). The
 templates in `docs/template/` are the originals and are **superseded**; the homepage anatomy below
-was reverse-engineered from `Homepage.html` and describes what `web/` renders today, not the v2
-target. See [CLAUDE.md](CLAUDE.md) for conventions and known scaffold drift.
+is the v2 homepage `web/` renders. See [CLAUDE.md](CLAUDE.md) for conventions and known scaffold
+drift.
 
 ### Running the site
 
@@ -64,7 +65,8 @@ the storefront calls Aonik from Server Components, so the credential never reach
 
 ### Brand standards
 
-Four claims run as a band directly beneath the hero, and they are the core positioning:
+Four prohibitions are the core positioning (Our Standards' hero lists them; the homepage's Our
+standards band summarises that page):
 
 **No seed oils · No bouillon or cubes · No MSG · No refined sugars**
 
@@ -102,32 +104,26 @@ substantiated before launch (`design/build-handoff.md`, open items).
 
 ## Homepage anatomy
 
-> This is the **original template's** homepage, which `web/` still renders between its header and
-> footer. The v2 homepage in `design/` removed the announcement bar (0), boxes promo (7) and gifting
-> (8) sections; see `design/README.md`. The header, drawer and footer (1, 10) are already the v2
-> ones and the announcement bar is gone site-wide (#10) — see "Site chrome" below; the rest of the
-> page is #15.
-
-Ten sections, top to bottom. Anchor ids are the nav targets.
+The v2 homepage (`design/Abby's Table - Homepage v2.dc.html`, #15), in its canonical order — the
+order is load-bearing, because the mobile purchase bar is suppressed from Private Table's top to
+the end of the page (`design/build-handoff.md`, "Homepage section order"). The boxes promo and
+gifting bands are removed, not pending. Anchor ids are kept for the nav's `/#…` targets.
 
 | # | Section | `id` | Ground | Purpose |
 |---|---|---|---|---|
-| 0 | Announcement bar | — | `--green-forest` | Batch note + earliest delivery date; social icons. Dismissible. |
-| 1 | Header | — | `--cream-2` | Logo (masked SVG + ®), nav, Login, **Order** button. Sticky. |
-| 2 | Hero | `top` | Image + green gradient | Headline, sub, *View the menu*, *See how it works*. 590px. |
-| 3 | Standards | `standards` | `--cream-2` | The four "no" claims + accent line. |
-| 4 | How it works | `howitworks` | `--cream` | 4 numbered steps, delivery date, *Build your box*. |
-| 5 | Menu | `menu` | `--cream-3` | Filter pills + horizontal dish-card scroller. |
-| 6 | Founder | `founder` | `--blush` | Portrait split, Abby's story, *Read Abby's story*. |
-| 7 | Boxes promo | `boxes` | `--green-forest` | £150 headline, delivery date, *Choose your meals*, Taster Box link. |
-| 8 | Gifting | `gifting` | `--cream` | Autoplay muted video split, *Build a gift box*. |
-| 9 | Private Table | `private` | `--navy` | Dietitian service, *Request a private consultation*. |
-| 10 | Footer | `contact` | `--green-deep` | Newsletter, 3 link columns, socials, © 2026. |
+| 1 | Hero | `top` | One photograph + feathered green-deep overlay | "Nigerian Fusion Food. Nutrition at the Core.", three facts, *View the menu* (the bar's reveal point), *How it works →*. |
+| 2 | How it works | `howitworks` | `--cream` | Steps 01–04, *Build a Box* and "Minimum 6 dishes · From £158" (desktop; the bar carries both on a phone), *Learn more →*, the looping clip. **No delivery date.** |
+| 3 | A taste of the table | `menu` | `--cream` | The featured dish rail, *View the full menu*. |
+| 4 | Our standards | `standards` | `--sage` | Four standards with marks, *View our standards*. |
+| 5 | Meet the founder | `founder` | `--blush` | Portrait, Abby's story in short, *Read Abby's story*. |
+| 6 | Abby's Private Table | `private` | `--navy` | Reach rows, credentials, "Private Table from £1,500". *Find out more* waits for the Private Table page (#25). |
 
-**How it works** — the four steps: **Build your box** (personalise portion, protein, side or heat) →
-**Cooked from scratch** (small batches, simmered stocks, real spices, no cubes) → **Delivered chilled
-UK-wide** (choose a date; packed chilled, never frozen) → **Heat, eat and live well** (fridge to plate
-in minutes).
+The header, drawer and footer are the site chrome (#10, "Site chrome" below), not homepage bands;
+the announcement bar is gone site-wide.
+
+**How it works** — the four steps: **Build a box** (minimum order from the box plan; choose meals and
+portion size) → **We cook from scratch** → **Delivered chilled** (choose your Mainland UK delivery
+date) → **Heat, enjoy, live well** (ready in minutes).
 
 ### Site chrome (v2 — built, #10)
 
@@ -146,8 +142,9 @@ plain text, and the legal strip: © · Privacy Policy | Terms · Cookie preferen
 
 Gifting (#26) and Private Table (#25), Delivery & FAQs (#23) and Contact (#24) are not built yet:
 Gifting stays out of the chrome until its page lands, Private Table goes to the homepage band
-(`/#private`), and Contact / Delivery & FAQs to the footer — all from one place,
-`web/src/lib/content/navigation.ts`.
+(`/#private`), and Contact / Delivery & FAQs to the footer — all from
+`web/src/lib/content/navigation.ts`. The homepage band's own *Find out more* is separate: it renders
+once `PRIVATE_TABLE_HREF` (`web/src/lib/content/marketing.ts`) is set, when #25 lands.
 
 ---
 
@@ -302,7 +299,7 @@ web/                         the storefront
   src/components/brand/      Logo (masked SVG), SocialIcons
   src/components/layout/     Header, MobileDrawer, Footer, SiteChrome (the v2 chrome)
   src/components/status/     404 and 500 pages (design: Page Not Found, Something Went Wrong)
-  src/components/sections/   the ten homepage sections + DishCard
+  src/components/sections/   the six homepage bands + DishCard
   src/components/menu/       menu browser — toolbar, facet panel, grid, flavour band
   src/components/dish/       dish page — personaliser, info panels, related dishes,
                              the shared add-to-box action and the dish's mobile bar

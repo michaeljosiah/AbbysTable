@@ -1,137 +1,170 @@
+/* ===========================================================================
+   Meet the founder — design/Abby's Table - Homepage v2.dc.html (approved)
+   ---------------------------------------------------------------------------
+   Mobile-first; 640 and 1024 are min-width only. --blush ground (sampled in
+   the mockups and found to be blush, so no new token): green-forest is 8.2:1
+   on it and brown 8.9:1.
+   =========================================================================== */
+
 .section {
   background: var(--surface-blush);
+  padding: 44px 0 48px;
 }
 
-.split {
+.inner {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 22px;
+}
+
+.grid {
   display: grid;
-  grid-template-columns: 560px 1fr;
-  gap: 80px;
-  align-items: center;
-  padding-block: 72px;
+  gap: 26px;
 }
 
-@media (max-width: 1080px) {
-  .split {
-    grid-template-columns: 1fr;
-    gap: 26px;
-    padding-block: 46px 52px;
-  }
-
-  /* The split sections pull their gutter in a band earlier than the rest of the
-     page, at 1080 rather than 860. Doubled class so it outranks the global
-     `.band` regardless of which stylesheet lands first. */
-  .split.split {
-    padding-inline: 22px;
-  }
-}
-
-/* ---- Portrait ---------------------------------------------------------------
-   A tall panel beside the copy; a centred square above it once stacked. */
-
+/* Square at every width; the box is reserved before the photograph loads. */
 .media {
   position: relative;
-  height: 576px;
+  aspect-ratio: 1 / 1;
+  border-radius: 16px;
   overflow: hidden;
-  border-radius: var(--radius-lg);
+  background: var(--surface-card);
 }
 
-@media (max-width: 1080px) {
-  .media {
-    height: auto;
-    width: 100%;
-    max-width: 460px;
-    aspect-ratio: 1 / 1;
-    justify-self: center;
-    margin-inline: auto;
-  }
-}
-
-.portrait {
+.image {
   object-fit: cover;
 }
 
-/* ---- Story ------------------------------------------------------------------ */
-
-.copy {
-  max-width: 420px;
-  margin-inline: auto;
-  text-align: center;
+.heading {
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: clamp(30px, 8.6vw, 40px);
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  color: var(--text-heading);
 }
 
-/* Both scoped under .copy so they outrank the primitives' own margin rules
-   regardless of the order the stylesheets land in. */
-.copy .mark {
-  margin-bottom: 20px;
+.name {
+  margin-top: 10px;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 26px;
+  line-height: 1.15;
+  color: var(--text-heading);
 }
 
-.copy .heading {
-  margin-top: var(--space-3);
-}
-
-.story {
-  margin-top: 22px;
-  font-size: var(--body-md);
-  line-height: 1.7;
+.body {
+  margin-top: 16px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
   color: var(--text-body);
+  text-wrap: pretty;
 }
 
-/* Narrative copy sizes UP once stacked: the column is wider than the desktop
-   measure, so the desktop size reads small rather than comfortable. */
-@media (max-width: 1080px) {
+.name + .body {
+  margin-top: 20px;
+}
+
+/* ---- CTA: outline, 52px, no arrow; full width on a phone ---- */
+
+.ctaWrap {
+  display: flex;
+  margin-top: 28px;
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 34px;
+  border: var(--border-hairline) solid var(--green-forest);
+  border-radius: var(--radius-pill);
+  color: var(--text-heading);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.cta:hover {
+  background: var(--green-forest);
+  color: var(--blush);
+}
+
+.cta:active {
+  filter: brightness(0.94);
+}
+
+.cta:focus-visible {
+  outline: 2px solid var(--brass-ink);
+  outline-offset: 3px;
+  /* Keeps the pill's shape under the global focus rule's 3px radius. */
+  border-radius: var(--radius-pill);
+}
+
+/* ---- 640: still stacked — a 50/50 split here would give two ~300px
+   columns — with the photograph capped so it is not 900px tall ---- */
+
+@media (min-width: 640px) {
+  .section {
+    padding: 56px 0 60px;
+  }
+
+  .inner {
+    padding: 0 34px;
+  }
+
+  .media {
+    max-width: 480px;
+  }
+
   .copy {
     max-width: 560px;
   }
 
-  .story,
-  .story p {
-    max-width: 100%;
-    font-size: 16.5px;
-    line-height: 1.65;
-  }
-}
-
-.story p + p {
-  margin-top: var(--space-4);
-}
-
-.cta {
-  display: flex;
-  justify-content: center;
-  margin-top: 26px;
-}
-
-/* ---- CTA width -------------------------------------------------------------
-   Matches every other section: full width on a phone (capped so it does not
-   stretch), intrinsic with a floor on tablets. This block was missed when the
-   rest of the page got it, leaving this button short of the design on mobile. */
-
-@media (max-width: 860px) {
   .cta {
-    display: block;
-  }
-
-  .cta [data-variant] {
-    display: flex;
-    width: 100%;
-    justify-content: center;
-  }
-}
-
-@media (min-width: 621px) and (max-width: 1080px) {
-  .cta {
-    display: flex;
-    justify-content: center;
-  }
-
-  .cta [data-variant] {
     width: auto;
-    min-width: 280px;
   }
 }
 
-@media (max-width: 620px) {
-  .cta [data-variant] {
-    max-width: 360px;
-    margin-inline: auto;
+/* ---- 1024: 50/50, photograph left, copy vertically centred ---- */
+
+@media (min-width: 1024px) {
+  .section {
+    padding: 72px 0 76px;
+  }
+
+  .inner {
+    padding: 0 48px;
+  }
+
+  .grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 64px;
+    align-items: center;
+  }
+
+  .media {
+    max-width: none;
+    border-radius: var(--radius-lg);
+  }
+
+  /* 48 is the section-title size for every band on the page. */
+  .heading {
+    font-size: 48px;
+  }
+
+  .name {
+    font-size: 32px;
+  }
+
+  .body {
+    font-size: 17px;
   }
 }

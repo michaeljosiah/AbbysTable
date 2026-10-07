@@ -376,10 +376,8 @@ export interface Extra {
   heating: string;
 }
 
-/** Everything the homepage needs, resolved in one pass. */
+/** The homepage's catalogue data (its box plan comes with the purchase bar's). */
 export interface HomepageData {
+  /** The featured rail, in the tenant's curated order. */
   dishes: Dish[];
-  boxes: BoxOffer[];
-  /** Null when the tenant publishes no promise. */
-  delivery: DeliveryWindow | null;
 }

@@ -1,0 +1,5 @@
+/* A hyphenated compound held on one line; the text still wraps at the spaces
+   either side of it (design/build-handoff.md §3e). */
+.keep {
+  white-space: nowrap;
+}

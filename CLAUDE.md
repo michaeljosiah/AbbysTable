@@ -33,7 +33,8 @@ Conventions inside `web/` that are easy to get wrong:
   populated only where a source template published them. Dishes without them render an explicit
   "not yet published" notice — do not fill the gap with plausible-looking data.
 - **Server Components by default.** Client components are `Header`, `MobileDrawer`, `Footer`, the
-  homepage `Menu` rail, and the `/menu` browser (`MenuBrowser`, `MenuToolbar`, `MenuGrid`,
+  homepage `Menu` rail and How it works clip (`HowItWorksClip`: lazy source, pause control,
+  reduced motion), the `/menu` browser (`MenuBrowser`, `MenuToolbar`, `MenuGrid`,
   `FilterChip`, `FilterPill`), the `/how-it-works` size picker (`BoxSizePicker`, with
   `BoxSizeProvider`/`BoxSizeLink` sharing the choice with the page's purchase links), the legal
   pages' `LegalNavigation` (index, sheet, Sections/Top pair, scroll-spy), the mobile purchase bar
@@ -201,9 +202,12 @@ well" is gone).
 
 Homepage sections (v2): header, mobile drawer, hero, How it works, the dishes preview, Our
 standards, Meet the founder, Private Table, footer. The v2 homepage **removed** the announcement
-strip, the boxes promo and the gifting section ("Build a gift box"). The strip is gone from `web/`
-site-wide (#10); the boxes promo and gifting section are still rendered from the original template
-until the homepage is rebuilt (#15).
+strip, the boxes promo and the gifting section ("Build a gift box"). `web/`'s homepage bands are
+v2 (#15) — the boxes promo and gifting are gone, and the homepage reads no delivery date; the
+announcement strip is gone site-wide (#10). Homepage copy that is structured data lives
+in `src/lib/content/marketing.ts`; hyphenated compounds are held together at render time
+(`KeepCompounds`), never with a non-breaking hyphen in the content. Private Table's "Find out more"
+renders only once `PRIVATE_TABLE_HREF` is set — flip it to `/private-table` when #25 lands.
 
 Price: **"6 dishes from £158"**. The wording is fixed and the value comes from an editable price
 source, never a literal. Only the six-dish price is confirmed. The 6 / 12 / 18 presets stay, but the
