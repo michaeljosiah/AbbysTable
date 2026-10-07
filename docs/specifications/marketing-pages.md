@@ -237,7 +237,10 @@ from everyday favourites to signature upgrades.", render cards from catalogue da
 ("What does Signature mean?") SHALL open the tooltip "One of Abby's specials. This dish takes a
 little more time or uses premium cuts, so there's a small upgrade."; the upgrade amount comes from
 the dish record. The card is shared with `/menu`, whose design (Menu Landing v3) carries the same
-copy, so the change applies to both.
+copy, so the change applies to both. The band SHALL be left out when there are no dishes to show.
+Known gap (T13): the copy is in, but the info "i" is still the old hover tip inside the card link —
+`aria-hidden`, shown only on hover or card focus, and hidden below 640 — so the explainer cannot be
+opened on a phone or by keyboard; the separate button arrives with the v2 card treatment (#21).
 
 #### Scenario: The popover is not a link inside a link
 - **WHEN** a keyboard user tabs through a Signature card
@@ -473,6 +476,7 @@ Aonik failures degrade per piece; a marketing page never becomes a 500 because o
   (FR-02)
 - [ ] `T11` How It Works' hero image gets `fetchPriority="high"` (FR-06)
 - [ ] `T12` The Back to dish gate marks the record departed before revealing the control (FR-16)
+- [ ] `T13` The Signature info button as a real button outside the card link (FR-11) (#21)
 
 ### Testing
 
