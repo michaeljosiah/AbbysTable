@@ -28,6 +28,9 @@ const HERO_ALT =
  * browser fetches only the crop it shows. It is the page's LCP element: the
  * one image with `fetchpriority="high"`, eager, with no preload competing.
  *
+ * ⚠ PLACEHOLDER PHOTOGRAPHY — AI-generated, to be replaced before launch
+ * (#38); review HERO_ALT with the reshoot.
+ *
  * The headline and lede carry HARD breaks at every width, as the approved
  * mockup does — their line structure comes from the breaks, not a measure.
  *
@@ -54,7 +57,7 @@ export function Hero() {
 
   return (
     <section id="top" className={styles.hero}>
-      <picture className={styles.picture}>
+      <picture>
         <source media="(min-width: 1024px)" srcSet={landscape} sizes="100vw" />
         <img {...portrait} alt={HERO_ALT} className={styles.image} />
       </picture>

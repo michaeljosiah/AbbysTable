@@ -61,7 +61,7 @@ export function DishCard({ dish, variant = 'rail', href }: DishCardProps) {
         />
 
         {badges.length > 0 ? (
-          <ul className={styles.tags}>
+          <ul className={styles.tags} role="list">
             {badges.map((badge) => (
               <li
                 key={badge.label}

@@ -104,6 +104,8 @@
 .cta:focus-visible {
   outline: 2px solid var(--brass-ink);
   outline-offset: 3px;
+  /* Keeps the pill's shape under the global focus rule's 3px radius. */
+  border-radius: var(--radius-pill);
 }
 
 /* ---- 640: still stacked — a 50/50 split here would give two ~300px

@@ -188,6 +188,11 @@
   box-shadow: 0 0 0 3px var(--gold);
 }
 
+/* The global focus rule's 3px radius would square the pill off. */
+.primary:focus-visible {
+  border-radius: var(--radius-pill);
+}
+
 /* ---- 640: more measure; the CTAs sit side by side ---- */
 
 @media (min-width: 640px) {

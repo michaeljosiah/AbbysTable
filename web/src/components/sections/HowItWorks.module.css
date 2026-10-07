@@ -264,6 +264,11 @@
   outline-offset: 3px;
 }
 
+/* Keeps the pill's shape under the global focus rule's 3px radius. */
+.cta:focus-visible {
+  border-radius: var(--radius-pill);
+}
+
 /* ---- 640 ---- */
 
 @media (min-width: 640px) {

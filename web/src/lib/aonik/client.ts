@@ -550,10 +550,18 @@ export async function getAonikClient(): Promise<AonikClient> {
  * Nothing else: the v2 homepage has no boxes promo to price and never shows a
  * delivery date, and its box plan is read with the purchase bar's data
  * (`getPurchaseBarData`), so the page asks for the plan once.
+ *
+ * Optional, like every commerce read on a marketing page: if the collection
+ * cannot be read (or Aonik is not configured) the band is left out and the
+ * homepage still renders, rather than becoming a 500.
  */
 export async function getHomepageData(): Promise<HomepageData> {
-  const client = await getAonikClient();
-  return { dishes: await client.getFeaturedDishes() };
+  const dishes = await optionalRead(
+    'the homepage featured dishes',
+    async () => (await getAonikClient()).getFeaturedDishes(),
+    [] as Dish[],
+  );
+  return { dishes };
 }
 
 /** How many "You might also like" cards a dish page shows. */

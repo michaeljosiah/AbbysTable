@@ -64,6 +64,10 @@ export function Menu({ dishes }: MenuProps) {
     return () => window.removeEventListener('resize', syncThumb);
   }, [syncThumb, dishes.length]);
 
+  // Nothing to show (no featured collection, or it could not be read): no
+  // band that promises dishes and shows none.
+  if (dishes.length === 0) return null;
+
   return (
     <section id="menu" className={styles.section}>
       <div className={styles.head}>

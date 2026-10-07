@@ -334,17 +334,23 @@ test('the dish card holds its name’s and components line’s compounds togethe
 test('live: the homepage reads its dishes and the box plan once — and never a delivery date', async () => {
   const saved = { ...process.env };
   configureAonik({ AONIK_DATA_MODE: 'live' });
-  // Aonik down: the request list is the point, not the render.
+  // Aonik down: every read fails, and the page must still render (FR-02).
   useAonik(() => ({ status: 503, body: { title: 'Service Unavailable' } }));
+  const quiet = console.error;
+  console.error = () => {};
   try {
     resetCookies();
-    await HomePage().catch(() => null);
+    const html = renderToStaticMarkup(<CartProvider>{await HomePage()}</CartProvider>);
+    assert.match(html, /<h1[^>]*>Nigerian<br\/>Fusion Food\./, 'the page renders');
+    assert.doesNotMatch(html, /A taste of the table/, 'no dish band without dishes');
+    assert.match(html, /Four simple steps/, 'the bands that need no data still render');
     const paths = aonikRequests.map((request) => request.path);
 
     assert.ok(paths.some((path) => path.startsWith('/commerce/catalog/collections/')), 'the featured rail');
     assert.equal(paths.filter((path) => path === '/commerce/config/storefront').length, 1, 'the plan, once');
     assert.ok(!paths.some((path) => path.includes('/config/delivery')), 'no delivery date is read');
   } finally {
+    console.error = quiet;
     process.env = saved;
   }
 });

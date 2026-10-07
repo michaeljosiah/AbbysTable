@@ -131,6 +131,8 @@
 .cta:focus-visible {
   outline: 2px solid var(--brass-ink);
   outline-offset: 3px;
+  /* Keeps the pill's shape under the global focus rule's 3px radius. */
+  border-radius: var(--radius-pill);
 }
 
 /* ---- 640: the list keeps its shape; the measure is capped like the bands

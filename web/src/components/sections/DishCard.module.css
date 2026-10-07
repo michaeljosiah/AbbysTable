@@ -168,6 +168,11 @@
 
 .info:hover .infoTip,
 .signaturePill:hover .infoTip,
+.card:focus-visible {
+  /* Keeps the card's corners under the global focus rule's 3px radius. */
+  border-radius: var(--radius-card);
+}
+
 .card:focus-visible .infoTip {
   opacity: 1;
   transform: translateY(0);
