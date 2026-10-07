@@ -22,7 +22,7 @@ import { LegalFloat, LegalIndex, LegalNavigation } from './LegalNavigation';
 
 /**
  * The print treatment for the site chrome. Everything in <body> except <main>
- * — announcement bar, header, drawer, footer, the cookie layer — comes off the
+ * — header, drawer, footer, the cookie layer — comes off the
  * page. It is a <style> element rather than a CSS Module rule because it must
  * reach outside this page's own markup, and it exists only while a legal
  * document is mounted: print CSS is a named two-page list, never site-wide.

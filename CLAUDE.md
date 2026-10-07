@@ -45,9 +45,10 @@ Conventions inside `web/` that are easy to get wrong:
 - **Status pages (#13).** Unmatched URLs get the root `app/not-found.tsx`, which renders
   `SiteChrome` itself so the 404 keeps the marketing header, footer and session — do not replace it
   with a catch-all route calling `notFound()`: Next sends that as an empty `__next_error__` shell
-  that only JavaScript fills in. Next renders the root 404 into EVERY document request, so it must
-  never await commerce data (`withAnnouncement={false}`, pinned by `tests/not-found-chrome.test.ts`):
-  a slow Aonik would hold every page open and a failing one would turn the 404 into a 500. The 500
+  that only JavaScript fills in. Next renders the root 404 into EVERY document request, so its
+  chrome must never await commerce data: `SiteChrome` reads the session cookie and nothing else
+  (pinned by `tests/not-found-chrome.test.ts`, which asserts it makes no request at all) — a slow
+  Aonik would hold every page open and a failing one would turn the 404 into a 500. The 500
   page's links are plain `<a>` on purpose — the one exception to the `next/link` rule below — so
   each is a full page load out of the failed app. `public/500.html` and `public/maintenance.html`
   are GENERATED from `src/lib/status-pages/render.ts` (fonts, wordmark and token values inlined; no
@@ -64,6 +65,22 @@ Conventions inside `web/` that are easy to get wrong:
   design — Abby's Story, Gifting, Delivery & FAQs, Contact, Allergens, legal, checkout, auth —
   simply don't render one. Drawers and phone bottom sheets hold `data-overlay-open` on `<html>`
   (`useDocumentFlag`, `src/lib/dom/`) and the bar yields to them, as it does to the consent layer.
+  The bar and the header read ONE scroll direction (`src/lib/dom/pageScroll.ts`), so they can never
+  disagree: one order CTA on screen at a time. Never give either its own scroll listener for it.
+- **Site chrome (#10) is the v2 header, drawer and footer** (Homepage v2 is canonical). There is no
+  announcement strip — the v2 design dropped it site-wide, and the homepage must never show the
+  earliest delivery date. Every chrome destination is defined ONCE in `src/lib/content/navigation.ts`;
+  a page that is designed but not built never gets a link that 404s or a dead anchor. Gifting stays
+  out of the header, drawer and footer until `/gifting` lands (`GIFTING_LIVE`, #26); Private Table
+  is `/#private` until #25; Contact and Delivery & FAQs are `CONTACT_HREF` (the footer) until #24/#23.
+  What the chrome says (current page, Log in / My Account, GET STARTED / VIEW BOX) and when the
+  header hides are React-free in `src/lib/site-header/` (`tests/site-header.test.ts`). The header
+  hides on a downward scroll below 1024 on every page; from 1024 only on the routes in
+  `DESKTOP_AUTO_HIDE_PATHS` (40px to hide, 64px to reveal) — a route joins that list when its
+  marketing page lands, never before (a 404 must keep a static header). Anything sticky under the
+  header uses `--site-header-offset` (its height while shown, 0 while hidden), which the header
+  publishes on `<html>`. Sign-out lives in the account area (`/account/orders` for now; #35 moves it
+  into My Account's menu), never in the header.
 - **Legal pages (#20): `/terms-of-sale` and `/privacy`.** Section slugs are a PUBLIC CONTRACT
   (`src/lib/legal/terms.ts`, `privacy.ts`; pinned by `tests/legal-documents.test.ts`) — never
   rename one; `#cookies` is committed. Legacy `#sN`/`#N` resolve to slugs. Clause copy is verbatim
@@ -187,7 +204,7 @@ Homepage sections (v2): header, mobile drawer, hero, How it works, the dishes pr
 standards, Meet the founder, Private Table, footer. The v2 homepage **removed** the announcement
 strip, the boxes promo and the gifting section ("Build a gift box"). `web/`'s homepage bands are
 v2 (#15) — the boxes promo and gifting are gone, and the homepage reads no delivery date; the
-announcement strip goes with the chrome rebuild (#10). Homepage copy that is structured data lives
+announcement strip is gone site-wide (#10). Homepage copy that is structured data lives
 in `src/lib/content/marketing.ts`; hyphenated compounds are held together at render time
 (`KeepCompounds`), never with a non-breaking hyphen in the content. Private Table's "Find out more"
 renders only once `PRIVATE_TABLE_HREF` is set — flip it to `/private-table` when #25 lands.

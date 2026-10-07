@@ -3,11 +3,18 @@
  *
  * This is editorial structure, not commerce data — it does not come from Aonik.
  *
- * Anchors are root-relative (`/#founder`) rather than bare (`#founder`) so they
- * resolve from any route, not just the homepage. As real routes land, swap the
- * `href` values here and the header, drawer and footer all follow.
+ * EVERY destination is defined once, here, and the header, drawer and footer
+ * read it. A page that is designed but not built yet never gets a link that
+ * would 404, nor an anchor that does not exist: it either resolves to the
+ * closest real destination (stated beside it) or stays out of the chrome
+ * behind its own flag. When its route lands, change the one line here and the
+ * header, drawer and footer all follow.
+ *
+ * Anchors are root-relative (`/#private`) rather than bare (`#private`) so they
+ * resolve from any route, not just the homepage.
  */
 
+import { BOX_BUILDER_PATH } from '@/lib/how-it-works/boxSizes';
 import { PRIVACY_COOKIES_SLUG } from '@/lib/legal/privacy';
 
 export const SECTION_IDS = [
@@ -29,27 +36,63 @@ export interface NavItem {
   href: string;
 }
 
+/* ---- Destinations ------------------------------------------------------------ */
+
+export const MENU_ITEM: NavItem = { label: 'Menu', href: '/menu' };
+
+export const HOW_IT_WORKS_ITEM: NavItem = { label: 'How it works', href: '/how-it-works' };
+
+export const OUR_STORY_ITEM: NavItem = { label: 'Abby’s Story', href: '/our-story' };
+
+/** Footer label is sentence case, as in the v2 footer ("Our standards"). */
+export const STANDARDS_ITEM: NavItem = { label: 'Our standards', href: '/standards' };
+
+export const ALLERGENS_ITEM: NavItem = { label: 'Allergens', href: '/allergens' };
+
 /**
- * Seven links, not eight: the template drops "Abby's Boxes". That removal is
- * load-bearing — eight links plus the wordmark and the Order button need about
- * 1225px, which is why the header falls back to the drawer below 1240px.
+ * Gifting (#26, `/gifting`) is designed but not built, and the homepage's
+ * `#gifting` section is gone from the v2 homepage (#15) — so there is no honest
+ * destination for it yet. It stays OUT of the header, drawer and footer until
+ * its page lands: flip this flag in the same change that adds the route. A
+ * link to `/gifting` today would 404, and `/#gifting` would be a dead anchor
+ * the moment #15 merges.
  */
-export const NAV_ITEMS: NavItem[] = [
-  { label: 'Menu', href: '/menu' },
-  { label: 'How it works', href: '/how-it-works' },
-  { label: 'Gifting', href: '/#gifting' },
-  { label: 'Private Table', href: '/#private' },
-  { label: 'Our Standards', href: '/standards' },
-  { label: "Abby's Story", href: '/our-story' },
-  { label: 'Contact', href: '/#contact' },
-];
+export const GIFTING_LIVE = false;
 
-export const LOGIN_ITEM: NavItem = { label: 'Login', href: '/login' };
+export const GIFTING_ITEM: NavItem = { label: 'Gifting', href: '/gifting' };
 
 /**
- * Takes `LOGIN_ITEM`'s place in the drawer once the customer is signed in
- * (behaviour guide §A2): same slot, new label and destination. The order
- * history is the account area's only page so far.
+ * Private Table (#25, `/private-table`) is not built yet. The v2 homepage
+ * keeps its Private Table band (`#private`), so until the page lands the link
+ * goes there. Swap to `/private-table` with #25.
+ */
+export const PRIVATE_TABLE_ITEM: NavItem = { label: 'Private Table', href: '/#private' };
+
+/**
+ * Contact us. The Contact page (#24) is designed but not built yet, so this is
+ * the site's placeholder (the footer, `id="contact"`) rather than a route that
+ * would 404 — swap it when the page lands (#8 repoints the rest).
+ */
+export const CONTACT_HREF = '/#contact';
+
+export const CONTACT_ITEM: NavItem = { label: 'Contact us', href: CONTACT_HREF };
+
+/** Delivery & FAQs (#23) — not built yet; the same interim as Contact. */
+export const DELIVERY_FAQS_ITEM: NavItem = { label: 'Delivery & FAQs', href: CONTACT_HREF };
+
+/** The box builder, Choose Box (step 1). */
+export const BOX_HREF = BOX_BUILDER_PATH;
+
+/**
+ * The header's account slot when signed out (behaviour guide §A2). The label
+ * is "Log in" — two words, as the v2 header, drawer and Log in page set it.
+ */
+export const LOGIN_ITEM: NavItem = { label: 'Log in', href: '/login' };
+
+/**
+ * Takes `LOGIN_ITEM`'s place in the header and drawer once the customer is
+ * signed in (behaviour guide §A2): same slot, new label and destination. The
+ * order history is the account area's only page so far (My Account v2 is #35).
  */
 export const ACCOUNT_ITEM: NavItem = { label: 'My Account', href: '/account/orders' };
 
@@ -63,12 +106,23 @@ export const PRIVACY_ITEM: NavItem = { label: 'Privacy Policy', href: '/privacy'
 
 export const TERMS_ITEM: NavItem = { label: 'Terms', href: '/terms-of-sale' };
 
+/* ---- Header and drawer -------------------------------------------------------- */
+
 /**
- * Contact us. The Contact page is designed but not built yet, so this is the
- * site's placeholder (the footer) rather than a route that would 404 — swap it
- * when the page lands.
+ * The v2 marketing header's links (design/CLAUDE.md, "Canonical shared
+ * components"): Menu / How it works / Abby's Story / Gifting / Private Table —
+ * the same five, in the same order, in the drawer. Gifting joins when its page
+ * does (`GIFTING_LIVE`).
  */
-export const CONTACT_HREF = '/#contact';
+export const NAV_ITEMS: NavItem[] = [
+  MENU_ITEM,
+  HOW_IT_WORKS_ITEM,
+  OUR_STORY_ITEM,
+  ...(GIFTING_LIVE ? [GIFTING_ITEM] : []),
+  PRIVATE_TABLE_ITEM,
+];
+
+/* ---- Footer ------------------------------------------------------------------- */
 
 /**
  * The simplified footer on the 500 page — help and legal only, by design
@@ -80,8 +134,8 @@ export const CONTACT_HREF = '/#contact';
  * list: regenerate it after a change (`UPDATE_STATUS_PAGES=1 npm test`).
  */
 export const STATUS_FOOTER_LINKS: NavItem[] = [
-  { label: 'Delivery & FAQs', href: '/#contact' },
-  { label: 'Contact us', href: '/#contact' },
+  DELIVERY_FAQS_ITEM,
+  CONTACT_ITEM,
   PRIVACY_ITEM,
   TERMS_ITEM,
 ];
@@ -109,33 +163,27 @@ export interface FooterColumn {
   links: NavItem[];
 }
 
+/**
+ * The v2 footer's three columns (Homepage v2; design/build-handoff.md,
+ * "Footer — what was settled"). Discovery Box and Journal are gone — there are
+ * no such pages — and Learn gains How it works and Our standards.
+ */
 export const FOOTER_COLUMNS: FooterColumn[] = [
   {
     heading: 'Shop',
-    links: [
-      { label: 'Menu', href: '/menu' },
-      { label: 'Gifting', href: '/#gifting' },
-      { label: 'Discovery Box', href: '/menu' },
-      { label: 'Private Table', href: '/#private' },
-    ],
+    links: [MENU_ITEM, ...(GIFTING_LIVE ? [GIFTING_ITEM] : []), PRIVATE_TABLE_ITEM],
   },
   {
     heading: 'Learn',
-    links: [
-      { label: "Abby's Story", href: '/our-story' },
-      { label: 'Our Standards', href: '/standards' },
-      { label: 'Journal', href: '/#contact' },
-    ],
+    links: [OUR_STORY_ITEM, HOW_IT_WORKS_ITEM, STANDARDS_ITEM],
   },
   {
     heading: 'Information',
-    links: [
-      { label: 'Delivery & FAQs', href: '/#contact' },
-      { label: 'Contact Us', href: '/#contact' },
-      { label: 'Allergens', href: '/allergens' },
-    ],
+    links: [DELIVERY_FAQS_ITEM, ALLERGENS_ITEM, CONTACT_ITEM],
   },
 ];
+
+/* ---- Social ------------------------------------------------------------------- */
 
 export type SocialNetwork = 'instagram' | 'tiktok' | 'facebook' | 'x';
 
@@ -145,16 +193,21 @@ export interface SocialLink {
   href: string;
 }
 
+/** Printed as plain text in the footer — the icons already reach the accounts. */
 export const SOCIAL_HANDLE = '@FromAbbysTable';
 
 /**
+ * The four accounts, exactly as every v2 page publishes them (Homepage v2's
+ * footer and drawer, and the other rebuilt pages — one set of URLs throughout
+ * design/). Confirm they are the live accounts before launch.
+ *
  * Also printed into the static status pages (`public/500.html`,
  * `public/maintenance.html`): regenerate them after a change here
  * (`UPDATE_STATUS_PAGES=1 npm test`).
  */
 export const SOCIAL_LINKS: SocialLink[] = [
-  { network: 'instagram', label: 'Instagram', href: 'https://instagram.com' },
-  { network: 'tiktok', label: 'TikTok', href: 'https://tiktok.com' },
-  { network: 'facebook', label: 'Facebook', href: 'https://facebook.com' },
-  { network: 'x', label: 'X', href: 'https://x.com' },
+  { network: 'instagram', label: 'Instagram', href: 'https://www.instagram.com/fromabbystable' },
+  { network: 'tiktok', label: 'TikTok', href: 'https://www.tiktok.com/@fromabbystable' },
+  { network: 'facebook', label: 'Facebook', href: 'https://www.facebook.com/fromabbystable/' },
+  { network: 'x', label: 'X', href: 'https://x.com/fromabbystable' },
 ];

@@ -147,6 +147,8 @@
   outline: 2px solid var(--cream);
   outline-offset: 0;
   box-shadow: 0 0 0 3px var(--gold);
+  /* Keeps the pill's shape under the global focus rule's 3px radius. */
+  border-radius: var(--radius-pill);
 }
 
 .price {
