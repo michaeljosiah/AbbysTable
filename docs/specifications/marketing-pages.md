@@ -476,7 +476,8 @@ points at the form; demo mode SHALL NOT send or say it has (the newsletter's rul
 action SHALL re-run every rule on what arrived and answer `sent` only after a 2xx from the
 endpoint. Any other outcome keeps every field and image and says "We couldn't send your message
 just now. Everything you've written is still here, so please try again." The request is multipart
-in the contract's field names (§3e), never retried.
+in the contract's field names (§3e), never retried. Three 10MB images SHALL reach the action whole:
+Next's server-action (1MB) and middleware (10MB) body limits are raised to 32MB (`next.config.mjs`).
 
 #### Scenario: No endpoint, no thanks
 - **WHEN** a valid enquiry is posted to the action while `ENQUIRY_PATH` is `null`
