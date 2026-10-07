@@ -20,6 +20,7 @@ import {
   EMPTY_ENQUIRY,
   ENQUIRY_FORM_FIELDS,
   ENQUIRY_IMAGE_ACCEPT,
+  ENQUIRY_LIMITS,
   ENQUIRY_TOPICS,
   firstInvalidField,
   MAX_ENQUIRY_IMAGES,
@@ -352,6 +353,7 @@ export function ContactForm({ action }: { action: EnquiryAction }) {
               type="text"
               autoComplete="name"
               required
+              maxLength={ENQUIRY_LIMITS.name}
               value={draft.name}
               onChange={update('name')}
               aria-invalid={errors.name ? true : undefined}
@@ -372,6 +374,7 @@ export function ContactForm({ action }: { action: EnquiryAction }) {
               type="email"
               autoComplete="email"
               required
+              maxLength={ENQUIRY_LIMITS.email}
               value={draft.email}
               onChange={update('email')}
               aria-invalid={errors.email ? true : undefined}
@@ -441,6 +444,7 @@ export function ContactForm({ action }: { action: EnquiryAction }) {
               name={ENQUIRY_FORM_FIELDS.orderNumber}
               type="text"
               autoComplete="off"
+              maxLength={ENQUIRY_LIMITS.orderNumber}
               value={draft.orderNumber}
               onChange={update('orderNumber')}
               aria-describedby={`${ids.order}-help`}
@@ -462,6 +466,7 @@ export function ContactForm({ action }: { action: EnquiryAction }) {
             name={ENQUIRY_FORM_FIELDS.message}
             rows={6}
             required
+            maxLength={ENQUIRY_LIMITS.message}
             value={draft.message}
             onChange={update('message')}
             aria-invalid={errors.message ? true : undefined}

@@ -474,13 +474,15 @@ the form and the server action.
 The form SHALL render only when an enquiry can really be sent: live data and the Aonik enquiry
 endpoint (`ENQUIRY_PATH` in `src/lib/aonik/enquiries.ts`; aonik#356, not built). Until then the
 page keeps "Send us a message" and says "Our message form isn't available yet." — adding "Please
-use one of the ways above to get in touch." only when a direct route is configured — and no jump
+use one of the ways above to get in touch." when a direct route is configured, and otherwise the
+brand's social accounts (`SOCIAL_LINKS`), so a "contact us" never lands on a dead end — and no jump
 points at the form; demo mode SHALL NOT send or say it has (the newsletter's rule, #6). The server
 action SHALL re-run every rule on what arrived and answer `sent` only after a 2xx from the
 endpoint. Any other outcome keeps every field and image and says "We couldn't send your message
 just now. Everything you've written is still here, so please try again." The request is multipart
-in the contract's field names (§3e), never retried. Three 10MB images SHALL reach the action whole:
-Next's server-action (1MB) and middleware (10MB) body limits are raised to 32MB (`next.config.mjs`).
+in the contract's field names (§3e), never retried. Every text field has a length cap, enforced by
+the field and again by the action (name 200, email 254, order number 64, message 5,000 characters),
+and the email shape check is linear (`isEmailAddress`), so no field can hold the server.
 
 #### Scenario: No endpoint, no thanks
 - **WHEN** a valid enquiry is posted to the action while `ENQUIRY_PATH` is `null`
@@ -591,7 +593,11 @@ first two gaps recorded here, were closed by #15 (PR #59; T6, T9) and are no lon
 - [x] `T14` Contact (#24): the grid, routes, hours and status, the form held back (FR-21–FR-24)
 - [ ] `T15` Wire the enquiry endpoint when aonik#356 ships: set `ENQUIRY_PATH`, reconcile the
   field names, confirm the acknowledgement email, routing by subject, spam protection and
-  server-side image checks (type sniffing, virus scan, EXIF stripping) (FR-24)
+  server-side image checks (type sniffing, virus scan, EXIF stripping) (FR-24). Three 10MB
+  images exceed Next's server-action (1MB) and middleware (10MB) body limits: send the form to a
+  route handler (`app/api/enquiries/route.ts`) that streams with its own cap and is left out of the
+  middleware matcher (checking `MAINTENANCE_MODE` itself), or upload images direct to storage —
+  never raise either limit globally
 - [ ] `T16` Contact details, hours, bank holidays and closures from Aonik (aonik#358), and a real,
   tested WhatsApp QR (FR-22)
 

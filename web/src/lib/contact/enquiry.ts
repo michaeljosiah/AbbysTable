@@ -11,6 +11,8 @@
  * and count once more, with real content sniffing.
  */
 
+import { isEmailAddress, MAX_EMAIL_LENGTH } from '@/lib/email';
+
 /* ---- Subjects ------------------------------------------------------------------- */
 
 /**
@@ -81,11 +83,26 @@ export type EnquiryErrors = Partial<Record<EnquiryField, string>>;
 export const MESSAGE_MIN_CHARACTERS = 10;
 
 /**
+ * The longest each field may be — the input's `maxLength` and the action's
+ * own check, so a crafted post cannot hand the server an unbounded string.
+ * Characters (code points), which a UTF-16 `maxLength` can never exceed.
+ */
+export const ENQUIRY_LIMITS = {
+  name: 200,
+  email: MAX_EMAIL_LENGTH,
+  orderNumber: 64,
+  message: 5000,
+} as const;
+
+/**
  * Deliberately permissive (the design's own): stricter patterns reject valid
  * addresses, and the only real proof is a reply that arrives. It catches the
- * typos — no @, nothing after the dot, spaces.
+ * typos — no @, nothing after the dot, spaces — in linear time, with at least
+ * two characters after the last dot as the design's pattern asked.
  */
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+function isEnquiryEmail(email: string): boolean {
+  return isEmailAddress(email) && email.length - email.lastIndexOf('.') - 1 >= 2;
+}
 
 /** The design's messages, verbatim. */
 export const ENQUIRY_MESSAGES = {
@@ -95,10 +112,20 @@ export const ENQUIRY_MESSAGES = {
   topic: 'Please choose what your message is about.',
   messageMissing: 'Please enter your message.',
   messageShort: 'Please add a little more detail so we can help.',
+  nameLong: `Please shorten your name to ${ENQUIRY_LIMITS.name} characters or fewer.`,
+  messageLong: `Please shorten your message to ${ENQUIRY_LIMITS.message.toLocaleString('en-GB')} characters or fewer.`,
 } as const;
 
-/** Characters, not UTF-16 units: an emoji is one character to the customer. */
-const characters = (text: string) => [...text].length;
+/**
+ * Characters, not UTF-16 units — an emoji is one character to the customer —
+ * counted only as far as `stopAt`, so a huge string costs no more than a short one.
+ */
+function charactersUpTo(text: string, stopAt: number): number {
+  const codePoints = text[Symbol.iterator]();
+  let count = 0;
+  while (count < stopAt && !codePoints.next().done) count += 1;
+  return count;
+}
 
 /** Every problem with the draft, keyed by field. Empty when it can be sent. */
 export function validateEnquiry(draft: EnquiryDraft): EnquiryErrors {
@@ -108,11 +135,18 @@ export function validateEnquiry(draft: EnquiryDraft): EnquiryErrors {
   const message = draft.message.trim();
 
   if (!name) errors.name = ENQUIRY_MESSAGES.name;
+  else if (charactersUpTo(name, ENQUIRY_LIMITS.name + 1) > ENQUIRY_LIMITS.name) {
+    errors.name = ENQUIRY_MESSAGES.nameLong;
+  }
   if (!email) errors.email = ENQUIRY_MESSAGES.emailMissing;
-  else if (!EMAIL_PATTERN.test(email)) errors.email = ENQUIRY_MESSAGES.emailInvalid;
+  else if (!isEnquiryEmail(email)) errors.email = ENQUIRY_MESSAGES.emailInvalid;
   if (!isEnquiryTopic(draft.topic)) errors.topic = ENQUIRY_MESSAGES.topic;
   if (!message) errors.message = ENQUIRY_MESSAGES.messageMissing;
-  else if (characters(message) < MESSAGE_MIN_CHARACTERS) errors.message = ENQUIRY_MESSAGES.messageShort;
+  else {
+    const length = charactersUpTo(message, ENQUIRY_LIMITS.message + 1);
+    if (length < MESSAGE_MIN_CHARACTERS) errors.message = ENQUIRY_MESSAGES.messageShort;
+    else if (length > ENQUIRY_LIMITS.message) errors.message = ENQUIRY_MESSAGES.messageLong;
+  }
 
   return errors;
 }
@@ -137,6 +171,10 @@ export function toEnquiry(draft: EnquiryDraft): { enquiry: Enquiry } | { errors:
   const errors = validateEnquiry(draft);
   if (firstInvalidField(errors) || !isEnquiryTopic(draft.topic)) return { errors };
   const orderNumber = asksForOrderNumber(draft.topic) ? draft.orderNumber.trim() : '';
+  // The field's maxLength stops this in the browser; only a crafted post gets here.
+  if (charactersUpTo(orderNumber, ENQUIRY_LIMITS.orderNumber + 1) > ENQUIRY_LIMITS.orderNumber) {
+    return { errors };
+  }
   return {
     enquiry: {
       name: draft.name.trim(),

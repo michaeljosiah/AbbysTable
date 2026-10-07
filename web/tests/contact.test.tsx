@@ -19,6 +19,7 @@ import {
   asksForOrderNumber,
   EMPTY_ENQUIRY,
   ENQUIRY_IMAGE_ACCEPT,
+  ENQUIRY_LIMITS,
   ENQUIRY_MESSAGES,
   ENQUIRY_TOPICS,
   firstInvalidField,
@@ -45,7 +46,7 @@ import {
 } from '../src/lib/contact/hours';
 import { OPENING_HOURS, SUPPORT_CONTACT, WHATSAPP_CONTACT } from '../src/lib/content/contact';
 import { PRIVATE_TABLE_HREF, PRIVATE_TABLE_WAITLIST_HREF } from '../src/lib/content/marketing';
-import { CONTACT_HREF, DELIVERY_FAQS_HREF } from '../src/lib/content/navigation';
+import { CONTACT_HREF, DELIVERY_FAQS_HREF, SOCIAL_LINKS } from '../src/lib/content/navigation';
 
 import { AONIK_BASE, TENANT_ID, configureAonik } from './support/aonik';
 import { resetCookies } from './support/next-headers';
@@ -246,6 +247,29 @@ test('email is checked permissively; a subject must be one of the six', () => {
   assert.equal(validateEnquiry(draft({ email: 'ada example.test' })).email, ENQUIRY_MESSAGES.emailInvalid);
   assert.equal(validateEnquiry(draft({ email: '  ada+box@sub.example.co.uk ' })).email, undefined);
   assert.equal(validateEnquiry(draft({ topic: 'private-table' })).topic, ENQUIRY_MESSAGES.topic);
+  // The design's pattern wanted two characters after the last dot.
+  assert.equal(validateEnquiry(draft({ email: 'ada@example.c' })).email, ENQUIRY_MESSAGES.emailInvalid);
+});
+
+test('every field is capped, and a hostile one costs no more than a short one', () => {
+  const name = 'A'.repeat(ENQUIRY_LIMITS.name);
+  assert.equal(validateEnquiry(draft({ name })).name, undefined);
+  assert.equal(validateEnquiry(draft({ name: `${name}A` })).name, ENQUIRY_MESSAGES.nameLong);
+  const message = 'm'.repeat(ENQUIRY_LIMITS.message);
+  assert.equal(validateEnquiry(draft({ message })).message, undefined);
+  assert.equal(validateEnquiry(draft({ message: `${message}m` })).message, ENQUIRY_MESSAGES.messageLong);
+  assert.match(ENQUIRY_MESSAGES.messageLong, /5,000 characters/);
+  const order = toEnquiry(draft({ topic: 'order', orderNumber: '9'.repeat(ENQUIRY_LIMITS.orderNumber + 1) }));
+  assert.ok('errors' in order, 'an over-long order number is refused, never truncated');
+
+  // ~1MB in every field, the shape that made the old email pattern backtrack.
+  const huge = `a@${'x.'.repeat(500_000)}@`;
+  const started = performance.now();
+  const errors = validateEnquiry(draft({ name: huge, email: huge, message: huge }));
+  assert.ok(performance.now() - started < 200, 'linear, and stopped at the cap');
+  assert.equal(errors.name, ENQUIRY_MESSAGES.nameLong);
+  assert.equal(errors.email, ENQUIRY_MESSAGES.emailInvalid);
+  assert.equal(errors.message, ENQUIRY_MESSAGES.messageLong);
 });
 
 test('a message needs at least 10 characters, counted as the customer sees them', () => {
@@ -452,6 +476,10 @@ test('as configured today: every route marked "to be confirmed", no dead link, n
   assert.doesNotMatch(html, /href="#send"/);
   assert.match(text, /Send us a message Our message form isn’t available yet\./);
   assert.doesNotMatch(text, /ways above/, 'there are no ways above yet');
+  // …so the notice names the routes that do work: never a dead end.
+  assert.match(html.replace(/<[^>]+>/g, ''), /In the meantime, you can reach us on Instagram, TikTok, Facebook or X\./);
+  for (const { href } of SOCIAL_LINKS) assert.ok(html.includes(`href="${href}"`), href);
+  assert.doesNotMatch(text, /Usually the quickest way/, 'no promise about a route that is not there');
 
   // No card linking this page to itself (Delivery & FAQs follows Contact until #23)…
   if (DELIVERY_FAQS_HREF === CONTACT_HREF) {

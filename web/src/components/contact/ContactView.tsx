@@ -5,6 +5,7 @@ import { Fragment, type ReactNode } from 'react';
 import type { EnquiryAction } from '@/lib/contact/enquiry';
 import { hoursRows, type OpeningHours } from '@/lib/contact/hours';
 import { whatsAppHref, type SupportContact, type WhatsAppContact } from '@/lib/content/contact';
+import { SOCIAL_LINKS } from '@/lib/content/navigation';
 
 import { ContactForm } from './ContactForm';
 import styles from './ContactView.module.css';
@@ -179,7 +180,7 @@ export function ContactView({
             <Tbc>number to be confirmed</Tbc>
           </span>
         )}
-        <span className={styles.note}>Usually the quickest way to reach us.</span>
+        {whatsapp ? <span className={styles.note}>Usually the quickest way to reach us.</span> : null}
       </span>
       {/* The route appears once: the code lives inside the card. Desktop
           only — on a phone the card opens the app, and a code you would scan
@@ -391,7 +392,23 @@ export function ContactView({
                     <p className={styles.heldBackText}>Our message form isn&rsquo;t available yet.</p>
                     {anyDirectRoute ? (
                       <p className={styles.heldBackText}>Please use one of the ways above to get in touch.</p>
-                    ) : null}
+                    ) : (
+                      // Nothing above works yet either: every "contact us" on
+                      // the site lands here, so it must not be a dead end. The
+                      // brand's social accounts are the route that does.
+                      <p className={styles.heldBackText}>
+                        In the meantime, you can reach us on{' '}
+                        {SOCIAL_LINKS.map(({ network, label, href }, index) => (
+                          <Fragment key={network}>
+                            {index === 0 ? '' : index === SOCIAL_LINKS.length - 1 ? ' or ' : ', '}
+                            <a href={href} target="_blank" rel="noopener noreferrer" className={styles.heldBackLink}>
+                              {label}
+                            </a>
+                          </Fragment>
+                        ))}
+                        .
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

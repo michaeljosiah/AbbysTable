@@ -614,6 +614,18 @@ a.method:focus-visible {
   color: var(--text-body);
 }
 
+.heldBackLink {
+  color: var(--text-heading);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.16s ease;
+}
+
+.heldBackLink:hover {
+  color: var(--action-primary-hover);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .arrow,
   .hoursChevron {
