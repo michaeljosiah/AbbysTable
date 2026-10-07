@@ -2,60 +2,56 @@
 
 import Link from 'next/link';
 
-import {
-  DISH_RETURN_STORAGE_KEY,
-  PORTION_PARAM,
-  createDishReturnRecord,
-  standardsHref,
-} from '@/lib/dish-return';
+import type { PersonalisationSelection } from '@/lib/aonik/map';
+import { createDishReturnRecord, standardsHref } from '@/lib/dish-return';
+import { saveDishReturn, stampDishEntry } from '@/lib/dish-return-storage';
 
 import styles from './StandardsLink.module.css';
 
 interface StandardsLinkProps {
   slug: string;
-  /** The portion to restore on return — omitted when it is the dish's default. */
-  portion?: string;
+  /**
+   * The customer's whole personalisation, canonically encoded (every group),
+   * or undefined when the dish is as Abby designed it.
+   */
+  selection?: PersonalisationSelection;
 }
 
 /**
  * "See our standards →" on a dish page: the dish end of the round trip in
  * `lib/dish-return.ts`.
  *
- * On click — before next/link navigates — it
- *  1. records this visit in the tab's sessionStorage, which is what lets Our
- *     Standards show "Back to dish" (a pasted link carries no record), and
- *  2. rewrites THIS history entry to carry the chosen portion, so a return to
- *     it by any route — "Back to dish", the browser's Back button, a reload —
- *     lands on the dish with that portion restored.
- * Neither step can block the navigation: storage failure just means no back
- * link on Our Standards.
+ * On click — before next/link navigates — it records this visit in the tab's
+ * sessionStorage: the dish, `history.length`, the scroll position, the whole
+ * selection and a one-off token, and stamps THIS history entry with the same
+ * token. The record is what lets Our Standards show "Back to dish" (a pasted
+ * link carries none) and what the dish page restores from; the stamp is how
+ * the dish page tells a return to this very entry from a fresh visit. The
+ * choice itself never goes in a URL. A storage failure just means no back
+ * link; it never blocks the navigation.
  *
- * Takes the portion as a prop so it does not care what renders the choice:
+ * Takes the selection as a prop so it does not care what renders the choice:
  * today the personaliser, after issue #22 the portion card.
  */
-export function StandardsLink({ slug, portion }: StandardsLinkProps) {
+export function StandardsLink({ slug, selection }: StandardsLinkProps) {
   const onClick = () => {
-    try {
-      window.sessionStorage.setItem(
-        DISH_RETURN_STORAGE_KEY,
-        JSON.stringify(createDishReturnRecord(slug, Date.now(), window.history.length)),
-      );
-    } catch {
-      // Storage blocked: Our Standards simply shows no back link.
-    }
-
-    const here = new URL(window.location.href);
-    if (portion) here.searchParams.set(PORTION_PARAM, portion);
-    else here.searchParams.delete(PORTION_PARAM);
-    if (here.href !== window.location.href) {
-      // Next.js syncs its router with a native replaceState (and keeps its
-      // own history state), so this is safe mid-navigation.
-      window.history.replaceState(null, '', here.href);
-    }
+    const now = Date.now();
+    const entry = now.toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+    saveDishReturn(
+      createDishReturnRecord({
+        slug,
+        now,
+        historyLength: window.history.length,
+        scrollY: window.scrollY,
+        entry,
+        selection,
+      }),
+    );
+    stampDishEntry(entry);
   };
 
   return (
-    <Link href={standardsHref(slug, portion)} className={styles.link} onClick={onClick}>
+    <Link href={standardsHref(slug)} className={styles.link} onClick={onClick}>
       <span className={styles.label}>
         See our standards
         <svg

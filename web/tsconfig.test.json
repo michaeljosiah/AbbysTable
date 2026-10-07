@@ -35,6 +35,7 @@
     "src/lib/cart/transport.ts",
     "src/lib/consent/consent.ts",
     "src/lib/dish-return.ts",
+    "src/lib/format.ts",
     "src/lib/standards/exampleDish.ts",
     "src/lib/status-pages/*.ts",
     "src/middleware.ts"

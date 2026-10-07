@@ -5,6 +5,7 @@ import { Fragment, type ReactNode } from 'react';
 
 import { BackToDish } from '@/components/standards/BackToDish';
 import { ExampleDishPanel } from '@/components/standards/ExampleDishPanel';
+import { JumpLink } from '@/components/standards/JumpLink';
 import { ProhibitionMark } from '@/components/standards/ProhibitionMark';
 import { getStandardsPageData } from '@/lib/aonik/client';
 import type { Dish } from '@/lib/aonik/types';
@@ -16,7 +17,8 @@ import {
   STANDARDS_HERO_IMAGE,
   type StandardBand,
 } from '@/lib/content/standards';
-import { readDishReturnParams, resolveDishReturn } from '@/lib/dish-return';
+import { readDishReturnSlug, resolveDishReturn } from '@/lib/dish-return';
+import { formatCountInWords } from '@/lib/format';
 
 import styles from './page.module.css';
 
@@ -156,15 +158,16 @@ export default async function StandardsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  const returnParams = readDishReturnParams(await searchParams);
+  const returnSlug = readDishReturnSlug(await searchParams);
 
-  const { exampleDish, minDishes, returnDish, returnGroups } = await getStandardsPageData({
+  // Each piece is optional and degrades on its own (see getStandardsPageData).
+  const { exampleDish, minDishes, returnDish } = await getStandardsPageData({
     exampleDishSlug: STANDARDS_EXAMPLE_DISH_SLUG,
-    returnSlug: returnParams?.slug,
+    returnSlug,
   });
 
   // Null unless the query names a dish the catalogue actually has.
-  const dishReturn = resolveDishReturn(returnParams, returnDish, returnGroups);
+  const dishReturn = resolveDishReturn(returnSlug, returnDish);
 
   const [firstBand, ...laterBands] = STANDARD_BANDS;
 
@@ -220,10 +223,11 @@ export default async function StandardsPage({
 
               {/* 54px hero CTA. Green-forest, not terracotta: a named
                   departure approved for this page only (design/CLAUDE.md,
-                  Standards page). An in-page jump, so a plain anchor. */}
-              <a href="#standards" className={`${styles.cta} ${styles.heroCta}`}>
+                  Standards page). An in-page jump that adds no history
+                  entry, as the design's goStandards does. */}
+              <JumpLink targetId="standards" className={`${styles.cta} ${styles.heroCta}`}>
                 See what goes in
-              </a>
+              </JumpLink>
             </div>
           </div>
         </div>
@@ -302,8 +306,12 @@ export default async function StandardsPage({
             Ready to fill your box?
           </h2>
           <p className={styles.closingLede}>
-            Choose at least {minDishes} dishes, personalise where available, and pick your delivery
-            date.
+            {/* The minimum is data (in words, as the design sets it); without
+                it the line names no number rather than guessing one. */}
+            {minDishes !== null
+              ? `Choose at least ${formatCountInWords(minDishes)} dishes`
+              : 'Choose your dishes'}
+            , personalise where available, and pick your delivery date.
           </p>
           <div className={styles.closingActions}>
             <Link href={BUILD_A_BOX_HREF} className={`${styles.cta} ${styles.closingCta}`}>

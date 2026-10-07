@@ -17,7 +17,6 @@ import {
   type PersonalisationDraft,
 } from '@/lib/aonik/personalisation';
 import { HEAT_LABELS, type Dish } from '@/lib/aonik/types';
-import { PORTION_GROUP_KEY, returnedPortion } from '@/lib/dish-return';
 import { formatPrice, formatSignedPrice } from '@/lib/format';
 
 import styles from './DishPersonaliser.module.css';
@@ -69,32 +68,45 @@ function DishReadout({
 interface DishPersonaliserProps {
   dish: Dish;
   optionGroups: MappedOptionGroup[];
-  /** Choice keys are emitted in Aonik's canonical One/Multi shape. */
+  /**
+   * Choice keys are emitted in Aonik's canonical One/Multi shape.
+   * `complete` is the WHOLE selection (every group, defaults included) while
+   * personalising — what the Our Standards round trip carries and restores.
+   */
   onChange?: (selection: {
     personalisation?: PersonalisationSelection;
+    complete?: PersonalisationSelection;
     surchargePence: number | undefined;
   }) => void;
+  /**
+   * A selection to restore on a genuine return from Our Standards
+   * (`useDishReturn`) — always a whole, validated selection, never a part.
+   */
+  restoredSelection?: PersonalisationDraft | null;
 }
 
-export function DishPersonaliser({ dish, optionGroups, onChange }: DishPersonaliserProps) {
+export function DishPersonaliser({
+  dish,
+  optionGroups,
+  onChange,
+  restoredSelection,
+}: DishPersonaliserProps) {
   const initial = useMemo(() => selectionDraft(optionGroups), [optionGroups]);
   const [enabled, setEnabled] = useState(false);
   const [selection, setSelection] = useState<PersonalisationDraft>(initial);
   const [sheetOpen, setSheetOpen] = useState(false);
 
   /*
-   * Back from Our Standards: "See our standards" wrote the chosen portion into
-   * this page's own URL before leaving (`lib/dish-return.ts`), so whichever
-   * way the customer returns to that history entry, the portion is restored
-   * here — before paint on a client-side return. A fresh visit has no
-   * `?portion` and starts as Abby designed it.
+   * Back from Our Standards (`lib/dish-return.ts`): the customer's whole
+   * selection, restored as they left it — before paint on a client-side
+   * return. A fresh visit is never handed one, and starts as Abby designed it.
    */
   useLayoutEffect(() => {
-    const portion = returnedPortion(window.location.search, optionGroups);
-    if (!portion) return;
+    if (!restoredSelection) return;
     setEnabled(true);
-    setSelection((current) => ({ ...current, [PORTION_GROUP_KEY]: [portion] }));
-  }, [optionGroups]);
+    setSelection(restoredSelection);
+    setSheetOpen(false);
+  }, [restoredSelection]);
 
   const surchargePence = useMemo(
     () => (enabled ? localSurcharge(optionGroups, selection) : 0),
@@ -109,6 +121,7 @@ export function DishPersonaliser({ dish, optionGroups, onChange }: DishPersonali
     }
     onChange({
       personalisation: encodeSelection(optionGroups, selection, true),
+      complete: encodeSelection(optionGroups, selection, false),
       surchargePence,
     });
   }, [onChange, enabled, optionGroups, selection, surchargePence]);

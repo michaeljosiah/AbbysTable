@@ -2,15 +2,10 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useLayoutEffect, useRef, useState, type MouseEvent } from 'react';
+import { useLayoutEffect, useState, type MouseEvent } from 'react';
 
-import {
-  DISH_RETURN_STORAGE_KEY,
-  dishReturnGateScript,
-  readDishReturnRecord,
-  returnsByHistory,
-  type DishReturnRecord,
-} from '@/lib/dish-return';
+import { dishReturnGateScript, markReturning, returnsByHistory } from '@/lib/dish-return';
+import { loadDishReturn, saveDishReturn } from '@/lib/dish-return-storage';
 
 import styles from './BackToDish.module.css';
 
@@ -19,48 +14,33 @@ const GATE_ID = 'standards-back-to-dish';
 interface BackToDishProps {
   /** Validated against the catalogue by the page — never a raw query value. */
   slug: string;
-  /** The real dish URL, carrying the portion to restore. */
+  /** The real dish URL. */
   href: string;
-}
-
-function readRecord(slug: string): DishReturnRecord | null {
-  try {
-    return readDishReturnRecord(
-      window.sessionStorage.getItem(DISH_RETURN_STORAGE_KEY),
-      slug,
-      Date.now(),
-    );
-  } catch {
-    // Storage blocked or unavailable: no record, so no link. Never an error.
-    return null;
-  }
 }
 
 /**
  * "Back to dish" at the top of Our Standards' hero. The mechanism, end to end,
  * is documented in `lib/dish-return.ts`; this is the Standards end of it.
  *
- * The page renders this only for a dish the catalogue actually has. What is
- * left to check is the second signal — a live record for that dish in THIS
- * tab — and that needs the browser:
- *  - on a full page load the inline gate script, which runs as the element is
- *    parsed, hides it before first paint when there is no record (a pasted
- *    link). `suppressHydrationWarning` is there because the script may have
- *    set `hidden` before React hydrates; it covers this element's own
- *    attributes and nothing inside it;
- *  - on a client-side navigation React never runs inline scripts, so the
+ * The page renders this only for a dish the catalogue actually has, and the
+ * server renders it HIDDEN: the second signal — a live record for that dish in
+ * THIS tab — exists only in the browser, so only the browser may reveal it.
+ *  - On a full page load the inline gate script, which runs as the element is
+ *    parsed, reveals it before first paint. `suppressHydrationWarning` is
+ *    there because the script may have cleared `hidden` before React
+ *    hydrates; it covers this element's own attributes and nothing inside it.
+ *  - On a client-side navigation React never runs inline scripts, so the
  *    layout effect makes the same check, still before paint.
- * Either way the bar is there from the first frame or never — no layout shift.
+ * With JavaScript off it never shows. Either way it is there from the first
+ * frame or never — no layout shift.
  */
 export function BackToDish({ slug, href }: BackToDishProps) {
   const router = useRouter();
-  // Starts true to match the server's markup; the gate may already have hidden it.
-  const [genuine, setGenuine] = useState(true);
-  const record = useRef<DishReturnRecord | null>(null);
+  // Matches the server's markup; the gate may already have revealed it.
+  const [genuine, setGenuine] = useState(false);
 
   useLayoutEffect(() => {
-    record.current = readRecord(slug);
-    setGenuine(record.current !== null);
+    setGenuine(loadDishReturn(slug) !== null);
   }, [slug]);
 
   const onClick = (event: MouseEvent<HTMLAnchorElement>) => {
@@ -77,14 +57,22 @@ export function BackToDish({ slug, href }: BackToDishProps) {
     }
     event.preventDefault();
 
+    const record = loadDishReturn(slug);
+    if (!record) {
+      // The record lapsed while the page was open: an ordinary visit.
+      router.replace(href);
+      return;
+    }
+    saveDishReturn(markReturning(record));
+
     // A TRUE return: back when the entry behind is the dish, otherwise replace
     // this entry — never a forward push, so Back from the dish never bounces
-    // into Our Standards again.
-    const current = record.current ?? readRecord(slug);
-    if (current && returnsByHistory(current, window.history.length)) {
+    // into Our Standards again. On replace the dish page puts the scroll
+    // position back itself, from the record.
+    if (returnsByHistory(record, window.history.length)) {
       router.back();
     } else {
-      router.replace(href);
+      router.replace(href, { scroll: false });
     }
   };
 

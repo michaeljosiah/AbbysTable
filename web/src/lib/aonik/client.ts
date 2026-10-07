@@ -601,36 +601,57 @@ export async function getDishPageData(slug: string) {
 }
 
 /**
+ * One OPTIONAL read for an editorial page: on any failure it logs and resolves
+ * to `fallback`, so a hiccup in one piece leaves that piece out instead of
+ * turning the whole page into a 500.
+ */
+async function optionalRead<T>(label: string, read: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await read();
+  } catch (error) {
+    console.error(`[aonik] ${label} could not be read; rendering without it.`, error);
+    return fallback;
+  }
+}
+
+/**
  * Resolves everything Our Standards renders in one concurrent pass.
  *
+ * The page is editorial: every commerce piece on it is optional, and each one
+ * degrades on its own rather than taking the page down.
  *  - `exampleDish`: the dish band 05 prints as "Example dish information" —
- *    null when the catalogue has no such dish, and the panel is then omitted.
- *  - `minDishes`: the box minimum the closing CTA's copy states.
- *  - `returnDish` / `returnGroups`: only when the page was opened from a dish
+ *    null when the catalogue has no such dish or it could not be read, and the
+ *    panel is then omitted.
+ *  - `minDishes`: the box minimum the closing CTA's copy states — null when
+ *    the box plan could not be read, and the copy then names no number.
+ *  - `returnDish`: only when the page was opened from a dish
  *    (`?from=dish&dish=<slug>`), so "Back to dish" is validated against the
- *    real catalogue and its portion against the dish's own option groups. A
- *    slug with no dish behind it resolves to null and the page shows no link.
+ *    real catalogue. No dish behind the slug (or no answer) means no link.
  */
 export async function getStandardsPageData(options: {
   exampleDishSlug: string;
-  returnSlug?: string;
+  returnSlug?: string | null;
 }): Promise<{
   exampleDish: Dish | null;
-  minDishes: number;
+  minDishes: number | null;
   returnDish: Dish | null;
-  returnGroups: MappedOptionGroup[];
 }> {
   const client = await getAonikClient();
-  const { returnSlug } = options;
+  const { exampleDishSlug, returnSlug } = options;
 
-  const [exampleDish, pricing, returnDish, returnGroups] = await Promise.all([
-    client.getDishBySlug(options.exampleDishSlug),
-    client.getBoxPricing(),
-    returnSlug ? client.getDishBySlug(returnSlug) : Promise.resolve(null),
-    returnSlug ? client.getDishOptionGroups(returnSlug) : Promise.resolve([]),
+  const [exampleDish, minDishes, returnDish] = await Promise.all([
+    optionalRead('the Our Standards example dish', () => client.getDishBySlug(exampleDishSlug), null),
+    optionalRead(
+      'the box minimum',
+      async () => (await client.getBoxPricing()).custom.minDishes,
+      null as number | null,
+    ),
+    returnSlug
+      ? optionalRead('the dish behind "Back to dish"', () => client.getDishBySlug(returnSlug), null)
+      : Promise.resolve(null),
   ]);
 
-  return { exampleDish, minDishes: pricing.custom.minDishes, returnDish, returnGroups };
+  return { exampleDish, minDishes, returnDish };
 }
 
 /**

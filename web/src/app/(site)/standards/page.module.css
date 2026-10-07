@@ -221,6 +221,8 @@
   text-align: left;
 }
 
+/* The anchor carries the heading ink itself, so it is never link-blue and
+   its focus ring (currentColor) is green-forest. */
 .indexItem {
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr) auto;
@@ -228,6 +230,7 @@
   column-gap: 14px;
   min-height: 56px;
   padding: 10px 0;
+  color: var(--text-heading);
   text-decoration: none;
 }
 
