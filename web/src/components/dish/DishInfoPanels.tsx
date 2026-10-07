@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, type CSSProperties, type ReactNode } from 'react';
 
 import type { Dish, HeatingInstruction } from '@/lib/aonik/types';
+import { CONTACT_HREF } from '@/lib/content/navigation';
 
 import styles from './DishInfoPanels.module.css';
 
@@ -248,13 +249,15 @@ export function DishInfoPanels({ dish, heating, compact, onBackToTop }: DishInfo
             </span>
           </div>
         ) : (
-          /* Never guess allergens. Absent data is stated plainly and routed to a human. */
+          /* Never guess allergens. Absent data is stated plainly and routed to a
+             human: "please contact us" means ask a person (Contact), not the
+             general Allergens page, which says nothing about this dish. */
           <div className={styles.allergens} role="note">
             <AllergenIcon />
             <span>
               <strong>Allergen information is not yet published for this dish.</strong> If you have
               an allergy or intolerance, please{' '}
-              <Link href="/#contact" className={styles.allergensLink}>
+              <Link href={CONTACT_HREF} className={styles.allergensLink}>
                 contact us
               </Link>{' '}
               before ordering.

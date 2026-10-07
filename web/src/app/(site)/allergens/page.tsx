@@ -1,6 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+// Contact us (#24) and Delivery & FAQs (#23) are not built yet; their links
+// follow the pages here when they land. "Browse our FAQs" is Delivery & FAQs,
+// as in the design; both "contact us" links are Contact.
+import { CONTACT_HREF, DELIVERY_FAQS_HREF, MENU_ITEM } from '@/lib/content/navigation';
+
 import styles from './page.module.css';
 
 /*
@@ -55,16 +60,6 @@ const REGULATED_ALLERGENS = [
   'Soya',
   'Sulphur dioxide and sulphites',
 ] as const;
-
-/*
- * Destinations. Contact us and Delivery & FAQs are designed but not built yet,
- * so they take the site's placeholder (`/#contact`, the footer) rather than a
- * route that would 404 — the same convention as `lib/content/navigation.ts`.
- * Swap these when the pages land.
- */
-const CONTACT_HREF = '/#contact';
-const FAQS_HREF = '/#contact';
-const MENU_HREF = '/menu';
 
 export default function AllergensPage() {
   return (
@@ -216,7 +211,7 @@ export default function AllergensPage() {
                 <li className={styles.linkCard}>
                   <p className={styles.linkTitle}>Allergen information by dish</p>
                   <p className={styles.linkText}>Check allergens for each dish on our menu.</p>
-                  <Link href={MENU_HREF} className={styles.textLink}>
+                  <Link href={MENU_ITEM.href} className={styles.textLink}>
                     <span className={styles.textLinkLabel}>View the menu</span>
                     <span className={styles.arrow} aria-hidden="true">
                       →
@@ -228,7 +223,7 @@ export default function AllergensPage() {
                   <p className={styles.linkText}>
                     Find answers to common questions about allergens, ingredients and more.
                   </p>
-                  <Link href={FAQS_HREF} className={styles.textLink}>
+                  <Link href={DELIVERY_FAQS_HREF} className={styles.textLink}>
                     <span className={styles.textLinkLabel}>
                       Browse our FAQ<span className={styles.lowercase}>s</span>
                     </span>

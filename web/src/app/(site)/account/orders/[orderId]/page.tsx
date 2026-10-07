@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { formatOrderDate, getMyOrder } from '@/lib/aonik/orders';
 import { SessionExpiredError } from '@/lib/auth/server';
 import { readSessionView } from '@/lib/auth/session';
+import { CONTACT_HREF } from '@/lib/content/navigation';
 import { formatPrice, formatPriceExact } from '@/lib/format';
 
 import styles from './page.module.css';
@@ -199,7 +200,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
             <Link href="/menu" className={styles.primary}>
               Order it again
             </Link>
-            <Link href="/#contact" className={styles.secondary}>
+            <Link href={CONTACT_HREF} className={styles.secondary}>
               Questions about this order?
             </Link>
           </div>

@@ -1,0 +1,70 @@
+/* "← Back to checkout" — design/Abby's Table - Terms of Sale.dc.html and
+   Privacy Policy.dc.html, `.at-ck-back-row` / `.at-ck-back` / `.at-ck-back-msg`.
+   Centred with the page head it sits above; pulled 6px up into the section's
+   top padding, 14px clear of the h1. */
+
+.row {
+  margin: -6px 0 14px;
+  text-align: center;
+}
+
+/* The UA's [hidden] rule, restated so nothing here can outrank it. */
+.row[hidden] {
+  display: none;
+}
+
+/* A link in look — 16px/600 green-forest, brass underline — but a button in
+   kind: it never navigates (FR-22). 44px target at every width. */
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 16px;
+  color: var(--text-heading);
+  text-decoration: underline;
+  text-decoration-color: var(--rule-brass);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  transition:
+    color 0.16s ease,
+    text-decoration-color 0.16s ease;
+}
+
+@media (hover: hover) {
+  .back:hover {
+    color: var(--action-primary-hover);
+    text-decoration-color: var(--action-primary-hover);
+  }
+}
+
+/* Empty, it takes no height — and it is never `display: none`, which would
+   take the live region out of the accessibility tree, so the message could
+   arrive unannounced. */
+.note {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text-body);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .back {
+    transition: none;
+  }
+}
+
+/* A printed document has no checkout to go back to. */
+@media print {
+  .row {
+    display: none !important;
+  }
+}

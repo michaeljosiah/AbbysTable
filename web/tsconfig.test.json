@@ -26,6 +26,8 @@
     "tests/purchase-bar.test.tsx",
     "tests/legal-documents.test.ts",
     "tests/legal-pages.test.tsx",
+    "tests/information-links.test.ts",
+    "tests/checkout-legal-return.test.tsx",
     "tests/homepage.test.tsx",
     "tests/support/*.ts",
     "src/components/personalisation/OptionGroupsControl.tsx",

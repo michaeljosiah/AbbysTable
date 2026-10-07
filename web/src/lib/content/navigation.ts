@@ -69,16 +69,29 @@ export const GIFTING_ITEM: NavItem = { label: 'Gifting', href: '/gifting' };
 export const PRIVATE_TABLE_ITEM: NavItem = { label: 'Private Table', href: '/#private' };
 
 /**
- * Contact us. The Contact page (#24) is designed but not built yet, so this is
- * the site's placeholder (the footer, `id="contact"`) rather than a route that
- * would 404 — swap it when the page lands (#8 repoints the rest).
+ * Contact us (#24, `/contact`). Designed but not built, so it resolves to the
+ * site footer (which carries `id="contact"` while anything points here) rather
+ * than to a route that would 404. EVERY "contact us" in the site reads this —
+ * the chrome, checkout's help line, Log in's "Forgotten it?", the confirmation
+ * and order pages, the dish allergen fallback, the Allergens page and the legal
+ * documents — and it is the ONLY `/#contact` in `web/src` (FR-21, pinned by
+ * `tests/information-links.test.ts`). When the page lands, this one line
+ * becomes `'/contact'`, they all follow, and the footer's id can go.
  */
-export const CONTACT_HREF = '/#contact';
+export const CONTACT_HREF: string = '/#contact';
 
+/**
+ * Delivery & FAQs (#23, `/delivery-and-faqs`). Not built either, so it takes
+ * Contact's destination, whatever that is — the footer now, `/contact` if that
+ * page lands first (FR-21). When its own page lands, this one line becomes
+ * `'/delivery-and-faqs'`.
+ */
+export const DELIVERY_FAQS_HREF: string = CONTACT_HREF;
+
+/** "Contact us" in sentence case, as every v2 footer sets it — checkout's too. */
 export const CONTACT_ITEM: NavItem = { label: 'Contact us', href: CONTACT_HREF };
 
-/** Delivery & FAQs (#23) — not built yet; the same interim as Contact. */
-export const DELIVERY_FAQS_ITEM: NavItem = { label: 'Delivery & FAQs', href: CONTACT_HREF };
+export const DELIVERY_FAQS_ITEM: NavItem = { label: 'Delivery & FAQs', href: DELIVERY_FAQS_HREF };
 
 /** The box builder, Choose Box (step 1). */
 export const BOX_HREF = BOX_BUILDER_PATH;
@@ -123,6 +136,20 @@ export const NAV_ITEMS: NavItem[] = [
 ];
 
 /* ---- Footer ------------------------------------------------------------------- */
+
+/**
+ * The checkout footer (Choose Box v2 to Checkout v2), in the design's order.
+ * These open in the SAME tab and carry no `?from=checkout`: only checkout's own
+ * legal line opens the legal pages in a new tab with a way back (FR-22;
+ * design/CLAUDE.md, "Legal line").
+ */
+export const CHECKOUT_FOOTER_LINKS: NavItem[] = [
+  DELIVERY_FAQS_ITEM,
+  ALLERGENS_ITEM,
+  CONTACT_ITEM,
+  PRIVACY_ITEM,
+  TERMS_ITEM,
+];
 
 /**
  * The simplified footer on the 500 page — help and legal only, by design

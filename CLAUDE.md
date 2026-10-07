@@ -37,7 +37,8 @@ Conventions inside `web/` that are easy to get wrong:
   reduced motion), the `/menu` browser (`MenuBrowser`, `MenuToolbar`, `MenuGrid`,
   `FilterChip`, `FilterPill`), the `/how-it-works` size picker (`BoxSizePicker`, with
   `BoxSizeProvider`/`BoxSizeLink` sharing the choice with the page's purchase links), the legal
-  pages' `LegalNavigation` (index, sheet, Sections/Top pair, scroll-spy), the mobile purchase bar
+  pages' `LegalNavigation` (index, sheet, Sections/Top pair, scroll-spy) and `CheckoutReturn`
+  ("← Back to checkout"), the mobile purchase bar
   (`PurchaseBarShell`, `MobilePurchaseBar`, `DishPurchaseBar`) and the dish page's
   `DishOrderProvider` — each for a specific piece of state — plus `app/error.tsx` and
   `app/global-error.tsx`, which Next requires to be client components. Data is fetched once in
@@ -72,7 +73,10 @@ Conventions inside `web/` that are easy to get wrong:
   earliest delivery date. Every chrome destination is defined ONCE in `src/lib/content/navigation.ts`;
   a page that is designed but not built never gets a link that 404s or a dead anchor. Gifting stays
   out of the header, drawer and footer until `/gifting` lands (`GIFTING_LIVE`, #26); Private Table
-  is `/#private` until #25; Contact and Delivery & FAQs are `CONTACT_HREF` (the footer) until #24/#23.
+  is `/#private` until #25; Contact is `CONTACT_HREF` (the footer, `/#contact` — its only literal in
+  `src`, pinned by `tests/information-links.test.ts`) until #24, and Delivery & FAQs is
+  `DELIVERY_FAQS_HREF` (Contact's destination) until #23. Every in-page "contact us" reads those
+  constants too — never write `/#contact`, `/contact` or `/delivery-and-faqs` in a page.
   What the chrome says (current page, Log in / My Account, GET STARTED / VIEW BOX) and when the
   header hides are React-free in `src/lib/site-header/` (`tests/site-header.test.ts`). The header
   hides on a downward scroll below 1024 on every page; from 1024 only on the routes in
@@ -90,6 +94,15 @@ Conventions inside `web/` that are easy to get wrong:
   site chrome is a `<style media="print">` rendered by `LegalDocument`, so it exists only on these
   two pages. Privacy's "Cookie preferences" button relies on `html[data-consent-ready]`, which the
   consent manager sets once its trigger listener is bound.
+  **From checkout (#8, FR-22):** "← Back to checkout" (`CheckoutReturn`) shows above the h1 only
+  while the URL carries `?from=checkout` — server-rendered HIDDEN, revealed by an inline gate
+  script (JS off: never shown). It is a button, never a link: it may `focus()` a same-origin opener
+  still under `/box`, never depends on one, never closes the tab and never navigates, so it cannot
+  open a second checkout; otherwise it says checkout is still open in the previous tab. The marker
+  is not part of the document's address (`documentQuery` in `src/lib/legal/checkoutReturn.ts`), so
+  the legal pages' URL writes and same-document links keep it. Only checkout's legal line (Checkout
+  v2, #31 — use `checkoutLegalHref` and `CHECKOUT_LEGAL_LINK`) opens them in a new tab; checkout's
+  footer links stay same-tab with no marker.
 - **Menu faceting lives in `src/lib/menu/filters.ts`**, deliberately free of React. Change matching
   rules there, not in components.
 - **Dish → Our Standards → dish (#17)** is specified in `src/lib/dish-return.ts`, also React-free.

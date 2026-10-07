@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 
 import type { LegalDocument as LegalDocumentData } from '@/lib/legal/document';
 
+import { CheckoutReturn } from './CheckoutReturn';
 import { LEGAL_TOP_ID } from './ids';
 import styles from './LegalDocument.module.css';
 import { LegalFloat, LegalIndex, LegalNavigation } from './LegalNavigation';
@@ -13,8 +14,9 @@ import { LegalFloat, LegalIndex, LegalNavigation } from './LegalNavigation';
  * page, so browser Find, printing, indexing, deep links and a page without
  * JavaScript all work — with a grouped index that is navigation over it
  * (design/CLAUDE.md, "Long documents"). The navigation is the only client
- * code: `LegalNavigation` wraps the document and owns the index, the phone's
- * bottom sheet and floating Sections / Top pair, the scroll-spy and the URL.
+ * code besides "← Back to checkout" (`CheckoutReturn`, FR-22):
+ * `LegalNavigation` wraps the document and owns the index, the phone's bottom
+ * sheet and floating Sections / Top pair, the scroll-spy and the URL.
  *
  * An information page: no hero, no purchase bar, and NOT opted into the
  * desktop header auto-hide (design/CLAUDE.md, "Desktop marketing header").
@@ -62,6 +64,8 @@ export function LegalDocument<Slug extends string>({
       <style media="print">{PRINT_CHROME}</style>
       <section className={styles.section}>
         <div className={styles.inner}>
+          {/* Shown only in a tab checkout's legal line opened (FR-22). */}
+          <CheckoutReturn />
           <h1 id={LEGAL_TOP_ID} className={styles.title} tabIndex={-1}>
             {title}
           </h1>
