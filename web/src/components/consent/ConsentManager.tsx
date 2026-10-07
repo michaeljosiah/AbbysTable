@@ -166,6 +166,17 @@ function ConsentLayer() {
     };
   }, [openPanel]);
 
+  // Announce readiness on <html>. A trigger with no fallback destination —
+  // Privacy section 7's "Cookie preferences" button — stays hidden until a
+  // click on it can really open the panel. Cleared if the manager unmounts
+  // (or its boundary catches a failure), so the button never outlives it.
+  useEffect(() => {
+    if (!ready) return;
+    const root = document.documentElement;
+    root.setAttribute('data-consent-ready', '');
+    return () => root.removeAttribute('data-consent-ready');
+  }, [ready]);
+
   // ARIA follows behaviour: a trigger is announced as opening a dialog only
   // once one genuinely opens. Re-applied per route, since each route group
   // renders its own footer.

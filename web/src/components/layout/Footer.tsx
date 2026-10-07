@@ -30,8 +30,8 @@ const COPYRIGHT_YEAR = 2026;
  * really subscribe.
  *
  * Wiring it means passing that server action from the site layout (contract in
- * `@/lib/newsletter`). Before then, the consent line's Privacy Policy link
- * (`PRIVACY_ITEM`) needs a real policy page to point at.
+ * `@/lib/newsletter`). The consent line's Privacy Policy link (`PRIVACY_ITEM`)
+ * already points at the real policy page.
  */
 export function Footer({ subscribeAction }: { subscribeAction?: NewsletterSignupAction }) {
   const [openColumns, setOpenColumns] = useState<Record<string, boolean>>({});

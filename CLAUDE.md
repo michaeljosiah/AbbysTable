@@ -34,7 +34,8 @@ Conventions inside `web/` that are easy to get wrong:
   "not yet published" notice — do not fill the gap with plausible-looking data.
 - **Server Components by default.** Client components are `Header`, `MobileDrawer`, `Footer`, the
   homepage `Menu` rail, and the `/menu` browser (`MenuBrowser`, `MenuToolbar`, `MenuGrid`,
-  `FilterChip`, `FilterPill`) — each for a specific piece of state — plus `app/error.tsx` and
+  `FilterChip`, `FilterPill`), and the legal pages' `LegalNavigation` (index, sheet, Sections/Top
+  pair, scroll-spy) — each for a specific piece of state — plus `app/error.tsx` and
   `app/global-error.tsx`, which Next requires to be client components. Data is fetched once in
   `app/layout.tsx` / the route's `page.tsx` and passed down; sections never fetch for themselves.
 - **Status pages (#13).** Unmatched URLs get the root `app/not-found.tsx`, which renders
@@ -50,6 +51,15 @@ Conventions inside `web/` that are easy to get wrong:
   `MAINTENANCE_MODE=true` makes `src/middleware.ts` answer every page and API request with that
   page, 503 and `Retry-After`; static files under the matcher's exclusions still load. Nothing
   serves `500.html` on an outage yet — that needs a CDN rule.
+- **Legal pages (#20): `/terms-of-sale` and `/privacy`.** Section slugs are a PUBLIC CONTRACT
+  (`src/lib/legal/terms.ts`, `privacy.ts`; pinned by `tests/legal-documents.test.ts`) — never
+  rename one; `#cookies` is committed. Legacy `#sN`/`#N` resolve to slugs. Clause copy is verbatim
+  from the design and awaits legal review (#38): do not reword it. Company details render from
+  `src/lib/content/company.ts` (all `null`, shown as "to be confirmed") — never copy the designs'
+  placeholder name, number, address, phone or email into it. The print stylesheet that drops the
+  site chrome is a `<style media="print">` rendered by `LegalDocument`, so it exists only on these
+  two pages. Privacy's "Cookie preferences" button relies on `html[data-consent-ready]`, which the
+  consent manager sets once its trigger listener is bound.
 - **Menu faceting lives in `src/lib/menu/filters.ts`**, deliberately free of React. Change matching
   rules there, not in components.
 - **Internal links go through `next/link`.** `Button` and `NavLink` route on `href` automatically
