@@ -1,0 +1,1092 @@
+/* ===========================================================================
+   Long legal documents — Terms of Sale and the Privacy Policy.
+   design/Abby's Table - Terms of Sale.dc.html and Privacy Policy.dc.html
+   (the `.at-t-*` and `.at-p-*` rules); design/CLAUDE.md, "Long documents".
+   ---------------------------------------------------------------------------
+   Mobile-first: the rules with no media query ARE the phone design; 640 and
+   1024 are min-width only. One DOM order at every width — the index is FIRST
+   in the DOM and sits above the document on a phone and beside it from 1024
+   purely because the grid gains a column. Nothing is moved with `order`.
+
+   One nav element, three presentations: collapsed under "Jump to a section"
+   on a phone, a fixed bottom sheet when opened from the floating Sections
+   control, and a sticky column from 1024. Never a second copy.
+   =========================================================================== */
+
+/* The deep-link offset: clears the sticky header (65px phone, 85px desktop)
+   with room to spare, and is what the sticky index sits under on desktop.
+   Native fragment jumps, Next's scroll-to-hash and the index's own scroll all
+   read it through `scroll-margin-top`, so there is one value. */
+.root {
+  --legal-anchor-offset: 96px;
+  /* Link ink inside the document. Terms of Sale sets its in-copy links in
+     brass-ink (4.96:1 on cream); the Privacy Policy and the registered-details
+     panel use green-forest. */
+  --legal-link: var(--text-heading);
+}
+
+.root[data-link-tone='brass'] {
+  --legal-link: var(--brass-ink);
+}
+
+/* ---- Page shell ----------------------------------------------------------- */
+
+.section {
+  padding: 34px 0 48px;
+}
+
+/* Inner shell: 1280 cap, gutter 22 → 34 → 48, border-box as in the design. */
+.inner {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 22px;
+}
+
+/* The page head is centred as one unit; the document below stays left-aligned
+   — a run of centred legal copy would be hard to read. */
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: clamp(38px, 11.6vw, 56px);
+  line-height: 1.06;
+  letter-spacing: -0.015em;
+  color: var(--text-heading);
+  text-align: center;
+  scroll-margin-top: var(--legal-anchor-offset);
+}
+
+/* Page lede: 18px at every width — it never bumps up on desktop. */
+.lede {
+  margin: 12px auto 0;
+  max-width: 620px;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--text-body);
+  text-align: center;
+  text-wrap: pretty;
+}
+
+.statement {
+  margin: 14px auto 0;
+  max-width: 620px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-body);
+  text-align: center;
+}
+
+.statement strong {
+  font-weight: var(--weight-semibold);
+  color: var(--text-heading);
+}
+
+/* 14px: the floor for customer-facing legal notes. */
+.updated {
+  margin: 16px 0 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-body);
+  text-align: center;
+}
+
+.grid {
+  display: grid;
+  gap: 26px;
+  margin-top: 30px;
+}
+
+/* ---- The index ------------------------------------------------------------- */
+
+.navhead {
+  background: var(--surface-raised);
+  border: var(--border-hairline) solid var(--border-light);
+  border-radius: 14px;
+}
+
+.eyebrow {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--brass-ink);
+}
+
+.navhead .eyebrow {
+  padding: 14px 16px 0;
+}
+
+.jumpToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 4px 16px 14px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 20px;
+  line-height: 1.2;
+  color: var(--text-heading);
+  transition: color 0.16s ease;
+}
+
+/* A thin brass-ink chevron: right when closed, down when open. */
+.chevron {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-right: 1.8px solid var(--brass-ink);
+  border-bottom: 1.8px solid var(--brass-ink);
+  transform: rotate(-45deg);
+  transition: transform 0.18s ease;
+}
+
+.jumpToggle .chevron {
+  width: 10px;
+  height: 10px;
+}
+
+[aria-expanded='true'] > .chevron {
+  transform: rotate(45deg);
+}
+
+/* The frame that positions the index: in the page on a phone (no rules), the
+   sheet, and the sticky column from 1024. The nav inside is the visible box. */
+.indexPanel[data-sheet] {
+  /* The sheet: fixed to the foot of the screen, over a scrim. Above the cookie
+     banner (70) like every sheet the customer opens (ConsentManager.module.css,
+     "Stacking"). */
+  position: fixed;
+  z-index: 100;
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  max-height: 72vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: 14px;
+  box-shadow: 0 -6px 28px color-mix(in srgb, var(--green-forest) 18%, transparent);
+}
+
+.nav {
+  display: none;
+  background: var(--surface-raised);
+  border: var(--border-hairline) solid var(--border-light);
+  border-radius: 14px;
+  padding: 12px 8px;
+}
+
+.nav[data-open] {
+  display: block;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  padding: 0;
+  border: none;
+  background: color-mix(in srgb, var(--green-deep) 38%, transparent);
+  cursor: pointer;
+}
+
+/* The desktop index carries its own heading; the phone's sits on the toggle. */
+.navTitle {
+  display: none;
+  margin: 0 0 6px;
+  padding: 2px 12px 14px;
+  border-bottom: var(--border-hairline) solid var(--border-light);
+}
+
+/* Terms divides its index groups with a hairline; Privacy's design does not. */
+[data-group-rules] .group + .group {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: var(--border-hairline) solid var(--border-light);
+}
+
+/* Group row = disclosure. It never moves the page, the active section or the URL. */
+.groupToggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 6px 10px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 16px;
+  line-height: 1.3;
+  color: var(--text-heading);
+  transition: color 0.16s ease;
+}
+
+/* The row before hydration and without JavaScript: a label, not a control. */
+div.groupToggle {
+  cursor: default;
+}
+
+.groupLabel {
+  flex: 1 1 auto;
+}
+
+.groupRange {
+  flex: 0 0 auto;
+  font-size: 14px;
+  font-weight: var(--weight-regular);
+  color: var(--text-muted);
+}
+
+.groupList {
+  display: none;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.group[data-open] .groupList {
+  display: block;
+}
+
+/* Numbered row = navigation. The colour lives here, not inline, so the hover
+   and the current-row rules below can reach it. */
+.jump {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  min-height: 44px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.35;
+  color: var(--text-body);
+  text-decoration: none;
+  transition: color 0.16s ease;
+}
+
+.jumpNumber {
+  flex: 0 0 auto;
+  min-width: 20px;
+  color: var(--text-muted);
+}
+
+/* Any aria-current value: the scroll-spy writes "location". */
+.jump[aria-current] {
+  background: var(--surface-card);
+  color: var(--text-heading);
+  font-weight: var(--weight-semibold);
+}
+
+/* After the current-row rule, so the current row still answers a hover. */
+.jump:hover,
+.groupToggle:hover,
+.jumpToggle:hover {
+  color: var(--action-primary-hover);
+}
+
+/* ---- The document ---------------------------------------------------------- */
+
+.docGroup + .docGroup {
+  margin-top: 34px;
+}
+
+.docGroup.closing {
+  /* Not one of the numbered groups — it is about the document, so it sits
+     further out. */
+  margin-top: 44px;
+}
+
+.groupTitle {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 16px;
+  line-height: 1.3;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--brass-ink);
+}
+
+.docSection {
+  padding-top: 30px;
+  scroll-margin-top: var(--legal-anchor-offset);
+}
+
+.groupTitle + .docSection {
+  padding-top: 12px;
+}
+
+/* Heading outline: page h1 → group h2 → section h3, matching the index.
+   22px → 26px, the card/panel tier: a repeated titled block, not a page section. */
+.heading {
+  display: flex;
+  gap: 12px;
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 22px;
+  line-height: 1.2;
+  letter-spacing: -0.005em;
+  color: var(--text-heading);
+  text-wrap: pretty;
+}
+
+/* Focus lands on a heading only so keyboard and screen-reader users arrive
+   where sighted readers do — it is not a control, so it shows no ring. */
+.heading:focus,
+.title:focus {
+  outline: none;
+}
+
+/* Pinned so every title starts on the same left edge — 34px fits "10.". */
+.number {
+  flex: 0 0 auto;
+  min-width: 34px;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  color: var(--brass-ink);
+}
+
+/* Body copy: 16px Figtree on a 660px measure. The cap reaches direct
+   paragraphs and lists only; panels and grids state their own. */
+.docSection > p,
+.docSection > ul,
+.docSection > ol {
+  max-width: 660px;
+}
+
+.docSection p {
+  margin: 14px 0 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+.docSection > ul,
+.docSection > ol {
+  margin: 12px 0 0;
+  padding-left: 22px;
+}
+
+.docSection > ul {
+  list-style: disc;
+}
+
+.docSection li {
+  margin-top: 6px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+.docSection strong {
+  font-weight: var(--weight-semibold);
+  color: var(--text-heading);
+}
+
+/* Inline links in body copy: exempt from the 44px target (design/CLAUDE.md) —
+   a padded inline-block would inflate the line box. */
+.link {
+  color: var(--legal-link);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.16s ease;
+}
+
+.link:hover {
+  color: var(--action-primary-hover);
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+/* "Back to top": one per section, desktop only — the phone has the floating
+   Top control. 17px Playfair optically matches the 16px Figtree body. */
+.backToTopRow {
+  display: none;
+  max-width: 660px;
+  margin: 10px 0 0;
+  text-align: right;
+}
+
+.backToTop {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-family: var(--font-display);
+  font-size: 17px;
+  color: var(--brass-ink);
+  text-decoration: none;
+  transition: color 0.16s ease;
+}
+
+.backToTopLabel {
+  padding-bottom: 1px;
+  border-bottom: var(--border-hairline) solid var(--rule-brass);
+}
+
+.backToTopArrow {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1;
+}
+
+.backToTop:hover {
+  color: var(--action-primary-hover);
+}
+
+.backToTop:hover .backToTopLabel {
+  border-bottom-color: var(--action-primary-hover);
+}
+
+/* ---- Content blocks -------------------------------------------------------- */
+
+/* Terms: 13px caps sub-part labels. */
+.labelHeading {
+  margin: 22px 0 0;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-body);
+}
+
+/* Privacy: 16px semibold sub-heads, and 19px display minor heads. */
+.subhead {
+  margin: 22px 0 0;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 16px;
+  line-height: 1.35;
+  color: var(--text-heading);
+}
+
+.minorHead {
+  margin: 18px 0 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 19px;
+  line-height: 1.25;
+  color: var(--text-heading);
+}
+
+/* A warm panel for the instruction that matters most in a clause. */
+.docSection p.note {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: var(--surface-blush);
+  border-radius: 12px;
+}
+
+/* A value the owner still has to supply: marked, worded as a real state rather
+   than a bracketed code, so it cannot ship unnoticed. */
+.tbc {
+  border-bottom: var(--border-hairline) dotted var(--brass-ink);
+  color: var(--text-body);
+  font-style: italic;
+}
+
+/* Name-value panels. One column on a phone with hairlines between cells; two
+   columns from 640 — the third and later cells start new rows. */
+.info {
+  display: grid;
+  gap: 0;
+  max-width: 660px;
+}
+
+.info > div + div {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: var(--border-hairline) solid var(--sand-2);
+}
+
+.info[data-variant='sand'] {
+  margin-top: 18px;
+  padding: 22px 24px;
+  background: var(--surface-card);
+  border-radius: 14px;
+  /* The registered details read as data, not as a link in copy. */
+  --legal-link: var(--text-heading);
+}
+
+.info[data-variant='outline'] {
+  margin-top: 18px;
+  padding: 20px 22px;
+  background: var(--surface-raised);
+  border: var(--border-hairline) solid var(--border-light);
+  border-radius: 14px;
+}
+
+.docSection .infoLabel {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--text-body);
+}
+
+.info[data-variant='sand'] .infoLabel {
+  font-weight: var(--weight-semibold);
+}
+
+/* 13px caps labels; brass-ink is fine as small type on cream. */
+.info[data-variant='outline'] .infoLabel {
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  line-height: normal;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.info[data-variant='outline'] .infoLabel[data-tone='brass'] {
+  color: var(--brass-ink);
+}
+
+.docSection .infoValue {
+  margin: 5px 0 0;
+  line-height: 1.5;
+  color: var(--text-heading);
+}
+
+.info[data-variant='sand'] .infoValue {
+  line-height: 1.55;
+}
+
+.info[data-variant='sand'] .infoValue + .infoValue {
+  margin-top: 2px;
+}
+
+/* Privacy: values set in the display face. */
+.info[data-variant='plain'] .infoValue {
+  margin-top: 4px;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 19px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+/* An address panel that is not a name-value grid (Terms clause 56). */
+.addressPanel {
+  margin-top: 18px;
+  padding: 20px 22px;
+  background: var(--surface-card);
+  border-radius: 14px;
+}
+
+.docSection .addressPanel .infoLabel {
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  line-height: normal;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* Terms clause 4: the five food standards, glyph beside words. */
+.standards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  max-width: 660px;
+  margin-top: 18px;
+}
+
+.standard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.standardGlyph {
+  flex: 0 0 auto;
+  stroke: var(--brass-ink);
+}
+
+.docSection .standard p {
+  margin: 0;
+  line-height: 1.4;
+  color: var(--text-heading);
+}
+
+/* Privacy: one-name-one-value tables as definition lists. One column on a
+   phone; two from 640, under a decorative, aria-hidden column head. */
+.dl {
+  max-width: 660px;
+  margin: 16px 0 0;
+}
+
+.dlList {
+  margin: 0;
+}
+
+.dlHead {
+  display: none;
+}
+
+.row {
+  display: grid;
+  gap: 2px;
+  padding: 12px 0;
+  border-top: var(--border-hairline) solid var(--border-light);
+}
+
+.row:last-child {
+  border-bottom: var(--border-hairline) solid var(--border-light);
+}
+
+.row dt {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-heading);
+  text-wrap: pretty;
+}
+
+.row dd {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-body);
+  text-wrap: pretty;
+}
+
+/* Privacy section 7: the cookie table, deliberately not rendered until the
+   audit — a table of nothing is furniture. */
+.audit {
+  max-width: 660px;
+  margin: 16px 0 0;
+  padding: 18px 20px;
+  background: var(--surface-raised);
+  border: var(--border-hairline) dashed var(--text-muted);
+  border-radius: 14px;
+}
+
+.docSection .auditTitle {
+  margin: 0;
+  font-weight: var(--weight-semibold);
+  line-height: 1.35;
+  color: var(--text-heading);
+}
+
+.docSection .audit p + p {
+  margin-top: 8px;
+}
+
+/* The in-page consent trigger has no fallback destination, so it — and its
+   lead-in, or a colon would lead nowhere — appears only once the consent
+   manager reports itself ready. A deliberate exception to zero layout shift:
+   reserving space for a control that may never appear is worse. */
+.prefs {
+  display: none;
+}
+
+:global(html[data-consent-ready]) .prefs {
+  display: block;
+}
+
+.ctaRow {
+  display: flex;
+  margin: 18px 0 0;
+}
+
+/* Outline, 52px on the ladder: a utility action, not the page's primary call
+   (build-handoff.md, "Privacy Policy — what was settled"). Full width inside
+   the gutters on a phone, intrinsic from 640. Hover is a fill, never a lift. */
+.cta {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 0 30px;
+  border: var(--border-hairline) solid var(--action-dark);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--action-dark);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--btn-size);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: background-color 0.16s ease, color 0.16s ease;
+}
+
+.cta:hover {
+  background: var(--action-dark);
+  color: var(--cream);
+}
+
+.cta:active {
+  filter: brightness(0.94);
+}
+
+.cta:focus-visible {
+  outline: 2px solid var(--text-heading);
+  outline-offset: 3px;
+  border-radius: var(--radius-pill);
+}
+
+/* ---- Floating Sections / Top pair (phone only) ----------------------------- */
+
+/* Appears once the inline "Jump to a section" has scrolled away, never over
+   the footer, and never while the cookie banner is up — the consent layer has
+   priority over every bottom-fixed control (`data-consent-yield`). */
+.float {
+  position: fixed;
+  z-index: 60;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 16px calc(14px + env(safe-area-inset-bottom, 0px));
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+}
+
+.float:not([data-on]) {
+  opacity: 0;
+  transform: translateY(10px);
+  visibility: hidden;
+}
+
+.float > * {
+  pointer-events: auto;
+}
+
+/* 48px: the mobile sticky-control tier of the button ladder. */
+.floatButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 48px;
+  padding: 0 22px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--btn-size);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: background-color 0.16s ease;
+}
+
+.floatButton:active {
+  filter: brightness(0.94);
+}
+
+.sections {
+  border: none;
+  background-color: var(--action-dark);
+  color: var(--cream);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--green-forest) 22%, transparent);
+}
+
+.sections:hover {
+  background-color: var(--surface-darker);
+}
+
+/* Dark ground: a cream ring with a gold outer edge, the site's dark focus language. */
+.sections:focus-visible {
+  outline: 2px solid var(--cream);
+  outline-offset: 0;
+  box-shadow: 0 0 0 3px var(--gold);
+}
+
+.sectionsGlyph {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sectionsGlyph > span {
+  display: block;
+  width: 13px;
+  height: 1.6px;
+  background: var(--cream);
+}
+
+.top {
+  padding: 0 20px;
+  gap: 8px;
+  border: var(--border-hairline) solid var(--border-light);
+  background-color: var(--surface-raised);
+  color: var(--text-heading);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--green-forest) 12%, transparent);
+}
+
+.top:hover {
+  background-color: var(--surface-card);
+}
+
+.topArrow {
+  font-size: 15px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron,
+  .jump,
+  .groupToggle,
+  .jumpToggle,
+  .float,
+  .floatButton,
+  .backToTop,
+  .link,
+  .cta {
+    transition: none;
+  }
+}
+
+/* ---- 640: more measure; two-column panels; the CTA becomes intrinsic ------- */
+
+@media (min-width: 640px) {
+  .section {
+    padding: 52px 0 56px;
+  }
+
+  .inner {
+    padding: 0 34px;
+  }
+
+  .standards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 26px;
+  }
+
+  /* TWO columns at every width: the panel is capped at 660px, so a third
+     column could never hold the email address. Positional rules go by column
+     and row, so two cells and four both work. */
+  .info {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .info > div {
+    padding: 0 26px 0 0;
+  }
+
+  .info > div + div {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+
+  .info > div:nth-child(even) {
+    padding: 0 0 0 26px;
+    border-left: var(--border-hairline) solid var(--sand-2);
+  }
+
+  .info > div:nth-child(n + 3) {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: var(--border-hairline) solid var(--sand-2);
+  }
+
+  /* The registered-details panel and the complaints panel are three cells:
+     the third runs the full width under the first two. */
+  .info[data-variant='sand'] > div:nth-child(3),
+  .info[data-variant='outline'] > div:nth-child(3) {
+    grid-column: 1 / -1;
+    padding-left: 0;
+    border-left: none;
+  }
+
+  .dlHead {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 0 24px;
+    padding-bottom: 8px;
+    font-family: var(--font-sans);
+    font-weight: var(--weight-semibold);
+    font-size: 13px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--brass-ink);
+  }
+
+  .row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 0 24px;
+    align-items: baseline;
+  }
+
+  .cta {
+    width: auto;
+  }
+}
+
+/* ---- 1024: desktop composition — index left, document right ---------------- */
+
+@media (min-width: 1024px) {
+  .section {
+    padding: 60px 0 64px;
+  }
+
+  .inner {
+    padding: 0 48px;
+  }
+
+  .title {
+    font-size: 56px;
+  }
+
+  .grid {
+    grid-template-columns: 300px minmax(0, 1fr);
+    gap: 56px;
+    align-items: start;
+  }
+
+  /* The index column runs the full height of the document so the index can
+     stick for all of it. (The prototype's column was only as tall as the
+     index, so its "sticky" index scrolled away with the page.) */
+  .indexColumn {
+    align-self: stretch;
+  }
+
+  .navhead {
+    display: none;
+  }
+
+  .navTitle {
+    display: block;
+  }
+
+  /* Always shown, and sticky under the header. The index scrolls with the page
+     and sticks; it scrolls on its own only when an open group makes it taller
+     than the window, or its lower rows could never be reached. Selector
+     specificity matches the sheet rule, so a sheet left open past a resize
+     cannot survive as a bottom-fixed panel. */
+  .indexPanel,
+  .indexPanel[data-sheet] {
+    position: sticky;
+    top: var(--legal-anchor-offset);
+    left: auto;
+    right: auto;
+    bottom: auto;
+    z-index: auto;
+    max-height: calc(100vh - var(--legal-anchor-offset) - 24px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-radius: 14px;
+    box-shadow: none;
+  }
+
+  .nav {
+    display: block;
+    padding-top: 14px;
+  }
+
+  .heading {
+    font-size: 26px;
+  }
+
+  .standards {
+    gap: 14px 34px;
+  }
+
+  .float,
+  .backdrop {
+    display: none;
+  }
+
+  /* Desktop has no floating Top control, so this is the return affordance. */
+  .backToTopRow {
+    display: block;
+  }
+}
+
+/* ---- Print: the long-form legal-document treatment ------------------------- */
+
+/* Terms of Sale and the Privacy Policy only — the two pages customers print or
+   save as PDF (design/CLAUDE.md, "Long documents"). The site chrome outside
+   <main> is removed by the page's own print stylesheet (`LegalDocument`);
+   these rules take the index, the floating controls and every interactive
+   control off, and put every section on, expanded, with headings kept off
+   page breaks. */
+@media print {
+  .navhead,
+  .nav,
+  .navTitle,
+  .float,
+  .backdrop,
+  .backToTopRow,
+  .prefs {
+    display: none !important;
+  }
+
+  .section {
+    padding: 0;
+  }
+
+  /* The screen gutters and the printer's own margins would compound. */
+  .inner {
+    max-width: none;
+    padding: 0;
+  }
+
+  .grid {
+    display: block;
+  }
+
+  .docGroup {
+    break-inside: auto;
+  }
+
+  /* Never strand a heading at the foot of a page. */
+  .groupTitle,
+  .heading,
+  .labelHeading,
+  .subhead,
+  .minorHead {
+    break-after: avoid;
+    break-inside: avoid;
+  }
+
+  .info,
+  .note,
+  .row,
+  .standards,
+  .audit,
+  .addressPanel {
+    break-inside: avoid;
+  }
+
+  /* On paper the reader cannot follow a link, so outbound addresses are
+     printed. `text-transform: none` and no tracking, or the ICO address
+     inherits the button's uppercase and prints as "(HTTPS://ICO.ORG.UK)". */
+  .root a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: 11px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+}

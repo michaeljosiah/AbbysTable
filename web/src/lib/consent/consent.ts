@@ -375,3 +375,24 @@ export const consentStore: ConsentStore = createConsentStore(browserStorage);
 export function onConsent(category: ConsentCategory, start: ConsentStart): () => void {
   return consentStore.whileGranted(category, start);
 }
+
+/**
+ * The preferences panel's id, for `aria-controls` on a trigger that is a
+ * button (Privacy section 7). The manager keeps such a trigger's
+ * `aria-expanded` in step with the panel.
+ */
+export const CONSENT_PANEL_ID = 'consent-panel';
+
+/**
+ * Set on <html> while the consent manager is running — from the moment its one
+ * trigger listener is bound until it unmounts or fails. A trigger with no
+ * fallback destination (Privacy section 7's "Cookie preferences" button) is
+ * shown only under it, so the page never offers a control that cannot work.
+ */
+export const CONSENT_READY_ATTRIBUTE = 'data-consent-ready';
+
+/** Marks `root` ready; returns the cleanup that withdraws the mark. */
+export function announceConsentReady(root: Pick<Element, 'setAttribute' | 'removeAttribute'>): () => void {
+  root.setAttribute(CONSENT_READY_ATTRIBUTE, '');
+  return () => root.removeAttribute(CONSENT_READY_ATTRIBUTE);
+}

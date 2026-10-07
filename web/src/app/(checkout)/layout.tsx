@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 import { Logo } from '@/components/brand/Logo';
 import { CheckoutHeader } from '@/components/checkout/CheckoutHeader';
-import { COOKIE_PREFERENCES_ITEM } from '@/lib/content/navigation';
+import { COOKIE_PREFERENCES_ITEM, PRIVACY_ITEM, TERMS_ITEM } from '@/lib/content/navigation';
 
 import styles from './layout.module.css';
 
@@ -11,14 +11,17 @@ import styles from './layout.module.css';
  * footer carrying only order-relevant links.
  *
  * Links to pages that do not exist yet resolve to the closest real destination
- * rather than to dead URLs; swap each one as its page lands (Allergens has).
+ * rather than to dead URLs; swap each one as its page lands (Allergens, Privacy
+ * Policy and Terms have). These footer links open in the same tab: only
+ * checkout's own legal line opens the legal pages in a new tab
+ * (design/CLAUDE.md, "Legal line").
  */
 const FOOTER_LINKS = [
   { label: 'Delivery & FAQs', href: '/#contact' },
   { label: 'Allergens', href: '/allergens' },
   { label: 'Contact Us', href: '/#contact' },
-  { label: 'Privacy Policy', href: '/#contact' },
-  { label: 'Terms', href: '/#contact' },
+  PRIVACY_ITEM,
+  TERMS_ITEM,
 ];
 
 export default function CheckoutLayout({ children }: { children: React.ReactNode }) {
