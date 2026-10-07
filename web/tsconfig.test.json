@@ -20,6 +20,7 @@
     "tests/status-pages.test.ts",
     "tests/not-found-chrome.test.ts",
     "tests/consent.test.ts",
+    "tests/dish-return.test.ts",
     "tests/how-it-works.test.tsx",
     "tests/legal-documents.test.ts",
     "tests/legal-pages.test.tsx",
@@ -36,6 +37,9 @@
     "src/lib/cart/mutations.ts",
     "src/lib/cart/transport.ts",
     "src/lib/consent/consent.ts",
+    "src/lib/dish-return.ts",
+    "src/lib/format.ts",
+    "src/lib/standards/exampleDish.ts",
     "src/lib/how-it-works/*.ts",
     "src/lib/status-pages/*.ts",
     "src/middleware.ts"

@@ -1,0 +1,56 @@
+/* "Back to dish" — design/Abby's Table - Standards v2.dc.html, `.st-backbar`.
+   Pulled up into the hero's top padding so it reads as part of the header
+   zone, not as the start of the content. The negative top margins are the
+   design's, paired with the hero's own top padding at each breakpoint. */
+
+.bar {
+  display: flex;
+  margin: -22px 0 10px;
+}
+
+/* `display: flex` above would otherwise outrank the UA's [hidden] rule. */
+.bar[hidden] {
+  display: none;
+}
+
+/* The site's existing back link: 16px/600 green-forest with an 18px chevron.
+   48px target on a phone, 44 from 1024 (pointer). Navigation, not a CTA, so
+   sentence case and no fill. */
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 16px;
+  color: var(--text-heading);
+  text-decoration: none;
+  transition: color 0.16s ease;
+}
+
+.link:hover {
+  color: var(--action-primary-hover);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .link {
+    transition: none;
+  }
+}
+
+@media (min-width: 640px) {
+  .bar {
+    margin: -30px 0 12px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .bar {
+    margin: -46px 0 18px;
+  }
+
+  .link {
+    min-height: 44px;
+  }
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 
 import { Nutrition } from '@/components/checkout/DishPicker';
 import {
@@ -68,18 +68,51 @@ function DishReadout({
 interface DishPersonaliserProps {
   dish: Dish;
   optionGroups: MappedOptionGroup[];
-  /** Choice keys are emitted in Aonik's canonical One/Multi shape. */
+  /**
+   * Choice keys are emitted in Aonik's canonical One/Multi shape.
+   * `complete` is the WHOLE selection (every group, defaults included) while
+   * personalising — what the Our Standards round trip carries and restores.
+   */
   onChange?: (selection: {
     personalisation?: PersonalisationSelection;
+    complete?: PersonalisationSelection;
     surchargePence: number | undefined;
   }) => void;
+  /**
+   * A selection to restore on a genuine return from Our Standards
+   * (`useDishReturn`) — always a whole, validated selection, never a part.
+   */
+  restoredSelection?: PersonalisationDraft | null;
+  /**
+   * Called whenever the CUSTOMER changes the choice (never for a restore):
+   * a return record for this entry then no longer describes the page.
+   */
+  onEdit?: () => void;
 }
 
-export function DishPersonaliser({ dish, optionGroups, onChange }: DishPersonaliserProps) {
+export function DishPersonaliser({
+  dish,
+  optionGroups,
+  onChange,
+  restoredSelection,
+  onEdit,
+}: DishPersonaliserProps) {
   const initial = useMemo(() => selectionDraft(optionGroups), [optionGroups]);
   const [enabled, setEnabled] = useState(false);
   const [selection, setSelection] = useState<PersonalisationDraft>(initial);
   const [sheetOpen, setSheetOpen] = useState(false);
+
+  /*
+   * Back from Our Standards (`lib/dish-return.ts`): the customer's whole
+   * selection, restored as they left it — before paint on a client-side
+   * return. A fresh visit is never handed one, and starts as Abby designed it.
+   */
+  useLayoutEffect(() => {
+    if (!restoredSelection) return;
+    setEnabled(true);
+    setSelection(restoredSelection);
+    setSheetOpen(false);
+  }, [restoredSelection]);
 
   const surchargePence = useMemo(
     () => (enabled ? localSurcharge(optionGroups, selection) : 0),
@@ -94,15 +127,18 @@ export function DishPersonaliser({ dish, optionGroups, onChange }: DishPersonali
     }
     onChange({
       personalisation: encodeSelection(optionGroups, selection, true),
+      complete: encodeSelection(optionGroups, selection, false),
       surchargePence,
     });
   }, [onChange, enabled, optionGroups, selection, surchargePence]);
 
-  const updateGroup = (group: MappedOptionGroup, key: string) =>
+  const updateGroup = (group: MappedOptionGroup, key: string) => {
+    onEdit?.();
     setSelection((current) => ({
       ...current,
       [group.key]: selectChoice(group, current[group.key] ?? [], key),
     }));
+  };
 
   return (
     <section className={styles.panel} aria-labelledby="personalise-heading">
@@ -123,6 +159,7 @@ export function DishPersonaliser({ dish, optionGroups, onChange }: DishPersonali
           data-selected={enabled || undefined}
           aria-pressed={enabled}
           onClick={() => {
+            onEdit?.();
             setEnabled(true);
             setSheetOpen(true);
           }}
@@ -150,6 +187,7 @@ export function DishPersonaliser({ dish, optionGroups, onChange }: DishPersonali
           data-selected={!enabled || undefined}
           aria-pressed={!enabled}
           onClick={() => {
+            onEdit?.();
             setEnabled(false);
             setSheetOpen(false);
             setSelection(initial);
@@ -229,7 +267,10 @@ export function DishPersonaliser({ dish, optionGroups, onChange }: DishPersonali
               <button
                 type="button"
                 className={styles.reopen}
-                onClick={() => setSelection(initial)}
+                onClick={() => {
+                  onEdit?.();
+                  setSelection(initial);
+                }}
                 disabled={sameSelection(optionGroups, selection, initial)}
               >
                 Reset to defaults
