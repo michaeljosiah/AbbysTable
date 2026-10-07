@@ -21,12 +21,12 @@ import {
 /*
  * Information links on real routes (site-chrome spec FR-21, issue #8).
  *
- * Every link to Contact and Delivery & FAQs reads ONE constant each in
- * `src/lib/content/navigation.ts`: `CONTACT_HREF` (`/contact`, built in #24 —
- * the site footer, `/#contact`, before it) and `DELIVERY_FAQS_HREF` (Contact's
- * destination until its own page, #23). Building a page is then a one-line
- * change there — and these tests fail until that line is changed, so a built
- * page is never left behind its placeholder, nor a placeholder brought back.
+ * Every link to Contact (#24) and Delivery & FAQs (#23) reads ONE constant
+ * each in `src/lib/content/navigation.ts`: `CONTACT_HREF` (`/contact` — the
+ * site footer, `/#contact`, before it) and `DELIVERY_FAQS_HREF`
+ * (`/delivery-and-faqs`). Building a page was a one-line change there — and
+ * these tests fail if a built page is ever left behind its placeholder, or a
+ * placeholder brought back.
  */
 
 /** Contact's interim destination before #24: the site footer. */
@@ -108,7 +108,8 @@ test('the footer carries id="contact" only while Contact resolves to it', () => 
 test('Contact is built, so nothing links to its old stand-in (#24)', () => {
   assert.ok(ROUTES.has('/contact'), 'app/(site)/contact/page.tsx');
   assert.equal(CONTACT_HREF, '/contact');
-  // The Contact page never links to itself: its FAQs card waits for #23.
+  // The Contact page never links to itself: its FAQs card shows only once
+  // Delivery & FAQs has a page of its own (it has, since #23).
   const page = read(path.join('app', '(site)', 'contact', 'page.tsx'));
   assert.match(page, /from '@\/lib\/content\/navigation'/);
   assert.match(page, /faqsHref=\{DELIVERY_FAQS_HREF === CONTACT_HREF \? null : DELIVERY_FAQS_HREF\}/);
@@ -150,9 +151,10 @@ test('every information link lands on a built page (or, before #24, the footer a
 });
 
 /*
- * The links written into pages, file by file. Contact and Delivery & FAQs share
- * one value today, so only the source can say WHICH one a link means; each
- * must read the semantically right constant, never a literal.
+ * The links written into pages, file by file. Contact and Delivery & FAQs
+ * shared one value until both pages existed, so only the source can say WHICH
+ * one a link means; each must read the semantically right constant, never a
+ * literal.
  */
 const IN_PAGE_LINKS: Array<{ file: string; contact: number; faqs: number; why: string }> = [
   { file: 'components/auth/LoginForm.tsx', contact: 1, faqs: 0, why: '"Forgotten it?" (open question 10)' },
@@ -175,6 +177,18 @@ const IN_PAGE_LINKS: Array<{ file: string; contact: number; faqs: number; why: s
     contact: 2,
     faqs: 1,
     why: 'two "contact us", and "Browse our FAQs" (Delivery & FAQs, as in the design)',
+  },
+  {
+    file: 'components/delivery-faqs/FaqBrowse.tsx',
+    contact: 1,
+    faqs: 0,
+    why: 'Delivery & FAQs\' "Still need help?" → "Contact us"',
+  },
+  {
+    file: 'components/delivery-faqs/FaqSearch.tsx',
+    contact: 1,
+    faqs: 0,
+    why: 'the no-results panel\'s "Contact us"',
   },
 ];
 

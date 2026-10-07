@@ -41,8 +41,8 @@ export default async function ContactPage() {
       support={SUPPORT_CONTACT}
       whatsapp={WHATSAPP_CONTACT}
       hours={OPENING_HOURS}
-      // Delivery & FAQs takes Contact's destination until its own page lands
-      // (#23): until then this card would be a link to this very page.
+      // Only while Delivery & FAQs has a page of its own (since #23): before,
+      // it took Contact's destination and this card would have linked here.
       faqsHref={DELIVERY_FAQS_HREF === CONTACT_HREF ? null : DELIVERY_FAQS_HREF}
       waitlistHref={PRIVATE_TABLE_WAITLIST_HREF}
       sendAction={canSend ? sendEnquiryAction : undefined}

@@ -414,8 +414,9 @@ by CSS alone, never duplicated or reparented. The cards go 4-up only from 1280 (
 content exception); while there is no FAQs card the three are 3-up from 1024. "See opening hours"
 is a disclosure (`aria-expanded`, `aria-controls`) below 1024 and, from 1024, a jump that focuses
 the sidebar's "Opening hours" heading. No hero and no purchase bar (FR-07); the desktop header
-auto-hides (site-chrome FR-03). The FAQs card SHALL appear only once Delivery & FAQs has its own
-page — until #23 it would link to this one — and the Private Table panel only once its waitlist
+auto-hides (site-chrome FR-03). The FAQs card SHALL appear only while Delivery & FAQs has its own
+page (it has since #23; before, the card would have linked to this one) and the Private Table
+panel only once its waitlist
 exists (`PRIVATE_TABLE_WAITLIST_HREF`, #25), never a "Join the waitlist" with nowhere to go.
 
 #### Scenario: The hours move, the markup does not
@@ -577,8 +578,8 @@ first two gaps recorded here, were closed by #15 (PR #59; T6, T9) and are no lon
   - [x] Our standards band (FR-12); founder heading structure (FR-13)
   - [x] Private Table band (FR-13); "Find out more" hidden until #25 (`PRIVATE_TABLE_HREF`)
   - [x] Signature tooltip copy on the shared dish card (FR-11); the separate button is T13
-- [ ] `T7` Repoint `/#contact` placeholders as Contact and Delivery & FAQs land (#8) — Contact
-  done with #24; Delivery & FAQs waits on #23
+- [x] `T7` Repoint `/#contact` placeholders as Contact and Delivery & FAQs land (#8) — Delivery &
+  FAQs with #23, Contact with #24
 - [ ] `T8` Real photography, company details, legal and food-safety sign-off (#38)
 - [x] `T9` Root metadata to "mainland UK" / "Heat, enjoy, live well" — PR #59
 - [x] `T10` Our Standards' minimum from the storefront plan, the same source as its purchase bar

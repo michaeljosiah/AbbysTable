@@ -79,12 +79,10 @@ export const PRIVATE_TABLE_ITEM: NavItem = { label: 'Private Table', href: '/#pr
 export const CONTACT_HREF: string = '/contact';
 
 /**
- * Delivery & FAQs (#23, `/delivery-and-faqs`). Not built either, so it takes
- * Contact's destination, whatever that is — the footer now, `/contact` if that
- * page lands first (FR-21). When its own page lands, this one line becomes
- * `'/delivery-and-faqs'`.
+ * Delivery & FAQs (#23) — its page. Every Delivery & FAQs link in the site
+ * reads this (FR-21, pinned by `tests/information-links.test.ts`).
  */
-export const DELIVERY_FAQS_HREF: string = CONTACT_HREF;
+export const DELIVERY_FAQS_HREF: string = '/delivery-and-faqs';
 
 /** "Contact us" in sentence case, as every v2 footer sets it — checkout's too. */
 export const CONTACT_ITEM: NavItem = { label: 'Contact us', href: CONTACT_HREF };
@@ -151,9 +149,8 @@ export const CHECKOUT_FOOTER_LINKS: NavItem[] = [
 
 /**
  * The simplified footer on the 500 page — help and legal only, by design
- * (design/build-handoff.md §3ah). Delivery & FAQs and Contact do not exist yet,
- * so like the site footer they resolve to the closest real destination until
- * they land.
+ * (design/build-handoff.md §3ah). Like the site footer, a destination not
+ * built yet resolves to the closest real one until it lands.
  *
  * The static host copy of that page (`public/500.html`) is generated from this
  * list: regenerate it after a change (`UPDATE_STATUS_PAGES=1 npm test`).

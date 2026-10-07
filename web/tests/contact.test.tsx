@@ -490,10 +490,13 @@ test('as configured today: every route marked "to be confirmed", no dead link, n
   for (const { href } of SOCIAL_LINKS) assert.ok(html.includes(`href="${href}"`), href);
   assert.doesNotMatch(text, /Usually the quickest way/, 'no promise about a route that is not there');
 
-  // No card linking this page to itself (Delivery & FAQs follows Contact until #23)…
+  // No card linking this page to itself; with Delivery & FAQs built (#23) it goes there.
   if (DELIVERY_FAQS_HREF === CONTACT_HREF) {
     assert.doesNotMatch(text, /Browse our FAQs/);
     assert.match(html, /data-faqs="none"/);
+  } else {
+    assert.ok(html.includes(`href="${DELIVERY_FAQS_HREF}"`), 'the FAQs card links Delivery & FAQs');
+    assert.doesNotMatch(html, /data-faqs="none"/);
   }
   // …and no "Join the waitlist" before there is a waitlist (#25).
   if (!PRIVATE_TABLE_HREF) {

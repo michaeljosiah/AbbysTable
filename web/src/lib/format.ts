@@ -79,6 +79,30 @@ export function formatDeliveryDate(isoDate: string | null | undefined): string |
   return `${day} ${MONTHS[month - 1]}`;
 }
 
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+/**
+ * A delivery date with its weekday, as Delivery & FAQs' postcode result sets
+ * it: "2026-08-06" -> "Thursday 6 August".
+ *
+ * The weekday is DERIVED from the date, never stored beside it
+ * (frontend-backend-contract §4), and derived in UTC from the date's own
+ * digits for the reason `formatDeliveryDate` gives: a calendar date has no
+ * timezone to shift it. Null for a missing, malformed or impossible date
+ * ("2026-02-30"), so callers render nothing rather than a wrong weekday.
+ */
+export function formatDeliveryDateLong(isoDate: string | null | undefined): string | null {
+  const short = formatDeliveryDate(isoDate);
+  if (!short || !isoDate) return null;
+
+  const [year, month, day] = isoDate.trim().split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  // Date.UTC rolls an impossible day into the next month; refuse it instead.
+  if (date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
+
+  return `${WEEKDAYS[date.getUTCDay()]} ${short}`;
+}
+
 /** Joins parts into a natural list: ["a","b","c"] -> "a, b or c". */
 export function joinWithOr(parts: string[]): string {
   if (parts.length === 0) return '';

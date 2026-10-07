@@ -18,8 +18,8 @@ updated: 2026-10-07
 > purchase bar (#12, PR #57), the v2 header, drawer and footer with the announcement bar removed
 > (#10, PR #60), and #8 as far as the built pages allow (Allergens link in PR #49, Privacy and
 > Terms links in PR #56; every Contact and Delivery & FAQs link read from one constant each, and
-> "← Back to checkout" on the legal pages), with Contact's own route from #24. **Pending:** from
-> #8, the Delivery & FAQs route (it waits on #23) and checkout's legal line (it arrives with
+> "← Back to checkout" on the legal pages), with the Contact and Delivery & FAQs routes built (#24,
+> #23). **Pending:** from #8, checkout's legal line (it arrives with
 > Checkout, #31). Pending parts are
 > specified from the issues and `design/` (Homepage v2's chrome,
 > `design/CLAUDE.md` "Canonical shared components", behaviour guide §A2/§A3/§A5,
@@ -381,9 +381,9 @@ and the icons. The page links nowhere into the site.
 `capability: site-chrome` · `delta: ADDED (feat/site-chrome-and-consent)`
 
 Each information link SHALL point at its real route as the page lands: `/privacy`,
-`/terms-of-sale`, `/allergens` and `/contact` (done — Contact in #24); `/delivery-and-faqs` (not
-built). Until then Delivery & FAQs resolves to wherever Contact does — `/contact` now, `/#contact`
-(the footer) before #24. Now that `/contact` exists no internal link SHALL point at
+`/terms-of-sale`, `/allergens`, `/delivery-and-faqs` (#23) and `/contact` (#24) — all built. Until
+each page landed its links went to the footer (`/#contact`); Delivery & FAQs followed Contact. Now
+no internal link SHALL point at
 `/#contact`: the checkout footer's Delivery & FAQs and Contact Us, checkout's "Questions about your
 order? Contact us", the dish page's allergen fallback, Log in's "Forgotten it?" (open question
 10), the confirmation page's "Contact us", the order page's "Questions about this order?",
@@ -478,12 +478,12 @@ the session; only the header, drawer, footer, consent manager and bar are client
 - [x] `T8` v2 drawer as a dialog (FR-04–FR-06) — PR #60 (#10)
 - [x] `T9` v2 footer (FR-07) — PR #60 (#10)
 - [x] `T10` Delete the announcement bar and its delivery read (FR-08) — PR #60 (#10)
-- [ ] `T11` Contact and Delivery & FAQs links (FR-21) (#8). Done: every link reads
+- [x] `T11` Contact and Delivery & FAQs links (FR-21) (#8): every link reads
   `CONTACT_HREF` or `DELIVERY_FAQS_HREF` in `src/lib/content/navigation.ts`
-  (`tests/information-links.test.ts`); `CONTACT_HREF = '/contact'` with #24, which dropped the
-  footer's `id="contact"` and left no `/#contact` in `web/src`. **Waits on #23:**
-  `DELIVERY_FAQS_HREF = '/delivery-and-faqs'` when Delivery & FAQs lands; the test fails until
-  that line is changed.
+  (`tests/information-links.test.ts`). `DELIVERY_FAQS_HREF = '/delivery-and-faqs'` with #23 and
+  `CONTACT_HREF = '/contact'` with #24, which dropped the footer's `id="contact"` and left no
+  `/#contact` in `web/src`; the status pages are regenerated and both routes are in
+  `DESKTOP_AUTO_HIDE_PATHS`.
 - [x] `T12` "← Back to checkout" on the legal pages, and `checkoutLegalHref` for checkout's legal
   line (FR-22) (#8)
 - [ ] `T14` Checkout's legal line — new tab, `?from=checkout`, hidden "(opens in a new tab)" —
