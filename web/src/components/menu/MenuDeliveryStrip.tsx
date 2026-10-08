@@ -70,7 +70,17 @@ export function MenuDeliveryStrip({ date }: { date: string }) {
 
   return (
     <div className={styles.wrap}>
-      <div ref={stripRef} className={styles.strip} onMouseLeave={leave}>
+      <div
+        ref={stripRef}
+        className={styles.strip}
+        onMouseLeave={leave}
+        onBlur={(event) => {
+          // Focus moving within the strip (the "i" to the note's ×) keeps an
+          // unpinned note; focus leaving the strip altogether closes it.
+          if (stripRef.current?.contains(event.relatedTarget as Node | null)) return;
+          leave();
+        }}
+      >
         {/* The homepage hero's parcel glyph: no van exists anywhere on the site,
             and the design system says to flag a new icon, not draw one quietly. */}
         <svg
@@ -110,11 +120,6 @@ export function MenuDeliveryStrip({ date }: { date: string }) {
           }}
           onMouseEnter={show}
           onFocus={show}
-          onBlur={(event) => {
-            // Moving into the note (its ×) keeps it; anywhere else is leaving.
-            if (stripRef.current?.contains(event.relatedTarget as Node | null)) return;
-            leave();
-          }}
         >
           <span aria-hidden="true">i</span>
         </button>

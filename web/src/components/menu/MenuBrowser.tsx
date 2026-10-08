@@ -67,20 +67,31 @@ export function MenuBrowser({
   const [isPending, startTransition] = useTransition();
   const [panelOpen, setPanelOpen] = useState(false);
 
-  /** Rewrites the URL from a mutated copy of the current params. */
+  /**
+   * The params as last written — ahead of `useSearchParams` until the router
+   * catches up — so a change made while another is pending (a filter chosen
+   * inside the search's debounce) builds on it instead of on an older URL.
+   */
+  const latestParams = useRef(new URLSearchParams(searchParams.toString()));
+  useEffect(() => {
+    latestParams.current = new URLSearchParams(searchParams.toString());
+  }, [searchParams]);
+
+  /** Rewrites the URL from a mutated copy of the latest params. */
   const replace = useCallback(
     (mutate: (params: URLSearchParams) => void, { keepLimit = false } = {}) => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(latestParams.current.toString());
       mutate(params);
       // Any change to the result set starts paging again from the top: a deep
       // page kept after narrowing offers "Load more" for dishes already shown.
       if (!keepLimit) params.delete('limit');
+      latestParams.current = params;
       const qs = params.toString();
       startTransition(() => {
         router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
       });
     },
-    [pathname, router, searchParams],
+    [pathname, router],
   );
 
   /* ---- Search ---------------------------------------------------------------- */

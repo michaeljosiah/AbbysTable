@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-import { subscribePageScroll } from '@/lib/dom/pageScroll';
+import { readPageScroll, subscribePageScroll } from '@/lib/dom/pageScroll';
 import { MENU_BAND_ATTR, MENU_TITLE_ID } from '@/lib/menu/constants';
 import { nextTopShown } from '@/lib/menu/topControl';
 import { SITE_HEADER_ATTR } from '@/lib/purchase-bar/visibility';
@@ -68,9 +68,19 @@ export function MenuTopButton() {
     const header = document.querySelector<HTMLElement>(`[${SITE_HEADER_ATTR}]`);
     // The header comes back on the way up, so the heading clears its full height.
     const headerHeight = header?.offsetHeight ?? 0;
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const top = hero ? hero.getBoundingClientRect().top + window.scrollY - headerHeight : 0;
-    window.scrollTo({ top: Math.max(0, top), behavior: reduce ? 'auto' : 'smooth' });
+    const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+    // The page may scroll in an ancestor rather than the window (a host
+    // preview, an embed): move whichever the shared tracker follows.
+    const scroller = readPageScroll()?.scroller;
+    if (scroller instanceof HTMLElement) {
+      const top = hero
+        ? hero.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop - headerHeight
+        : 0;
+      scroller.scrollTo({ top: Math.max(0, top), behavior });
+    } else {
+      const top = hero ? hero.getBoundingClientRect().top + window.scrollY - headerHeight : 0;
+      window.scrollTo({ top: Math.max(0, top), behavior });
+    }
     title?.focus({ preventScroll: true });
   };
 

@@ -54,8 +54,15 @@ export function SignatureInfo() {
       note.style.left = '';
       note.style.top = '';
       note.style.removeProperty('--tail-x');
+      // Right of the pill unless that runs off the page (a card in the last
+      // column just above 1024): then it opens to the left, tail flipped.
+      delete note.dataset.side;
+      if (note.getBoundingClientRect().right > document.documentElement.clientWidth - 8) {
+        note.dataset.side = 'left';
+      }
       return;
     }
+    delete note.dataset.side;
 
     const o = stack.getBoundingClientRect();
     const b = button.getBoundingClientRect();

@@ -578,6 +578,23 @@
     border-bottom-color: transparent;
     border-right-color: var(--navy);
   }
+
+  /* No room on the right (the last column just above 1024): open leftwards. */
+  .signatureNote[data-side='left'] {
+    left: auto;
+    right: calc(100% + 13px);
+  }
+
+  .signatureNote[data-side='left']:not([data-open]) {
+    transform: translateX(5px);
+  }
+
+  .signatureNote[data-side='left']::after {
+    right: auto;
+    left: 100%;
+    border-right-color: transparent;
+    border-left-color: var(--navy);
+  }
 }
 
 @media (min-width: 1024px) and (prefers-reduced-motion: reduce) {

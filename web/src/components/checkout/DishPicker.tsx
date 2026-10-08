@@ -87,6 +87,8 @@ const NO_FILTERS: PickerFilters = { category: [], dietary: [], spice: [], calori
 
 /** The template's spice chips, on the same 0-3 scale as `HEAT_STEPS`. */
 const SPICE_CHIPS: { label: string; step: number }[] = [
+  // A published step 0 is a real answer ("no heat"), not a missing one.
+  { label: 'None', step: 0 },
   { label: 'Mild', step: 1 },
   { label: 'Medium', step: 2 },
   { label: 'Hot', step: 3 },
@@ -186,7 +188,7 @@ function CardPip({ size, lit }: { size: number; lit: boolean }) {
 }
 
 /** The step-2 template names the top heat "Hot" (the dish page says "High"). */
-export const CARD_HEAT_LABELS: Record<number, string> = { 1: 'Mild', 2: 'Medium', 3: 'Hot' };
+export const CARD_HEAT_LABELS: Record<number, string> = { 0: 'None', 1: 'Mild', 2: 'Medium', 3: 'Hot' };
 
 export function DishPicker({
   dishes,
