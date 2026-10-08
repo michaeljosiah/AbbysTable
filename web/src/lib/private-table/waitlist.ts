@@ -193,6 +193,23 @@ export function toWaitlistEntry(
 export interface WaitlistState {
   status: 'idle' | 'invalid' | 'joined' | 'error' | 'unavailable';
   errors?: WaitlistErrors;
+  /**
+   * What was posted, on every answer but `joined` — so a submit made without
+   * JavaScript (a full page round trip) comes back with its fields filled,
+   * as the failure line promises. Clipped to the field caps.
+   */
+  values?: WaitlistDraft;
+}
+
+/** The posted draft as it may be handed back: each field clipped to its cap. */
+export function returnedDraft(draft: WaitlistDraft): WaitlistDraft {
+  return {
+    name: draft.name.slice(0, WAITLIST_LIMITS.name),
+    email: draft.email.slice(0, WAITLIST_LIMITS.email),
+    phone: draft.phone.slice(0, WAITLIST_LIMITS.phone),
+    country: draft.country.slice(0, WAITLIST_LIMITS.country),
+    service: isWaitlistService(draft.service) ? draft.service : '',
+  };
 }
 
 export type WaitlistAction = (previous: WaitlistState, formData: FormData) => Promise<WaitlistState>;

@@ -96,9 +96,19 @@ export function WaitlistForm({ action }: { action: WaitlistAction }) {
   const [state, dispatch, isPending] = useActionState<WaitlistState, FormData>(action, {
     status: 'idle',
   });
-  const [draft, setDraft] = useState<Omit<WaitlistDraft, 'service'>>(EMPTY_FIELDS);
-  const { service, choose } = useWaitlistChoice();
-  const [errors, setErrors] = useState<WaitlistErrors>({});
+  // A submit made without JavaScript is a full round trip: the page comes back
+  // rendered with the action's answer, which carries what was posted, so the
+  // fields (and any errors) start from it rather than empty.
+  const [draft, setDraft] = useState<Omit<WaitlistDraft, 'service'>>(() =>
+    state.values
+      ? { name: state.values.name, email: state.values.email, phone: state.values.phone, country: state.values.country }
+      : EMPTY_FIELDS,
+  );
+  const { service: chosen, choose } = useWaitlistChoice();
+  const service = chosen || state.values?.service || '';
+  const [errors, setErrors] = useState<WaitlistErrors>(() =>
+    state.status === 'invalid' ? (state.errors ?? {}) : {},
+  );
   /**
    * The action's last answer once the customer has moved past it — by joining
    * again — so a stale failure never shows beside what they are doing now.

@@ -416,18 +416,30 @@ test('"joined" only once the list has stored the entry; "error" when it could no
   assert.deepEqual(await joinWaitlist(formOf({ country: 'nigeria' }), withList), { status: 'joined' });
   assert.deepEqual(stored, [{ name: 'Ada Obi', email: 'ada@example.test', phone: null, country: 'NG', service: 'not-sure' }]);
   fail = true;
-  assert.deepEqual(await joinWaitlist(formOf({}), withList), { status: 'error' });
+  // Every answer but "joined" hands back what was posted, so a submit made
+  // without JavaScript comes back with its fields filled.
+  const posted = draft();
+  assert.deepEqual(await joinWaitlist(formOf({}), withList), { status: 'error', values: posted });
   // An invalid post never reaches the list; no list is "unavailable", never "joined".
-  assert.equal((await joinWaitlist(formOf({ service: '' }), withList)).status, 'invalid');
+  const invalid = await joinWaitlist(formOf({ service: '' }), withList);
+  assert.equal(invalid.status, 'invalid');
+  assert.deepEqual(invalid.values, { ...posted, service: '' });
   assert.equal(stored.length, 1);
-  assert.deepEqual(await joinWaitlist(formOf({}), async () => ({ waitlist: null })), { status: 'unavailable' });
+  assert.deepEqual(await joinWaitlist(formOf({}), async () => ({ waitlist: null })), {
+    status: 'unavailable',
+    values: posted,
+  });
   // A client that cannot even be built is a failure to store, said as one.
   assert.deepEqual(
     await joinWaitlist(formOf({}), async () => {
       throw new Error('no Aonik');
     }),
-    { status: 'error' },
+    { status: 'error', values: posted },
   );
+  // What is handed back is clipped to the caps and never an unknown service.
+  const long = await joinWaitlist(formOf({ name: 'A'.repeat(5000), service: 'catering' }), withList);
+  assert.equal(long.values?.name.length, 200);
+  assert.equal(long.values?.service, '');
 });
 
 /* ---- The page as configured today: closed ---------------------------------------------- */
