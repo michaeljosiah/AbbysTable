@@ -8,17 +8,23 @@
  * The catalogue is the union of both templates' dish lists:
  *  - The 2026 homepage template supplies the six dishes the rail is designed
  *    around. It publishes a components line and two macros per dish but no
- *    protein/meal/wellness/dietary facets and no declarations, so those are
- *    left absent rather than invented — the dishes simply drop out when a menu
- *    facet filter is applied. Aonik should fill them in.
- *  - The menu template supplies four further dishes with full facet data.
+ *    protein/meal/wellness/dietary facets, no calories and no declarations, so
+ *    those are left absent rather than invented — the dishes simply drop out
+ *    when a menu facet filter is applied. Aonik should fill them in.
+ *  - The menu design (Menu Landing v3) supplies eight further dishes with the
+ *    fields its filters and sort read: protein source, eating styles, dietary
+ *    flags, heat, protein, fibre, carbs and kcal. Their names, components
+ *    lines and descriptions are that file's own strings (six of its components
+ *    lines are marked AUTHORED there, for review). Four were already here from
+ *    the older menu template and keep its fat figures and declarations.
+ *
+ * "Under 500 kcal" is not a tag here: the card derives it from `calories`
+ * (frontend-backend-contract §4d), so a dish with no published calories —
+ * every homepage dish — carries no calorie tag.
  *
  * `isFeatured` marks the six dishes the homepage rail was designed to show.
  *
- * NOTE: two of the six are filed under "Mediterranean-inspired", which the
- * homepage's own filter row does not offer — see the note in Menu.tsx.
- *
- * NOTE: the ten dishes share three photographs; that is how the templates ship.
+ * NOTE: the dishes share three photographs; that is how the templates ship.
  *
  * Demo personalisation starts in Aonik's absolute-price DTO shape and is mapped
  * through the same adapter as live data. Components never receive a
@@ -36,6 +42,157 @@ import type {
 } from './types';
 
 export const DISH_FIXTURES: Dish[] = [
+  // --- Menu Landing v3's eight dishes, in its order — the menu's Recommended
+  // order. Names, components lines, descriptions, styles, protein sources,
+  // dietary flags, heat and macros are that file's records verbatim.
+  {
+    id: 'dish-wild-rice-goat-efo',
+    slug: 'wild-rice-goat-efo',
+    title: 'Wild Rice, Goat Efo',
+    parts: 'Slow-Cooked Goat · Spinach Efo · Wild Rice', // AUTHORED in the design
+    description: 'Slow-cooked goat in a rich spinach efo, over nutty wild rice.',
+    imageUrl: '/assets/dish-goat-efo.png',
+    heat: 'medium',
+    tags: ['New'],
+    isSignature: false,
+    nutrition: { proteinGrams: 32, carbsGrams: 31, calories: 520, fibreGrams: 9 },
+    isFeatured: false,
+    // No protein source: the design files this goat dish under "Beef", which is
+    // not what it is, and the vocabulary has no "Goat". Left absent (it matches
+    // no protein chip) rather than carried as a claim — for the owner to settle.
+    wellness: ['Protein-led'],
+    dietary: ['Gluten-free', 'High-fibre'],
+  },
+  {
+    id: 'dish-ata-dindin-lamb-shank',
+    slug: 'ata-dindin-lamb-shank',
+    title: 'Ata Dindin Lamb Shank',
+    parts: 'Sweet & Spicy Ata Dindin · Lime-Herb Purple Cabbage',
+    description:
+      'Fall-off-the-bone lamb shank slow-cooked in a bold, peppery ata dindin sauce with native spices.',
+    imageUrl: '/assets/dish-lamb-shank.png',
+    heat: 'high',
+    tags: [],
+    isSignature: true,
+    upgradePence: 400,
+    nutrition: { proteinGrams: 38, carbsGrams: 20, calories: 620, fibreGrams: 8 },
+    isFeatured: false,
+    proteinType: 'Lamb',
+    wellness: ['Protein-led'],
+    dietary: ['Gluten-free'],
+  },
+  {
+    id: 'dish-fish-peppersoup-bone-broth',
+    slug: 'fish-peppersoup-bone-broth',
+    title: 'Fish Peppersoup Bone Broth',
+    parts: 'Native Aromatics · Tender Fish · Bone Broth', // AUTHORED in the design
+    description: 'A fragrant, deeply spiced bone broth with tender fish and native aromatics.',
+    imageUrl: '/assets/dish-fish-peppersoup.png',
+    heat: 'high',
+    tags: [],
+    isSignature: false,
+    nutrition: { proteinGrams: 27, carbsGrams: 31, calories: 520, fibreGrams: 9 },
+    isFeatured: false,
+    proteinType: 'Fish',
+    // "DASH" has no chip and no definition (contract §4d) — the card shows it,
+    // no filter reaches it. Carried as the design has it.
+    wellness: ['DASH'],
+    dietary: ['Gluten-free', 'Dairy-free'],
+  },
+  {
+    id: 'dish-royal-seafood-okra',
+    slug: 'royal-seafood-okra',
+    title: 'Royal Seafood Okra',
+    parts: 'King Prawns · Snapper · Blue Crab · Palm & Okra Stew', // AUTHORED in the design
+    description: 'King prawns, snapper and blue crab in a rich palm-and-okra stew.',
+    imageUrl: '/assets/dish-fish-peppersoup.png',
+    heat: 'medium',
+    tags: [],
+    isSignature: true,
+    upgradePence: 500,
+    // Fat and the declarations come from the older menu template.
+    nutrition: { proteinGrams: 40, carbsGrams: 14, fatGrams: 19, calories: 560, fibreGrams: 7 },
+    isFeatured: false,
+    proteinType: 'Fish',
+    mealType: 'Stew',
+    wellness: ['Protein-led', 'DASH'],
+    // Menu v3 also marks it Gluten-free, but the declaration below lists
+    // gluten. Until the owner settles which is true it makes no gluten-free
+    // claim: a dietary chip must never contradict an allergen declaration.
+    dietary: ['Dairy-free'],
+    ingredients:
+      'King prawns, crab, okra, tomatoes, red peppers, onions, native spices, garlic, herbs, chicken stock, olive oil, sea salt.',
+    allergens: 'Shellfish (prawns, crab), mustard, nuts (peanuts, almonds, pistachio), gluten.',
+  },
+  {
+    id: 'dish-suya-salmon-kale-quinoa',
+    slug: 'suya-salmon-kale-quinoa',
+    title: 'Suya Salmon, Kale, Quinoa',
+    parts: 'Suya-Spiced Salmon · Massaged Kale · Quinoa', // AUTHORED in the design
+    description: 'Suya-spiced salmon with massaged kale and fluffy quinoa.',
+    imageUrl: '/assets/dish-goat-efo.png',
+    heat: 'low',
+    tags: [],
+    isSignature: false,
+    nutrition: { proteinGrams: 32, carbsGrams: 16, calories: 520, fibreGrams: 9 },
+    isFeatured: false,
+    proteinType: 'Fish',
+    wellness: ['Protein-led', 'Mediterranean-inspired'],
+    dietary: ['Gluten-free', 'Dairy-free', 'High-fibre'],
+  },
+  {
+    id: 'dish-jollof-quinoa-bowl',
+    slug: 'jollof-quinoa-bowl',
+    title: 'Jollof Quinoa Bowl',
+    parts: 'Jollof Quinoa · Rainbow Salad',
+    description: 'Smoky party-style jollof made with quinoa and roasted vegetables.',
+    imageUrl: '/assets/dish-goat-efo.png',
+    heat: 'medium',
+    tags: ['New'],
+    isSignature: false,
+    nutrition: { proteinGrams: 24, carbsGrams: 24, fatGrams: 18, calories: 510, fibreGrams: 9 },
+    isFeatured: false,
+    proteinType: 'Plant-based',
+    mealType: 'Bowl',
+    wellness: ['Plant-led', 'Carb-conscious'],
+    dietary: ['Dairy-free', 'High-fibre'],
+  },
+  {
+    id: 'dish-turkey-ayamase-greens',
+    slug: 'turkey-ayamase-greens',
+    title: 'Turkey Ayamase with Greens',
+    parts: 'Peppery Ayamase · Lean Turkey · Steamed Greens', // AUTHORED in the design
+    description: 'Peppery ayamase stew with lean turkey and steamed greens.',
+    imageUrl: '/assets/dish-fish-peppersoup.png',
+    heat: 'medium',
+    tags: [],
+    isSignature: false,
+    nutrition: { proteinGrams: 30, carbsGrams: 18, fatGrams: 16, calories: 500, fibreGrams: 9 },
+    isFeatured: false,
+    proteinType: 'Turkey',
+    mealType: 'Stew',
+    wellness: ['Protein-led'],
+    dietary: ['Gluten-free'],
+  },
+  {
+    id: 'dish-chicken-egusi-cauliflower-rice',
+    slug: 'chicken-egusi-cauliflower-rice',
+    title: 'Chicken Egusi with Cauliflower Rice, Spinach & Pepper Sauce',
+    parts: 'Melon-Seed Egusi · Cauliflower Rice · Scotch Bonnet Sauce', // AUTHORED in the design
+    description:
+      'Melon-seed egusi with chicken, spinach and scotch-bonnet sauce over cauliflower rice.',
+    imageUrl: '/assets/dish-goat-efo.png',
+    heat: 'low',
+    tags: [],
+    isSignature: false,
+    nutrition: { proteinGrams: 31, carbsGrams: 16, fatGrams: 17, calories: 480, fibreGrams: 9 },
+    isFeatured: false,
+    proteinType: 'Chicken',
+    mealType: 'Bowl',
+    wellness: ['Carb-conscious', 'Protein-led'],
+    dietary: ['Gluten-free'],
+  },
+
   // --- The six dishes the homepage rail is designed around.
   //
   // These carry only what the homepage template publishes: title, components,
@@ -104,7 +261,9 @@ export const DISH_FIXTURES: Dish[] = [
       'A fragrant, deeply spiced pepper soup with tender seafood, butter beans and aromatic greens.',
     imageUrl: '/assets/dish-goat-efo.png',
     heat: 'high',
-    tags: ['Under 500 kcal'],
+    // The homepage template printed "Under 500 kcal" here as a literal tag but
+    // publishes no calories for the dish, so the derived tag cannot show (§4d).
+    tags: [],
     isSignature: false,
     nutrition: { proteinGrams: 32, fibreGrams: 9 },
     isFeatured: true,
@@ -145,77 +304,6 @@ export const DISH_FIXTURES: Dish[] = [
     category: 'Everyday balance',
     wellness: [],
     dietary: [],
-  },
-
-  // --- Menu-only dishes, carried over from the menu template with full facets.
-  {
-    id: 'dish-royal-seafood-okra',
-    slug: 'royal-seafood-okra',
-    title: 'Royal seafood okra',
-    description: 'King prawns, snapper and blue crab in a rich palm-and-okra stew.',
-    imageUrl: '/assets/dish-fish-peppersoup.png',
-    heat: 'medium',
-    tags: [],
-    isSignature: true,
-    upgradePence: 500,
-    nutrition: { proteinGrams: 40, carbsGrams: 14, fatGrams: 19, calories: 560, fibreGrams: 7 },
-    isFeatured: false,
-    proteinType: 'Fish',
-    mealType: 'Stew',
-    wellness: ['Protein-led', 'DASH'],
-    dietary: ['Gluten-free', 'Dairy-free'],
-    ingredients:
-      'King prawns, crab, okra, tomatoes, red peppers, onions, native spices, garlic, herbs, chicken stock, olive oil, sea salt.',
-    allergens: 'Shellfish (prawns, crab), mustard, nuts (peanuts, almonds, pistachio), gluten.',
-  },
-  {
-    id: 'dish-jollof-quinoa-bowl',
-    slug: 'jollof-quinoa-bowl',
-    title: 'Jollof quinoa bowl',
-    description: 'Smoky party-style jollof made with quinoa and roasted vegetables.',
-    imageUrl: '/assets/dish-goat-efo.png',
-    heat: 'medium',
-    tags: ['New'],
-    isSignature: false,
-    nutrition: { proteinGrams: 24, carbsGrams: 24, fatGrams: 18, calories: 510, fibreGrams: 9 },
-    isFeatured: false,
-    proteinType: 'Plant-based',
-    mealType: 'Bowl',
-    wellness: ['Plant-led', 'Carb-conscious'],
-    dietary: ['Dairy-free', 'High-fibre'],
-  },
-  {
-    id: 'dish-turkey-ayamase-greens',
-    slug: 'turkey-ayamase-greens',
-    title: 'Turkey ayamase with greens',
-    description: 'Peppery ayamase stew with lean turkey and steamed greens.',
-    imageUrl: '/assets/dish-fish-peppersoup.png',
-    heat: 'medium',
-    tags: ['Protein-led'],
-    isSignature: false,
-    nutrition: { proteinGrams: 30, carbsGrams: 18, fatGrams: 16, calories: 500, fibreGrams: 9 },
-    isFeatured: false,
-    proteinType: 'Turkey',
-    mealType: 'Stew',
-    wellness: ['Protein-led'],
-    dietary: ['Gluten-free'],
-  },
-  {
-    id: 'dish-chicken-egusi-cauliflower-rice',
-    slug: 'chicken-egusi-cauliflower-rice',
-    title: 'Chicken egusi with cauliflower rice, spinach & pepper sauce',
-    description:
-      'Melon-seed egusi with chicken, spinach and scotch-bonnet sauce over cauliflower rice.',
-    imageUrl: '/assets/dish-goat-efo.png',
-    heat: 'low',
-    tags: ['Under 500 kcal'],
-    isSignature: false,
-    nutrition: { proteinGrams: 31, carbsGrams: 16, fatGrams: 17, calories: 480, fibreGrams: 9 },
-    isFeatured: false,
-    proteinType: 'Chicken',
-    mealType: 'Bowl',
-    wellness: ['Carb-conscious', 'Protein-led'],
-    dietary: ['Gluten-free'],
   },
 ];
 
@@ -334,11 +422,12 @@ export const PERSONALISATION_GROUP_SOURCE: EffectiveOptionGroupDto[] = [
     currency: 'GBP',
     sortOrder: 3,
     defaultChoiceKey: '2',
+    // The same words as the cards and the Heat chips (`HEAT_LABELS`).
     choices: [
       { key: '0', label: 'None', note: null, price: 0, sortOrder: 0 },
-      { key: '1', label: 'Low', note: null, price: 0, sortOrder: 1 },
+      { key: '1', label: 'Mild', note: null, price: 0, sortOrder: 1 },
       { key: '2', label: 'Medium', note: null, price: 0, sortOrder: 2 },
-      { key: '3', label: 'High', note: null, price: 0, sortOrder: 3 },
+      { key: '3', label: 'Hot', note: null, price: 0, sortOrder: 3 },
     ],
   },
 ];

@@ -1047,13 +1047,15 @@ export function ReviewStep({
                           <span className={dmStyles.dmCatPill}>Under 500 kcal</span>
                         ) : null}
                       </div>
-                      <div className={dmStyles.dmHeatRow}>
-                        <span className={dmStyles.dmHeatLabel}>Heat</span>
-                        <HeatPips heat={editor.dish.heat} />
-                        <span className={dmStyles.dmSpiceLabel}>
-                          {CARD_HEAT_LABELS[HEAT_STEPS[editor.dish.heat]] ?? ''}
-                        </span>
-                      </div>
+                      {editor.dish.heat ? (
+                        <div className={dmStyles.dmHeatRow}>
+                          <span className={dmStyles.dmHeatLabel}>Heat</span>
+                          <HeatPips heat={editor.dish.heat} />
+                          <span className={dmStyles.dmSpiceLabel}>
+                            {CARD_HEAT_LABELS[HEAT_STEPS[editor.dish.heat]] ?? ''}
+                          </span>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
 

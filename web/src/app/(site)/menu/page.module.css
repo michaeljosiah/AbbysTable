@@ -1,59 +1,94 @@
-.intro {
+/* ===========================================================================
+   /menu — design/Abby's Table - Menu Landing v3.dc.html. Mobile is the base;
+   640 and 1024 add compositions, never overrides.
+   The title band and the menu band are ONE cream run: the hero closes with
+   8px and the band opens with 4px, so the two read as a single section opened
+   by the page title (a cream-to-cream transition comes from heading and
+   spacing, never a divider). Canonical band padding: 44–48 → 56–60 → 72–76.
+   =========================================================================== */
+
+.hero,
+.band {
   background: var(--surface-page);
-  padding: 40px var(--space-7) 18px;
+}
+
+.hero {
+  padding: 44px 0 8px;
   text-align: center;
 }
 
-.intro .heading {
-  margin-top: var(--space-2);
-}
-
-.lead {
-  margin: var(--space-3) auto 0;
-  max-width: 480px;
-  font-family: var(--font-sans);
-  font-weight: var(--weight-medium);
-  font-size: var(--body-md);
-  line-height: var(--line-snug);
-  color: var(--text-muted);
-}
-
-.delivery {
-  font-weight: var(--weight-semibold);
-  color: var(--text-heading);
-}
-
-.dishes {
-  background: var(--surface-page);
-  padding: 22px var(--space-7) 76px;
-  /* Offset the sticky filter bar by what the header covers: its height while
-     shown, 0 while it has scrolled away (the header publishes it — #10). */
-  --stick-top: var(--site-header-offset, 70px);
+.band {
+  padding: 4px 0 48px;
 }
 
 .inner {
   max-width: var(--content-max);
-  margin-inline: auto;
+  margin: 0 auto;
+  padding: 0 22px;
 }
 
-@media (max-width: 1040px) {
-  .intro {
-    padding: 16px 20px 8px;
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: clamp(38px, 11.6vw, 56px);
+  line-height: 1.04;
+  letter-spacing: -0.015em;
+  color: var(--green-forest);
+  text-wrap: pretty;
+}
+
+/* Centred with auto margins — the measure, not just its text. */
+.lede {
+  max-width: 620px;
+  margin: 14px auto 0;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--brown);
+  text-wrap: pretty;
+}
+
+.ledeMore {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .hero {
+    padding: 56px 0 10px;
   }
 
-  .dishes {
-    padding: 6px 20px 76px;
-    --stick-top: var(--site-header-offset, 52px);
+  .band {
+    padding: 6px 0 60px;
   }
 
   .inner {
-    display: flex;
-    flex-direction: column;
+    padding: 0 34px;
+  }
+
+  .ledeMore {
+    display: inline;
+  }
+
+  .ledeStop {
+    display: none;
   }
 }
 
-@media (max-width: 640px) {
-  .intro .heading {
-    font-size: 27px;
+@media (min-width: 1024px) {
+  .hero {
+    padding: 72px 0 14px;
+  }
+
+  .band {
+    padding: 10px 0 76px;
+  }
+
+  .inner {
+    padding: 0 48px;
+  }
+
+  .title {
+    font-size: 56px;
   }
 }

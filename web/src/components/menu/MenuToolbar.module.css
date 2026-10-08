@@ -1,43 +1,29 @@
-/* Sticky under the header; --stick-top is the header's height. */
-.sticky {
-  position: sticky;
-  top: var(--stick-top, 72px);
-  /* Moves with the header's own 0.22s slide rather than jumping ahead of it. */
-  transition: top 0.22s ease;
-  z-index: 30;
-  background: var(--surface-page);
-  padding-bottom: 18px;
-}
+/* ===========================================================================
+   The filter card — design/Abby's Table - Menu Landing v3.dc.html (`.mn-tools`,
+   `.mn-search`, `.mn-btn`, `.mn-sort`, `.mn-active`, `.mn-sheet`, `.mn-group`,
+   `.mn-note`). Mobile is the base; 640 and 1024 add compositions, never
+   overrides. The filter groups are ONE set of markup: a bottom sheet below
+   1024, an inline panel inside this card from 1024.
+   =========================================================================== */
 
 .card {
-  border: var(--border-hairline) solid var(--sand-2);
-  border-radius: 16px;
-  background: var(--surface-card);
-  overflow: hidden;
-  box-shadow: 0 6px 18px -12px rgb(30 58 47 / 0.4);
+  padding: 14px;
+  border: 1px solid var(--sand);
+  border-radius: 18px;
+  background: var(--cream-3);
 }
 
-.bar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  padding: 14px var(--space-4);
-}
-
-/* ---- Search ---------------------------------------------------------------- */
+/* ---- Search -------------------------------------------------------------------- */
 
 .search {
-  flex: 1 1 auto;
-  min-width: 0;
   display: flex;
   align-items: center;
   gap: 11px;
-  padding: 13px 20px;
-  border: var(--border-hairline) solid var(--sand-2);
+  min-height: 52px;
+  padding: 0 18px;
+  border: 1px solid var(--sand-2);
   border-radius: var(--radius-pill);
-  background: var(--surface-page);
-  color: var(--text-muted);
+  background: var(--white);
   transition: border-color 0.16s ease;
 }
 
@@ -45,274 +31,704 @@
   border-color: var(--green-forest);
 }
 
+.searchIcon {
+  flex: 0 0 auto;
+}
+
+/* 16px minimum: anything under it zooms the page on iOS. align-self: stretch,
+   so the input's own box IS the 52px field — at its intrinsic 21px only the
+   text line took a tap. */
 .input {
   flex: 1 1 auto;
+  align-self: stretch;
   min-width: 0;
   border: none;
   outline: none;
   background: transparent;
   font-family: var(--font-sans);
-  font-size: var(--body-md);
-  color: var(--text-body);
+  font-size: 16px;
+  color: var(--brown);
 }
 
-.input::-webkit-search-cancel-button {
-  display: none;
+.input::placeholder {
+  color: var(--brown);
+  opacity: 0.75;
 }
 
-.clear {
+.clearSearch {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-right: -12px;
   border: none;
   background: transparent;
-  padding: 0 4px;
-  cursor: pointer;
-  color: var(--text-muted);
-  font-size: 18px;
+  color: var(--brown);
+  font-size: 20px;
   line-height: 1;
+  cursor: pointer;
   transition: color 0.16s ease;
 }
 
-.clear:hover {
+.clearSearch:hover {
   color: var(--terracotta-deep);
 }
 
-/* ---- Filters toggle --------------------------------------------------------- */
+/* ---- Filters and Sort: utility controls, sentence case, 48px ---------------
+   Side by side: one row of two on a phone, one row of three (with the search)
+   from 640. Alone, a control takes the row. Neither ever shrinks below its
+   label: where the two cannot share a row — 320, or a narrow phone once the
+   count pill shows — Sort wraps under Filters instead of pushing the page
+   sideways (the prototype's 1fr 1fr overflowed by 4px at 320). */
 
-.toggle {
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.controls > * {
+  flex: 1 1 0;
+  min-width: max-content;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 16px;
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.btnFill {
+  border: 1px solid var(--green-forest);
+  background: var(--green-forest);
+  color: var(--blush);
+}
+
+.btnFill:hover {
+  border-color: var(--green-deep);
+  background: var(--green-deep);
+}
+
+.btnOutline {
+  border: 1px solid var(--sand-2);
+  background: var(--cream-2);
+  color: var(--green-forest);
+}
+
+.btnOutline:hover {
+  border-color: var(--green-forest);
+}
+
+.btn:active {
+  filter: brightness(0.94);
+}
+
+.chevron {
   flex: 0 0 auto;
+  transition: transform 0.18s ease;
+}
+
+.btn[aria-expanded='true'] .chevron {
+  transform: rotate(180deg);
+}
+
+.countPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: var(--radius-pill);
+  background: var(--blush);
+  color: var(--green-forest);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  letter-spacing: 0;
+}
+
+/* ---- Sort: a view control, styled as a menu ---------------------------------- */
+
+.sort {
+  position: relative;
+}
+
+.sortList {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  min-width: 246px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--sand-2);
+  border-radius: 14px;
+  background: var(--cream-3);
+  box-shadow: 0 18px 40px -18px color-mix(in srgb, var(--green-forest) 42%, transparent);
+  overflow: hidden;
+}
+
+.sortList[data-open] {
+  display: block;
+}
+
+.sortList[data-above] {
+  top: auto;
+  bottom: calc(100% + 8px);
+}
+
+.sortList:focus {
+  outline: none;
+}
+
+.sortList:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.sortOption {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 48px;
+  padding: 0 18px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  color: var(--green-forest);
+  cursor: pointer;
+  transition: background 0.16s ease;
+}
+
+.sortOption[data-active] {
+  background: var(--cream-2);
+}
+
+.sortOption[aria-selected='true'] {
+  background: color-mix(in srgb, var(--blush) 34%, transparent);
+  font-weight: var(--weight-semibold);
+}
+
+/* ---- Active filters, inside the card: each a real control, 44px ------------- */
+
+.active {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 10px;
-  padding: 11px 18px;
-  border: var(--border-hairline) solid var(--sand-2);
+  margin-top: 12px;
+}
+
+.activeChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1.5px solid var(--surface-dish);
   border-radius: var(--radius-pill);
+  background: var(--surface-dish);
+  color: var(--green-forest);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 16px;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: border-color 0.16s ease;
+}
+
+.activeChip:hover {
+  border-color: var(--green-forest);
+}
+
+.activeChip:active {
+  filter: brightness(0.94);
+}
+
+.activeChipX {
+  font-size: 17px;
+  line-height: 1;
+}
+
+/* Type, so --terracotta-ink rather than --terracotta (3.55:1 on cream). */
+.textButton {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 2px;
+  border: none;
   background: transparent;
   cursor: pointer;
   font-family: var(--font-sans);
   font-weight: var(--weight-semibold);
-  font-size: var(--body-md);
-  letter-spacing: 0.01em;
-  color: var(--green-forest);
-  transition: background 0.16s ease;
+  font-size: 16px;
+  color: var(--terracotta-ink);
+  transition: color 0.16s ease;
 }
 
-.toggle:hover {
-  background: var(--cream-3);
+.textButton span {
+  padding-bottom: 2px;
+  border-bottom: 1.5px solid var(--brass);
 }
 
-.chevron {
-  transition: transform 0.18s ease;
+.textButton:hover {
+  color: var(--terracotta-deep);
 }
 
-.chevron[data-open] {
-  transform: rotate(180deg);
-}
+/* ---- The filter groups: a bottom sheet on a phone ------------------------------
+   Always mounted and closed with display: none, so aria-controls resolves and
+   the panel stays out of the tab order while shut. */
 
-.showing {
-  order: 3;
-  flex-basis: 100%;
-  padding: 6px 0 0 var(--space-1);
-  font-family: var(--font-sans);
-  font-weight: var(--weight-semibold);
-  font-size: 13.5px;
-  letter-spacing: 0.01em;
-  color: var(--text-muted);
-}
-
-/* ---- Panel (inline on desktop) ---------------------------------------------- */
-
-.backdrop {
+.sheetWrap {
   display: none;
 }
 
-.panel {
-  border-top: var(--border-hairline) solid var(--sand-2);
-  padding: 26px 28px 24px;
+.sheetWrap[data-open] {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* z-index 90/95: above the purchase bar (70), ↑ Top (75) and the cookie
+   banner (70); under the consent preferences panel (310). */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: color-mix(in srgb, var(--green-deep) 50%, transparent);
+  animation: fadeIn 0.2s ease;
+}
+
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 95;
+  display: flex;
+  flex-direction: column;
+  max-height: 88vh;
+  max-height: 88dvh;
+  border-top: 2px solid var(--brass);
+  border-radius: 20px 20px 0 0;
+  background: var(--cream-2);
+  animation: slideUp 0.22s ease;
+}
+
+.sheet:focus {
+  outline: none;
 }
 
 .sheetHead {
-  display: none;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--sand);
 }
 
 .sheetTitle {
+  margin: 0;
   font-family: var(--font-display);
   font-weight: var(--weight-medium);
-  font-size: 20px;
-  color: var(--text-heading);
+  font-size: 22px;
+  line-height: 1.25;
+  color: var(--green-forest);
 }
 
-.columns {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-4);
-}
-
-.column {
-  margin: 0;
-  padding: 17px 18px 19px;
-  border: var(--border-hairline) solid var(--sand-2);
-  border-radius: 14px;
-  background: var(--surface-bright);
-}
-
-.columnHead {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 0;
-  margin-bottom: var(--space-4);
-}
-
-.icon {
+/* The canonical close: a plain 44px SVG cross, no ring, no disc. */
+.close {
   flex: 0 0 auto;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: var(--border-hairline) solid var(--brass);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-right: -10px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--green-forest);
+  cursor: pointer;
+  transition: color 0.16s ease;
 }
 
-.columnTitle {
-  font-family: var(--font-display);
-  font-weight: var(--weight-medium);
-  font-size: 18px;
-  line-height: 1.1;
-  color: var(--text-heading);
+.close:hover {
+  color: var(--terracotta-deep);
+}
+
+.sheetBody {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 2px 22px 16px;
+}
+
+.sheetFoot {
+  flex: 0 0 auto;
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  padding: 14px 22px calc(14px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--sand);
+}
+
+/* The sheet's apply is a major section CTA: 52px, full width on a phone. */
+.apply {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 30px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--green-forest);
+  color: var(--white);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.16s ease;
+}
+
+.apply:hover {
+  background: var(--green-deep);
+}
+
+.apply:active {
+  filter: brightness(0.94);
+}
+
+.groups {
+  display: block;
+}
+
+.group {
+  padding: 18px 0;
+  border-top: 1px solid var(--sand);
+}
+
+.group:first-child {
+  border-top: none;
+}
+
+.groupHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+}
+
+/* Brass as TYPE, so brass-ink: plain --brass is 3.47:1 at this size on cream. */
+.groupTitle {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--brass-ink);
 }
 
 .chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 9px;
+  gap: 10px;
+  margin-top: 14px;
 }
 
-.sheetFoot {
-  display: flex;
-  justify-content: flex-end;
+/* 44px target, 22px visible disc. */
+.info {
+  display: inline-flex;
   align-items: center;
-  margin-top: 22px;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -10px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
 }
 
-.clearAll {
-  border: none;
-  background: none;
-  padding: var(--space-1) 6px;
-  cursor: pointer;
+.info span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--brass-ink);
+  border-radius: 50%;
+  color: var(--brass-ink);
   font-family: var(--font-sans);
   font-weight: var(--weight-semibold);
-  font-size: var(--body-sm);
-  color: var(--text-accent);
+  font-size: 13px;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: none;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease;
+}
+
+.info:hover span {
+  background: var(--brass-ink);
+  color: var(--cream);
+}
+
+/* A disclosure note in the flow of its own group — between the head and the
+   chips, so it can never overlap them or be clipped by the sheet's scroll box. */
+.note {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--sand-2);
+  border-radius: 14px;
+  background: var(--cream-3);
+  text-align: left;
+}
+
+.note[data-open] {
+  display: flex;
+}
+
+.noteTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.noteHead {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--brass-ink);
+}
+
+.noteClose {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -12px -14px -12px 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--green-forest);
+  cursor: pointer;
   transition: color 0.16s ease;
 }
 
-.clearAll:hover {
+.noteClose:hover {
   color: var(--terracotta-deep);
 }
 
-/* Apply is a sheet-only control; the desktop panel filters live. */
-.apply {
-  display: none;
+.definition {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--brown);
 }
 
-@media (max-width: 1040px) {
-  .bar {
-    gap: var(--space-2);
-    padding: 10px var(--space-3);
+.definition b {
+  display: block;
+  font-weight: var(--weight-semibold);
+  color: var(--green-forest);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search,
+  .clearSearch,
+  .btn,
+  .chevron,
+  .sortOption,
+  .activeChip,
+  .textButton,
+  .close,
+  .apply,
+  .info span,
+  .noteClose {
+    transition: none;
   }
 
-  .search {
-    padding: 10px 14px;
-  }
-
-  .toggle {
-    padding: 11px 14px;
-  }
-
-  .columns {
-    grid-template-columns: repeat(2, 1fr);
+  .scrim,
+  .sheet {
+    animation: none;
   }
 }
 
-/* ---- Panel becomes a bottom sheet -------------------------------------------- */
+/* ---- 640: search, Filters and Sort on one row; two groups across the sheet -- */
 
-@media (max-width: 760px) {
-  /* The sheet and its backdrop live inside this sticky stacking context, which
-     would hold them under the cookie banner (70) and the header (50). While it
-     is open, lift the context to the design's scrim level (Menu Landing v3
-     `.mn-scrim`, 90), as the consent stacking order requires. */
-  .sticky[data-sheet-open] {
-    z-index: 90;
+@media (min-width: 640px) {
+  .card {
+    padding: 16px;
   }
 
-  .backdrop {
-    display: block;
-    position: fixed;
-    inset: 0;
-    z-index: 99;
-    background: rgb(21 41 31 / 0.5);
-  }
-
-  .panel {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    top: auto;
-    z-index: 100;
-    max-height: 88vh;
-    display: flex;
-    flex-direction: column;
-    padding: 0;
-    border-top: none;
-    border-radius: 20px 20px 0 0;
-    background: var(--surface-card);
-    box-shadow: 0 -8px 40px rgb(21 41 31 / 0.28);
-  }
-
-  .sheetHead {
-    flex: 0 0 auto;
-    display: flex;
+  .toolRow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
     align-items: center;
-    justify-content: space-between;
-    padding: 17px 20px;
-    border-bottom: var(--border-hairline) solid var(--sand-2);
+  }
+
+  .controls {
+    display: contents;
+  }
+
+  .toolRow[data-controls='2'] {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  .toolRow[data-controls='0'] {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .sheetBody {
-    flex: 1 1 auto;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 20px;
+    padding: 2px 34px 18px;
   }
 
+  .sheetHead,
   .sheetFoot {
-    flex: 0 0 auto;
-    justify-content: space-between;
-    margin-top: 0;
-    padding: 13px 20px;
-    border-top: var(--border-hairline) solid var(--sand-2);
-    background: var(--surface-card);
+    padding-left: 34px;
+    padding-right: 34px;
+  }
+
+  .groups {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 34px;
+  }
+
+  .group:nth-child(2) {
+    border-top: none;
   }
 
   .apply {
-    display: inline-flex;
-  }
-
-  .columns {
-    grid-template-columns: 1fr;
+    width: auto;
+    min-width: 260px;
   }
 }
 
-@media (max-width: 400px) {
-  .bar {
-    gap: 6px;
-    padding: var(--space-2);
+/* ---- 1024: the same groups as an inline panel inside the card -------------------
+   No scrim, no sheet chrome, four groups across, and the apply row becomes a
+   right-aligned utility row. */
+
+@media (min-width: 1024px) {
+  .card {
+    padding: 18px;
   }
 
-  .toggle {
-    gap: 6px;
-    padding: 10px var(--space-3);
+  .scrim {
+    display: none;
+  }
+
+  /* 16px above the panel's rule, so the divider does not crowd the search. */
+  .sheetWrap {
+    margin: 16px -18px -18px;
+  }
+
+  .sheet {
+    position: static;
+    max-height: none;
+    border-top: 1px solid var(--sand);
+    border-radius: 0 0 17px 17px;
+    background: transparent;
+    animation: none;
+  }
+
+  .sheetHead {
+    display: none;
+  }
+
+  .sheetBody {
+    overflow: visible;
+    padding: 10px 18px 8px;
+  }
+
+  .sheetFoot {
+    grid-template-columns: 1fr auto;
+    justify-items: end;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 18px;
+    border-top: 1px solid var(--sand);
+  }
+
+  .sheetFoot .textButton {
+    justify-self: start;
+  }
+
+  .groups {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    column-gap: 26px;
+  }
+
+  .group {
+    padding: 14px 0 6px;
+    border-top: none;
+  }
+
+  .group + .group {
+    padding-left: 26px;
+    border-left: 1px solid var(--sand);
+  }
+
+  /* A fifth group a tenant authors starts the next row, flush left. */
+  .group:nth-child(4n + 1) {
+    padding-left: 0;
+    border-left: none;
+  }
+
+  .apply {
+    min-width: 0;
+    padding: 0 26px;
   }
 }

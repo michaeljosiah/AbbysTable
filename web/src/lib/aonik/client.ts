@@ -26,7 +26,10 @@ import type {
 import { DemoCoverageLookup, type CoverageLookup } from './coverage';
 import { AONIK_CODES, AonikError } from './errors';
 import { EXTRA_FIXTURES } from './extras';
-import { FACET_FIXTURES, fixtureMatchesFacet, fixtureOptionGroups } from './fixtureFacets';
+import { dishMatchesSearch, filterDishes, sanitiseFilters } from '@/lib/menu/facets';
+import { ALL_SORTS, parseMenuSort, sortDishes, type MenuSortKey } from '@/lib/menu/sort';
+
+import { FACET_FIXTURES, fixtureOptionGroups } from './fixtureFacets';
 import {
   BOX_FIXTURES,
   BOX_PRICING_FIXTURE,
@@ -92,6 +95,12 @@ export interface AonikClient {
    * so both modes behave identically from the caller's point of view.
    */
   listProducts(options?: ProductBrowseOptions): Promise<ProductPage>;
+  /**
+   * The menu orders this source can apply across the WHOLE match set, before
+   * paging (`lib/menu/sort.ts`). The menu offers only these: an order the
+   * source cannot apply is never faked by sorting one page in the browser.
+   */
+  readonly menuSorts: readonly MenuSortKey[];
   /**
    * A dish's own personalisation groups. Empty means "not personalisable" —
    * hide the panel entirely rather than rendering an empty one.
@@ -175,30 +184,28 @@ export class MockAonikClient implements AonikClient {
     return FACET_FIXTURES;
   }
 
+  /** Every menu order: the fixtures are all here, so the whole set sorts before paging. */
+  readonly menuSorts: readonly MenuSortKey[] = ALL_SORTS;
+
   /**
    * Mirrors Aonik's browse semantics locally: OR within a facet group, AND
-   * across groups. Keeping the contract identical in both modes is what lets
-   * the menu drop its client-side filtering entirely.
+   * across groups (`lib/menu/facets.ts`). Keeping the contract identical in
+   * both modes is what lets the menu drop its client-side filtering entirely.
    */
   async listProducts(options: ProductBrowseOptions = {}): Promise<ProductPage> {
-    const facets = options.facets ?? {};
     let dishes = DISH_FIXTURES;
 
     if (options.collection === FEATURED_COLLECTION_SLUG) {
       dishes = dishes.filter((dish) => dish.isFeatured);
     }
 
-    const needle = options.search?.trim().toLowerCase();
-    if (needle) {
-      dishes = dishes.filter((dish) =>
-        `${dish.title} ${dish.description} ${dish.tags.join(' ')}`.toLowerCase().includes(needle),
-      );
+    if (options.search?.trim()) {
+      const query = options.search;
+      dishes = dishes.filter((dish) => dishMatchesSearch(dish, query));
     }
 
-    for (const [key, values] of Object.entries(facets)) {
-      if (values.length === 0) continue;
-      dishes = dishes.filter((dish) => values.some((value) => fixtureMatchesFacet(dish, key, value)));
-    }
+    dishes = filterDishes(dishes, options.facets ?? {});
+    dishes = sortDishes(dishes, options.order ?? 'recommended');
 
     const pageSize = options.pageSize ?? STOREFRONT_CONFIG_FIXTURE.resultsPageSize;
     const page = options.page ?? 1;
@@ -247,6 +254,11 @@ export interface ProductBrowseOptions {
   collection?: string;
   /** `name` | `newest` | `rank` — rank is the curated order inside a collection. */
   sort?: 'name' | 'newest' | 'rank';
+  /**
+   * A menu order (`lib/menu/sort.ts`). Honoured only by a client that lists it
+   * in `menuSorts`; callers ask for nothing else (`getMenuPageData`).
+   */
+  order?: MenuSortKey;
   facets?: Record<string, string[]>;
 }
 
@@ -283,6 +295,14 @@ export class HttpAonikClient implements AonikClient {
 
   /** None yet: Aonik cannot store a notify-me request (michaeljosiah/aonik#357). */
   readonly notifyList: NotifyList | null = null;
+
+  /**
+   * Recommended only. Aonik's browse sorts by `name | newest | rank`, and its
+   * rows carry no typed nutrition to sort by — Highest protein and Lowest
+   * calories wait on michaeljosiah/aonik#359. Until then the menu draws no Sort
+   * control in live mode rather than offering an order it would have to fake.
+   */
+  readonly menuSorts: readonly MenuSortKey[] = ['recommended'];
 
   /**
    * The waitlist over `WAITLIST_PATH`, or null while Aonik has none
@@ -708,40 +728,63 @@ export async function getStandardsPageData(options: {
   return { exampleDish, returnDish };
 }
 
+export interface MenuPageData {
+  dishes: Dish[];
+  /** Matches across the whole catalogue, not just this page. */
+  totalCount: number;
+  facetGroups: MappedFacetGroup[];
+  /** The filters APPLIED: the request's, less anything the facets read did not advertise. */
+  filters: Record<string, string[]>;
+  /** The order applied — Recommended unless the source can apply the one asked for. */
+  sort: MenuSortKey;
+  /** The orders this source can apply; the Sort control offers only these. */
+  sorts: readonly MenuSortKey[];
+  /** The earliest-delivery promise, or null — then the page states no date. */
+  delivery: DeliveryWindow | null;
+}
+
 /**
- * Resolves everything the /menu page renders in one concurrent pass.
+ * Resolves everything the /menu page renders.
  *
- * Filtering happens server-side: the browse endpoint pages its results, so the
- * only correct place to apply facets is the query itself.
+ * Filtering and sorting happen at the source: the browse endpoint pages its
+ * results, so the only correct place to apply facets and order is the query.
+ *
+ * The facets read comes FIRST, because the browse may only be asked for what
+ * it advertised: Aonik answers an unknown facet key or value with a 400, so a
+ * stale or pasted URL would otherwise take the whole menu down. The facets and
+ * the delivery date are optional to the page — without them it lists its
+ * dishes with no filters and no date, never a guess. The browse is not: a
+ * menu that cannot read its dishes is a real fault, for the error boundary.
  */
 export async function getMenuPageData(options: {
   filters: Record<string, string[]>;
   query: string;
   limit: number;
-}): Promise<{
-  dishes: Dish[];
-  totalCount: number;
-  facetGroups: MappedFacetGroup[];
-  delivery: DeliveryWindow | null;
-}> {
+  sort?: string | string[];
+}): Promise<MenuPageData> {
   const client = await getAonikClient();
 
-  const [page, facetGroups, delivery] = await Promise.all([
-    client.listProducts({
-      facets: options.filters,
-      search: options.query || undefined,
-      page: 1,
-      pageSize: options.limit,
-    }),
-    client.getFacetGroups(),
-    client.getDeliveryWindow(),
-  ]);
+  const delivery = optionalRead('the delivery window', () => client.getDeliveryWindow(), null);
+  const facetGroups = await optionalRead('the menu filters', () => client.getFacetGroups(), []);
+  const filters = sanitiseFilters(options.filters, facetGroups);
+  const sort = parseMenuSort(options.sort, client.menuSorts);
+
+  const page = await client.listProducts({
+    facets: filters,
+    search: options.query || undefined,
+    page: 1,
+    pageSize: options.limit,
+    order: sort === 'recommended' ? undefined : sort,
+  });
 
   return {
     dishes: page.dishes,
     totalCount: page.totalCount,
     facetGroups,
-    delivery,
+    filters,
+    sort,
+    sorts: client.menuSorts,
+    delivery: await delivery,
   };
 }
 

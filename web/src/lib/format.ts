@@ -103,6 +103,20 @@ export function formatDeliveryDateLong(isoDate: string | null | undefined): stri
   return `${WEEKDAYS[date.getUTCDay()]} ${short}`;
 }
 
+/**
+ * A delivery date as the menu's availability strip sets it: "2026-09-18" ->
+ * "Fri 18 Sep" (Menu Landing v3, `nextDelivery`). Weekday and month are the
+ * first three letters of `formatDeliveryDateLong`'s words — the weekday
+ * derived from the date, never stored beside it (contract §4) — and null for
+ * anything that would not make a true date.
+ */
+export function formatDeliveryDateShort(isoDate: string | null | undefined): string | null {
+  const long = formatDeliveryDateLong(isoDate);
+  if (!long) return null;
+  const [weekday, day, month] = long.split(' ');
+  return `${weekday.slice(0, 3)} ${day} ${month.slice(0, 3)}`;
+}
+
 /** Joins parts into a natural list: ["a","b","c"] -> "a, b or c". */
 export function joinWithOr(parts: string[]): string {
   if (parts.length === 0) return '';

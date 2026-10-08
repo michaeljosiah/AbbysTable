@@ -25,6 +25,13 @@ export const OVERLAY_OPEN_ATTR = 'data-overlay-open';
  */
 export const PURCHASE_BAR_ATTR = 'data-purchase-bar';
 
+/**
+ * Set while the mobile purchase bar is actually shown (slid in), so a control
+ * that floats above it — the menu's ↑ Top — sits clear of it, and drops to the
+ * viewport edge when it retracts.
+ */
+export const PURCHASE_BAR_SHOWN_ATTR = 'data-purchase-bar-shown';
+
 /** The slice of `Element` a flag needs. */
 export interface FlagTarget {
   setAttribute(name: string, value: string): void;

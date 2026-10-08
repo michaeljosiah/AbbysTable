@@ -73,13 +73,23 @@ Order matters — Aonik enforces most of it:
 - product option defaults → default content block
 - **default content block → content variants** (`V-C8`)
 
-## Four things that fail silently or confusingly
+## Things that fail silently or confusingly
 
 - **Admin money is decimal major units** (`12.50` = £12.50). The storefront
   stores pence, so divide by 100 on the way in.
 - **A facet's `sourcePath` is a dot path** relative to `attributesJson`
   (`protein`), *not* JSONPath. `$.protein` looks for a property literally named
   `$`, matches nothing, and reports no error.
+- **Facets are Menu Landing v3's four groups** — `protein`, `wellness` (Eating
+  style, no DASH), `heat` and `dietary` — with demo's own tokens (`lamb`,
+  `protein-led`, `hot`, `high-fibre`), matched on each product's
+  `attributesJson.facets.<key>` (`tenantFacetGroups` / `dishFacetTokens`), so a
+  URL means the same in both modes. The display attributes (`protein: "Lamb"`)
+  are untouched. `seed.mjs` only creates groups: a tenant seeded before #21
+  still has `meal` (and the demo-era `spice`/`calories`), which `/menu` would
+  draw as extra filters. Retire those by hand and re-seed the products.
+- **A menu card's description is the `description` attribute.** Browse rows
+  carry no description, so without it a live `/menu` card shows none.
 - **Every variant needs stock.** Without it each box add fails
   `R5: only 0 of this dish is available`. Aonik also enforces `R8` — the box
   must be full to continue or check out.

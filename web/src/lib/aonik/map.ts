@@ -418,6 +418,11 @@ export function mapFacetGroups(dtos: FacetGroupDto[]): MappedFacetGroup[] {
  */
 interface DishAttributes {
   heatStep?: number;
+  /**
+   * The card's description. Aonik's summary DTO has no description field, so
+   * a browse row can only show one published here; absent, the card has none.
+   */
+  description?: string;
   protein?: string;
   meal?: string;
   wellness?: string[];
@@ -445,6 +450,7 @@ function readAttributes(attributesJson: string): DishAttributes {
 
   return {
     heatStep: num(raw.heatStep),
+    description: str(raw.description),
     parts: str(raw.parts),
     protein: str(raw.protein),
     meal: str(raw.meal),
@@ -458,12 +464,17 @@ function readAttributes(attributesJson: string): DishAttributes {
   };
 }
 
-/** `HEAT_STEPS` in reverse: 1→low, 2→medium, 3→high. Anything else is medium. */
-function heatFromStep(step: number | undefined): HeatLevel {
+/**
+ * `HEAT_STEPS` in reverse: 0→none, 1→low, 2→medium, 3→high. Anything else —
+ * absent, fractional, out of range — is NO heat level, not a guessed one: this
+ * used to answer "medium", which put "Medium" heat on every live card whose
+ * product had no `heatStep` (typed heat waits on michaeljosiah/aonik#359).
+ */
+export function heatFromStep(step: number | undefined): HeatLevel | undefined {
   const match = (Object.entries(HEAT_STEPS) as [HeatLevel, number][]).find(
     ([, value]) => value === step,
   );
-  return match?.[0] ?? 'medium';
+  return match?.[0];
 }
 
 /**
@@ -471,8 +482,8 @@ function heatFromStep(step: number | undefined): HeatLevel {
  *
  * LOSSY BY CONSTRUCTION. A summary carries no description, no content and no
  * nutrition — only the detail read has those. Fields that cannot be sourced are
- * left empty rather than invented: `description` is blank, `nutrition` carries
- * only what `attributesJson` published, and `ingredients`/`allergens` are always
+ * left empty rather than invented: `description` is the `description`
+ * attribute or blank, `nutrition` carries only what `attributesJson` published, and `ingredients`/`allergens` are always
  * absent (declarations come exclusively from a content resolution, never from a
  * browse row).
  */
@@ -484,7 +495,7 @@ export function mapSummaryToDish(dto: ProductSummaryDto): Dish {
     slug: dto.slug,
     title: dto.name,
     parts: attributes.parts,
-    description: '',
+    description: attributes.description ?? '',
     imageUrl: dto.heroImageUrl ?? '',
     heat: heatFromStep(attributes.heatStep),
     tags: dto.tags,

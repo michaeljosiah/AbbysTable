@@ -1,0 +1,112 @@
+/* ===========================================================================
+   "↑ Top" — design/Abby's Table - Menu Landing v3.dc.html (`.mn-top`) and
+   design/CLAUDE.md '"↑ Top" utility control'. A navigation utility: cream
+   ground, green-forest ink, sand hairline, restrained shadow — never the
+   filled-green or terracotta treatment.
+   MOBILE: 46px, 16px from the right, 14px above the purchase bar while it is
+   in (its measured --at-bar-h already includes the safe-area padding), at the
+   viewport edge when it retracts.
+   =========================================================================== */
+
+.top {
+  position: fixed;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 75;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 16px;
+  border: 1px solid var(--sand-2);
+  border-radius: var(--radius-pill);
+  background: var(--cream-2);
+  color: var(--green-forest);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: 0 6px 18px -10px color-mix(in srgb, var(--green-forest) 45%, transparent);
+
+  /* Off: faded, slid down, and out of the tab order and the accessibility
+     tree once the fade has finished. */
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  visibility: hidden;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    bottom 0.22s ease,
+    background 0.16s ease,
+    color 0.16s ease,
+    visibility 0s linear 0.2s;
+}
+
+.top svg {
+  display: block;
+}
+
+.top[data-on] {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+  visibility: visible;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    bottom 0.22s ease,
+    background 0.16s ease,
+    color 0.16s ease,
+    visibility 0s;
+}
+
+:global(html[data-purchase-bar-shown]) .top {
+  bottom: calc(var(--at-bar-h, 85px) + 14px);
+}
+
+.top:hover {
+  background: var(--cream);
+  color: var(--terracotta-deep);
+}
+
+.top:active {
+  filter: brightness(0.96);
+}
+
+.top:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .top,
+  .top[data-on] {
+    transition: none;
+  }
+}
+
+/* Compacter with a pointer — no thumb target to hold — 24px from both edges.
+   There is no purchase bar from 1024. */
+@media (min-width: 1024px) {
+  .top,
+  :global(html[data-purchase-bar-shown]) .top {
+    right: 24px;
+    bottom: 24px;
+    min-height: 40px;
+    padding: 0 14px;
+    font-size: 13.5px;
+  }
+}
+
+/* EXCEPTION, min-width 1440 (design/CLAUDE.md "Breakpoint exceptions"): the
+   right gutter can now hold the control clear of the cards. Anchored to the
+   1280 content column, so it keeps a constant 32px from the card track and
+   never drifts out towards the bezel; 28px is the floor. */
+@media (min-width: 1440px) {
+  .top,
+  :global(html[data-purchase-bar-shown]) .top {
+    right: max(28px, calc((100% - var(--content-max)) / 2 - 66px));
+  }
+}

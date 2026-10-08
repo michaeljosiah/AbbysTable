@@ -21,10 +21,10 @@ export interface NutritionFigure {
 
 export interface ExampleDishFacts {
   title: string;
-  /** 'Mild' | 'Medium' | 'High'. */
-  heatLabel: string;
-  /** How many of the three chilli pips are lit. */
-  heatSteps: number;
+  /** 'None' | 'Mild' | 'Medium' | 'Hot'; null when the dish has published no heat. */
+  heatLabel: string | null;
+  /** How many of the three chilli pips are lit; null with `heatLabel`. */
+  heatSteps: number | null;
   /** Always the design's five, in its order; unpublished ones carry null. */
   figures: NutritionFigure[];
   /** Caption owed when the figures are not current fact for this recipe. */
@@ -78,8 +78,8 @@ export function exampleDishFacts(dish: Dish): ExampleDishFacts {
 
   return {
     title: dish.title,
-    heatLabel: HEAT_LABELS[dish.heat],
-    heatSteps: HEAT_STEPS[dish.heat],
+    heatLabel: dish.heat ? HEAT_LABELS[dish.heat] : null,
+    heatSteps: dish.heat ? HEAT_STEPS[dish.heat] : null,
     figures,
     figuresNote,
     allergens: withheld ? null : published(dish.allergens),

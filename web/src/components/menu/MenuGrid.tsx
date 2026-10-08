@@ -2,7 +2,7 @@
 
 import { DishCard } from '@/components/sections/DishCard';
 import type { Dish } from '@/lib/aonik/types';
-import type { ActiveFilter } from '@/lib/menu/filters';
+import { MENU_EMPTY } from '@/lib/content/menu';
 
 import styles from './MenuGrid.module.css';
 
@@ -10,89 +10,59 @@ interface MenuGridProps {
   /** The visible slice of the filtered catalogue. */
   dishes: Dish[];
   resultLabel: string;
-  active: ActiveFilter[];
-  onRemoveFilter: (key: string, value: string) => void;
-  onClearAll: () => void;
+  /** A filter, sort or page change is on its way from the server. */
+  pending?: boolean;
   showLoadMore: boolean;
   onLoadMore: () => void;
+  onClearAll: () => void;
 }
 
+/**
+ * The results line, the dish grid (one card per row on a phone, two from 640,
+ * three from 1024), Load more and the empty state — Menu Landing v3. The cards
+ * are the approved homepage card; their titles are h2, because the menu has
+ * no section heading between its h1 and the cards.
+ */
 export function MenuGrid({
   dishes,
   resultLabel,
-  active,
-  onRemoveFilter,
-  onClearAll,
+  pending = false,
   showLoadMore,
   onLoadMore,
+  onClearAll,
 }: MenuGridProps) {
   return (
-    <div>
-      <div className={styles.resultBar}>
-        {/* Announced so filtering gives non-visual users the new count. */}
-        <span className={styles.resultCount} role="status" aria-live="polite">
+    <div className={styles.results} data-pending={pending || undefined}>
+      <div className={styles.resultRow}>
+        {/* Announced politely: the count changes under the reader's fingers as
+            filters are applied, and nothing else on screen says so. */}
+        <span className={styles.count} role="status" aria-live="polite">
           {resultLabel}
         </span>
-
-        {active.length > 0 ? (
-          <div className={styles.activeRow}>
-            {active.map((filter) => (
-              <button
-                key={`${filter.key}:${filter.value}`}
-                type="button"
-                className={styles.activeChip}
-                onClick={() => onRemoveFilter(filter.key, filter.value)}
-              >
-                <span>{filter.label}</span>
-                <span className={styles.remove} aria-hidden="true">
-                  ×
-                </span>
-                <span className="visuallyHidden">Remove filter</span>
-              </button>
-            ))}
-            <button type="button" className={styles.clearAll} onClick={onClearAll}>
-              Clear all
-            </button>
-          </div>
-        ) : null}
       </div>
 
       {dishes.length > 0 ? (
-        <ul className={styles.grid}>
+        <ul className={styles.grid} role="list" data-menu-grid="">
           {dishes.map((dish) => (
             <li key={dish.id} className={styles.cell}>
-              <DishCard dish={dish} variant="grid" href={`/menu/${dish.slug}`} />
+              <DishCard dish={dish} variant="grid" href={`/menu/${dish.slug}`} headingLevel={2} />
             </li>
           ))}
         </ul>
       ) : (
         <div className={styles.empty}>
-          <p className={styles.emptyTitle}>No dishes match your search or filters.</p>
-          <button type="button" className={styles.emptyAction} onClick={onClearAll}>
-            Clear search &amp; filters
+          <p className={styles.emptyTitle}>{MENU_EMPTY.title}</p>
+          <button type="button" className={styles.textButton} onClick={onClearAll}>
+            <span>{MENU_EMPTY.action}</span>
           </button>
         </div>
       )}
 
       {showLoadMore ? (
-        <div className={styles.more}>
-          <button type="button" className={styles.loadMore} onClick={onLoadMore}>
+        <div className={styles.moreWrap}>
+          <button type="button" className={styles.more} onClick={onLoadMore}>
             Load more dishes
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.9"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M6 9l6 6 6-6" />
-            </svg>
           </button>
-          <span className={styles.moreLabel}>{resultLabel}</span>
         </div>
       ) : null}
     </div>

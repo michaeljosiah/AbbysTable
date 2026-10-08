@@ -18,6 +18,7 @@ import {
 } from '@/lib/aonik/fixtures';
 import { EXTRA_FIXTURES } from '@/lib/aonik/extras';
 import { HEAT_STEPS } from '@/lib/aonik/types';
+import { dishFacetTokens, FACET_ATTRIBUTE, tenantFacetGroups } from '@/lib/menu/facets';
 
 /**
  * The flat `attributesJson` a browse row is filtered and rendered from.
@@ -32,11 +33,16 @@ import { HEAT_STEPS } from '@/lib/aonik/types';
  * the template's four "Nutritional highlights" cells.
  */
 const attributesOf = (dish: (typeof DISH_FIXTURES)[number]) => ({
-  heatStep: HEAT_STEPS[dish.heat],
+  // Omitted (not 0) for a dish with no published heat: 0 means "None".
+  heatStep: dish.heat === undefined ? undefined : HEAT_STEPS[dish.heat],
   // The homepage card's components line. Published as an attribute because the
   // rail renders from data the browse row carries, and Aonik's product model
   // has no first-class subtitle — `attributesJson` is the tenant's own bag.
   parts: dish.parts,
+  // The card's description. Browse rows carry no description field at all, so
+  // a menu card can only show one published here (the same words as the
+  // product's own description).
+  description: dish.description,
   protein: dish.proteinType,
   meal: dish.mealType,
   wellness: dish.wellness,
@@ -46,6 +52,9 @@ const attributesOf = (dish: (typeof DISH_FIXTURES)[number]) => ({
   fibreGrams: dish.nutrition.fibreGrams,
   carbsGrams: dish.nutrition.carbsGrams,
   fatGrams: dish.nutrition.fatGrams,
+  // What the menu's facets match (`facets.protein: "lamb"`), apart from the
+  // display words above: the same tokens demo mode and every URL use.
+  [FACET_ATTRIBUTE]: dishFacetTokens(dish),
 });
 
 console.log(
@@ -62,6 +71,8 @@ console.log(
       box: BOX_PRICING_FIXTURE,
       heating: HEATING_FIXTURE,
       optionGroups: PERSONALISATION_GROUP_SOURCE,
+      // The menu's four filter groups, matched on `facets.<key>`.
+      facetGroups: tenantFacetGroups(),
     },
     null,
     2,

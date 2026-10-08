@@ -1,0 +1,193 @@
+/* ===========================================================================
+   Delivery availability strip — design/Abby's Table - Menu Landing v3.dc.html
+   (`.mn-deliv`). Full width of the column at a 14px radius on a phone, an
+   intrinsic pill centred from 640 — one line at every width.
+   --sage ground: green-forest 9.4:1 and brown 10.2:1 on it; brass is only
+   2.2:1, which is why nothing in this strip is brass.
+   =========================================================================== */
+
+.wrap {
+  margin-top: 18px;
+}
+
+.strip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 6px 12px 6px 16px;
+  border-radius: 14px;
+  background: var(--sage);
+}
+
+.glyph {
+  flex: 0 0 auto;
+}
+
+.text {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.35;
+  color: var(--brown);
+  text-wrap: pretty;
+}
+
+.date {
+  font-weight: var(--weight-semibold);
+  color: var(--green-forest);
+  white-space: nowrap;
+}
+
+/* 44px target, 22px disc. green-forest, not brass-ink: brass-ink is 4.28:1 on
+   sage, which carries a mark but not a 13px glyph. */
+.info {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -10px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.info span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--green-forest);
+  border-radius: 50%;
+  color: var(--green-forest);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: 13px;
+  line-height: 1;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease;
+}
+
+.info:hover span {
+  background: var(--green-forest);
+  color: var(--sage);
+}
+
+/* The filter note's panel, floated under the strip (the strip is the
+   positioning context, so the caret sits against the "i" at every width). */
+.note {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  right: 0;
+  z-index: 40;
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--sand-2);
+  border-radius: 14px;
+  background: var(--cream-3);
+  box-shadow: 0 18px 40px -18px color-mix(in srgb, var(--green-forest) 42%, transparent);
+  text-align: left;
+}
+
+.note[data-open] {
+  display: flex;
+}
+
+/* A rotated SQUARE carrying two of the panel's borders, never a solid
+   triangle (which breaks the outline). right: 16px puts its centre on the
+   "i" disc's centre. */
+.note::after {
+  content: '';
+  position: absolute;
+  top: -7px;
+  right: 16px;
+  width: 12px;
+  height: 12px;
+  border-top: 1px solid var(--sand-2);
+  border-left: 1px solid var(--sand-2);
+  background: var(--cream-3);
+  transform: rotate(45deg);
+}
+
+.noteTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.noteTitle {
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 22px;
+  line-height: 1.25;
+  color: var(--green-forest);
+}
+
+.noteClose {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -12px -14px -12px 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--green-forest);
+  cursor: pointer;
+  transition: color 0.16s ease;
+}
+
+.noteClose:hover {
+  color: var(--terracotta-deep);
+}
+
+.body {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--brown);
+}
+
+.body strong {
+  font-weight: var(--weight-semibold);
+  color: var(--green-forest);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .info span,
+  .noteClose {
+    transition: none;
+  }
+}
+
+@media (min-width: 640px) {
+  /* Intrinsic and centred: a full-width strip only earns its width on a phone. */
+  .wrap {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+  }
+
+  .strip {
+    padding: 6px 10px 6px 20px;
+    border-radius: var(--radius-pill);
+  }
+
+  .note {
+    left: auto;
+    right: 0;
+    width: min(380px, calc(100vw - 68px));
+  }
+}

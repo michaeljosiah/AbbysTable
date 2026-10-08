@@ -87,6 +87,8 @@ const NO_FILTERS: PickerFilters = { category: [], dietary: [], spice: [], calori
 
 /** The template's spice chips, on the same 0-3 scale as `HEAT_STEPS`. */
 const SPICE_CHIPS: { label: string; step: number }[] = [
+  // A published step 0 is a real answer ("no heat"), not a missing one.
+  { label: 'None', step: 0 },
   { label: 'Mild', step: 1 },
   { label: 'Medium', step: 2 },
   { label: 'Hot', step: 3 },
@@ -185,8 +187,8 @@ function CardPip({ size, lit }: { size: number; lit: boolean }) {
   );
 }
 
-/** The step-2 template names the top heat "Hot" (the dish page says "High"). */
-export const CARD_HEAT_LABELS: Record<number, string> = { 1: 'Mild', 2: 'Medium', 3: 'Hot' };
+/** The heat words every surface uses (`HEAT_LABELS`), by step. */
+export const CARD_HEAT_LABELS: Record<number, string> = { 0: 'None', 1: 'Mild', 2: 'Medium', 3: 'Hot' };
 
 export function DishPicker({
   dishes,
@@ -337,7 +339,10 @@ export function DishPicker({
       if (
         filters.spice.length &&
         !filters.spice.some(
-          (label) => SPICE_CHIPS.find((chip) => chip.label === label)?.step === HEAT_STEPS[dish.heat],
+          // A dish with no published heat matches no heat chip.
+          (label) =>
+            dish.heat !== undefined &&
+            SPICE_CHIPS.find((chip) => chip.label === label)?.step === HEAT_STEPS[dish.heat],
         )
       ) {
         return false;
@@ -1267,8 +1272,9 @@ export function DishPicker({
             const personalised = dishLines.filter((line) => line.personalisation);
             const single = dishLines.length === 1 ? dishLines[0] : null;
             const anyExtra = dishLines.some((line) => extraLineIds.has(line.lineId));
-            const heatStep = HEAT_STEPS[dish.heat];
-            const heatLabel = CARD_HEAT_LABELS[heatStep];
+            // No published heat: no pips lit and no word — never a guessed level.
+            const heatStep = dish.heat ? HEAT_STEPS[dish.heat] : 0;
+            const heatLabel = dish.heat ? CARD_HEAT_LABELS[heatStep] : undefined;
             const kcal = dish.nutrition.calories;
             const mMeta = [heatLabel, kcal !== undefined ? `${kcal} kcal` : null,
               `${dish.nutrition.proteinGrams}g protein`]
@@ -1390,14 +1396,16 @@ export function DishPicker({
                     <p className={styles.desc}>{dish.description}</p>
 
                     <div className={styles.statsRow}>
-                      <span className={styles.heatStat}>
-                        <span className={styles.heatPips}>
-                          {[1, 2, 3].map((step) => (
-                            <CardPip key={step} size={15} lit={step <= heatStep} />
-                          ))}
+                      {dish.heat ? (
+                        <span className={styles.heatStat}>
+                          <span className={styles.heatPips}>
+                            {[1, 2, 3].map((step) => (
+                              <CardPip key={step} size={15} lit={step <= heatStep} />
+                            ))}
+                          </span>
+                          <span className={styles.heatLabel}>{heatLabel}</span>
                         </span>
-                        <span className={styles.heatLabel}>{heatLabel}</span>
-                      </span>
+                      ) : null}
                       {dish.nutrition.proteinGrams !== undefined ? (
                         <NutritionTag dot="protein">
                           Protein {dish.nutrition.proteinGrams}g
@@ -1409,11 +1417,13 @@ export function DishPicker({
                     </div>
 
                     <div className={styles.mMeta}>
-                      <span className={styles.mMetaPips}>
-                        {[1, 2, 3].map((step) => (
-                          <CardPip key={step} size={13} lit={step <= heatStep} />
-                        ))}
-                      </span>
+                      {dish.heat ? (
+                        <span className={styles.mMetaPips}>
+                          {[1, 2, 3].map((step) => (
+                            <CardPip key={step} size={13} lit={step <= heatStep} />
+                          ))}
+                        </span>
+                      ) : null}
                       <span>{mMeta}</span>
                     </div>
 
@@ -1816,13 +1826,15 @@ export function DishPicker({
                           <span className={styles.dmCatPill}>{LOW_CALORIE_BAND}</span>
                         ) : null}
                       </div>
-                      <div className={styles.dmHeatRow}>
-                        <span className={styles.dmHeatLabel}>Heat</span>
-                        <HeatPips heat={editor.dish.heat} />
-                        <span className={styles.dmSpiceLabel}>
-                          {CARD_HEAT_LABELS[HEAT_STEPS[editor.dish.heat]] ?? ''}
-                        </span>
-                      </div>
+                      {editor.dish.heat ? (
+                        <div className={styles.dmHeatRow}>
+                          <span className={styles.dmHeatLabel}>Heat</span>
+                          <HeatPips heat={editor.dish.heat} />
+                          <span className={styles.dmSpiceLabel}>
+                            {CARD_HEAT_LABELS[HEAT_STEPS[editor.dish.heat]] ?? ''}
+                          </span>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
 

@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 
-import { holdDocumentFlag, PURCHASE_BAR_ATTR } from '@/lib/dom/documentFlag';
+import { holdDocumentFlag, PURCHASE_BAR_ATTR, PURCHASE_BAR_SHOWN_ATTR } from '@/lib/dom/documentFlag';
+import { useDocumentFlag } from '@/lib/dom/hooks';
 import { readPageScroll, subscribePageScroll } from '@/lib/dom/pageScroll';
 import {
   hasScrolledPast,
@@ -59,6 +60,8 @@ export function PurchaseBarShell({
   const barRef = useRef<HTMLDivElement>(null);
   const on = useBarVisibility(followsDirection);
   useBarHeight(barRef);
+  // Floating controls above the bar (the menu's ↑ Top) read this to clear it.
+  useDocumentFlag(PURCHASE_BAR_SHOWN_ATTR, on);
 
   return (
     <div

@@ -21,7 +21,7 @@ const PIP_COUNT = 3;
  */
 export function ExampleDishPanel({ dish, className }: { dish: Dish; className?: string }) {
   const facts = exampleDishFacts(dish);
-  const lit = HEAT_STEPS[facts.heat];
+  const heat = facts.heat;
 
   return (
     <div className={[styles.panel, className].filter(Boolean).join(' ')}>
@@ -30,27 +30,30 @@ export function ExampleDishPanel({ dish, className }: { dish: Dish; className?: 
           <p className={styles.eyebrow}>Example dish information</p>
           <p className={styles.title}>{facts.title}</p>
         </div>
-        <span className={styles.heat}>
-          <span className={styles.pips} role="img" aria-label={`Heat level: ${HEAT_LABELS[facts.heat]}`}>
-            {Array.from({ length: PIP_COUNT }, (_, index) => (
-              <svg
-                key={index}
-                width="14"
-                height="14"
-                viewBox={CHILLI_VIEW_BOX}
-                className={styles.pip}
-                data-lit={index < lit || undefined}
-                aria-hidden="true"
-              >
-                <path className={styles.stem} d={CHILLI_STEM_PATH} />
-                <path className={styles.body} d={CHILLI_BODY_PATH} />
-              </svg>
-            ))}
+        {/* No published heat, no pips: a gap, never a guessed level. */}
+        {heat ? (
+          <span className={styles.heat}>
+            <span className={styles.pips} role="img" aria-label={`Heat level: ${HEAT_LABELS[heat]}`}>
+              {Array.from({ length: PIP_COUNT }, (_, index) => (
+                <svg
+                  key={index}
+                  width="14"
+                  height="14"
+                  viewBox={CHILLI_VIEW_BOX}
+                  className={styles.pip}
+                  data-lit={index < HEAT_STEPS[heat] || undefined}
+                  aria-hidden="true"
+                >
+                  <path className={styles.stem} d={CHILLI_STEM_PATH} />
+                  <path className={styles.body} d={CHILLI_BODY_PATH} />
+                </svg>
+              ))}
+            </span>
+            <span className={styles.heatLabel} aria-hidden="true">
+              {HEAT_LABELS[heat]}
+            </span>
           </span>
-          <span className={styles.heatLabel} aria-hidden="true">
-            {HEAT_LABELS[facts.heat]}
-          </span>
-        </span>
+        ) : null}
       </div>
 
       {/* A real definition list: each figure is a value for a named nutrient,

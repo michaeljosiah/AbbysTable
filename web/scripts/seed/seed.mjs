@@ -223,28 +223,24 @@ if (extrasCol) {
 /* ---- 6. Facets ------------------------------------------------------------ */
 
 console.log('\n  facets');
-const uniq = (fn) => [...new Set(DATA.dishes.flatMap(fn).filter(Boolean))];
-const opts = (values) => JSON.stringify(values.map((v) => ({ value: v, label: v })));
-
-const facets = [
-  { key: 'protein', label: 'Protein', sourcePath: 'protein', values: uniq((d) => [d.attributes.protein]) },
-  { key: 'meal', label: 'Meal type', sourcePath: 'meal', values: uniq((d) => [d.attributes.meal]) },
-  { key: 'wellness', label: 'Wellness goal', sourcePath: 'wellness', values: uniq((d) => d.attributes.wellness) },
-  { key: 'dietary', label: 'Dietary', sourcePath: 'dietary', values: uniq((d) => d.attributes.dietary) },
-];
+// Menu Landing v3's four groups — Protein source, Eating style, Heat, Dietary
+// & other — exactly as the demo serves them, tokens and labels alike, each
+// matched on the product's `facets.<key>` attribute (`tenantFacetGroups` and
+// `dishFacetTokens` in src/lib/menu/facets.ts). Every option is authored,
+// even one no dish carries yet: the design shows the whole set.
+const facets = DATA.facetGroups ?? [];
 
 for (const [i, f] of facets.entries()) {
-  if (!f.values.length) { console.log(`    ${f.key}: no values, skipped`); continue; }
   const made = await call('POST', '/commerce/admin/facet-groups', {
     key: f.key,
     label: f.label,
     matchKind: 'Attribute',
     // Dot path relative to attributesJson — never JSONPath.
     sourcePath: f.sourcePath,
-    optionsJson: opts(f.values),
+    optionsJson: JSON.stringify(f.options),
     sortOrder: i,
   });
-  console.log(`    ${f.key}: ${made ? f.values.length + ' options' : 'FAILED'}`);
+  console.log(`    ${f.key}: ${made ? f.options.length + ' options' : 'FAILED'}`);
 }
 
 /* ---- 7. Storefront config ------------------------------------------------- */

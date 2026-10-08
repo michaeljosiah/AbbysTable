@@ -22,11 +22,12 @@
        drawer and sheets as the design orders it) and never meets it: it
        yields outright while the banner or panel shows (below);
      - the PREFERENCES PANEL (scrim 310, panel 311) sits above everything.
-   Three of those overlays open inside a sticky ancestor's stacking context,
+   Two of those overlays open inside a sticky ancestor's stacking context,
    which would hold them under the banner, so the ancestor lifts itself while
-   they are open: the /menu and Add Dishes filter sheets (their toolbar → 90,
-   MenuToolbar and DishPicker) and the checkout help drawer (the checkout
-   header → 200). A new overlay must be checked the same way.
+   they are open: the Add Dishes filter sheet (its toolbar → 90, DishPicker)
+   and the checkout help drawer (the checkout header → 200). The /menu filter
+   sheet no longer needs it: its filter card is not sticky (Menu Landing v3),
+   so the sheet's own 90/95 apply. A new overlay must be checked the same way.
    Only the development data-mode badge (9999) is higher, and it never ships.
    While the banner or the panel shows, the purchase bars and ↑ Top are also
    suppressed outright (globals.css, `data-consent-yield`), so no control is
