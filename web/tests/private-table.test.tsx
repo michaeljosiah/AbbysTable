@@ -194,6 +194,9 @@ test('a typed name resolves only to a listed country — by name or alias, in an
   assert.equal(resolveCountry("Cote d'Ivoire")?.code, 'CI');
   assert.equal(resolveCountry('Côte d’Ivoire')?.code, 'CI');
   assert.equal(resolveCountry('turkiye')?.code, 'TR');
+  // A parenthesised name is reachable without its brackets.
+  assert.equal(resolveCountry('Myanmar')?.code, 'MM');
+  assert.equal(resolveCountry('Cocos Islands')?.code, 'CC');
   // Punctuation and spacing do not matter…
   assert.equal(resolveCountry('U.K.')?.code, 'GB');
   // …but partial names and free text are not countries.

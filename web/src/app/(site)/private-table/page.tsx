@@ -24,9 +24,9 @@ const DESCRIPTION =
   'We develop a collection of Nigerian fusion recipes around your nutritional needs, wherever you are in the world. If you’re in the UK, your approved dishes can also be prepared and delivered to you.';
 
 export const metadata: Metadata = {
-  title: "Abby’s Private Table — Abby's Table",
+  title: "Abby's Private Table — Abby's Table",
   description: DESCRIPTION,
-  openGraph: { title: "Abby’s Private Table — Abby's Table", description: DESCRIPTION, locale: 'en_GB' },
+  openGraph: { title: "Abby's Private Table — Abby's Table", description: DESCRIPTION, locale: 'en_GB' },
 };
 
 export default async function PrivateTablePage() {

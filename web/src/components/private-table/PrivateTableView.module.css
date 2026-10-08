@@ -467,6 +467,12 @@
   display: none;
 }
 
+/* The closed page's scroller is a tab stop (nothing inside it is). */
+.cards:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: -2px;
+}
+
 .cards[data-cta] {
   grid-template-rows: repeat(6, auto) 1fr;
 }

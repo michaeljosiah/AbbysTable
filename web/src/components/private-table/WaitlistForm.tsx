@@ -379,6 +379,7 @@ export function WaitlistForm({ action }: { action: WaitlistAction }) {
                   name={WAITLIST_FORM_FIELDS.service}
                   value={option.id}
                   checked={service === option.id}
+                  required
                   onChange={() => {
                     if (!isPending) choose(option.id);
                   }}

@@ -240,8 +240,16 @@ export function PrivateTableView({ joinAction }: PrivateTableViewProps) {
 
           {/* A peeking carousel on a phone (the second card shows at the
               edge), two columns from 640 — one grid throughout, so the cards'
-              rows line up in both (subgrid). */}
-          <ul className={styles.cards} role="list" data-cta={open ? '' : undefined}>
+              rows line up in both (subgrid). While the waitlist is closed the
+              cards hold nothing focusable, so the scroller itself is a tab
+              stop: a keyboard can still reach the second card. */}
+          <ul
+            className={styles.cards}
+            role="list"
+            aria-label="The two services"
+            tabIndex={open ? undefined : 0}
+            data-cta={open ? '' : undefined}
+          >
             {PRIVATE_TABLE_SERVICES.map((service) => {
               const price = splitPrice(service.fromPence);
               return (

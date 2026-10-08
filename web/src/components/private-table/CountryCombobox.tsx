@@ -184,6 +184,7 @@ export function CountryCombobox({
           name={name}
           type="text"
           role="combobox"
+          required
           aria-autocomplete="list"
           aria-expanded={expanded}
           aria-controls={listId}
