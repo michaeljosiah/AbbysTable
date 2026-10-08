@@ -187,7 +187,7 @@ function CardPip({ size, lit }: { size: number; lit: boolean }) {
   );
 }
 
-/** The step-2 template names the top heat "Hot" (the dish page says "High"). */
+/** The heat words every surface uses (`HEAT_LABELS`), by step. */
 export const CARD_HEAT_LABELS: Record<number, string> = { 0: 'None', 1: 'Mild', 2: 'Medium', 3: 'Hot' };
 
 export function DishPicker({

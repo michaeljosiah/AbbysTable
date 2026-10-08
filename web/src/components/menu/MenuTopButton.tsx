@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { readPageScroll, subscribePageScroll } from '@/lib/dom/pageScroll';
 import { MENU_BAND_ATTR, MENU_TITLE_ID } from '@/lib/menu/constants';
 import { nextTopShown } from '@/lib/menu/topControl';
-import { SITE_HEADER_ATTR } from '@/lib/purchase-bar/visibility';
+import { scrollerView, SITE_HEADER_ATTR } from '@/lib/purchase-bar/visibility';
 import { DESKTOP_QUERY } from '@/lib/site-header/visibility';
 
 import styles from './MenuTopButton.module.css';
@@ -33,16 +33,26 @@ export function MenuTopButton() {
     let frame = 0;
     const desktop = window.matchMedia(DESKTOP_QUERY);
 
+    // Measured against what the reader can see: the window, or the ancestor
+    // the shared tracker follows when one holds the page (as the purchase bar).
+    const view = () => {
+      const scroller = readPageScroll()?.scroller;
+      return scroller?.isConnected
+        ? scrollerView(scroller.getBoundingClientRect().top + scroller.clientTop, scroller.clientHeight, window.innerHeight)
+        : { top: 0, height: window.innerHeight };
+    };
+
     const evaluate = () => {
       frame = 0;
       const band = document.querySelector(`[${MENU_BAND_ATTR}]`);
       const firstCard = document.querySelector('[data-menu-grid] > li');
+      const { top, height } = view();
       setShown((was) =>
         nextTopShown(was, {
           desktop: desktop.matches,
-          bandTop: band ? band.getBoundingClientRect().top : null,
-          firstCardBottom: firstCard ? firstCard.getBoundingClientRect().bottom : null,
-          viewportHeight: window.innerHeight,
+          bandTop: band ? band.getBoundingClientRect().top - top : null,
+          firstCardBottom: firstCard ? firstCard.getBoundingClientRect().bottom - top : null,
+          viewportHeight: height,
         }),
       );
     };

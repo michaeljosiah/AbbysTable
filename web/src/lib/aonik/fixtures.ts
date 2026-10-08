@@ -422,11 +422,12 @@ export const PERSONALISATION_GROUP_SOURCE: EffectiveOptionGroupDto[] = [
     currency: 'GBP',
     sortOrder: 3,
     defaultChoiceKey: '2',
+    // The same words as the cards and the Heat chips (`HEAT_LABELS`).
     choices: [
       { key: '0', label: 'None', note: null, price: 0, sortOrder: 0 },
-      { key: '1', label: 'Low', note: null, price: 0, sortOrder: 1 },
+      { key: '1', label: 'Mild', note: null, price: 0, sortOrder: 1 },
       { key: '2', label: 'Medium', note: null, price: 0, sortOrder: 2 },
-      { key: '3', label: 'High', note: null, price: 0, sortOrder: 3 },
+      { key: '3', label: 'Hot', note: null, price: 0, sortOrder: 3 },
     ],
   },
 ];

@@ -14,9 +14,9 @@ import {
 import MenuPage from '../src/app/(site)/menu/page';
 import { DishCard } from '../src/components/sections/DishCard';
 import type { ProductSummaryDto } from '../src/lib/aonik/dto';
-import { DISH_FIXTURES, DELIVERY_FIXTURE } from '../src/lib/aonik/fixtures';
+import { DISH_FIXTURES, DELIVERY_FIXTURE, PERSONALISATION_GROUP_SOURCE } from '../src/lib/aonik/fixtures';
 import { heatFromStep, mapSummaryToDish } from '../src/lib/aonik/map';
-import type { Dish } from '../src/lib/aonik/types';
+import { HEAT_LABELS, HEAT_STEPS, type Dish, type HeatLevel } from '../src/lib/aonik/types';
 import { CartProvider } from '../src/lib/cart/CartProvider';
 import { DELIVERY_NOTE, EATING_STYLE_DEFINITIONS } from '../src/lib/content/menu';
 import { formatDeliveryDateShort } from '../src/lib/format';
@@ -297,6 +297,13 @@ test('the seeded tenant authors demo’s four groups, matched on the tokens each
   const bare = dishFacetTokens(dish({ heat: undefined, proteinType: undefined }));
   assert.equal(bare.heat, undefined);
   assert.equal(bare.protein, undefined);
+});
+
+test('the personaliser names each heat step as the cards and chips do', () => {
+  const heat = PERSONALISATION_GROUP_SOURCE.find((group) => group.key === 'heat')!;
+  for (const [level, step] of Object.entries(HEAT_STEPS) as [HeatLevel, number][]) {
+    assert.equal(heat.choices.find((choice) => choice.key === String(step))?.label, HEAT_LABELS[level], level);
+  }
 });
 
 test('no demo dish claims a dietary flag its own allergen declaration contradicts', () => {

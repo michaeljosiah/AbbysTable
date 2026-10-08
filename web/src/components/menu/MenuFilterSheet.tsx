@@ -7,6 +7,7 @@ import { EATING_STYLE_DEFINITIONS, EATING_STYLE_NOTE_HEAD } from '@/lib/content/
 import { OVERLAY_OPEN_ATTR } from '@/lib/dom/documentFlag';
 import { trapFocus } from '@/lib/dom/focusTrap';
 import { useDocumentFlag, useMediaQuery } from '@/lib/dom/hooks';
+import { readPageScroll } from '@/lib/dom/pageScroll';
 import { FACET_KEY, heatChipPips, isHeatGroup } from '@/lib/menu/facets';
 import { dishCount, type MenuFilters } from '@/lib/menu/filters';
 import { DESKTOP_QUERY } from '@/lib/site-header/visibility';
@@ -101,19 +102,25 @@ export function MenuFilterSheet({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // The sheet is modal: Tab stays inside and the page behind does not scroll.
+  // The sheet is modal: Tab stays inside and the page behind does not scroll —
+  // the body, and the ancestor that holds the page when one does (a host
+  // preview, an embed: the shared tracker's scroller).
   useEffect(() => {
     const panel = panelRef.current;
     if (!sheet || !panel) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const tracked = readPageScroll()?.scroller;
+    const held = tracked instanceof HTMLElement && tracked.isConnected ? [document.body, tracked] : [document.body];
+    const previous = held.map((element) => element.style.overflow);
+    for (const element of held) element.style.overflow = 'hidden';
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Tab') trapFocus(event, panel);
     };
     document.addEventListener('keydown', onKeyDown);
     return () => {
       document.removeEventListener('keydown', onKeyDown);
-      document.body.style.overflow = previousOverflow;
+      held.forEach((element, index) => {
+        element.style.overflow = previous[index];
+      });
     };
   }, [sheet]);
 
