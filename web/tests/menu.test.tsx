@@ -22,12 +22,12 @@ import { DELIVERY_NOTE, EATING_STYLE_DEFINITIONS } from '../src/lib/content/menu
 import { formatDeliveryDateShort } from '../src/lib/format';
 import { dishCardTags, isUnderKcal, UNDER_KCAL_TAG } from '../src/lib/menu/cardTags';
 import {
+  dishFacetTokens,
   dishMatchesFacet,
   dishMatchesSearch,
   filterDishes,
   filtersFromParams,
   heatChipPips,
-  heatToken,
   MENU_FACET_GROUPS,
   sanitiseFilters,
   tenantFacetGroups,
@@ -268,32 +268,35 @@ test('cream tags: the first eating style (or the homepage category), then the kc
   assert.deepEqual(dishCardTags(bySlug('wild-rice-goat-efo'), { category: false }).cream, ['Protein-led']);
 });
 
-test('the seeded tenant authors the design’s four groups, values as the attributes publish them', () => {
+test('the seeded tenant authors demo’s four groups, matched on the tokens each dish publishes', () => {
   const groups = tenantFacetGroups();
+  // Demo's groups exactly — keys, labels, tokens — each matched on `facets.<key>`.
   assert.deepEqual(
-    groups.map((group) => [group.key, group.label, group.sourcePath]),
-    MENU_FACET_GROUPS.map((group) => [group.key, group.label, group.key]),
+    groups.map(({ key, label, options }) => ({ key, label, options })),
+    MENU_FACET_GROUPS.map(({ key, label, options }) => ({ key, label, options })),
   );
-  const byKey = Object.fromEntries(groups.map((group) => [group.key, group]));
-  // Labels are the chips'; values are the records' own words.
-  assert.deepEqual(byKey.protein.options.map((option) => option.value), ['Chicken', 'Beef', 'Lamb', 'Fish', 'Turkey', 'Plant-based']);
-  assert.ok(!byKey.wellness.options.some((option) => option.value === 'DASH'), 'no DASH chip');
-  assert.deepEqual(byKey.dietary.options, [
-    { value: 'Gluten-free', label: 'Gluten-free' },
-    { value: 'Dairy-free', label: 'Dairy-free' },
-    { value: 'High-fibre', label: 'High in fibre' },
-  ]);
-  // Heat matches the `heat` attribute's chip tokens, which keep their pips.
-  assert.deepEqual(
-    byKey.heat.options.map((option) => [option.value, option.label, heatChipPips(option.value)]),
-    [['none', 'None', 0], ['mild', 'Mild', 1], ['medium', 'Medium', 2], ['hot', 'Hot', 3]],
-  );
-  // Every value a fixture publishes is one an option can match.
+  assert.deepEqual(groups.map((group) => group.sourcePath), ['facets.protein', 'facets.wellness', 'facets.heat', 'facets.dietary']);
+  assert.ok(!groups.some((group) => group.options.some((option) => option.value === 'dash')), 'no DASH chip');
+  // A URL means the same in both modes: lamb, not "Lamb".
+  assert.ok(groups[0].options.some((option) => option.value === 'lamb'));
+  // What a dish publishes is exactly what demo matches it on — no more, no less.
   for (const candidate of DISH_FIXTURES) {
-    if (candidate.heat) assert.ok(byKey.heat.options.some((option) => option.value === heatToken(candidate.heat!)), candidate.slug);
-    if (candidate.proteinType) assert.ok(byKey.protein.options.some((option) => option.value === candidate.proteinType), candidate.slug);
-    for (const tag of candidate.dietary) assert.ok(byKey.dietary.options.some((option) => option.value === tag), `${candidate.slug} ${tag}`);
+    const tokens = dishFacetTokens(candidate);
+    for (const group of groups) {
+      const published = ([] as string[]).concat(tokens[group.key] ?? []);
+      for (const option of group.options) {
+        assert.equal(
+          published.includes(option.value),
+          dishMatchesFacet(candidate, group.key, option.value),
+          `${candidate.slug} ${group.key}=${option.value}`,
+        );
+      }
+    }
   }
+  // A field the dish does not carry is left out, never guessed.
+  const bare = dishFacetTokens(dish({ heat: undefined, proteinType: undefined }));
+  assert.equal(bare.heat, undefined);
+  assert.equal(bare.protein, undefined);
 });
 
 test('no demo dish claims a dietary flag its own allergen declaration contradicts', () => {
@@ -515,7 +518,15 @@ test('live: no Sort control, no sort sent, unadvertised facets never sent, no gu
       if (request.path.startsWith('/commerce/catalog/products')) {
         return {
           status: 200,
-          body: { items: [liveRow('no-heat', {}), liveRow('hot', { heatStep: 3, kcal: 450 })], totalCount: 2, page: 1, pageSize: 6 },
+          body: {
+            items: [
+              liveRow('no-heat', {}),
+              liveRow('hot', { heatStep: 3, kcal: 450, description: 'Scotch bonnet heat, cooked low.' }),
+            ],
+            totalCount: 2,
+            page: 1,
+            pageSize: 6,
+          },
         };
       }
       if (request.path.startsWith('/commerce/config/delivery')) return { status: 404, body: {} };
@@ -532,6 +543,10 @@ test('live: no Sort control, no sort sent, unadvertised facets never sent, no gu
   assert.doesNotMatch(html, /Next deliveries from/, 'no delivery window, no strip');
   assert.equal(html.match(/Heat level:/g)?.length, 1, 'only the row that published a heat states one');
   assert.match(html, />Under 500 kcal</);
+  // A browse row has no description field: the card shows the published
+  // attribute, and a row without one shows none rather than a stand-in.
+  assert.match(html, />Scotch bonnet heat, cooked low\.</);
+  assert.equal(html.match(/class="description"/g)?.length, 1);
 });
 
 test('live: a facets read that fails costs the filters, not the menu', async () => {

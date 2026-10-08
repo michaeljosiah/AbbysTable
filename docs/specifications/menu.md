@@ -125,7 +125,9 @@ Fish, Turkey, Plant-based), Eating style (Protein-led, Carb-conscious, Plant-led
 Mediterranean-inspired, with "What do these mean?"), Heat (None, Mild, Medium, Hot, the chips
 drawing the card's pips), Dietary & other (Gluten-free, Dairy-free, High in fibre) — each with
 "All". Keys are `protein`, `wellness`, `heat`, `dietary`; live groups are whatever the tenant's
-facets read advertises. "Low sugar" SHALL NOT appear until a dish record carries a real flag
+facets read advertises. The seeders author demo's groups with demo's tokens, matched on each
+product's `attributesJson.facets.<key>` (`tenantFacetGroups`, `dishFacetTokens`), so
+`?facet.protein=lamb` means the same in both modes; the display attributes keep the record's words. "Low sugar" SHALL NOT appear until a dish record carries a real flag
 (aonik#359): the prototype's stand-in (carbohydrate ≤ 20g) would be a nutrition claim. "DASH" stays
 in the data with no chip (contract §4d). Calories and Category are no longer groups.
 
@@ -171,7 +173,9 @@ card link: cream 12px pills (the first eating style, else the homepage category;
 kcal"), "New" in gold with forest ink, the navy Signature pill with its "i", and the navy upgrade
 pill. There is no "Abby’s Signature" banner. On the menu the title is an h2, the description shows
 at every width (16px on a phone, unclamped; 14.5px and clamped from 640), and the heat row states
-the word beside the pips ("Heat level: Mild" as one labelled image).
+the word beside the pips ("Heat level: Mild" as one labelled image). A live browse row carries no
+description field, so a menu card's description is the product's `description` attribute (seeded
+with the product's own words); without one the card shows none.
 
 ### Requirement: FR-09 "Under 500 kcal" is derived
 `capability: dish-card` · `delta: MODIFIED (feat/menu-landing-v3)`
@@ -266,8 +270,9 @@ on Delivery & FAQs: the page offers what the source can do.
 5. **`pageSize`** — 6 per page and per Load more, the design's default; a product decision before
    launch (contract §4b).
 6. **Live facet keys** — the UI gives the eating-style note and the heat pips to `wellness` and
-   `heat` (`spice` still draws pips); a tenant seeded before #21 should re-author its groups to the
-   four above and retire `meal` and `calories`.
+   `heat` (`spice` still draws pips); a tenant seeded before #21 should retire `meal` and
+   `calories`, re-author the four groups above and re-seed its products (for `facets` and
+   `description`). A description field on Aonik's browse row would retire the attribute.
 
 ---
 

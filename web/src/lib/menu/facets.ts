@@ -22,7 +22,7 @@
 
 import type { MappedFacetGroup, MappedFacetOption } from '@/lib/aonik/map';
 // Relative, not `@/`: demo fixtures reach this module in tests without the alias hook.
-import { DIETARY_TAGS, HEAT_LABELS, HEAT_STEPS, PROTEIN_TYPES, type Dish, type HeatLevel } from '../aonik/types';
+import { HEAT_LABELS, HEAT_STEPS, PROTEIN_TYPES, type Dish, type HeatLevel } from '../aonik/types';
 
 import type { MenuFilters } from './filters';
 
@@ -126,38 +126,51 @@ export const MENU_FACET_GROUPS: MappedFacetGroup[] = [
   },
 ];
 
+/**
+ * Where a product publishes its facet tokens in `attributesJson`: an object of
+ * its own, so the display attributes (`protein: "Lamb"`, `dietary:
+ * ["High-fibre"]`) stay the record's words while Aonik matches the very
+ * tokens demo mode and every URL use (`?facet.protein=lamb`).
+ */
+export const FACET_ATTRIBUTE = 'facets';
+
 /** A facet group as a tenant authors it (`scripts/seed/seed.mjs`). */
 export interface TenantFacetGroup {
   key: string;
   label: string;
-  /** The `attributesJson` key Aonik matches the group's values against. */
+  /** The dot path into `attributesJson` Aonik matches the group's values against. */
   sourcePath: string;
   options: MappedFacetOption[];
 }
 
 /**
- * The design's four groups as a tenant should author them. Aonik matches an
- * `Attribute` facet by comparing an option's value with the product's
- * attribute at `sourcePath`, so each value is the attribute AS PUBLISHED —
- * the record's own words ("High-fibre"), and the chip token under `heat` —
- * while the label is the chip's ("High in fibre"). No DASH, no meal type, no
- * calories: the groups the page no longer draws are not authored either.
+ * The design's four groups as a tenant should author them: demo's own groups,
+ * values and labels unchanged, each matched on `facets.<key>`. No DASH, no
+ * meal type, no calories: the groups the page no longer draws are not
+ * authored either.
  */
 export function tenantFacetGroups(): TenantFacetGroup[] {
-  const published: Record<string, readonly string[]> = {
-    [FACET_KEY.protein]: PROTEIN_TYPES,
-    [FACET_KEY.style]: EATING_STYLES,
-    [FACET_KEY.dietary]: DIETARY_TAGS,
-  };
   return MENU_FACET_GROUPS.map((group) => ({
     key: group.key,
     label: group.label,
-    sourcePath: group.key,
-    options: group.options.map((option) => ({
-      value: published[group.key]?.find((word) => toFacetToken(word) === option.value) ?? option.value,
-      label: option.label,
-    })),
+    sourcePath: `${FACET_ATTRIBUTE}.${group.key}`,
+    options: group.options.map(({ value, label }) => ({ value, label })),
   }));
+}
+
+/**
+ * The tokens a dish publishes under `attributesJson.facets` — exactly the
+ * values `dishMatchesFacet` would match it on, so a seeded tenant filters as
+ * demo does. A field the dish does not carry is left out, never guessed.
+ */
+export function dishFacetTokens(dish: Dish): Record<string, string | string[]> {
+  const tokens: Record<string, string | string[]> = {
+    [FACET_KEY.style]: dish.wellness.map(toFacetToken),
+    [FACET_KEY.dietary]: dish.dietary.map(toFacetToken),
+  };
+  if (dish.proteinType !== undefined) tokens[FACET_KEY.protein] = toFacetToken(dish.proteinType);
+  if (dish.heat !== undefined) tokens[FACET_KEY.heat] = heatToken(dish.heat);
+  return tokens;
 }
 
 /**

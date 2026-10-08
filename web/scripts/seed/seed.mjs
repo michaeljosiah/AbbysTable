@@ -224,9 +224,10 @@ if (extrasCol) {
 
 console.log('\n  facets');
 // Menu Landing v3's four groups — Protein source, Eating style, Heat, Dietary
-// & other — exactly as the demo serves them, values as the attributes publish
-// them (`tenantFacetGroups` in src/lib/menu/facets.ts). Every option is
-// authored, even one no dish carries yet: the design shows the whole set.
+// & other — exactly as the demo serves them, tokens and labels alike, each
+// matched on the product's `facets.<key>` attribute (`tenantFacetGroups` and
+// `dishFacetTokens` in src/lib/menu/facets.ts). Every option is authored,
+// even one no dish carries yet: the design shows the whole set.
 const facets = DATA.facetGroups ?? [];
 
 for (const [i, f] of facets.entries()) {
