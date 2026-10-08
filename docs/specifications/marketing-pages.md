@@ -1,10 +1,10 @@
 ---
 spec_id: SPEC-2026-10-07-marketing-pages
-title: Marketing pages — Homepage v2, How It Works, Our Standards, Abby's Story, Allergens, legal, Contact
+title: Marketing pages — Homepage v2, How It Works, Our Standards, Abby's Story, Allergens, legal, Contact, Private Table
 status: approved
 branch: feat/marketing-pages
 owner: michaeljosiah
-capabilities: [marketing-pages, homepage, legal-pages, contact-page]
+capabilities: [marketing-pages, homepage, legal-pages, contact-page, private-table]
 created: 2026-10-07
 updated: 2026-10-07
 ---
@@ -15,8 +15,9 @@ updated: 2026-10-07
 > requirements for built pages describe what `web/` does on `main` at 213ee0b, read from the
 > source. Implemented: How It Works (#16, PR #55), Our Standards and the Back to dish round trip
 > (#17, PR #54), Abby's Story (#18, PR #52), Allergens (#19, PR #49), Privacy Policy and Terms of
-> Sale (#20, PR #56), Homepage v2 (#15, PR #59) and Contact (#24; its form waits on aonik#356) —
-> the last two specified from their issues and `design/` page files. Where an issue and `design/`
+> Sale (#20, PR #56), Homepage v2 (#15, PR #59), Contact (#24; its form waits on aonik#356) and
+> Private Table (#25; its waitlist waits on aonik#357) — the last three specified from their
+> issues and `design/` page files. Where an issue and `design/`
 > disagree, the design wins and the requirement says so. Header, drawer, footer, cookie consent,
 > the purchase bar's mechanics and the status pages are in `SPEC-2026-10-07-site-chrome-and-consent`.
 
@@ -42,6 +43,9 @@ Depends on: `SPEC-2026-07-22-catalog-browse` (dish records, the box plan),
 - ADDED legal-pages — `/allergens` (FR-18), `/privacy` and `/terms-of-sale` (FR-19, FR-20)
 - ADDED contact-page — `/contact`: one grid, details and hours from configuration, the message
   form, and never a false "sent" (FR-21–FR-24)
+- ADDED private-table — `/private-table`: the page, every CTA "Join the waitlist", the waitlist
+  form and its fixed country list, never a false "joined", and the bar's waitlist variant
+  (FR-25–FR-29)
 
 ---
 
@@ -165,9 +169,10 @@ stop points (mechanics: site-chrome spec, FR-15–FR-17).
 | Abby's Story | none | — | — |
 | Allergens, Privacy, Terms | none | — | — |
 | Contact | none | — | — |
+| Private Table | `PurchaseBarShell`, one centred "Join the waitlist" — only while the waitlist is open (FR-29) | the whole hero band | enquiry section on entry (`"entry"`), then footer |
 
 `/menu` and the dish pages also carry one (`SPEC-2026-07-22-catalog-browse`); Gifting and Delivery &
-FAQs will carry none, and Private Table v2 (#25) will carry its waitlist bar.
+FAQs will carry none.
 
 #### Scenario: The founder narrative is not a sales page
 - **WHEN** a customer scrolls anywhere on `/our-story` on a phone
@@ -269,13 +274,14 @@ paragraph beneath it, not part of the heading; keep its three founder paragraphs
 Abby's story" → `/our-story`. The Private Table band (`--navy`) SHALL carry the h2 "Abby's Private
 Table", the line "Bespoke Nigerian fusion menus, created around you.", its body paragraph, two
 reach rows with globe and pin icons — "Worldwide · Bespoke recipes created for you" and "UK-wide ·
-Bespoke recipes created and prepared for you" — "Find out more", which SHALL follow FR-05 (it
-goes to `/private-table` once #25 builds it; until then an interim destination or no link) — and
+Bespoke recipes created and prepared for you" — "Find out more" → `PRIVATE_TABLE_HREF`
+(`/private-table`, the page's top, never its form; #25) — and
 one credentials card at every width: Guided by "A UK-certified
 health coach", Overseen by "A registered nutritionist", In collaboration with "Your clinical
-team". The band carries `data-purchase-bar-stop`, and a 72px `scroll-margin-top`: it is the
-chrome's Private Table destination (`/#private`) until #25, often reached by an UPWARD jump, which
-re-shows the phone header, so it SHALL land with its heading clear of the header. The design's
+team". The band carries `data-purchase-bar-stop`, `id="private"` and a 72px `scroll-margin-top`:
+it was the chrome's Private Table destination (`/#private`) until #25, so a link saved then still
+lands — often by an UPWARD jump, which re-shows the phone header — with its heading clear of the
+header. Nothing in `web/src` links that anchor any more. The design's
 price line "Private Table from £1,500" is unverified (build-handoff; open question 2): it MAY
 appear only as approved copy from a content constant, never inline in markup, and SHALL be removed
 if the owner does not confirm it before launch.
@@ -416,8 +422,9 @@ is a disclosure (`aria-expanded`, `aria-controls`) below 1024 and, from 1024, a 
 the sidebar's "Opening hours" heading. No hero and no purchase bar (FR-07); the desktop header
 auto-hides (site-chrome FR-03). The FAQs card SHALL appear only while Delivery & FAQs has its own
 page (it has since #23; before, the card would have linked to this one) and the Private Table
-panel only once its waitlist
-exists (`PRIVATE_TABLE_WAITLIST_HREF`, #25), never a "Join the waitlist" with nowhere to go.
+panel only while its waitlist can take a name (`waitlistOpen`, FR-28: the page exists since #25,
+the list waits on aonik#357; the panel links `PRIVATE_TABLE_WAITLIST_HREF`), never a "Join the
+waitlist" with nothing to join.
 
 #### Scenario: The hours move, the markup does not
 - **WHEN** the page is resized from 390px to 1280px
@@ -490,6 +497,112 @@ and the email shape check is linear (`isEmailAddress`), so no field can hold the
 - **THEN** it answers `unavailable`
 - **AND** no request leaves the server
 
+### Requirement: FR-25 Private Table page
+`capability: private-table` · `delta: ADDED (feat/marketing-pages)`
+
+`/private-table` SHALL render `Abby's Table - Private Table v2.dc.html` (approved; behaviour guide
+§8) verbatim (FR-01) as a Server Component, in order: a `--navy` hero — the "Coming soon" mark,
+the h1 "Abby's Private Table", the lede, "Confidential by design · NDA by arrangement", the
+photograph (square under the headline on a phone; beside the copy, sharing its top and bottom
+edges, from 1024), the three credentials as one brass-hairline panel (stacked, three across from
+640), then the actions: "Join the waitlist" with "Private Table from £1,500" centred under it,
+and "Find out more" → What we offer, taking focus to its heading; Who it's for — the design's
+THREE audiences (the issue's "4" predates it), one shared title row from 1024 (subgrid); What we
+offer on `--blush` — the confidentiality line again, "Included with both services" (three) and
+the two service cards (Bespoke Recipe Development, from £1,500, Worldwide; Recipe Development &
+Meal Preparation, from £1,780, UK-wide, on `--green-forest`), a peeking scroll-snap carousel on a
+phone and two columns from 640, their rows aligned by subgrid in both; How it works on `--navy` —
+four steps of three points, a rail down the side on a phone and across from 1024; Register your
+interest. Both prices come from content constants in `marketing.ts` (`PRIVATE_TABLE_FROM_PENCE`,
+`PRIVATE_TABLE_MEAL_PREPARATION_FROM_PENCE`), formatted by `formatPrice`, never literals (FR-02);
+"Private Table from" is the lower. Plain `--brass` for small type on navy is the accepted 4.08:1
+exception shared with the homepage band. The route is on the desktop header auto-hide list
+(site-chrome FR-03), and every chrome link, the homepage band's "Find out more", the Terms of
+Sale waitlist clause and the Delivery & FAQs answer reach it through `PRIVATE_TABLE_ITEM`.
+
+#### Scenario: The figures are data
+- **WHEN** the owner changes the meal-preparation price in `marketing.ts`
+- **THEN** its card shows the new "From £…" with no other change
+- **AND** no source file under `private-table/` contains a pound figure
+
+### Requirement: FR-26 Every call to action reads "Join the waitlist"
+`capability: private-table` · `delta: ADDED (feat/marketing-pages)`
+
+The page is a WAITLIST, not a booking: consultations are not open. Every call to action — the
+hero's, each service card's, the form's submit and the mobile bar's — SHALL read "Join the
+waitlist" (`JOIN_WAITLIST_LABEL`; no "Book", "Enquire" or "Build a Box", and no pending label),
+and nothing on the page SHALL route into the food-box journey. The jumps go to the form
+(`#enquire`) without a history entry, scroll it clear of the header and move focus to its
+heading — or, once joined, to the confirmation; a service card's jump also preselects its
+service. With no JavaScript each is a plain fragment link. All of them, and the bar, render ONLY
+while the waitlist is open (FR-28).
+
+#### Scenario: The card picks its service
+- **WHEN** a customer presses "Join the waitlist" on Recipe Development & Meal Preparation
+- **THEN** the page scrolls to "Register your interest", which takes focus
+- **AND** "Recipe development & meal preparation" is chosen in the form
+
+### Requirement: FR-27 The waitlist form
+`capability: private-table` · `delta: ADDED (feat/marketing-pages)`
+
+The form SHALL carry, in order: Full name; Email address and Telephone number (optional), side by
+side from 1024; Country or region; Which service — a native radio group of "Recipe development"
+(Worldwide), "Recipe development & meal preparation" (UK-wide) and "Not sure yet". Country or
+region is an editable combobox with a list popup (WAI-ARIA 1.2: `role="combobox"`,
+`aria-autocomplete="list"`, `aria-expanded`, `aria-controls` to an always-mounted listbox,
+`aria-activedescendant`), over the FIXED list in `src/lib/content/countries.ts`: nothing typed
+suggests the design's eight (the United Kingdom first); typing ranks names, aliases ("UK",
+"England", "USA") and word starts; ↓/↑ open and move (wrapping), Home/End jump while open, Enter
+picks (and only then — it never submits from an open list), Escape closes only the list, a press
+outside closes it, and it opens upwards without room below. A query that matches nothing shows
+the design's note. Validation is ours (`noValidate`), with the design's messages, in field order,
+focus moving to the first error; three messages are ours (a name over 200 characters, a
+telephone number that is not one, a country not on the list). Success replaces the form with
+"Thank you — you're on the waitlist." / "We'll let you know as soon as consultations open." — no
+consultation date, no reply time — and takes focus. The rules live in
+`src/lib/private-table/` (`country.ts`, `waitlist.ts`), shared by the form and the action.
+
+#### Scenario: The keyboard picks a country
+- **WHEN** a customer types "ni" in Country or region, presses ↓ and Enter
+- **THEN** "Nicaragua" (the second suggestion after "Nigeria") fills the field and the list closes
+- **AND** focus is still in the field, and the form was not submitted
+
+### Requirement: FR-28 Never a false "joined"
+`capability: private-table` · `delta: ADDED (feat/marketing-pages)`
+
+The form, every "Join the waitlist" and the bar SHALL render only where the waitlist can really
+store an entry: `waitlistOpen()`, i.e. `AonikClient.waitlist` exists — `null` in BOTH data modes
+until aonik#357 (`WAITLIST_PATH` in `src/lib/aonik/waitlist.ts` is the one switch; demo never
+pretends a write, #6's rule). Until then Register your interest says "The Private Table waitlist
+isn't open yet." and nothing links to the form. The server action SHALL re-run every rule on what
+arrived — every field capped (name 200, email 254, telephone 32, country 100 characters), the
+email shape checked in linear time (`isEmailAddress`), the country resolved against the fixed list
+and stored as its ISO code, the service one of the three — and answer `joined` only after a 2xx;
+otherwise `invalid`, `unavailable` or `error`, keeping everything entered ("We couldn't add you to
+the waitlist just now. Everything you've entered is still here, so please try again."). The entry
+is JSON in proposed field names (`name`, `email`, `phone?`, `country`, `service`), never retried,
+and is a list of its own — not the newsletter, not notify-me.
+
+#### Scenario: Nothing to store to
+- **WHEN** a valid entry is posted to the action while `WAITLIST_PATH` is `null`, in demo or live
+- **THEN** it answers `unavailable`
+- **AND** no request leaves the server
+
+### Requirement: FR-29 The mobile bar's waitlist variant
+`capability: private-table` · `delta: ADDED (feat/marketing-pages)`
+
+Private Table's bar SHALL be the canonical band (`PurchaseBarShell`) with one centred "Join the
+waitlist" pill and no price block, and SHALL never become VIEW BOX. It follows the canonical
+direction rule (site-chrome FR-16), revealed once the WHOLE hero band has gone (its CTA is below
+the fold on a phone), and is suppressed from the moment any of the enquiry section is on screen —
+its stop is marked `data-purchase-bar-stop="entry"` (`STOP_ON_ENTRY`), whose line is the
+viewport's bottom edge rather than 75% — and continuously through the footer.
+
+#### Scenario: One waitlist action on screen at a time
+- **WHEN** a customer scrolls down a phone past the hero, then on until the form's top enters
+- **THEN** the bar shows past the hero and is gone the moment the form appears
+- **AND** it stays gone over the footer
+
 ---
 
 ## Design
@@ -513,6 +626,7 @@ Aonik failures degrade per piece; a marketing page never becomes a 500 because o
 | `/allergens` | `app/(site)/allergens/page.tsx` | none |
 | `/contact` | `app/(site)/contact/page.tsx`, `components/contact/*`, `lib/contact/*` | `lib/content/contact.ts`; enquiry endpoint availability |
 | `/privacy`, `/terms-of-sale` | `LegalDocument` + `lib/legal/*` | `COMPANY` |
+| `/private-table` | `app/(site)/private-table/page.tsx`, `components/private-table/*`, `lib/private-table/*` | `lib/content/privateTable.ts`, `countries.ts`; whether a waitlist exists (`AonikClient.waitlist`) |
 
 ### Known gaps — code that contradicts the design or CLAUDE.md today
 
@@ -532,16 +646,24 @@ first two gaps recorded here, were closed by #15 (PR #59; T6, T9) and are no lon
    before the form in the tab order. The design's own composition; recorded, not changed.
 5. Contact's "Send another message" is `--brass-ink-warm`, not the design's `--brass-ink`, which
    measures 4.28:1 on the success panel's `--sage` (design/CLAUDE.md, tokens).
+6. **Private Table departs from its design where production needs it** (FR-25–FR-29): no
+   "Join the waitlist", form or bar until a waitlist exists (the design has no closed state);
+   Which service is a native radio group, not `role="radio"` buttons; audience and step titles
+   are h3s; the country list is fixed (the design accepts any text and lists 15) and the active
+   suggestion carries `aria-selected` (APG), the chosen one a tick; the bar's suppression runs
+   through the footer (the prototype only tested whether the form was on screen). The ↑ Top
+   control waits for the canonical one from Menu v3 (#21).
 
 > Note on sources: the page behaviour guide §6 says Abby's Story's bar "follows the normal
 > marketing logic"; `design/CLAUDE.md` and the page file have no bar, and they win.
 
 ### Open questions (owner decisions, not requirements)
 
-1. **Private Table link before #25.** `/private-table` is not built, so FR-05 forbids linking it.
-   Ship #15 with "Find out more" pointing somewhere real, hold the link back, or land #25 first?
-2. **"Private Table from £1,500".** The handoff records the figure as unverified. Is it shown at
-   launch, and does it come from data like the box price or stay as approved copy?
+1. ~~**Private Table link before #25.**~~ Resolved by #25: every Private Table link goes to
+   `/private-table`.
+2. **"Private Table from £1,500" and "from £1,780".** The handoff records £1,500 as unverified,
+   and £1,780 (Recipe Development & Meal Preparation) is the design's figure. Are both shown at
+   launch, and do they stay approved copy (content constants) or come from data?
 3. **Gifting before #26.** Homepage v2 has no gifting band, so the nav's current `/#gifting`
    loses its target once #15 lands. Where should Gifting links point until `/gifting` exists?
 4. **Delivery & FAQs before #23.** Its links resolve to `/contact` until its page lands, so on
@@ -562,6 +684,16 @@ first two gaps recorded here, were closed by #15 (PR #59; T6, T9) and are no lon
 9. **Contact's promises.** "We've sent a copy to …" holds only if aonik#356 sends an
    acknowledgement email; "within two working days" is an unconfirmed reply time. Spam protection
    (honeypot, timing or an invisible challenge — no CAPTCHA) is the endpoint's to choose.
+10. **Private Table while the waitlist is closed** (FR-28). The page hides every "Join the
+    waitlist", the form and the bar, and says "The Private Table waitlist isn't open yet." (our
+    words); Contact hides its Private Table panel. Alternatively the CTAs could stay and lead to
+    that notice. And the notice: one sentence, or a route meanwhile (the socials, as Contact's)?
+11. **Private Table's undesigned copy.** The three extra messages (FR-27), the failure line and
+    the closed-state notice are ours; the credentials and both prices await #38.
+12. **The waitlist entry** (aonik#357). Field names are proposed (`name`, `email`, `phone?`,
+    `country` ISO code, `service` id); a second sign-up with the same email, abuse protection and
+    the unsubscribe route (Privacy Policy) are the endpoint's to settle. The country list (ISO
+    3166-1 less uninhabited regions, plus Kosovo; GOV.UK-style names) is ours to confirm.
 
 ---
 
@@ -601,6 +733,13 @@ first two gaps recorded here, were closed by #15 (PR #59; T6, T9) and are no lon
   never raise either limit globally
 - [ ] `T16` Contact details, hours, bank holidays and closures from Aonik (aonik#358), and a real,
   tested WhatsApp QR (FR-22)
+- [x] `T17` Private Table (#25): the page, the CTAs, the form and its country typeahead, the
+  action, the bar's waitlist variant, every Private Table link repointed to `/private-table` and
+  the route on the desktop auto-hide list (FR-25–FR-29); held closed until aonik#357
+- [ ] `T18` Wire the waitlist when aonik#357 ships: set `WAITLIST_PATH`, reconcile
+  `toWaitlistBody` with its field names, confirm de-duplication, abuse protection and the
+  unsubscribe route (FR-28); Contact's panel and the page's CTAs then appear on their own
+- [ ] `T19` The ↑ Top control on Private Table, once the canonical one lands with Menu v3 (#21)
 
 ### Testing
 
@@ -608,7 +747,10 @@ first two gaps recorded here, were closed by #15 (PR #59; T6, T9) and are no lon
   `tests/legal-documents.test.ts`, `tests/legal-pages.test.tsx`, `tests/purchase-bar.test.tsx`,
   `tests/contact.test.tsx` (FR-21–FR-24: hours across DST, closed days and closures; subjects,
   validation and images; the action never answering `sent` without an endpoint; the page as
-  configured today and fully configured).
+  configured today and fully configured), `tests/private-table.test.tsx` (FR-25–FR-29: copy
+  against the design file, prices from constants, the country list and typeahead ranking, every
+  validation rule and cap, the action and the Aonik request, the page closed and open, the bar's
+  on-entry stop and a phone walk).
 - Unit (to add with #15): section order; no delivery date on `/`; every homepage figure from the
   plan; no internal `href` on `/` to an unbuilt route.
 - Manual: 320 / 390 / 1024 / 1440 against each page file; keyboard pass of every control.

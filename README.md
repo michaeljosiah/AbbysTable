@@ -41,6 +41,12 @@ the v2 design in [`design/`](design/) is #9):
   to the box builder in session storage, never a URL
   ([`web/src/lib/delivery/`](web/src/lib/delivery/), spec
   [`delivery-and-faqs.md`](docs/specifications/delivery-and-faqs.md)).
+- **`/private-table`** — Abby's Private Table: the navy "Coming soon" hero with the credentials,
+  Who it's for, the two services (from £1,500 / from £1,780, content constants awaiting the
+  owner), How it works and "Register your interest". A **waitlist, not a booking**: the form
+  (with a typeahead over a fixed country list), every "Join the waitlist" and the mobile bar
+  appear only once Aonik can store an entry (aonik#357); until then the page says the waitlist
+  isn't open yet ([`web/src/lib/private-table/`](web/src/lib/private-table/)).
 
 > **Allergens are never inferred.** Only dishes whose data the templates actually published carry
 > ingredient and allergen text; every other dish shows an explicit "not yet published" notice
@@ -100,7 +106,7 @@ Prices and rules change in [`design/`](design/), not here — see `design/README
 | Box | **6 dishes from £158** | Any size from 6 to 99 dishes; 6 / 12 / 18 presets. Only the six-dish price is confirmed; it comes from an editable price source, never a literal |
 | Signature dishes | menu supplement | Counts as one box dish; the supplement is added on top |
 | Gift box | — | A food box sent to a recipient, from the Gifting page. Separate from Abby's Table Gift Cards |
-| Abby's Private Table | from £1,500 (unverified) | **Coming soon — a waitlist, not a booking.** Recipe development worldwide; recipes cooked for you UK-wide |
+| Abby's Private Table | from £1,500; with meal preparation from £1,780 (both unverified) | **Coming soon — a waitlist, not a booking.** Recipe development worldwide; recipes cooked for you UK-wide |
 
 Delivery is **chilled, never frozen**, to mainland UK, on a date the customer chooses at checkout.
 Delivery cost and non-mainland exclusions are still open. The £150 main box and £78 Taster Box are
@@ -128,7 +134,7 @@ gifting bands are removed, not pending. Anchor ids are kept for the nav's `/#…
 | 3 | A taste of the table | `menu` | `--cream` | The featured dish rail, *View the full menu*. |
 | 4 | Our standards | `standards` | `--sage` | Four standards with marks, *View our standards*. |
 | 5 | Meet the founder | `founder` | `--blush` | Portrait, Abby's story in short, *Read Abby's story*. |
-| 6 | Abby's Private Table | `private` | `--navy` | Reach rows, credentials, "Private Table from £1,500". *Find out more* waits for the Private Table page (#25). |
+| 6 | Abby's Private Table | `private` | `--navy` | Reach rows, credentials, "Private Table from £1,500". *Find out more* → `/private-table` (#25). |
 
 The header, drawer and footer are the site chrome (#10, "Site chrome" below), not homepage bands;
 the announcement bar is gone site-wide.
@@ -152,13 +158,11 @@ standards) · *Information* (Delivery & FAQs, Allergens, Contact us) — accordi
 columns from 1024 — then the wordmark, "Abby x", the four social icons with **@FromAbbysTable** as
 plain text, and the legal strip: © · Privacy Policy | Terms · Cookie preferences.
 
-Gifting (#26) and Private Table (#25) are not built yet: Gifting stays out of the chrome until its
-page lands, and Private Table goes to the homepage band (`/#private`) — from one place,
-`web/src/lib/content/navigation.ts`. Every "contact us" in the pages reads `CONTACT_HREF`
-(`/contact`) and every Delivery & FAQs link `DELIVERY_FAQS_HREF` (`/delivery-and-faqs`) from there
-too, so each page's arrival was a one-line change.
-The homepage band's own *Find out more* is separate: it renders once `PRIVATE_TABLE_HREF`
-(`web/src/lib/content/marketing.ts`) is set, when #25 lands.
+Gifting (#26) is not built yet and stays out of the chrome until its page lands; Private Table goes
+to its page (`/private-table`, #25) — from one place, `web/src/lib/content/navigation.ts`. Every
+"contact us" in the pages reads `CONTACT_HREF` (`/contact`) and every Delivery & FAQs link
+`DELIVERY_FAQS_HREF` (`/delivery-and-faqs`) from there too, so each page's arrival was a one-line
+change. The homepage band's *Find out more* reads the same destination (`PRIVATE_TABLE_HREF`).
 
 ---
 

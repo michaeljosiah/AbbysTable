@@ -558,8 +558,7 @@ export const FAQ_GROUPS: FaqGroup[] = [
         'Do you cater for specific health or dietary needs?',
         p(
           'Our main menu provides clear ingredient, allergen and nutritional information to help you choose dishes that suit you. For more individual requirements, ',
-          // Private Table's page is #25; until it lands this is the chrome's
-          // own interim destination, never a route that would 404 (FR-05).
+          // The chrome's own Private Table destination: its page (#25).
           { link: PRIVATE_TABLE_ITEM.href, text: 'Abby’s Private Table' },
           ' offers bespoke Nigerian fusion menus created around personal health, recovery or performance needs, with ',
           { keep: 'UK-wide' },

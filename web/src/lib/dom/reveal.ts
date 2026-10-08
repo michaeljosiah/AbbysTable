@@ -1,6 +1,8 @@
 /**
- * Bringing something the Contact page just moved focus to into view, clear of
- * the sticky header. Browser-only helpers for the page's client components.
+ * Bringing something a page just moved focus to into view, clear of the
+ * sticky header — a form's first error, a confirmation, a panel that opened.
+ * Browser-only helpers for client components (Contact, the Private Table
+ * waitlist).
  *
  * The header's FULL height is the clearance, not `--site-header-offset`: a
  * scroll back up the page brings a hidden header back, and it would land over

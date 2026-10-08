@@ -23,6 +23,7 @@ import {
   PRIVATE_TABLE_HREF,
   SIGNATURE_EXPLAINER,
 } from '../src/lib/content/marketing';
+import { PRIVATE_TABLE_ITEM } from '../src/lib/content/navigation';
 import { formatDeliveryDate, formatPrice } from '../src/lib/format';
 import { offerLines, purchaseBarOffer } from '../src/lib/purchase-bar/offer';
 
@@ -119,7 +120,9 @@ test('every homepage link goes to a real route — none to a 404, none to a remo
   for (const expected of ['/menu', '/how-it-works', '/box', '/standards', '/our-story']) {
     assert.ok(links.includes(expected), `links to ${expected}`);
   }
-  assert.ok(!links.includes('/private-table'), 'the Private Table page is #25; not linked yet');
+  // Built (#25): the Private Table band's "Find out more".
+  assert.ok(links.includes('/private-table'), 'links to /private-table');
+  assert.ok(!links.includes('/#private'), 'nothing links the band\'s old anchor');
   assert.ok(!links.some((href) => /^\/?#(boxes|gifting)$/.test(href)));
 });
 
@@ -274,12 +277,15 @@ test('Private Table: globe and pin reach rows, the credentials, and the bar stop
   }
 });
 
-test('Private Table: "Find out more" waits for the page (#25) — no 404, no inert button', () => {
+test('Private Table: "Find out more" goes to the page (#25), its top — one link, no button', () => {
   const html = renderToStaticMarkup(<PrivateTable />);
-  assert.equal(PRIVATE_TABLE_HREF, null, 'flip to "/private-table" when #25 lands');
-  assert.doesNotMatch(html, /Find out more/);
+  // The chrome's own destination, so the band and the nav can never disagree.
+  assert.equal(PRIVATE_TABLE_HREF, PRIVATE_TABLE_ITEM.href);
+  assert.equal(PRIVATE_TABLE_HREF, '/private-table');
+  assert.match(html, /<a class="cta" href="\/private-table">Find out more<\/a>/);
+  // The page's top, never its form (design/CLAUDE.md: "top of page, not #enquire").
+  assert.deepEqual(hrefs(html), ['/private-table']);
   assert.doesNotMatch(html, /<button/);
-  assert.equal(hrefs(html).length, 0);
 });
 
 /* ---- Dish card ------------------------------------------------------------------ */
