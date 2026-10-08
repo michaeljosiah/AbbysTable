@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { DELIVERY_NOTE, NEXT_DELIVERIES_PREFIX } from '@/lib/content/menu';
 
@@ -48,6 +48,16 @@ export function MenuDeliveryStrip({ date }: { date: string }) {
     setPinned(false);
   };
 
+  /** Hands focus back to the "i" without that reading as a request to open. */
+  const returnFocus = useCallback(() => {
+    quietFocus.current = true;
+    infoRef.current?.focus();
+    // Already focused (no focus event): never swallow a later one.
+    requestAnimationFrame(() => {
+      quietFocus.current = false;
+    });
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     const close = () => {
@@ -58,7 +68,10 @@ export function MenuDeliveryStrip({ date }: { date: string }) {
       if (!stripRef.current?.contains(event.target as Node)) close();
     };
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') close();
+      if (event.key !== 'Escape') return;
+      // Focus on the note's × would vanish with the note: keep it on the "i".
+      if (document.getElementById(NOTE_ID)?.contains(document.activeElement)) returnFocus();
+      close();
     };
     document.addEventListener('pointerdown', onPointerDown, true);
     document.addEventListener('keydown', onKeyDown);
@@ -66,7 +79,7 @@ export function MenuDeliveryStrip({ date }: { date: string }) {
       document.removeEventListener('pointerdown', onPointerDown, true);
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [open]);
+  }, [open, returnFocus]);
 
   return (
     <div className={styles.wrap}>
@@ -133,12 +146,7 @@ export function MenuDeliveryStrip({ date }: { date: string }) {
               onClick={(event) => {
                 event.stopPropagation();
                 dismiss();
-                quietFocus.current = true;
-                infoRef.current?.focus();
-                // Already focused (no focus event): never swallow a later one.
-                requestAnimationFrame(() => {
-                  quietFocus.current = false;
-                });
+                returnFocus();
               }}
               aria-label="Close the delivery dates note"
             >

@@ -18,6 +18,7 @@ import {
 } from '@/lib/aonik/fixtures';
 import { EXTRA_FIXTURES } from '@/lib/aonik/extras';
 import { HEAT_STEPS } from '@/lib/aonik/types';
+import { heatToken, tenantFacetGroups } from '@/lib/menu/facets';
 
 /**
  * The flat `attributesJson` a browse row is filtered and rendered from.
@@ -34,6 +35,9 @@ import { HEAT_STEPS } from '@/lib/aonik/types';
 const attributesOf = (dish: (typeof DISH_FIXTURES)[number]) => ({
   // Omitted (not 0) for a dish with no published heat: 0 means "None".
   heatStep: dish.heat === undefined ? undefined : HEAT_STEPS[dish.heat],
+  // The Heat facet's match value ("none" | "mild" | "medium" | "hot"); the
+  // storefront reads `heatStep`, Aonik's facet compares this.
+  heat: dish.heat === undefined ? undefined : heatToken(dish.heat),
   // The homepage card's components line. Published as an attribute because the
   // rail renders from data the browse row carries, and Aonik's product model
   // has no first-class subtitle — `attributesJson` is the tenant's own bag.
@@ -63,6 +67,8 @@ console.log(
       box: BOX_PRICING_FIXTURE,
       heating: HEATING_FIXTURE,
       optionGroups: PERSONALISATION_GROUP_SOURCE,
+      // The menu's four filter groups, values as the attributes publish them.
+      facetGroups: tenantFacetGroups(),
     },
     null,
     2,

@@ -69,7 +69,7 @@ function CardHeat({ heat, showWord }: { heat: HeatLevel; showWord: boolean }) {
 }
 
 export function DishCard({ dish, variant = 'rail', href, headingLevel = 3 }: DishCardProps) {
-  const tags = dishCardTags(dish);
+  const tags = dishCardTags(dish, { category: variant !== 'grid' });
   const Title = headingLevel === 2 ? 'h2' : 'h3';
   const { proteinGrams, fibreGrams } = dish.nutrition;
   const hasNutrition = proteinGrams !== undefined || fibreGrams !== undefined;

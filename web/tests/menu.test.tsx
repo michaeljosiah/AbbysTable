@@ -27,8 +27,10 @@ import {
   filterDishes,
   filtersFromParams,
   heatChipPips,
+  heatToken,
   MENU_FACET_GROUPS,
   sanitiseFilters,
+  tenantFacetGroups,
 } from '../src/lib/menu/facets';
 import { activeFilters, filterCount, resultLabel } from '../src/lib/menu/filters';
 import { ALL_SORTS, parseMenuSort, sortDishes, sortOptions } from '../src/lib/menu/sort';
@@ -261,6 +263,45 @@ test('cream tags: the first eating style (or the homepage category), then the kc
   assert.deepEqual(dishCardTags(bySlug('fish-peppersoup-bone-broth')).cream, ['DASH']);
   assert.deepEqual(dishCardTags(bySlug('slow-braised-egusi')).cream, ['Everyday balance']);
   assert.deepEqual(dishCardTags(dish({ tags: ['new'] })), { cream: [], isNew: true });
+  // The menu grid draws no tag its Eating style chips could not match.
+  assert.deepEqual(dishCardTags(bySlug('slow-braised-egusi'), { category: false }).cream, []);
+  assert.deepEqual(dishCardTags(bySlug('wild-rice-goat-efo'), { category: false }).cream, ['Protein-led']);
+});
+
+test('the seeded tenant authors the design’s four groups, values as the attributes publish them', () => {
+  const groups = tenantFacetGroups();
+  assert.deepEqual(
+    groups.map((group) => [group.key, group.label, group.sourcePath]),
+    MENU_FACET_GROUPS.map((group) => [group.key, group.label, group.key]),
+  );
+  const byKey = Object.fromEntries(groups.map((group) => [group.key, group]));
+  // Labels are the chips'; values are the records' own words.
+  assert.deepEqual(byKey.protein.options.map((option) => option.value), ['Chicken', 'Beef', 'Lamb', 'Fish', 'Turkey', 'Plant-based']);
+  assert.ok(!byKey.wellness.options.some((option) => option.value === 'DASH'), 'no DASH chip');
+  assert.deepEqual(byKey.dietary.options, [
+    { value: 'Gluten-free', label: 'Gluten-free' },
+    { value: 'Dairy-free', label: 'Dairy-free' },
+    { value: 'High-fibre', label: 'High in fibre' },
+  ]);
+  // Heat matches the `heat` attribute's chip tokens, which keep their pips.
+  assert.deepEqual(
+    byKey.heat.options.map((option) => [option.value, option.label, heatChipPips(option.value)]),
+    [['none', 'None', 0], ['mild', 'Mild', 1], ['medium', 'Medium', 2], ['hot', 'Hot', 3]],
+  );
+  // Every value a fixture publishes is one an option can match.
+  for (const candidate of DISH_FIXTURES) {
+    if (candidate.heat) assert.ok(byKey.heat.options.some((option) => option.value === heatToken(candidate.heat!)), candidate.slug);
+    if (candidate.proteinType) assert.ok(byKey.protein.options.some((option) => option.value === candidate.proteinType), candidate.slug);
+    for (const tag of candidate.dietary) assert.ok(byKey.dietary.options.some((option) => option.value === tag), `${candidate.slug} ${tag}`);
+  }
+});
+
+test('no demo dish claims a dietary flag its own allergen declaration contradicts', () => {
+  for (const candidate of DISH_FIXTURES) {
+    const declared = (candidate.allergens ?? '').toLowerCase();
+    if (candidate.dietary.includes('Gluten-free')) assert.doesNotMatch(declared, /gluten|wheat|barley|rye/, candidate.slug);
+    if (candidate.dietary.includes('Dairy-free')) assert.doesNotMatch(declared, /milk|dairy|butter|cream|cheese/, candidate.slug);
+  }
 });
 
 test('the menu card: an h2, the heat word, the derived tag; no heat row for an unpublished heat', () => {
@@ -367,7 +408,9 @@ const text = (html: string) =>
     .replace(/\s+/g, ' ')
     .trim();
 
-test('demo: title, lede with the plan’s minimum, the strip with the window’s date, the note verbatim', async () => {
+test('demo: title, lede with the plan’s minimum, the strip with the window’s date, the note verbatim', async (t) => {
+  // A day before the fixture's window, so its date is still to come.
+  t.mock.timers.enable({ apis: ['Date'], now: new Date('2026-08-01T09:00:00Z') });
   const html = await renderMenu();
   assert.match(html, /<h1 id="menu-title"[^>]*tabindex="-1"[^>]*>What’s on the table\?<\/h1>/);
   const words = text(html);
@@ -378,6 +421,15 @@ test('demo: title, lede with the plan’s minimum, the strip with the window’s
   assert.ok(words.includes(`${DELIVERY_NOTE.body} ${DELIVERY_NOTE.caveat}`));
   assert.match(html, /aria-label="About delivery dates" aria-controls="menu-delivery-note" aria-expanded="false"/);
   assert.match(html, /data-purchase-bar-reveal=""/, 'the title band reveals the bar');
+});
+
+test('a delivery window whose date has passed draws no strip at all', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: new Date('2026-08-07T09:00:00Z') });
+  const words = text(await renderMenu());
+  assert.doesNotMatch(words, /Next deliveries from/);
+  assert.doesNotMatch(words, /About delivery dates/);
+  // The rest of the head stands.
+  assert.match(words, /Choose six or more dishes to build your box\./);
 });
 
 test('demo: the sheet is server-rendered as a dialog, closed, with the four groups and Sort', async () => {

@@ -321,7 +321,7 @@ export function DishPersonaliser({
             {enabled
               ? 'as selected'
               : dish.heat && dish.heat !== 'none'
-                ? `at ${HEAT_LABELS[dish.heat].toLowerCase()} heat`
+                ? `at its standard heat (${HEAT_LABELS[dish.heat]})`
                 : 'as standard'}{' '}
             with no surcharge.
           </>

@@ -35,8 +35,14 @@ export interface DishCardTags {
 
 const isNewTag = (tag: string) => tag.trim().toLowerCase() === 'new';
 
-export function dishCardTags(dish: Dish): DishCardTags {
-  const place = dish.wellness[0] ?? dish.category;
+/**
+ * `category` falls back to the homepage's tag where a dish has no eating
+ * style. The menu grid passes false: there a cream tag reads as an Eating
+ * style chip, and a word the filters cannot match would be one the page
+ * contradicts the moment that chip is chosen.
+ */
+export function dishCardTags(dish: Dish, { category = true }: { category?: boolean } = {}): DishCardTags {
+  const place = dish.wellness[0] ?? (category ? dish.category : undefined);
   return {
     cream: [...(place ? [place] : []), ...(isUnderKcal(dish) ? [UNDER_KCAL_TAG] : [])],
     isNew: dish.tags.some(isNewTag),

@@ -71,7 +71,8 @@ purchase bar's reveal point.
 
 Under the lede the page SHALL show a `--sage` strip "Next deliveries from {date}", the date a
 value from Aonik's delivery window formatted "Fri 18 Sep" (`formatDeliveryDateShort`, the weekday
-derived from the date). With no window the strip SHALL NOT render. Its "i" ("About delivery
+derived from the date). With no window the strip SHALL NOT render, and a window whose date has
+passed in the UK SHALL count as none (`upcomingDeliveryDate`). Its "i" ("About delivery
 dates") SHALL open the note "About delivery dates" / "We take a limited number of orders for each
 cooking run, so we can give every dish the care it deserves. The date shown is our next available
 run. **Availability can change if a run fills before you complete checkout.**" verbatim — on hover
@@ -83,9 +84,14 @@ aonik#346 the value is the earliest delivery window.
 - **WHEN** Aonik answers 404 for the tenant's delivery window
 - **THEN** no strip renders and no date appears anywhere on the page
 
+#### Scenario: A stale window
+- **WHEN** the earliest delivery date Aonik returns is yesterday
+- **THEN** no strip renders: a day that has gone is never promised
+
 #### Scenario: Keyboard
 - **WHEN** a keyboard user tabs to the "i"
 - **THEN** the note opens, Escape closes it, and Tab can reach its ×
+- **AND** Escape pressed on the × closes the note with focus back on the "i"
 
 ### Requirement: FR-03 The filter card
 `capability: menu` · `delta: MODIFIED (feat/menu-landing-v3)`
@@ -246,7 +252,8 @@ on Delivery & FAQs: the page offers what the source can do.
    markup has text ×.
 7. With Aonik unreachable in live mode the browse fails and the route shows the 500 page, as it did
    before; a failed facets or delivery read costs only the filters or the strip.
-8. The demo delivery date (6 August) is in the past; the strip shows it as data ("Thu 6 Aug").
+8. The demo delivery date (6 August) has passed, so demo `/menu` shows no strip (FR-02's stale-window
+   rule); the tests pin the clock to before it to check the strip.
 
 ### Open questions (owner decisions, not requirements)
 

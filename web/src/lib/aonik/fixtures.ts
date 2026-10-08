@@ -116,7 +116,10 @@ export const DISH_FIXTURES: Dish[] = [
     proteinType: 'Fish',
     mealType: 'Stew',
     wellness: ['Protein-led', 'DASH'],
-    dietary: ['Gluten-free', 'Dairy-free'],
+    // Menu v3 also marks it Gluten-free, but the declaration below lists
+    // gluten. Until the owner settles which is true it makes no gluten-free
+    // claim: a dietary chip must never contradict an allergen declaration.
+    dietary: ['Dairy-free'],
     ingredients:
       'King prawns, crab, okra, tomatoes, red peppers, onions, native spices, garlic, herbs, chicken stock, olive oil, sea salt.',
     allergens: 'Shellfish (prawns, crab), mustard, nuts (peanuts, almonds, pistachio), gluten.',

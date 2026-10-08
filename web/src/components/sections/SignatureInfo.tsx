@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 
 import { SIGNATURE_EXPLAINER } from '@/lib/content/marketing';
 import { DESKTOP_QUERY } from '@/lib/site-header/visibility';
@@ -91,9 +91,14 @@ export function SignatureInfo() {
     note.style.setProperty('--tail-x', `${tail}px`);
   }, []);
 
+  // Placed before the first paint, so an opening note never shows (or widens
+  // the page) on the side it is about to leave.
+  useLayoutEffect(() => {
+    if (open) measure();
+  }, [open, measure]);
+
   useEffect(() => {
     if (!open) return;
-    measure();
     const frame = requestAnimationFrame(measure);
 
     const onPointerDown = (event: PointerEvent) => {

@@ -8,6 +8,7 @@ import { MobilePurchaseBar } from '@/components/purchase-bar/MobilePurchaseBar';
 import { KeepCompounds } from '@/components/sections/KeepTogether';
 import { getMenuPageData } from '@/lib/aonik/client';
 import { MENU_HEADING, MENU_LEDE } from '@/lib/content/menu';
+import { upcomingDeliveryDate } from '@/lib/delivery/checker';
 import { formatCountInWords, formatDeliveryDateShort } from '@/lib/format';
 import { MENU_BAND_ATTR, MENU_PAGE_SIZE, MENU_TITLE_ID } from '@/lib/menu/constants';
 import { filtersFromParams } from '@/lib/menu/facets';
@@ -63,8 +64,9 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
 
   // "Next deliveries from Fri 18 Sep". Today this is Aonik's earliest delivery
   // window; the note promises the next cooking run WITH CAPACITY, which waits
-  // on michaeljosiah/aonik#346 (contract §4). No window, no strip.
-  const nextDelivery = formatDeliveryDateShort(menu.delivery?.earliestDeliveryDate);
+  // on michaeljosiah/aonik#346 (contract §4). No window, no strip — and a date
+  // that has passed is no window: a delivery promise is never a guess.
+  const nextDelivery = formatDeliveryDateShort(upcomingDeliveryDate(menu.delivery?.earliestDeliveryDate));
   // "Choose six or more dishes…": the plan's minimum, the bar's own read.
   const minimum = purchaseBar.offer?.minDishes;
 

@@ -318,8 +318,17 @@ test('the v2 card: the Signature "i" is a real button OUTSIDE the card link, and
   assert.match(html, new RegExp(`id="${describedBy}" role="tooltip"`));
   assert.doesNotMatch(html, /Abby(&#x27;|’|')s Signature/);
   // Signature and its upgrade sit in the left tag stack, after the cream tags.
+  assert.ok(html.indexOf('class="tags"') > html.lastIndexOf('</a>'), 'the stack follows the link');
   const stack = html.slice(html.indexOf('class="tags"'));
-  assert.ok(stack.indexOf('Signature') < stack.indexOf('+£4 upgrade'));
+  const at = (needle: string) => {
+    const index = stack.indexOf(needle);
+    assert.ok(index >= 0, `${needle} is in the stack`);
+    return index;
+  };
+  const cream = at(`>${signatureDish.wellness[0] ?? signatureDish.category}</span>`);
+  const signature = at('◆');
+  const upgrade = at('+£4 upgrade');
+  assert.ok(cream < signature && signature < upgrade, 'cream tag, then Signature, then its upgrade');
 });
 
 /* ---- Hyphenated compounds --------------------------------------------------------- */

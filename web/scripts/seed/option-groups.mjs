@@ -41,7 +41,7 @@ async function call(method, path, body) {
  * `HEAT_STEPS` in the storefront: the choice key IS the step, as a string, and
  * `map.ts` parses it straight back into `heatStep`. Keep them in step.
  */
-const HEAT_STEPS = { low: 1, medium: 2, high: 3 };
+const HEAT_STEPS = { none: 0, low: 1, medium: 2, high: 3 };
 
 /**
  * This is the same absolute-price DTO source that demo mode passes through the
@@ -191,8 +191,11 @@ const bySlug = new Map((all?.items ?? []).map((p) => [p.slug, p.id]));
  */
 const ALL_GROUP_KEYS = GROUPS.map((group) => group.key);
 
+// The dish's own heat where it published one; otherwise the group's authored
+// default, as demo mode does (`fixtureOptionGroups`) — never a level made up
+// for the dish.
 const defaultChoiceKey = (groupKey, dish) => {
-  if (groupKey === 'heat') return String(HEAT_STEPS[dish.heat] ?? 2);
+  if (groupKey === 'heat' && Object.hasOwn(HEAT_STEPS, dish.heat ?? '')) return String(HEAT_STEPS[dish.heat]);
   const group = GROUPS.find((g) => g.key === groupKey);
   return group.defaultChoiceKey;
 };

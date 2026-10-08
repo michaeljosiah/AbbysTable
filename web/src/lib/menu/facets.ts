@@ -20,9 +20,9 @@
  * publishes a real flag (michaeljosiah/aonik#359).
  */
 
-import type { MappedFacetGroup } from '@/lib/aonik/map';
+import type { MappedFacetGroup, MappedFacetOption } from '@/lib/aonik/map';
 // Relative, not `@/`: demo fixtures reach this module in tests without the alias hook.
-import { HEAT_LABELS, HEAT_STEPS, PROTEIN_TYPES, type Dish, type HeatLevel } from '../aonik/types';
+import { DIETARY_TAGS, HEAT_LABELS, HEAT_STEPS, PROTEIN_TYPES, type Dish, type HeatLevel } from '../aonik/types';
 
 import type { MenuFilters } from './filters';
 
@@ -75,8 +75,8 @@ export const HEAT_TOKENS: Record<string, HeatLevel> = {
   hot: 'high',
 };
 
-/** The token for a level — the inverse of `HEAT_TOKENS`. */
-function heatToken(level: HeatLevel): string {
+/** The token for a level — the inverse of `HEAT_TOKENS` ("high" → "hot"). */
+export function heatToken(level: HeatLevel): string {
   return Object.keys(HEAT_TOKENS).find((token) => HEAT_TOKENS[token] === level) ?? level;
 }
 
@@ -125,6 +125,40 @@ export const MENU_FACET_GROUPS: MappedFacetGroup[] = [
     options: DIETARY_OPTIONS,
   },
 ];
+
+/** A facet group as a tenant authors it (`scripts/seed/seed.mjs`). */
+export interface TenantFacetGroup {
+  key: string;
+  label: string;
+  /** The `attributesJson` key Aonik matches the group's values against. */
+  sourcePath: string;
+  options: MappedFacetOption[];
+}
+
+/**
+ * The design's four groups as a tenant should author them. Aonik matches an
+ * `Attribute` facet by comparing an option's value with the product's
+ * attribute at `sourcePath`, so each value is the attribute AS PUBLISHED —
+ * the record's own words ("High-fibre"), and the chip token under `heat` —
+ * while the label is the chip's ("High in fibre"). No DASH, no meal type, no
+ * calories: the groups the page no longer draws are not authored either.
+ */
+export function tenantFacetGroups(): TenantFacetGroup[] {
+  const published: Record<string, readonly string[]> = {
+    [FACET_KEY.protein]: PROTEIN_TYPES,
+    [FACET_KEY.style]: EATING_STYLES,
+    [FACET_KEY.dietary]: DIETARY_TAGS,
+  };
+  return MENU_FACET_GROUPS.map((group) => ({
+    key: group.key,
+    label: group.label,
+    sourcePath: group.key,
+    options: group.options.map((option) => ({
+      value: published[group.key]?.find((word) => toFacetToken(word) === option.value) ?? option.value,
+      label: option.label,
+    })),
+  }));
+}
 
 /**
  * Does one dish match one facet value? Only through a field the dish carries:

@@ -43,13 +43,19 @@
     box-shadow 0.18s ease;
 }
 
-/* The lift is a card affordance (the design's `.at-dish-link:hover`). */
+/* The lift is a card affordance (the design's `.at-dish-link:hover`). The tag
+   stack sits outside the link, so it is lifted with the card it rides on. */
 .link:hover .card {
   transform: translateY(-4px);
   box-shadow: var(--shadow-lift);
 }
 
-.link:active .card {
+.link:hover ~ .tags {
+  transform: translateY(-4px);
+}
+
+.link:active .card,
+.link:active ~ .tags {
   transform: translateY(-1px);
 }
 
@@ -60,9 +66,16 @@
   box-shadow: var(--shadow-card);
 }
 
+.cell[data-variant='grid'] .link:hover ~ .tags,
+.cell[data-variant='grid'] .link:active ~ .tags {
+  transform: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .link:hover .card,
-  .link:active .card {
+  .link:active .card,
+  .link:hover ~ .tags,
+  .link:active ~ .tags {
     transform: none;
   }
 }
@@ -95,6 +108,7 @@
   align-items: flex-start;
   gap: 8px;
   pointer-events: none;
+  transition: transform 0.18s ease;
 }
 
 /* Cream pill. nowrap is the render-layer protection for a hyphenated label
@@ -175,8 +189,12 @@
 }
 
 /* MOBILE: below the tag stack (the stack is the positioning context), its tail
-   measured to the "i" (`--tail-x`, set by SignatureInfo). */
+   measured to the "i" (`--tail-x`, set by SignatureInfo).
+   Closed, it is display:none, never merely invisible: a hidden box still
+   counts towards the page's scrollable overflow, and a note beside a
+   last-column pill would otherwise widen the page while nobody can see it. */
 .signatureNote {
+  display: none;
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
@@ -195,14 +213,10 @@
   text-transform: none;
   text-align: left;
   white-space: normal;
-  opacity: 0;
-  transform: translateY(-5px);
   pointer-events: none;
-  visibility: hidden;
   transition:
     opacity 0.16s ease,
-    transform 0.16s ease,
-    visibility 0s linear 0.16s;
+    transform 0.16s ease;
 }
 
 .signatureNote::after {
@@ -215,13 +229,15 @@
 }
 
 .signatureNote[data-open] {
-  opacity: 1;
-  transform: translate(0, 0);
-  visibility: visible;
-  transition:
-    opacity 0.16s ease,
-    transform 0.16s ease,
-    visibility 0s;
+  display: block;
+}
+
+/* Fades in as it opens (closing is immediate). */
+@starting-style {
+  .signatureNote[data-open] {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -554,7 +570,12 @@
     box-shadow: var(--shadow-lift);
   }
 
-  .cell[data-variant='grid'] .link:active .card {
+  .cell[data-variant='grid'] .link:hover ~ .tags {
+    transform: translateY(-4px);
+  }
+
+  .cell[data-variant='grid'] .link:active .card,
+  .cell[data-variant='grid'] .link:active ~ .tags {
     transform: translateY(-1px);
   }
 
@@ -567,7 +588,12 @@
     top: -10px;
     left: calc(100% + 13px);
     max-width: 250px;
-    transform: translateX(-5px);
+  }
+
+  @starting-style {
+    .signatureNote[data-open] {
+      transform: translateX(-5px);
+    }
   }
 
   .signatureNote::after {
@@ -585,10 +611,6 @@
     right: calc(100% + 13px);
   }
 
-  .signatureNote[data-side='left']:not([data-open]) {
-    transform: translateX(5px);
-  }
-
   .signatureNote[data-side='left']::after {
     right: auto;
     left: 100%;
@@ -599,7 +621,9 @@
 
 @media (min-width: 1024px) and (prefers-reduced-motion: reduce) {
   .cell[data-variant='grid'] .link:hover .card,
-  .cell[data-variant='grid'] .link:active .card {
+  .cell[data-variant='grid'] .link:active .card,
+  .cell[data-variant='grid'] .link:hover ~ .tags,
+  .cell[data-variant='grid'] .link:active ~ .tags {
     transform: none;
   }
 }
