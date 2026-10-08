@@ -44,8 +44,11 @@ Conventions inside `web/` that are easy to get wrong:
   action's state), `HoursDisclosure` (the Phone card's "See opening hours", one open flag shared
   with the hours cell) and `OpenNow` (open/closed, computed in the browser), the mobile purchase bar
   (`PurchaseBarShell`, `MobilePurchaseBar`, `DishPurchaseBar`), the dish page's
-  `DishOrderProvider`, and Delivery & FAQs' postcode checker (`PostcodeChecker`, with
-  `NotifyMeForm`), FAQ search (`FaqSearch`) and each group's `ExpandAllButton` — each for a
+  `DishOrderProvider`, Delivery & FAQs' postcode checker (`PostcodeChecker`, with
+  `NotifyMeForm`), FAQ search (`FaqSearch`) and each group's `ExpandAllButton`, and
+  `/private-table`'s `WaitlistForm` (with its `CountryCombobox`), `WaitlistChoiceProvider` (the
+  service a card's "Join the waitlist" preselects) and `SectionJump` (in-page jumps that take
+  focus with them) — each for a
   specific piece of state — plus `app/error.tsx` and
   `app/global-error.tsx`, which Next requires to be client components. Data is fetched once in
   `app/layout.tsx` / the route's `page.tsx` and passed down; sections never fetch for themselves.
@@ -67,7 +70,10 @@ Conventions inside `web/` that are easy to get wrong:
   (`MobilePurchaseBar` with `getPurchaseBarData()`; the dish page renders `DishPurchaseBar`) and
   marks its own reveal point with `data-purchase-bar-reveal`; anything the bar must not sit over
   carries `data-purchase-bar-stop` (the footer always does; so do the homepage's Private Table and
-  Standards' closing CTA).
+  Standards' closing CTA). A band that offers the bar's own action sets it to `"entry"`
+  (`STOP_ON_ENTRY`) and suppresses as soon as any of it is on screen, not at 75% — Private
+  Table's enquiry section, under its waitlist bar (a `PurchaseBarShell` with one centred "Join the
+  waitlist", never VIEW BOX, rendered only while the waitlist is open).
   The rules live React-free in `src/lib/purchase-bar/visibility.ts`. Pages without a bar in the
   design — Abby's Story, Gifting, Delivery & FAQs, Contact, Allergens, legal, checkout, auth —
   simply don't render one. Drawers and phone bottom sheets hold `data-overlay-open` on `<html>`
@@ -81,9 +87,10 @@ Conventions inside `web/` that are easy to get wrong:
   earliest delivery date. Every chrome destination is defined ONCE in `src/lib/content/navigation.ts`;
   a page that is designed but not built never gets a link that 404s or a dead anchor. Gifting stays
   out of the header, drawer and footer until `/gifting` lands (`GIFTING_LIVE`, #26); Private Table
-  is `/#private` until #25; Contact is `CONTACT_HREF` (`/contact`, #24) and Delivery & FAQs is
-  `DELIVERY_FAQS_HREF` (`/delivery-and-faqs`, #23), pinned by `tests/information-links.test.ts`;
-  no `/#contact` is left in `src`. Every in-page "contact us" reads those
+  is `PRIVATE_TABLE_ITEM` (`/private-table`, #25); Contact is `CONTACT_HREF` (`/contact`, #24) and
+  Delivery & FAQs is `DELIVERY_FAQS_HREF` (`/delivery-and-faqs`, #23), pinned by
+  `tests/information-links.test.ts`; no `/#contact` or `/#private` is left in `src`. Every in-page
+  "contact us" reads those
   constants too — never write `/#contact`, `/contact` or `/delivery-and-faqs` in a page.
   What the chrome says (current page, Log in / My Account, GET STARTED / VIEW BOX) and when the
   header hides are React-free in `src/lib/site-header/` (`tests/site-header.test.ts`). The header
@@ -122,7 +129,19 @@ Conventions inside `web/` that are easy to get wrong:
   value; values from aonik#358 later). Never copy the design's number, email, hours, bank holidays
   or placeholder QR. "Open now / Closed" is computed in the BROWSER in Europe/London from
   configured hours only — no hours, no status. Topics, validation, images and the hours rules are
-  React-free in `src/lib/contact/` (`tests/contact.test.tsx`); Private Table is never a topic.
+  React-free in `src/lib/contact/` (`tests/contact.test.tsx`); Private Table is never a topic, and
+  its panel ("Join the waitlist") shows only while that waitlist is open (`waitlistOpen`).
+- **Private Table (#25): `/private-table` is a WAITLIST, never a booking** (`PrivateTableView`;
+  behaviour guide §8). Every call to action reads "Join the waitlist" (`JOIN_WAITLIST_LABEL`) and the
+  confirmation promises no date and no reply time. Nothing can store an entry until aonik#357:
+  `AonikClient.waitlist` is `null` in BOTH modes (`WAITLIST_PATH` in `src/lib/aonik/waitlist.ts`,
+  the one switch), so `waitlistOpen()` is false and the page renders NO form, NO "Join the
+  waitlist" and NO mobile bar — it says the waitlist isn't open yet (#6's rule); the action answers
+  `joined` only after a 2xx. Prices are `PRIVATE_TABLE_FROM_PENCE` / `…_MEAL_PREPARATION_FROM_PENCE`
+  (`marketing.ts`), copy and credentials verbatim (`src/lib/content/privateTable.ts`, awaiting
+  #38). "Country or region" resolves against the FIXED list in `src/lib/content/countries.ts`
+  (codes stored, aliases matched); the rules are React-free in `src/lib/private-table/`
+  (`country.ts`, `waitlist.ts`, `join.ts`; `tests/private-table.test.tsx`).
 - **Menu (#21, Menu Landing v3): the rules live React-free in `src/lib/menu/`** — the four
   groups and their matching (`facets.ts`), the pills and result line (`filters.ts`), the three
   sorts (`sort.ts`), the card's tags with the DERIVED "Under 500 kcal" (`cardTags.ts`) and ↑ Top
@@ -133,8 +152,9 @@ Conventions inside `web/` that are easy to get wrong:
   until aonik#359; demo mirrors Aonik in `MockAonikClient`. A dish matches only through a field it
   carries — no heat published, no heat row and no heat chip (`heatFromStep` never defaults to
   "Medium"); "Low sugar" has no field, so it has no chip. "Next deliveries from" is Aonik's
-  delivery window via `formatDeliveryDateShort`, left out with none; the cooking run "with
-  capacity" waits on aonik#346. The lede says "mainland UK", not the design's "across the UK".
+  delivery window via `formatDeliveryDateShort`, left out with none or a past date
+  (`upcomingDeliveryDate`); the cooking run "with capacity" waits on aonik#346. The lede says
+  "mainland UK", not the design's "across the UK".
 - **Delivery & FAQs (#23): never fake an answer.** "We deliver" / "not in your area" come only from
   `AonikClient.coverage` (contract §3b); it is the design's placeholder areas in demo and `null` in
   live until michaeljosiah/aonik#352, and with no lookup the page renders NO checker. The nine
@@ -262,7 +282,8 @@ v2 (#15) — the boxes promo and gifting are gone, and the homepage reads no del
 announcement strip is gone site-wide (#10). Homepage copy that is structured data lives
 in `src/lib/content/marketing.ts`; hyphenated compounds are held together at render time
 (`KeepCompounds`), never with a non-breaking hyphen in the content. Private Table's "Find out more"
-renders only once `PRIVATE_TABLE_HREF` is set — flip it to `/private-table` when #25 lands.
+goes to `PRIVATE_TABLE_HREF` (`/private-table`, its top); the band keeps `id="private"` only so a
+link saved while it was the chrome's destination still lands.
 
 Price: **"6 dishes from £158"**. The wording is fixed and the value comes from an editable price
 source, never a literal. Only the six-dish price is confirmed. The 6 / 12 / 18 presets stay, but the

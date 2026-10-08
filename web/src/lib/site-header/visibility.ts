@@ -33,6 +33,7 @@ import {
   HOW_IT_WORKS_ITEM,
   MENU_ITEM,
   OUR_STORY_ITEM,
+  PRIVATE_TABLE_ITEM,
   STANDARDS_ITEM,
 } from '@/lib/content/navigation';
 
@@ -58,9 +59,9 @@ export const ANCHOR_JUMP_TAIL_MS = 150;
  * The routes whose desktop header auto-hides — the design's opted-in list
  * (build-handoff §3v): Homepage, Menu, How it works, Gifting, Private Table,
  * Standards, Abby's Story, Delivery & FAQs, Contact. Only the BUILT ones are
- * named: Gifting (#26) and Private Table (#25) add their own route here when
- * they land. Listing an unbuilt path would give its 404 the marketing
- * behaviour, and error pages are on the "never" list.
+ * named: Gifting (#26) adds its own route here when it lands. Listing an
+ * unbuilt path would give its 404 the marketing behaviour, and error pages
+ * are on the "never" list.
  *
  * Exact paths: `/menu` is here, a dish page (`/menu/<slug>`) is not.
  */
@@ -72,6 +73,7 @@ export const DESKTOP_AUTO_HIDE_PATHS: readonly string[] = [
   STANDARDS_ITEM.href,
   CONTACT_ITEM.href,
   DELIVERY_FAQS_ITEM.href,
+  PRIVATE_TABLE_ITEM.href,
 ];
 
 /**
@@ -172,7 +174,7 @@ export function isHeaderHidden({
 /**
  * Whether following `href` from `current` is a jump within the same page: the
  * same document (path and query) with a fragment. Root-relative anchors
- * (`/#private` on the homepage) count, as bare ones (`#private`) do.
+ * (`/#founder` on the homepage) count, as bare ones (`#founder`) do.
  */
 export function isInPageJump(
   href: string,

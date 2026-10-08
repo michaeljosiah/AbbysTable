@@ -11,10 +11,10 @@ import {
 } from 'react';
 
 import { useMediaQuery } from '@/lib/dom/hooks';
+import { revealBottom, revealUnderHeader } from '@/lib/dom/reveal';
 import { DESKTOP_QUERY } from '@/lib/site-header/visibility';
 
 import { HOURS_HEADING_ID, HOURS_PANEL_ID } from './ids';
-import { revealBottom, revealUnderHeader } from './reveal';
 
 /**
  * "See opening hours" — the Phone card's control and the hours block it

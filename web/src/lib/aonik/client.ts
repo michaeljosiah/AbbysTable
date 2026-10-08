@@ -53,6 +53,7 @@ import {
   mapExtraRow,
 } from './map';
 import type { NotifyList } from './notifyMe';
+import { HttpWaitlist, WAITLIST_PATH, type Waitlist } from './waitlist';
 import type {
   BoxOffer,
   BoxPricing,
@@ -115,6 +116,11 @@ export interface AonikClient {
    * — then the not-in-area panel offers no form.
    */
   readonly notifyList: NotifyList | null;
+  /**
+   * The Private Table waitlist (#25), or null while nothing can store to it
+   * — then the Private Table page offers no form and no "Join the waitlist".
+   */
+  readonly waitlist: Waitlist | null;
 }
 
 export interface ProductPage {
@@ -134,6 +140,9 @@ export class MockAonikClient implements AonikClient {
    * succeeded — it stores no email, so it offers no form (`./notifyMe`).
    */
   readonly notifyList: NotifyList | null = null;
+
+  /** None, for the same reason: demo never stores a name (`./waitlist`). */
+  readonly waitlist: Waitlist | null = null;
 
   async getDishes(): Promise<Dish[]> {
     return DISH_FIXTURES;
@@ -294,6 +303,14 @@ export class HttpAonikClient implements AonikClient {
    * control in live mode rather than offering an order it would have to fake.
    */
   readonly menuSorts: readonly MenuSortKey[] = ['recommended'];
+
+  /**
+   * The waitlist over `WAITLIST_PATH`, or null while Aonik has none
+   * (michaeljosiah/aonik#357) — never a stub that fails every sign-up.
+   */
+  get waitlist(): Waitlist | null {
+    return WAITLIST_PATH === null ? null : new HttpWaitlist(WAITLIST_PATH, this.options);
+  }
 
   private get<T>(path: string, query?: Record<string, string | number | undefined>): Promise<T> {
     return aonikFetch<T>(path, {

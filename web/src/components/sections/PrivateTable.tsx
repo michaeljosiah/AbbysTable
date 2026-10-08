@@ -55,10 +55,11 @@ function ReachGlyph({ icon }: { icon: PrivateTableReachIcon }) {
  * borderless copy. The credentials are regulated claims to substantiate
  * before launch (#38).
  *
- * "Find out more" goes to the Private Table page, which does not exist yet
- * (#25). Until it does the CTA is not rendered — never a link to a 404, never
- * an inert button — and the band still states the service and its price. See
- * `PRIVATE_TABLE_HREF`.
+ * "Find out more" goes to the Private Table page (#25, `PRIVATE_TABLE_HREF`)
+ * — its top, not the waitlist form (design/CLAUDE.md, Order Confirmation's
+ * banner: "top of page, not #enquire"). The band keeps `id="private"`: it was
+ * the chrome's Private Table destination until that page landed, so a link
+ * saved then still arrives here.
  *
  * The mobile purchase bar is suppressed from this band's top through the
  * footer: "Build a Box" beside a bespoke service reads as an upsell. The
@@ -93,13 +94,11 @@ export function PrivateTable() {
               ))}
             </ul>
 
-            {PRIVATE_TABLE_HREF ? (
-              <div className={styles.ctaWrap}>
-                <Link href={PRIVATE_TABLE_HREF} className={styles.cta}>
-                  Find out more
-                </Link>
-              </div>
-            ) : null}
+            <div className={styles.ctaWrap}>
+              <Link href={PRIVATE_TABLE_HREF} className={styles.cta}>
+                Find out more
+              </Link>
+            </div>
             <p className={styles.price}>Private Table from {formatPrice(PRIVATE_TABLE_FROM_PENCE)}</p>
           </div>
 

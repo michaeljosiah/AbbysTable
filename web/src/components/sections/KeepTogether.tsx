@@ -26,6 +26,11 @@ export const KEEP_TOGETHER = [
   'house-made',
   'UK-certified',
   'Béllé-Full',
+  // Private Table (#25), each checked at 320px in its column.
+  'in-house',
+  'sign-off',
+  'one-to-one',
+  'day-to-day',
   // Dish names and components lines, as the dish card renders them.
   'Yaji-Crusted',
   'Slow-Braised',
