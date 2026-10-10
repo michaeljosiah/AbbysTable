@@ -41,6 +41,7 @@ import { formatPrice, formatSignedPrice } from '@/lib/format';
 
 import styles from './DishPicker.module.css';
 import { DriftNotices } from './DriftNotices';
+import { ReplacementNotice } from './ReplacementNotice';
 
 const OPTION_GROUP_CLASSES: OptionGroupControlClasses = {
   group: `${styles.group} ${styles.groupRuled}`,
@@ -207,7 +208,14 @@ export function DishPicker({
     updateLinePersonalisation,
     pending,
     isServerCart,
+    rememberStep,
   } = useCart();
+
+  // Reaching Step 2 with a size committed is a step reached (VIEW BOX resumes at
+  // the furthest one, never before it).
+  useEffect(() => {
+    if (hydrated && boxSize !== null) rememberStep('dishes');
+  }, [hydrated, boxSize, rememberStep]);
 
   /** This dish's own effective groups; an absent entry is not personalisable. */
   const optionsFor = useCallback(
@@ -610,7 +618,9 @@ export function DishPicker({
   const updCount = Math.min(Math.max(1, editor?.updateCount ?? 1), targetLine?.quantity ?? 1);
   const dishInBoxQty = editorLines.reduce((total, line) => total + line.quantity, 0);
 
-  const usedCount = lines.reduce((total, line) => total + line.quantity, 0);
+  // A dish flagged unavailable is still in Aonik's box but is not one of the dishes
+  // that fill it (`ReplacementNotice` takes it out).
+  const usedCount = lines.reduce((total, line) => total + (line.unavailable ? 0 : line.quantity), 0);
   /** Box capacity including spaces consented to via the expand view. */
   const effectiveSize = Math.max(boxSize ?? 0, expandedTo);
   const boxLabel = `${effectiveSize}-dish box`;
@@ -1062,7 +1072,8 @@ export function DishPicker({
 
   return (
     <div className={styles.picker}>
-      <DriftNotices />
+      <ReplacementNotice />
+      <DriftNotices hideUnavailable />
       {/* The template keeps box progress in the summary column and the mobile
           bar — the main column goes straight from the intro to the filters. */}
 

@@ -29,6 +29,18 @@ import {
   type DemoCartLine,
   type DemoCartState,
 } from './demoStorage';
+import {
+  boxStatus,
+  forgetStep,
+  LAST_STEP_KEY,
+  localStore,
+  readLastStep,
+  readyDishCount,
+  rememberStep as rememberStepIn,
+  type BoxStep,
+  type ShoppingStatus,
+} from '@/lib/shopping-state';
+
 import { deleteExtra, patchDishPersonalisation, patchExtra, postExtra } from './mutations';
 import { useServerCart, type ServerCartEngine } from './serverEngine';
 import { CartRequestError } from './transport';
@@ -107,10 +119,22 @@ interface CartContextValue extends CartState {
    * the customer do so rather than gating on a box that can no longer change.
    */
   ordered: boolean;
+  /**
+   * The shared shopping state (#14): whether a box is in progress, what it
+   * lacks, the furthest step it may be on and where VIEW BOX goes. The header,
+   * the drawer, the purchase bar and every step read THIS, never their own rule.
+   */
+  shopping: ShoppingStatus;
+  /** The dishes Aonik reports no longer available (live): they leave the box on Step 2. */
+  unavailableDishes: { lineId: string; name: string; quantity: number }[];
+  /** Records that the customer reached `step` (so VIEW BOX can resume there). */
+  rememberStep: (step: BoxStep) => void;
   /** A mutation is in flight — disable controls rather than double-firing. */
   pending: boolean;
   /** The last cart failure, for inline messages. */
   error: CartRequestError | null;
+  /** The box could not be read (live): nothing is known about it — never "gone". */
+  readFailed: boolean;
   /** True when this cart is server-backed, for surfaces that must know. */
   isServerCart: boolean;
   /**
@@ -170,6 +194,7 @@ function projectServerCart(
       quantity: line.quantity,
       personalisation: line.isDefaultPersonalisation ? undefined : line.personalisation,
       surchargePence: line.personalisationAdjustmentPence + line.unitSurchargePence,
+      ...(line.isUnavailable ? { unavailable: true } : {}),
     }));
 
   // Keyed by VARIANT id, because that is what `Extra.id` is (`mapExtraRow`
@@ -211,6 +236,22 @@ export function CartProvider({
   const [state, setState] = useState<CartState>(EMPTY);
   const [hydrated, setHydrated] = useState(false);
   const server = useServerCart(isServerCart, signedIn);
+
+  // The step this browser last reached: read after mount (and when another tab
+  // moves it), so the server and the first client render agree.
+  const [lastStep, setLastStep] = useState<BoxStep | null>(null);
+  useEffect(() => {
+    setLastStep(readLastStep(localStore()));
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === LAST_STEP_KEY || event.key === null) setLastStep(readLastStep(localStore()));
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+  const rememberStep = useCallback((step: BoxStep) => {
+    rememberStepIn(localStore(), step);
+    setLastStep(readLastStep(localStore()));
+  }, []);
 
   // Read storage after mount so server and first client render agree. Skipped
   // entirely in live mode, where the server cart is the truth.
@@ -489,6 +530,49 @@ export function CartProvider({
     [isServerCart, server.cart, server.display, state],
   );
 
+  const unavailableDishes = useMemo(
+    () =>
+      isServerCart
+        ? (server.cart?.lines
+            .filter((line) => line.isUnavailable && line.kind === 'BoxDish')
+            .map((line) => ({ lineId: line.lineId, name: line.name, quantity: line.quantity })) ?? [])
+        : [],
+    [isServerCart, server.cart],
+  );
+  const unavailableCount = unavailableDishes.reduce((total, line) => total + line.quantity, 0);
+  const unavailableExtras = isServerCart
+    ? (server.cart?.lines.filter((line) => line.isUnavailable && line.kind === 'AddOn').length ?? 0)
+    : 0;
+  // Aonik counts a flagged dish in `unitsSelected` — it stays in the box until
+  // removed — so the dishes that can be ordered are what is left of it.
+  const readyDishes = isServerCart
+    ? readyDishCount(server.cart?.quote.unitsSelected ?? 0, unavailableCount)
+    : effectiveState.lines.reduce((total, line) => total + line.quantity, 0);
+  const shopping = useMemo(
+    () =>
+      boxStatus({
+        hydrated: isServerCart ? server.hydrated : hydrated,
+        boxSize: effectiveState.boxSize,
+        dishCount: readyDishes,
+        unavailableCount,
+        unavailableExtras,
+        ordered: server.cart?.ordered ?? false,
+        lastStep,
+      }),
+    [isServerCart, server.hydrated, hydrated, effectiveState.boxSize, readyDishes, unavailableCount, unavailableExtras, server.cart?.ordered, lastStep],
+  );
+
+  // A box that is GONE (an answer said so) or became an order leaves no step to
+  // resume at. A failed read says nothing about the box, and forgets nothing.
+  const readFailed = isServerCart && server.readFailed;
+  useEffect(() => {
+    if (!(isServerCart ? server.hydrated : hydrated) || readFailed) return;
+    if (!shopping.active || shopping.ordered) {
+      forgetStep(localStore());
+      setLastStep(null);
+    }
+  }, [isServerCart, server.hydrated, hydrated, readFailed, shopping.active, shopping.ordered]);
+
   const value = useMemo<CartContextValue>(
     () => ({
       ...effectiveState,
@@ -507,12 +591,16 @@ export function CartProvider({
       updateExtra,
       removeExtra,
       clear,
+      shopping,
+      unavailableDishes,
+      rememberStep,
       quote: server.cart?.quote ?? null,
       changes: server.cart?.changes ?? [],
       hasUnavailableLine: server.cart?.lines.some((line) => line.isUnavailable) ?? false,
       ordered: server.cart?.ordered ?? false,
       pending: server.pending,
       error: server.error,
+      readFailed: server.readFailed,
       isServerCart,
       orderingEnabled,
       revalidate,
@@ -527,6 +615,7 @@ export function CartProvider({
       server.hydrated,
       server.pending,
       server.error,
+      server.readFailed,
       setBoxSize,
       addLine,
       removeLine,
@@ -538,6 +627,9 @@ export function CartProvider({
       clear,
       revalidate,
       server.checkoutRequest,
+      shopping,
+      unavailableDishes,
+      rememberStep,
     ],
   );
 

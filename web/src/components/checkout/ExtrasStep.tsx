@@ -27,6 +27,7 @@ import { formatPrice, formatPriceExact, formatSignedPrice } from '@/lib/format';
 
 import { ContinueLink } from './ContinueLink';
 import { DriftNotices } from './DriftNotices';
+import { useStepGuard } from './useStepGuard';
 import styles from './ExtrasStep.module.css';
 
 /**
@@ -76,6 +77,7 @@ export function ExtrasStep({
     isServerCart,
     quote,
   } = useCart();
+  const guard = useStepGuard('extras');
 
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState(ALL);
@@ -261,6 +263,19 @@ export function ExtrasStep({
       document.body.style.overflow = previous;
     };
   }, [modal, sheetOpen]);
+
+  // Sent back (an incomplete box, an unavailable dish): said, not flashed.
+  if (guard.blocked && boxSize !== null) {
+    return (
+      <div className={styles.noBox} role="status">
+        <p className={styles.noBoxTitle}>Taking you back to your dishes</p>
+        <p className={styles.noBoxCopy}>Your box needs a little more before you can add extras.</p>
+        <Link href="/box/dishes" className={styles.noBoxLink}>
+          Go to your dishes
+        </Link>
+      </div>
+    );
+  }
 
   if (hydrated && boxSize === null) {
     return (

@@ -47,6 +47,7 @@ import { formatPrice, formatPriceExact, formatSignedPrice } from '@/lib/format';
 import { DriftNotices } from './DriftNotices';
 import { ContinueLink } from './ContinueLink';
 import dmStyles from './DishPicker.module.css';
+import { useStepGuard } from './useStepGuard';
 import styles from './ReviewStep.module.css';
 
 const OPTION_GROUP_CLASSES: OptionGroupControlClasses = {
@@ -105,6 +106,7 @@ export function ReviewStep({
     pending,
     ordered,
   } = useCart();
+  const guard = useStepGuard('review');
 
   /** This dish's own effective groups. */
   const optionsFor = useCallback(
@@ -143,10 +145,12 @@ export function ReviewStep({
   }, [isServerCart, pending, revalidate, ordered]);
 
   useEffect(() => {
-    if (!isServerCart || !hydrated || gateRun.current) return;
+    // Not while the guard is sending the customer back: revalidating a box that
+    // cannot continue only leaves a refusal behind for Step 2 to show.
+    if (!isServerCart || !hydrated || guard.blocked || gateRun.current) return;
     gateRun.current = true;
     void runGate();
-  }, [isServerCart, hydrated, runGate]);
+  }, [isServerCart, hydrated, guard.blocked, runGate]);
 
   const [boxOpen, setBoxOpen] = useState(true);
   const [extrasOpen, setExtrasOpen] = useState(true);
@@ -334,6 +338,18 @@ export function ReviewStep({
       document.body.style.overflow = previous;
     };
   }, [editor, closeEditor]);
+
+  // Sent back (an incomplete box, an unavailable dish): said, not flashed.
+  if (guard.blocked && boxSize !== null) {
+    return (
+      <div className={styles.noBox} role="status">
+        <p className={styles.noBoxTitle}>Taking you back to your dishes</p>
+        <Link href="/box/dishes" className={styles.noBoxLink}>
+          Go to your dishes
+        </Link>
+      </div>
+    );
+  }
 
   if (hydrated && boxSize === null) {
     return (

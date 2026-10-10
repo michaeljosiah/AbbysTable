@@ -42,7 +42,7 @@ export default async function BoxCheckoutPage() {
   const entry = mode === 'live' ? await loadCheckout() : null;
   if (entry?.kind === 'session') return <CheckoutSessionGate />;
   if (entry?.kind === 'none') redirect('/box');
-  if (entry?.kind === 'incomplete') redirect('/box/dishes');
+  if (entry?.kind === 'incomplete') redirect('/box/dishes?from=checkout');
   // Back from Stripe while the attempt is live (D26): treated as leaving the
   // payment page, so Aonik is asked to close it — never a second checkout.
   if (entry?.kind === 'payment') redirect('/box/payment/return?outcome=reopen');

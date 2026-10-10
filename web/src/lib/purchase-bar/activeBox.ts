@@ -10,6 +10,7 @@
  */
 
 import type { CartState, ExtraLine } from '@/lib/cart/CartProvider';
+import type { ShoppingStatus } from '@/lib/shopping-state';
 import { buildDemoQuote } from '@/lib/cart/quote';
 import { formatPrice } from '@/lib/format';
 import { BOX_BUILDER_PATH } from '@/lib/how-it-works/boxSizes';
@@ -23,6 +24,12 @@ export interface BarCart extends Pick<CartState, 'boxSize' | 'isCustom' | 'lines
   dishCount: number;
   isServerCart: boolean;
   quote: { totalPence: number } | null;
+  /**
+   * The shared shopping state (#14), when the cart has one: it decides whether
+   * a box is active and where VIEW BOX goes. A cart without it (a test's plain
+   * object) falls back to the bare rule below.
+   */
+  shopping?: Pick<ShoppingStatus, 'active' | 'resumeHref'>;
 }
 
 /**
@@ -32,8 +39,14 @@ export interface BarCart extends Pick<CartState, 'boxSize' | 'isCustom' | 'lines
  * commits nothing. Never true before the cart has hydrated, so the first render
  * always sells — the order state only ever adds information.
  */
-export function isBoxActive(cart: Pick<BarCart, 'hydrated' | 'boxSize' | 'dishCount'>): boolean {
+export function isBoxActive(cart: Pick<BarCart, 'hydrated' | 'boxSize' | 'dishCount' | 'shopping'>): boolean {
+  if (cart.shopping) return cart.hydrated && cart.shopping.active;
   return cart.hydrated && (cart.boxSize !== null || cart.dishCount > 0);
+}
+
+/** Where VIEW BOX goes: the shared state's furthest valid step, else the bare rule. */
+export function resumeHrefFor(cart: Pick<BarCart, 'boxSize' | 'shopping'>): string {
+  return cart.shopping?.resumeHref ?? boxResumeHref(cart.boxSize);
 }
 
 /**
@@ -105,6 +118,6 @@ export function activeBoxSummary(
   return {
     label: size ? `${size.size}-dish box` : 'Your box',
     total: totalPence === undefined ? null : formatPrice(totalPence),
-    href: boxResumeHref(cart.boxSize),
+    href: resumeHrefFor(cart),
   };
 }

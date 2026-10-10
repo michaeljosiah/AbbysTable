@@ -15,7 +15,6 @@ import {
 import type { BoxCart } from '@/lib/aonik/map';
 import type { BoxPricing, DeliveryCalendar, Extra } from '@/lib/aonik/types';
 import { useCart } from '@/lib/cart/CartProvider';
-import { CART_ORDERED_CODE } from '@/lib/cart/cartMissing';
 import { ORDERING_DISABLED_CODE, ORDERING_DISABLED_MESSAGE } from '@/lib/cart/ordering';
 import { useCartQuote } from '@/lib/cart/quote';
 import { CART_CONFLICT_CODE, CART_LOCKED_CODE, CART_RELOAD_CODE } from '@/lib/cart/transport';
@@ -53,6 +52,7 @@ import {
   type CheckoutSyncAnswer,
 } from '@/lib/checkout/transport';
 import { PRIVACY_ITEM, TERMS_ITEM } from '@/lib/content/navigation';
+import { guardRedirect } from '@/lib/shopping-state';
 import { checkPostcode } from '@/lib/delivery/actions';
 import { formatDeliveryDateLong } from '@/lib/format';
 import { normalisePostcode } from '@/lib/delivery/postcode';
@@ -257,16 +257,28 @@ export function CheckoutView({
     if (!cart.hydrated) return;
     if (live) {
       // A box the engine could not read is not a box that went: only an answer moves the page.
-      const code = cart.error?.code;
-      if (cart.error && code !== 'cart.missing' && code !== CART_ORDERED_CODE) return;
+      if (cart.readFailed) return;
       // The box went (another tab ordered it, or it expired), or another tab made it incomplete.
+      // The shared shopping state decides where a box that cannot be checked out
+      // goes: no box → Step 1; short or a dish unavailable → Step 2 (with the
+      // "checkout details kept" wording); an unavailable add-on → Extras.
       if (!cart.quote) router.replace('/box');
-      else if (!cart.quote.isFull || cart.hasUnavailableLine) router.replace('/box/dishes');
+      else {
+        const back = guardRedirect('checkout', cart.shopping);
+        if (back) router.replace(back === '/box/dishes' ? `${back}?from=checkout` : back);
+      }
       return;
     }
     if (cart.boxSize === null && cart.lines.length === 0) router.replace('/box');
-    else if (cart.boxSize === null || cart.dishCount < cart.boxSize) router.replace('/box/dishes');
-  }, [cart.hydrated, cart.error, cart.quote, cart.hasUnavailableLine, cart.boxSize, cart.lines.length, cart.dishCount, live, router]);
+    else if (cart.boxSize === null || cart.dishCount < cart.boxSize) router.replace('/box/dishes?from=checkout');
+  }, [cart.hydrated, cart.readFailed, cart.quote, cart.shopping, cart.boxSize, cart.lines.length, cart.dishCount, live, router]);
+
+  // Reaching checkout with a complete box is a step reached: VIEW BOX resumes here.
+  const { rememberStep } = cart;
+  const reachable = cart.hydrated && cart.shopping.active && cart.shopping.maxStep === 'checkout';
+  useEffect(() => {
+    if (reachable) rememberStep('checkout');
+  }, [reachable, rememberStep]);
 
   // The sticky header's height, for "20px under the sticky header" and the rail's offset.
   const pageRef = useRef<HTMLDivElement>(null);
@@ -806,7 +818,7 @@ export function CheckoutView({
         setMessage(TOTAL_CHANGED);
         return;
       case CHECKOUT_CODES.boxChanged:
-        if (refusal.cart?.lines.some((line) => line.isUnavailable)) router.push('/box/dishes');
+        if (refusal.cart?.lines.some((line) => line.isUnavailable && line.kind === 'BoxDish')) router.push('/box/dishes?from=checkout');
         else setMessage(BOX_CHANGED);
         return;
       case CHECKOUT_CODES.dateFull:

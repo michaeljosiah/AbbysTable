@@ -11,7 +11,7 @@ import {
   MENU_ITEM,
   type NavItem,
 } from '@/lib/content/navigation';
-import { boxResumeHref, isBoxActive, type BarCart } from '@/lib/purchase-bar/activeBox';
+import { isBoxActive, resumeHrefFor, type BarCart } from '@/lib/purchase-bar/activeBox';
 
 import { normalisePath } from './visibility';
 
@@ -60,11 +60,11 @@ export interface OrderCta<StartLabel extends string> {
   continuing: boolean;
 }
 
-type OrderCart = Pick<BarCart, 'hydrated' | 'boxSize' | 'dishCount'>;
+type OrderCart = Pick<BarCart, 'hydrated' | 'boxSize' | 'dishCount' | 'shopping'>;
 
 function orderCta<StartLabel extends string>(cart: OrderCart, start: StartLabel): OrderCta<StartLabel> {
   if (isBoxActive(cart)) {
-    return { label: 'View box', href: boxResumeHref(cart.boxSize), continuing: true };
+    return { label: 'View box', href: resumeHrefFor(cart), continuing: true };
   }
   return { label: start, href: BOX_HREF, continuing: false };
 }

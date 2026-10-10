@@ -128,7 +128,13 @@ function NoticeIcon({ blocking }: { blocking: boolean }) {
   );
 }
 
-export function DriftNotices() {
+/**
+ * `hideUnavailable`: for the page that shows `ReplacementNotice` (Step 2), which
+ * takes an unavailable dish out and says how many to choose. Everywhere else the
+ * "no longer available" line stays — it is also the only explanation of an
+ * unavailable add-on.
+ */
+export function DriftNotices({ hideUnavailable = false }: { hideUnavailable?: boolean } = {}) {
   const { changes, hasUnavailableLine, error } = useCart();
   const [dismissed, setDismissed] = useState<string[]>([]);
 
@@ -138,6 +144,7 @@ export function DriftNotices() {
 
   const visible = changes
     .map((change, index) => ({ change, key: keyFor(change, index) }))
+    .filter(({ change }) => !(hideUnavailable && change.reason === 'unavailable'))
     .filter(({ key }) => !dismissed.includes(key));
 
   if (!error && visible.length === 0) return null;
