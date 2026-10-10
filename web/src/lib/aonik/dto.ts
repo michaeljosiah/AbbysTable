@@ -287,7 +287,11 @@ export interface BoxCartDto {
    * must send it as `X-Cart-Version`; it changes with every write.
    */
   cartVersion?: string;
-  /** `Open` while editable; `CheckedOut` once an order completed. */
+  /**
+   * `Open` while it can change; `CheckedOut` once it became an order, and
+   * `Abandoned` once Aonik's sweeper expired it (an empty box after 24 hours
+   * idle, a populated one after 7 days).
+   */
   status?: string;
 }
 

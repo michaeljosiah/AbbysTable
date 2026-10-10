@@ -125,7 +125,14 @@ test('a refused cart write is told apart from every other 409 (#347)', () => {
   assert.equal(conflict.isCartWriteRefused, true);
   assert.equal(conflict.isDrift, false);
 
+  assert.equal(conflict.cartStatus, 'Open');
   assert.equal(toAonikError(409, '/commerce/carts/c/size', body(AONIK_CODES.cartLocked)).isCartWriteRefused, true);
+  // Two writes on the same version: the loser is refused like any conflict.
+  assert.equal(
+    toAonikError(409, '/commerce/carts/c/size', { error: 'The resource was modified by another operation.', code: 'concurrency_conflict' })
+      .isCartWriteRefused,
+    true,
+  );
   // A different 409 is not a refused write, and neither is the code at another status.
   assert.equal(toAonikError(409, '/x', body(AONIK_CODES.boxChoiceRequired)).isCartWriteRefused, false);
   assert.equal(toAonikError(400, '/x', body(AONIK_CODES.cartConflict)).isCartWriteRefused, false);

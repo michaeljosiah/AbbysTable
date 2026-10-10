@@ -70,6 +70,9 @@ const REFUSED_WRITE_MESSAGES = {
   [CART_LOCKED_CODE]: 'Your box can’t be changed while its payment is being processed.',
 } as const;
 
+/** A conflict whose box could not be re-read: nothing on screen was updated. */
+const CONFLICT_UNREAD_MESSAGE = 'Your box changed in another window. Reload the page to see it.';
+
 /** The version this tab's change is based on, as the provider sent it. */
 function versionOf(request: Request): string | undefined {
   return request.headers.get(CART_VERSION_HEADER)?.trim() || undefined;
@@ -111,10 +114,22 @@ async function errorResponse(error: unknown) {
     try {
       cart = await getBoxCart();
     } catch (readFailure) {
-      // The refusal stands either way; without a fresh box the tab keeps its own.
-      console.error('[api/cart] could not re-read the box after a refused write', readFailure);
+      if (readFailure instanceof CartMissingError) {
+        // Gone since (and the cookie with it): the tab must drop its box too,
+        // or its next add would quietly start a new one in its place.
+        cart = null;
+      } else {
+        // The refusal stands either way; without a fresh box the tab keeps its own.
+        console.error('[api/cart] could not re-read the box after a refused write', readFailure);
+      }
     }
-    return NextResponse.json({ error: REFUSED_WRITE_MESSAGES[code], code, cart }, { status: 409 });
+    const message =
+      cart === null
+        ? new CartMissingError().message
+        : cart === undefined && code === CART_CONFLICT_CODE
+          ? CONFLICT_UNREAD_MESSAGE
+          : REFUSED_WRITE_MESSAGES[code];
+    return NextResponse.json({ error: message, code, cart }, { status: 409 });
   }
 
   if (error instanceof AonikError) {
@@ -164,6 +179,10 @@ export async function GET() {
   try {
     return cartResponse(await getBoxCart());
   } catch (error) {
+    // A READ of a box that is gone is simply no box — the cookie is already
+    // cleared. Not an error to show: it is what a tab sees after signing out of
+    // the account that held the box, or after Aonik expired it.
+    if (error instanceof CartMissingError) return cartResponse(null);
     return await errorResponse(error);
   }
 }

@@ -28,7 +28,7 @@ import { liveOrderingEnabled, readAonikConfig } from '@/lib/aonik/dataMode';
 import { isExpired, readSession } from '@/lib/auth/session';
 
 import { clearCartCookie, readCartCookie, writeCartCookie } from './cartCookie';
-import { CartMissingError } from './cartMissing';
+import { CartMissingError, cartOrderedError } from './cartMissing';
 import { cartExistsAfterProbe } from './convergence';
 import { ORDERING_DISABLED_MESSAGE } from './ordering';
 import {
@@ -141,6 +141,22 @@ export async function createBoxCart(input: {
 }
 
 /**
+ * Whether a box is finished for good: Aonik answers `status` on every box and
+ * on a refused write, and only `Open` can change. `Abandoned` is a box its
+ * sweeper expired (an empty one after 24 hours idle, a populated one after 7
+ * days — while the cookie naming it lives 30); `CheckedOut` is one that became
+ * an order. An absent status is an Aonik from before it reported one: Open.
+ */
+function isFinished(status: string | undefined): boolean {
+  return status !== undefined && status !== 'Open';
+}
+
+/** What a finished box means to the tab: an order already placed, or simply no box. */
+function finishedCartError(status: string | undefined): CartMissingError {
+  return status === 'CheckedOut' ? cartOrderedError() : new CartMissingError();
+}
+
+/**
  * Runs an operation against the stored cart.
  *
  * A 404 about the CART means it is unknown OR not ours — Aonik makes those two
@@ -156,6 +172,11 @@ export async function createBoxCart(input: {
  * differs, so rather than pattern-match English, ask the question directly —
  * re-read the cart, and let its answer decide. That costs one request on an
  * error path and is immune to how the message is worded.
+ *
+ * A write refused because the box is FINISHED (expired, or already an order)
+ * is the same dead end as a missing cart: no retry can ever succeed against it,
+ * so the cookie goes and the tab is told the box is gone — never "payment in
+ * progress", which would leave the customer retrying for good.
  */
 async function withCart<T>(
   run: (cartId: string, auth: CartFetchOptions) => Promise<T>,
@@ -171,6 +192,11 @@ async function withCart<T>(
     // before changing the box, and a read has nothing to check.
     return await run(cookie.cartId, version ? { ...auth, cartVersion: version } : auth);
   } catch (error) {
+    if (error instanceof AonikError && error.isCartWriteRefused && isFinished(error.cartStatus)) {
+      await clearCartCookie();
+      throw finishedCartError(error.cartStatus);
+    }
+
     if (!(error instanceof AonikError) || !error.isNotFound) throw error;
 
     if (await cartStillExists(cookie.cartId, auth)) {
@@ -241,11 +267,27 @@ async function cartAuth(cartToken: string | undefined): Promise<CartFetchOptions
   return auth;
 }
 
-/** The current cart, or null without a cookie. Confirmed stale carts reject. */
-export async function getBoxCart(): Promise<BoxCart | null> {
+/**
+ * The stored box as Aonik answers it, or null without one. Confirmed stale
+ * carts reject. A FINISHED box (expired, or already an order) is no box at
+ * all: its cookie is cleared and the answer is null — SHOPPING-STATE's "clear
+ * stale draft, fresh ordering state" — so the tab never shows a box that every
+ * change would be refused on.
+ */
+async function readBoxCart(): Promise<BoxCartDto | null> {
   const dto = await withCart((cartId, auth) =>
     cartFetch<BoxCartDto>(`/commerce/carts/${cartId}`, auth),
   );
+  if (dto && isFinished(dto.status)) {
+    await clearCartCookie();
+    return null;
+  }
+  return dto;
+}
+
+/** The current cart, or null without one. Confirmed stale carts reject. */
+export async function getBoxCart(): Promise<BoxCart | null> {
+  const dto = await readBoxCart();
   return dto ? mapBoxCart(dto) : null;
 }
 
@@ -520,8 +562,19 @@ export async function checkoutBoxCart(
   // order routes are authenticated and party-scoped, so an anonymous customer
   // can never read the order back. A drift 409 throws before the snapshot is
   // written, which is correct — nothing was placed.
-  const placed = await getBoxCart();
-  if (!placed) throw new CartMissingError('There is no box to check out.');
+  const snapshot = await readBoxCart();
+  if (!snapshot) throw new CartMissingError('There is no box to check out.');
+  const placed = mapBoxCart(snapshot);
+
+  // That read is itself a chance for the box to move: Aonik saves a catalogue
+  // repair on a read, and another tab may have changed it. Either way it is no
+  // longer the box this tab is confirming, so nothing is placed — the tab is
+  // handed the box as it now is, with what changed, to confirm again (Spec 068
+  // A18). Placing it would order a box the customer never saw; sending the old
+  // version would only be refused as a conflict, losing the list of changes.
+  if (version && placed.version && placed.version !== version) {
+    throw staleCheckoutError(snapshot);
+  }
 
   const dto = await withRequiredCart(
     (cartId, auth) =>
@@ -537,6 +590,36 @@ export async function checkoutBoxCart(
   await writePlacedOrder(snapshotOrder(order, placed, await earliestDeliveryDate()));
   await clearCartCookie();
   return order;
+}
+
+/**
+ * Checkout refused before it was sent: the box moved since the tab saw it.
+ * With changes to show it is drift — the refreshed box rides along, as on
+ * Aonik's own drift — and without, another tab's edit: a conflict, which the
+ * route answers with the box re-read.
+ */
+function staleCheckoutError(snapshot: BoxCartDto): AonikError {
+  const path = `/commerce/carts/${snapshot.box.cartId}/checkout`;
+  if (snapshot.changes.length > 0) {
+    return new AonikError({
+      status: 409,
+      path,
+      code: AONIK_CODES.boxDrift,
+      message: 'The box changed before checkout.',
+      drift: {
+        box: snapshot.box,
+        quote: snapshot.quote,
+        changes: snapshot.changes,
+        ...(snapshot.cartVersion ? { cartVersion: snapshot.cartVersion } : {}),
+      },
+    });
+  }
+  return new AonikError({
+    status: 409,
+    path,
+    code: AONIK_CODES.cartConflict,
+    message: 'The box changed before checkout.',
+  });
 }
 
 /**
@@ -610,7 +693,10 @@ function snapshotOrder(
  *    different box (Aonik #348). Choosing between them is SHOPPING-STATE §54's
  *    KEEP THIS BOX / USE SAVED BOX, not built yet (#14), so the guest box stays
  *    a guest box and nothing is lost. `cart_locked` / `cart_conflict` likewise:
- *    the box is mid-payment or changed as we read it, so adoption waits.
+ *    the box is mid-payment or changed as we read it, so adoption waits; and
+ *    `box_choice_stale` / `multiple_active_boxes` are that same unbuilt choice.
+ *  - **a finished guest box** (expired, or already an order) → nothing to bring
+ *    along: its cookie is cleared, and adoption is not attempted.
  *
  * Adoption is a write, so it carries the box's version (#347). It is read here
  * first, from the guest box itself: unlike an edit, adoption changes who owns
@@ -628,6 +714,10 @@ export async function adoptBoxCart(): Promise<'adopted' | 'nothing-to-adopt' | '
     const guest = await cartFetch<BoxCartDto>(`/commerce/carts/${cookie.cartId}`, {
       cartToken: cookie.cartToken,
     });
+    if (isFinished(guest.status)) {
+      await clearCartCookie();
+      return 'skipped';
+    }
 
     await cartFetch<unknown>(`/commerce/carts/${cookie.cartId}/adopt`, {
       method: 'POST',
@@ -654,7 +744,10 @@ export async function adoptBoxCart(): Promise<'adopted' | 'nothing-to-adopt' | '
 
     if (
       error instanceof AonikError &&
-      (error.isCartWriteRefused || error.code === AONIK_CODES.boxChoiceRequired)
+      (error.isCartWriteRefused ||
+        error.code === AONIK_CODES.boxChoiceRequired ||
+        error.code === AONIK_CODES.boxChoiceStale ||
+        error.code === AONIK_CODES.multipleActiveBoxes)
     ) {
       return 'skipped';
     }

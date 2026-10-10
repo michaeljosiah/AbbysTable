@@ -83,7 +83,11 @@ export interface ServerCartEngine {
   checkout: (body?: { discountCode?: string }) => Promise<CheckoutResult>;
 }
 
-export function useServerCart(enabled: boolean): ServerCartEngine {
+/**
+ * `identity` is anything that changes when whose box this is changes (the
+ * signed-in flag): the box is read again then, with the version it now has.
+ */
+export function useServerCart(enabled: boolean, identity: unknown = null): ServerCartEngine {
   const [cart, setCart] = useState<BoxCart | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [pending, setPending] = useState(false);
@@ -181,7 +185,8 @@ export function useServerCart(enabled: boolean): ServerCartEngine {
     [send],
   );
 
-  // Hydrate from the server once, after mount.
+  // Hydrate from the server after mount, and again whenever the identity the
+  // box belongs to changes (sign-in adopts it, which moves its version).
   useEffect(() => {
     if (!enabled) {
       setHydrated(true);
@@ -191,7 +196,7 @@ export function useServerCart(enabled: boolean): ServerCartEngine {
     void request('')
       .catch(() => undefined)
       .finally(() => setHydrated(true));
-  }, [enabled, request]);
+  }, [enabled, request, identity]);
 
   const rememberDisplay = useCallback((productId: string, value: LineDisplay) => {
     setDisplay((current) => {

@@ -89,7 +89,13 @@ Conventions inside `web/` that are easy to get wrong:
   mid-payment (`commerce.cart_locked`); the route answers `cart.conflict` / `cart.locked` with the
   box as it is now, for the tab to adopt. Never fetch a fresh version server-side to make a write
   succeed — that is the blind overwrite SHOPPING-STATE §53 forbids. Only adoption on sign-in
-  reads it (ownership changes, not contents). Spec: `server-box-cart.md`.
+  reads it (ownership changes, not contents). A box whose `status` is not `Open` is FINISHED
+  (`Abandoned` by Aonik's sweeper after 24h empty / 7 days populated, or `CheckedOut`): a read of
+  it answers no box and clears the cookie; a write refused on it answers `cart.missing`, or
+  `cart.ordered` ("This order has already been completed.") — never "payment in progress".
+  Checkout compares the version its own pre-placement read returns with the tab's and places
+  nothing when they differ. The root layout passes `signedIn` to `CartProvider`, which re-reads
+  the box when it changes (sign-in adoption moves the version). Spec: `server-box-cart.md`.
 - **Site chrome (#10) is the v2 header, drawer and footer** (Homepage v2 is canonical). There is no
   announcement strip — the v2 design dropped it site-wide, and the homepage must never show the
   earliest delivery date. Every chrome destination is defined ONCE in `src/lib/content/navigation.ts`;

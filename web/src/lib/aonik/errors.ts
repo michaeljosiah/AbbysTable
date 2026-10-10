@@ -29,6 +29,16 @@ export const AONIK_CODES = {
   cartLocked: 'commerce.cart_locked',
   /** Signing in with a guest box when the account holds a different one (#348). */
   boxChoiceRequired: 'commerce.box_choice_required',
+  /** The keep/use-saved choice was made against boxes that have since moved on. */
+  boxChoiceStale: 'commerce.box_choice_stale',
+  /** The account already holds more than one active box; adoption cannot pick. */
+  multipleActiveBoxes: 'commerce.multiple_active_boxes',
+  /**
+   * Two writes raced on the same row version and this one lost (Aonik's
+   * `DbUpdateConcurrencyException`). On a cart it is the same as a conflict:
+   * another tab's change landed first.
+   */
+  concurrencyConflict: 'concurrency_conflict',
 } as const;
 
 /** A dotted lowercase token, e.g. `commerce.box_drift`. */
@@ -43,6 +53,7 @@ export interface AonikErrorBody {
   quote?: unknown;
   changes?: unknown;
   cartVersion?: unknown;
+  status?: unknown;
 }
 
 export class AonikError extends Error {
@@ -58,6 +69,11 @@ export class AonikError extends Error {
    * unmapped. `server-box-cart` maps and re-renders it.
    */
   readonly drift?: { box: unknown; quote: unknown; changes: unknown; cartVersion?: string };
+  /**
+   * The cart's status as a refused write reported it (`Open`, `CheckedOut`,
+   * `Abandoned`): whether the box is busy for now or finished for good.
+   */
+  readonly cartStatus?: string;
 
   constructor(init: {
     status: number;
@@ -66,6 +82,7 @@ export class AonikError extends Error {
     code?: string;
     rule?: string;
     drift?: { box: unknown; quote: unknown; changes: unknown; cartVersion?: string };
+    cartStatus?: string;
   }) {
     super(init.message);
     this.name = 'AonikError';
@@ -74,6 +91,7 @@ export class AonikError extends Error {
     this.code = init.code;
     this.rule = init.rule;
     this.drift = init.drift;
+    this.cartStatus = init.cartStatus;
   }
 
   /** Catalogue drift at continue/checkout — Spec 068's A18 stop. */
@@ -83,13 +101,16 @@ export class AonikError extends Error {
 
   /**
    * The cart write was refused because the box is not the one it was based on
-   * (`cart_conflict`) or cannot be edited now (`cart_locked`). Nothing changed;
-   * the box must be re-read before anything else is attempted.
+   * (`cart_conflict`, or a lost race on the same version, `concurrency_conflict`)
+   * or cannot be edited now (`cart_locked`). Nothing changed; the box must be
+   * re-read before anything else is attempted.
    */
   get isCartWriteRefused(): boolean {
     return (
       this.status === 409 &&
-      (this.code === AONIK_CODES.cartConflict || this.code === AONIK_CODES.cartLocked)
+      (this.code === AONIK_CODES.cartConflict ||
+        this.code === AONIK_CODES.cartLocked ||
+        this.code === AONIK_CODES.concurrencyConflict)
     );
   }
 
@@ -151,5 +172,6 @@ export function toAonikError(status: number, path: string, body: unknown): Aonik
     code,
     rule: asString(envelope.rule),
     drift,
+    cartStatus: asString(envelope.status),
   });
 }
