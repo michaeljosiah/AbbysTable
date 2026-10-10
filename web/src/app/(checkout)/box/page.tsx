@@ -37,7 +37,7 @@ export default async function ChooseBoxPage({
   const { dishes } = await searchParams;
 
   const [pricing, delivery] = await Promise.all([client.getBoxPricing(), client.getDeliveryWindow()]);
-  const initialSize = resolveEntrySize(dishes, pricing.presets, pricing.custom.minDishes, pricing.custom.maxDishes);
+  const initialSize = resolveEntrySize(dishes, pricing.presets, pricing.custom.minDishes);
 
   return (
     <div className={styles.page}>
@@ -67,7 +67,7 @@ export default async function ChooseBoxPage({
           pricing={pricing}
           earliestDeliveryLabel={formatDeliveryDate(delivery?.earliestDeliveryDate)}
           initialSize={initialSize}
-          sizeFromLink={entrySizeFromLink(dishes, pricing.presets, pricing.custom.minDishes, pricing.custom.maxDishes)}
+          sizeFromLink={entrySizeFromLink(dishes, pricing.presets, pricing.custom.minDishes)}
           heading={
             <div className={styles.stepHeading}>
               {/* The progress band above already says "Step 1 of 5". */}

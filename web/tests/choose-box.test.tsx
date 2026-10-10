@@ -16,19 +16,19 @@ import { canGoBackTo, clearHop, isSitePath, readPreviousPath, recordHop, TRAIL_K
 const PRESETS = [{ dishCount: 6 }, { dishCount: 12 }, { dishCount: 18 }];
 
 test('?dishes= preselects a tier; custom opens set-your-own at the minimum; anything else is the default, never an error', () => {
-  assert.deepEqual(resolveEntrySize('12', PRESETS, 6, 99), { kind: 'preset', size: 12 });
-  assert.deepEqual(resolveEntrySize('18', PRESETS, 6, 99), { kind: 'preset', size: 18 });
-  assert.deepEqual(resolveEntrySize('custom', PRESETS, 6, 99), { kind: 'custom', size: 6 });
-  assert.deepEqual(resolveEntrySize(' CUSTOM ', PRESETS, 6, 99), { kind: 'custom', size: 6 });
-  // A size inside the range that is no tier (a stale link): set-your-own at that number.
-  assert.deepEqual(resolveEntrySize('24', PRESETS, 6, 99), { kind: 'custom', size: 24 });
+  assert.deepEqual(resolveEntrySize('12', PRESETS, 6), { kind: 'preset', size: 12 });
+  assert.deepEqual(resolveEntrySize('18', PRESETS, 6), { kind: 'preset', size: 18 });
+  assert.deepEqual(resolveEntrySize('custom', PRESETS, 6), { kind: 'custom', size: 6 });
+  assert.deepEqual(resolveEntrySize(' CUSTOM ', PRESETS, 6), { kind: 'custom', size: 6 });
+  // A number that is no tier is no choice (a stale or malformed link never changes the box).
+  assert.deepEqual(resolveEntrySize('24', PRESETS, 6), { kind: 'preset', size: 6 });
   for (const unknown of [undefined, '', 'big', '0', '5', '100', '-6', '12.5', '１２', '6&x=1', ['nope']]) {
-    assert.deepEqual(resolveEntrySize(unknown, PRESETS, 6, 99), { kind: 'preset', size: 6 }, String(unknown));
+    assert.deepEqual(resolveEntrySize(unknown, PRESETS, 6), { kind: 'preset', size: 6 }, String(unknown));
   }
   // The first value of a repeated parameter.
-  assert.deepEqual(resolveEntrySize(['18', '6'], PRESETS, 6, 99), { kind: 'preset', size: 18 });
+  assert.deepEqual(resolveEntrySize(['18', '6'], PRESETS, 6), { kind: 'preset', size: 18 });
   // No tiers at all: the minimum, still a selection.
-  assert.deepEqual(resolveEntrySize(undefined, [], 6, 99), { kind: 'preset', size: 6 });
+  assert.deepEqual(resolveEntrySize(undefined, [], 6), { kind: 'preset', size: 6 });
 });
 
 test('a box is never smaller than the dishes in it, and nothing says it is deleted', () => {
@@ -73,8 +73,8 @@ test('what is lit: a choice below the box’s floor is raised to its tier or to 
   assert.deepEqual(selectionForSize(24, presets), { selection: { source: 'custom' }, customQty: 24 });
 
   // A link's size is this entry's choice only when it named one we recognise.
-  for (const [param, from] of [['12', true], ['custom', true], ['24', true], ['', false], ['banana', false], [undefined, false], ['100', false]] as const) {
-    assert.equal(entrySizeFromLink(param, presets, 6, 99), from, String(param));
+  for (const [param, from] of [['12', true], ['custom', true], ['24', false], ['', false], ['banana', false], [undefined, false], ['100', false]] as const) {
+    assert.equal(entrySizeFromLink(param, presets, 6), from, String(param));
   }
 });
 

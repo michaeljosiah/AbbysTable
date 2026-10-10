@@ -182,13 +182,26 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
   const filled = Math.min(totals.dishCount, size);
   const remaining = size - filled;
   const boxLabel = `${size}-dish box`;
-  const totalLabel = isServerCart
+  /*
+   * A live quote is for the box it was made for. A size chosen here (a link,
+   * the cards, the field) that is not that box's would sit beside the old
+   * box's price, so the rail then shows the plan's own price for the chosen
+   * size until the choice is committed and Aonik quotes it.
+   */
+  const quoteIsForSize = !isServerCart || !quote || quote.boxSize === size;
+  const showServerQuote = isServerCart && quoteIsForSize;
+  const planTotalPence = cartTotals({ boxSize: size, isCustom, lines: [] }, pricing).totalPence;
+  const totalLabel = showServerQuote
     ? quote
       ? formatPrice(quote.totalPence)
       : ''
-    : totals.totalPence === undefined
-      ? 'Price unavailable'
-      : formatPrice(totals.totalPence);
+    : isServerCart
+      ? planTotalPence === undefined
+        ? 'Price unavailable'
+        : formatPrice(planTotalPence)
+      : totals.totalPence === undefined
+        ? 'Price unavailable'
+        : formatPrice(totals.totalPence);
 
   const selectCustom = () => setSelection({ source: 'custom' });
 
@@ -354,7 +367,7 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
   }, [sheetOpen]);
 
   /** Itemised rows shared by the desktop panel and the sheet. */
-  const breakdownRows = isServerCart ? (
+  const breakdownRows = showServerQuote ? (
     quote ? (
       <>
         {quote.components.map((component, index) => (

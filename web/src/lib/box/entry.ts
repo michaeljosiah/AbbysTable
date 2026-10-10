@@ -17,20 +17,19 @@ export type EntrySize = { kind: 'preset'; size: number } | { kind: 'custom'; siz
 
 /**
  * `?dishes=6|12|18|custom` (contract §4c). A preset's size lights its card;
- * `custom` opens the set-your-own card at the minimum; a missing or unknown
- * value falls back to the page's default — never an error, never an empty
- * selection. A number that is not a tier but is inside the range opens set-
- * your-own at that number (a stale link from a plan that had another tier).
- * The URL is a convenience: what the box costs comes from the plan.
+ * `custom` opens the set-your-own card at the minimum; every other value —
+ * missing, a number that is no tier, anything else — falls back to the page's
+ * default: never an error, never an empty selection, and a stale or malformed
+ * link never changes the box. The URL is a convenience: what the box costs
+ * comes from the plan.
  */
 export function resolveEntrySize(
   param: string | string[] | undefined,
   presets: readonly Pick<BoxOffer, 'dishCount'>[],
   minDishes: number,
-  maxDishes: number,
 ): EntrySize {
   return (
-    parseEntry(param, presets, minDishes, maxDishes) ?? { kind: 'preset', size: presets[0]?.dishCount ?? minDishes }
+    parseEntry(param, presets, minDishes) ?? { kind: 'preset', size: presets[0]?.dishCount ?? minDishes }
   );
 }
 
@@ -43,25 +42,21 @@ export function entrySizeFromLink(
   param: string | string[] | undefined,
   presets: readonly Pick<BoxOffer, 'dishCount'>[],
   minDishes: number,
-  maxDishes: number,
 ): boolean {
-  return parseEntry(param, presets, minDishes, maxDishes) !== null;
+  return parseEntry(param, presets, minDishes) !== null;
 }
 
 function parseEntry(
   param: string | string[] | undefined,
   presets: readonly Pick<BoxOffer, 'dishCount'>[],
   minDishes: number,
-  maxDishes: number,
 ): EntrySize | null {
   const raw = (Array.isArray(param) ? param[0] : param)?.trim().toLowerCase();
   if (!raw) return null;
   if (raw === 'custom') return { kind: 'custom', size: minDishes };
   if (!/^\d{1,3}$/.test(raw)) return null;
   const size = Number(raw);
-  if (presets.some((preset) => preset.dishCount === size)) return { kind: 'preset', size };
-  if (size >= minDishes && size <= maxDishes) return { kind: 'custom', size };
-  return null;
+  return presets.some((preset) => preset.dishCount === size) ? { kind: 'preset', size } : null;
 }
 
 /** Which card is lit. A custom box takes its size from the field and the stepper. */

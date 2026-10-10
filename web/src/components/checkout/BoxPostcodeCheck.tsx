@@ -55,7 +55,11 @@ export function BoxPostcodeCheck() {
     if (request !== counter.current) return;
     if (answer.status === 'invalid') {
       dispatch({ type: 'correct', message: 'invalid', request });
-      if (fromUser) {
+      // Only if the customer is still here: one who has moved on to the box
+      // controls while it checked is not pulled back (Delivery & FAQs' guard).
+      const active = document.activeElement;
+      const stayed = !active || active === document.body || Boolean(active.closest(`[data-postcode-band="${id}"]`));
+      if (fromUser && request === counter.current && stayed) {
         inputRef.current?.focus();
         inputRef.current?.select();
       }
@@ -109,7 +113,7 @@ export function BoxPostcodeCheck() {
               : null;
 
   return (
-    <div className={styles.band}>
+    <div className={styles.band} data-postcode-band={id}>
       <div className={styles.in}>
         <div className={styles.panel}>
           <div className={styles.row}>
@@ -126,7 +130,6 @@ export function BoxPostcodeCheck() {
                   ref={inputRef}
                   id={`${id}-pc`}
                   className={styles.input}
-                  name="postcode"
                   type="text"
                   autoComplete="postal-code"
                   placeholder="e.g. DA1 2AB"
