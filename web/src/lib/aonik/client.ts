@@ -239,13 +239,23 @@ const FEATURED_COLLECTION_SLUG = 'featured';
  */
 const MENU_COLLECTION_SLUG = 'menu';
 
+/** The menu's orders in Aonik's words (aonik#359); Recommended sends none. */
+const AONIK_SORT: Record<MenuSortKey, string | undefined> = {
+  recommended: undefined,
+  protein: 'protein-desc',
+  calories: 'calories-asc',
+};
+
 /** Browse parameters. Facet values must be tokens the facets read advertised. */
 export interface ProductBrowseOptions {
   page?: number;
   pageSize?: number;
   search?: string;
   collection?: string;
-  /** `name` | `newest` | `rank` — rank is the curated order inside a collection. */
+  /**
+   * Aonik's own order — `name` | `newest` | `rank` (the curated order inside a
+   * collection). Wins over `order`.
+   */
   sort?: 'name' | 'newest' | 'rank';
   /**
    * A menu order (`lib/menu/sort.ts`). Honoured only by a client that lists it
@@ -287,12 +297,13 @@ export class HttpAonikClient implements AonikClient {
   readonly coverage: CoverageLookup | null = null;
 
   /**
-   * Recommended only. Aonik's browse sorts by `name | newest | rank`, and its
-   * rows carry no typed nutrition to sort by — Highest protein and Lowest
-   * calories wait on michaeljosiah/aonik#359. Until then the menu draws no Sort
-   * control in live mode rather than offering an order it would have to fake.
+   * All three, applied by Aonik across the whole match set before paging
+   * (aonik#359): Recommended is the `menu` collection's curated rank (Aonik's
+   * default inside a collection), Highest protein `protein-desc`, Lowest
+   * calories `calories-asc` — a dish without the figure after every dish with
+   * it, as ours. Ties go by name, where demo keeps the recommended order.
    */
-  readonly menuSorts: readonly MenuSortKey[] = ['recommended'];
+  readonly menuSorts: readonly MenuSortKey[] = ['recommended', 'protein', 'calories'];
 
   /** Aonik's sign-up lists (#357). Which forms show is the tenant's publishing. */
   get signupLists(): SignupLists {
@@ -355,7 +366,9 @@ export class HttpAonikClient implements AonikClient {
       pageSize: options.pageSize,
       search: options.search,
       collection,
-      sort: options.sort,
+      // A menu order Aonik applies itself; none for Recommended, which is the
+      // collection's rank by default (and name on the unscoped fallback).
+      sort: options.sort ?? (options.order ? AONIK_SORT[options.order] : undefined),
       // Belt and braces alongside the collection: the box bundle is not a dish,
       // and must never appear on the menu as though it were something you could
       // put IN a box. This still holds on the unscoped fallback path.
@@ -398,10 +411,10 @@ export class HttpAonikClient implements AonikClient {
   /**
    * The homepage rail.
    *
-   * The collection endpoint answers with browse rows, and `ProductSummaryDto`
-   * carries no description field at all — so the summaries alone can never
-   * populate the card's description, however the catalogue is authored. Each
-   * dish is therefore hydrated from its own detail read.
+   * The collection endpoint answers with browse rows. Since aonik#359 they
+   * carry the card's description and figures, but an older Aonik's did not,
+   * and the detail read is the one with the resolved content — so each dish is
+   * still hydrated from its own detail read.
    *
    * The reads run in parallel and the rail is six dishes, so this is one round
    * trip's worth of latency rather than six. A dish whose detail read fails

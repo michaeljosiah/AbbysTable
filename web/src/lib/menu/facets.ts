@@ -15,9 +15,10 @@
  * actually carries. A dish without a protein source matches no protein chip;
  * without a heat level, no heat chip — it is left out, never placed in a
  * default. That is the whole safety rule, and it is why "Low sugar" is not
- * here: no dish record has a sugar flag, and the prototype's stand-in (carbs
- * ≤ 20g) would make a nutrition claim nobody has made. It returns when Aonik
- * publishes a real flag (michaeljosiah/aonik#359).
+ * here: demo's dish records have no sugar flag, and the prototype's stand-in
+ * (carbs ≤ 20g) would make a nutrition claim nobody has made. Live, it is the
+ * tenant's own facet on Aonik's typed `lowSugar` (michaeljosiah/aonik#359),
+ * advertised by the facets read and matched by Aonik.
  */
 
 import type { MappedFacetGroup, MappedFacetOption } from '@/lib/aonik/map';

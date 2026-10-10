@@ -27,7 +27,7 @@ import type {
   ProductSummaryDto,
   ResolvedContentDto,
 } from './dto';
-import { EXTRA_CATEGORIES, HEAT_STEPS } from './types';
+import { EXTRA_CATEGORIES, HEAT_STEPS, PROTEIN_TYPES } from './types';
 import type {
   BoxOffer,
   Dish,
@@ -468,7 +468,7 @@ function readAttributes(attributesJson: string): DishAttributes {
  * `HEAT_STEPS` in reverse: 0→none, 1→low, 2→medium, 3→high. Anything else —
  * absent, fractional, out of range — is NO heat level, not a guessed one: this
  * used to answer "medium", which put "Medium" heat on every live card whose
- * product had no `heatStep` (typed heat waits on michaeljosiah/aonik#359).
+ * product had no `heatStep`. Aonik's typed `heat` uses the same 0–3 (aonik#359).
  */
 export function heatFromStep(step: number | undefined): HeatLevel | undefined {
   const match = (Object.entries(HEAT_STEPS) as [HeatLevel, number][]).find(
@@ -477,40 +477,75 @@ export function heatFromStep(step: number | undefined): HeatLevel | undefined {
   return match?.[0];
 }
 
+/** A finite number, or undefined: null (unknown, or withheld as stale) is never a zero. */
+const figure = (value: number | null | undefined): number | undefined =>
+  typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+
+/** Authored text, trimmed, or undefined. */
+const authored = (value: string | null | undefined): string | undefined => value?.trim() || undefined;
+
+/**
+ * The heat level: Aonik's typed `heat` (0–3, aonik#359) wherever the record
+ * carries the member — null there is unknown, and an attribute must not
+ * contradict what Aonik's own heat facet matches on — else the legacy
+ * `heatStep` attribute.
+ */
+function typedHeat(dto: { heat?: number | null }, attributes: DishAttributes): HeatLevel | undefined {
+  return 'heat' in dto ? heatFromStep(figure(dto.heat)) : heatFromStep(attributes.heatStep);
+}
+
+/**
+ * The protein source: the product's category where it names one of ours
+ * (Aonik: "existing CategoryId provides the category/protein source"), else
+ * the legacy `protein` attribute. A category that is not a protein source
+ * ("Soups") is not read as one.
+ */
+function proteinSource(categoryName: string | null | undefined, attributes: DishAttributes): Dish['proteinType'] {
+  const category = PROTEIN_TYPES.find((type) => type.toLowerCase() === categoryName?.trim().toLowerCase());
+  return category ?? (attributes.protein as Dish['proteinType']);
+}
+
 /**
  * A browse row → the `Dish` the menu grid renders.
  *
- * LOSSY BY CONSTRUCTION. A summary carries no description, no content and no
- * nutrition — only the detail read has those. Fields that cannot be sourced are
- * left empty rather than invented: `description` is the `description`
- * attribute or blank, `nutrition` carries only what `attributesJson` published, and `ingredients`/`allergens` are always
- * absent (declarations come exclusively from a content resolution, never from a
- * browse row).
+ * Aonik's rows carry the typed dish facts (aonik#359): description, heat,
+ * components line, category, hero alt text and the card's figures (kcal,
+ * protein, fibre). Where a typed member is present it wins; the legacy
+ * `attributesJson` convention fills in only for a source that does not send
+ * it. Rows never carry carbohydrate or fat, and `ingredients`/`allergens` are
+ * always absent (declarations come exclusively from a content resolution,
+ * never from a browse row).
  */
 export function mapSummaryToDish(dto: ProductSummaryDto): Dish {
   const attributes = readAttributes(dto.attributesJson);
+  // Typed figures where Aonik sends them — a stale or unknown one arrives as
+  // null and stays unknown; the attributes only for a source without them.
+  const typedNutrition = 'kcal' in dto || 'proteinGrams' in dto || 'fibreGrams' in dto;
 
   return {
     id: dto.id,
     slug: dto.slug,
     title: dto.name,
-    parts: attributes.parts,
-    description: attributes.description ?? '',
+    parts: authored(dto.componentsLine) ?? attributes.parts,
+    description: authored(dto.description) ?? attributes.description ?? '',
     imageUrl: dto.heroImageUrl ?? '',
-    heat: heatFromStep(attributes.heatStep),
+    imageAlt: authored(dto.heroImageAltText),
+    heat: typedHeat(dto, attributes),
     tags: dto.tags,
     isSignature: dto.unitSurcharge !== null,
     upgradePence: toPenceOrUndefined(dto.unitSurcharge),
-    nutrition: {
-      proteinGrams: attributes.proteinGrams,
-      fibreGrams: attributes.fibreGrams,
-      carbsGrams: attributes.carbsGrams,
-      fatGrams: attributes.fatGrams,
-      calories: attributes.kcal,
-    },
+    nutrition: typedNutrition
+      ? { proteinGrams: figure(dto.proteinGrams), fibreGrams: figure(dto.fibreGrams), calories: figure(dto.kcal) }
+      : {
+          proteinGrams: attributes.proteinGrams,
+          fibreGrams: attributes.fibreGrams,
+          carbsGrams: attributes.carbsGrams,
+          fatGrams: attributes.fatGrams,
+          calories: attributes.kcal,
+        },
     // Membership of the `featured` collection decides this, not a product flag.
     isFeatured: false,
-    proteinType: attributes.protein as Dish['proteinType'],
+    proteinType: proteinSource(dto.categoryName, attributes),
     mealType: attributes.meal as Dish['mealType'],
     wellness: (attributes.wellness ?? []) as Dish['wellness'],
     dietary: (attributes.dietary ?? []) as Dish['dietary'],
@@ -529,15 +564,17 @@ export function mapProductToDish(dto: ProductDto): Dish {
   const attributes = readAttributes(dto.attributesJson);
   const content = dto.content ? mapResolvedContent(dto.content) : null;
   const tags = parseJsonStringArray(dto.tagsJson);
+  const hero = [...dto.media].sort((a, b) => a.sortOrder - b.sortOrder)[0];
 
   return {
     id: dto.id,
     slug: dto.slug,
     title: dto.name,
-    parts: attributes.parts,
+    parts: authored(dto.componentsLine) ?? attributes.parts,
     description: dto.description,
-    imageUrl: [...dto.media].sort((a, b) => a.sortOrder - b.sortOrder)[0]?.url ?? '',
-    heat: heatFromStep(attributes.heatStep),
+    imageUrl: hero?.url ?? '',
+    imageAlt: authored(hero?.altText),
+    heat: typedHeat(dto, attributes),
     tags,
     isSignature: dto.unitSurcharge !== null,
     upgradePence: toPenceOrUndefined(dto.unitSurcharge),
@@ -549,7 +586,7 @@ export function mapProductToDish(dto: ProductDto): Dish {
       calories: attributes.kcal,
     },
     isFeatured: false,
-    proteinType: attributes.protein as Dish['proteinType'],
+    proteinType: proteinSource(dto.categoryName, attributes),
     mealType: attributes.meal as Dish['mealType'],
     wellness: (attributes.wellness ?? []) as Dish['wellness'],
     dietary: (attributes.dietary ?? []) as Dish['dietary'],

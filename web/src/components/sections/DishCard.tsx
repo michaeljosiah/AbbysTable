@@ -80,7 +80,7 @@ export function DishCard({ dish, variant = 'rail', href, headingLevel = 3 }: Dis
         {dish.imageUrl ? (
           <Image
             src={dish.imageUrl}
-            alt={dish.title}
+            alt={dish.imageAlt ?? dish.title}
             fill
             sizes={
               variant === 'grid'
