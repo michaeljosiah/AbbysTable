@@ -179,7 +179,12 @@ test('every information link lands on a built page (or, before #24, the footer a
  * literal.
  */
 const IN_PAGE_LINKS: Array<{ file: string; contact: number; faqs: number; why: string }> = [
-  { file: 'components/auth/LoginForm.tsx', contact: 1, faqs: 0, why: '"Forgotten it?" (open question 10)' },
+  {
+    file: 'components/auth/ForgotPasswordForm.tsx',
+    contact: 2,
+    faqs: 0,
+    why: 'the reset is unavailable / "Nothing there?": "Contact us"',
+  },
   {
     file: 'components/dish/DishInfoPanels.tsx',
     contact: 1,

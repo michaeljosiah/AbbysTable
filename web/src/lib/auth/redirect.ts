@@ -43,3 +43,29 @@ export function safePostAuthPath(value: string | undefined | null): string {
 
   return path;
 }
+
+/**
+ * Where a signed-out request for `returnTo` is sent: Log in, carrying the path
+ * so the customer lands back on it. Only a safe same-origin path is carried;
+ * anything else (and the default landing) leaves the address bare.
+ */
+export function loginPathFor(returnTo: string): string {
+  const path = safePostAuthPath(returnTo);
+  return path === DEFAULT_POST_AUTH_PATH && returnTo !== DEFAULT_POST_AUTH_PATH
+    ? '/login'
+    : `/login?next=${encodeURIComponent(path)}`;
+}
+
+/**
+ * The route that renews an expired-but-refreshable session and sends the
+ * customer on. A Server Component render cannot write the renewed cookie, so
+ * an account page hands the request to this route handler first.
+ */
+export function sessionRefreshPath(returnTo: string): string {
+  return `/account/refresh?next=${encodeURIComponent(safePostAuthPath(returnTo))}`;
+}
+
+/** Where a page whose session died mid-render sends the customer: the same route ends the cookie. */
+export function sessionEndedPath(returnTo: string): string {
+  return `${sessionRefreshPath(returnTo)}&ended=1`;
+}

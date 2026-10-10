@@ -38,6 +38,8 @@
     "tests/selection-content.test.tsx",
     "tests/checkout.test.tsx",
     "tests/payment.test.tsx",
+    "tests/login.test.tsx",
+    "tests/account-redirect.test.tsx",
     "tests/choose-box.test.tsx",
     "tests/shopping-state.test.tsx",
     "tests/email.test.ts",

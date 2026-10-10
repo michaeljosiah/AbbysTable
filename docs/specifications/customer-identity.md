@@ -11,6 +11,12 @@ updated: 2026-10-07
 
 # Accounts — register, sign in, adopt the box, my orders
 
+> **Update (#33):** the storefront no longer registers anyone. `/register` redirects to `/login`;
+> accounts are created during checkout and set up from Aonik's account-setup link (#34). Log in is the
+> v2 page, and `/forgot-password` asks Aonik to email a reset link (`POST /identity/password/forgot`).
+> Account pages redirect signed-out requests to `/login?next=…`. The registration scenarios below
+> are retained as history.
+
 > **Verified 2026-07-22** against Aonik spec 072, ADR-007 and the shipped `Aonik.Commerce`
 > implementation. Where the two disagreed, the code won. Corrections: there is no `Z4` error
 > code (that is a documentation rule label — the wire code is

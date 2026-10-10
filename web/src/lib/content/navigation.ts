@@ -99,6 +99,9 @@ export const BOX_HREF = BOX_BUILDER_PATH;
  */
 export const LOGIN_ITEM: NavItem = { label: 'Log in', href: '/login' };
 
+/** Where "Forgot your password?" goes: asks Aonik to email a reset link. */
+export const FORGOT_PASSWORD_HREF: string = '/forgot-password';
+
 /**
  * Takes `LOGIN_ITEM`'s place in the header and drawer once the customer is
  * signed in (behaviour guide §A2): same slot, new label and destination. The

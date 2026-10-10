@@ -1,14 +1,17 @@
 /**
- * Registration, sign-in, and calling Aonik as the signed-in customer.
+ * Sign-in, and calling Aonik as the signed-in customer.
  *
  * The one module that handles credentials, and it never lets them travel: a
  * password arrives from a server action, is exchanged for a token, and is gone.
  * Nothing here is logged, and the token lands in an httpOnly cookie rather than
  * a page prop.
  *
- * The endpoints live OUTSIDE `/commerce/` — `/v1/registrations/individual` and
- * `/auth/token` are platform surfaces, not commerce ones — which is why
- * `AONIK_API_URL` must be the API root and not a `/commerce` prefix.
+ * There is no registration here: accounts are created during checkout (the
+ * design's decision), by Aonik's own account-setup link.
+ *
+ * The endpoints live OUTSIDE `/commerce/` — `/auth/token` and `/identity/*` are
+ * platform surfaces, not commerce ones — which is why `AONIK_API_URL` must be
+ * the API root and not a `/commerce` prefix.
  *
  * SERVER-ONLY.
  */
@@ -27,25 +30,6 @@ import {
 } from './session';
 
 /* ---- Wire contracts, transcribed from Aonik.Platform ---------------------- */
-
-/** `IndividualRegistrationRequest`. Tenant goes in the body — see the spec's correction 2. */
-interface RegistrationRequestDto {
-  tenantId: string;
-  registrationCountry?: string;
-  title?: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone?: string;
-  password: string;
-}
-
-/** `IndividualRegistrationResponse` — note it carries NO tokens. */
-interface RegistrationResponseDto {
-  userId: string;
-  partyId: string;
-  onboarding: unknown;
-}
 
 /** `TokenRequestDto`. `clientId` is NOT optional on the wire. */
 interface TokenRequestDto {
@@ -133,16 +117,35 @@ function authFetch<T>(path: string, config: AuthConfig, options: AuthFetchOption
   });
 }
 
+/**
+ * An anonymous call to Aonik's identity surface (`/identity/*`): the password
+ * reset and the account-setup link. Needs the connection but NOT the OAuth
+ * client, so it works on a deployment where the password grant is not set up.
+ * Throws `AccountsUnavailableError` on demo data, where there is no identity
+ * provider to ask.
+ */
+export function identityFetch<T>(path: string, options: AuthFetchOptions = {}): Promise<T> {
+  const connection = readAonikConfig();
+  if (!connection) {
+    throw new AccountsUnavailableError('Accounts need a configured Aonik (AONIK_API_URL and AONIK_TENANT_ID).');
+  }
+  return authFetch<T>(path, { ...connection, clientId: '' }, options);
+}
+
+/** The tenant identity bodies name (`tenantId` goes in the body AND the header). */
+export function identityTenantId(): string | null {
+  return readAonikConfig()?.tenantId ?? null;
+}
+
 /* ---- Credential failures --------------------------------------------------- */
 
 /**
- * A sign-in or registration the customer can fix — wrong password, email
- * already registered.
+ * A sign-in the customer can fix — a wrong email or password.
  *
- * The message is Aonik's own. Neither endpoint uses the standard `{error, code}`
- * envelope (both write `{ error }` with no code), so there is nothing to branch
- * on beyond the status, and inventing more specific copy than the API gave us
- * would mean guessing at why.
+ * Carries Aonik's own text for the log, never for the page: `/auth/token` hands
+ * back one message for a wrong password, an unknown email and a realm with the
+ * password grant switched off, and the form says one neutral thing for all of
+ * them (it must not confirm which emails have accounts).
  */
 export class CredentialError extends Error {
   constructor(message: string) {
@@ -189,78 +192,6 @@ export async function signIn(email: string, password: string): Promise<SignInRes
   const session = sessionFromToken(token, email);
   await writeSession(session);
   return { session };
-}
-
-/**
- * Registers, then immediately signs in.
- *
- * The two calls are separate because Aonik's registration response carries no
- * tokens — it returns `{ userId, partyId, onboarding }`. A customer who
- * registered successfully but whose token exchange failed is REGISTERED: the
- * account exists and re-registering would 409. So the exchange failure is
- * re-thrown as itself, and the caller sends them to sign in rather than
- * offering the registration form again.
- */
-export async function register(input: {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-  phone?: string;
-}): Promise<SignInResult> {
-  const config = authConfig();
-
-  const body: RegistrationRequestDto = {
-    // Body AND header: the endpoint prefers the body and only falls back to
-    // header resolution when the deployment is configured for it.
-    tenantId: config.tenantId,
-    firstName: input.firstName,
-    lastName: input.lastName,
-    email: input.email,
-    phone: input.phone,
-    password: input.password,
-  };
-
-  try {
-    await authFetch<RegistrationResponseDto>('/v1/registrations/individual', config, {
-      method: 'POST',
-      body,
-    });
-  } catch (error) {
-    // 409 is a duplicate registration. It is NOT box drift — that additionally
-    // requires the drift code — but nothing else may read 409 as drift either.
-    if (error instanceof AonikError && (error.status === 409 || error.status === 400)) {
-      throw new CredentialError(error.message);
-    }
-    throw error;
-  }
-
-  try {
-    return await signIn(input.email, input.password);
-  } catch (error) {
-    // The account now EXISTS. Re-submitting this form would 409, and telling
-    // someone their details were wrong would be a lie — they were right enough
-    // to create an account. Send them to sign in instead.
-    throw new RegisteredButNotSignedInError(
-      error instanceof Error ? error.message : undefined,
-    );
-  }
-}
-
-/**
- * Registration succeeded; the immediate sign-in did not.
- *
- * Its own type because the recovery differs from every other auth failure: the
- * customer must NOT retry registration, they must sign in.
- */
-export class RegisteredButNotSignedInError extends Error {
-  constructor(readonly cause?: string) {
-    super(
-      'Your account was created, but we could not sign you in automatically. ' +
-        'Please sign in with the details you just chose.',
-    );
-    this.name = 'RegisteredButNotSignedInError';
-  }
 }
 
 /* ---- Calling Aonik as the customer ---------------------------------------- */

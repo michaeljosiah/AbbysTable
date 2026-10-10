@@ -358,6 +358,27 @@ Conventions inside `web/` that are easy to get wrong:
   (`GET /api/newsletter` → `{ consent }` or `{ consent: null }`, then `subscribeNewsletterAction`)
   because the chrome must never await Aonik — only in live mode (SiteChrome passes the action only
   then), only once the footer is within 600px of the viewport, and not at all without JavaScript.
+- **Log in (#33): `/login` and `/forgot-password`, inside the site chrome.** There is NO
+  create-account page: accounts are made during checkout, `/register` is a permanent redirect to
+  `/login` (`next.config.mjs`), and `register` / `registerAction` are gone. The page is the v2
+  card (Welcome back, email, password with Show/Hide, "Forgot your password?", Log in). It leaves
+  out the design's Google/Apple buttons (no backend; ADR-007) and "Keep me signed in" (no such
+  Aonik setting), and does not bounce a signed-in visitor. A refused log in is ONE neutral line
+  (`SIGN_IN_REFUSED`) — never Aonik's own text, which would say which emails have accounts. The
+  messages and the email rule are React-free in `src/lib/auth/messages.ts` (`actions.ts` is
+  `'use server'` and may export only async functions). The password reset is
+  `POST /identity/password/forgot` (`lib/auth/passwordReset.ts`, `identityFetch` — needs the
+  connection, not the OAuth client): it answers 2xx for any address, so the "Check your email"
+  confirmation is the same for all; the reset itself is on the identity provider's hosted page. In
+  demo it says it is unavailable (#6's rule). The account area never shows a signed-out panel: its
+  pages call `requireSignedIn(returnTo)` (`lib/auth/guard.ts`), which redirects to
+  `/login?next=…` — or, for an expired session that has a refresh token, via
+  `/account/refresh?next=…` (a route handler; a render cannot write the renewed cookie) — and a
+  session that dies mid-render goes through `/account/refresh?…&ended=1` (`redirectToLogin`), which
+  also ends the stale cookie. Log in and reset requests are limited per address by the storefront
+  itself (`loginByAddress`, `resetByAddress`, `resetByEmail`: Aonik sees only this server's address,
+  so one script could otherwise use up the whole site's allowance). Pinned by `tests/login.test.tsx`
+  and `tests/account-redirect.test.tsx`.
 - **Internal links go through `next/link`.** `Button` and `NavLink` route on `href` automatically
   (`isExternalHref` in `src/lib/links.ts`); nav anchors are root-relative (`/#founder`) so they work
   from `/menu` as well as `/`.
