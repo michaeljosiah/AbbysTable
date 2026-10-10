@@ -25,7 +25,7 @@ import {
 import { PRIVATE_TABLE_FROM_PENCE } from '../src/lib/content/marketing';
 import { CONTACT_HREF, DELIVERY_FAQS_HREF, PRIVATE_TABLE_ITEM } from '../src/lib/content/navigation';
 import { checkPostcode, joinNotifyList, locatePostcode } from '../src/lib/delivery/actions';
-import { clearCoverageChecks, COVERAGE_CHECKS } from '../src/lib/delivery/rateLimit';
+import { clearCoverageChecks, COVERAGE_CHECKS, SITE_COVERAGE_CHECKS } from '../src/lib/delivery/rateLimit';
 import { SIGNUP_FORM_CHANGED } from '../src/lib/signup/consent';
 import {
   checkerReducer,
@@ -127,6 +127,8 @@ async function demo<T>(fn: () => Promise<T>): Promise<T> {
   delete process.env.AONIK_TENANT_ID;
   delete process.env.AONIK_DATA_MODE;
   resetCookies();
+  setRequestHeaders({});
+  clearCoverageChecks();
   try {
     return await fn();
   } finally {
@@ -428,33 +430,59 @@ test('checkPostcode (live): Aonik’s answer — serves, not served, no such pos
   }
 });
 
-test('checkPostcode (live): each address at a customer’s pace — Aonik’s allowance is the whole site’s', async () => {
+test('checkPostcode (live): each address at a customer’s pace, the site under Aonik’s allowance', async () => {
   const served = (request: { path: string }) =>
     request.path.startsWith('/commerce/delivery/coverage')
       ? { status: 200, body: { status: 'serves', normalisedPostcode: 'DA1 2AB', earliestDate: '2099-02-05' } }
       : undefined;
   await live(served, async () => {
-    const warn = console.warn;
-    console.warn = () => {};
-    try {
-      setRequestHeaders({ 'x-forwarded-for': '198.51.100.1, 203.0.113.50' });
-      for (let check = 1; check <= COVERAGE_CHECKS; check += 1) {
-        assert.equal((await checkPostcode('DA1 2AB')).status, 'serves', String(check));
-      }
-      aonikRequests.length = 0;
-      assert.deepEqual(await checkPostcode('DA1 2AB'), { status: 'unavailable' });
-      assert.equal(aonikRequests.length, 0, 'never reaches Aonik');
-      // A typo costs nothing, and another address is its own count.
+    // A typo costs nothing: refused before it is counted.
+    setRequestHeaders({ 'x-forwarded-for': '198.51.100.1, 203.0.113.50' });
+    for (let typo = 0; typo < COVERAGE_CHECKS + 2; typo += 1) {
       assert.deepEqual(await checkPostcode('DA1ABC'), { status: 'invalid' });
-      setRequestHeaders({ 'x-forwarded-for': '203.0.113.51' });
+    }
+    for (let check = 1; check <= COVERAGE_CHECKS; check += 1) {
+      assert.equal((await checkPostcode('DA1 2AB')).status, 'serves', String(check));
+    }
+    aonikRequests.length = 0;
+    assert.deepEqual(await checkPostcode('DA1 2AB'), { status: 'unavailable' });
+    assert.equal(aonikRequests.length, 0, 'never reaches Aonik');
+    // Another address is its own count…
+    setRequestHeaders({ 'x-forwarded-for': '203.0.113.51' });
+    assert.equal((await checkPostcode('DA1 2AB')).status, 'serves');
+    // …but not another in the same IPv6 /64.
+    clearCoverageChecks();
+    for (let check = 1; check <= COVERAGE_CHECKS; check += 1) {
+      setRequestHeaders({ 'x-forwarded-for': `2001:db8:5:6::${check}` });
       assert.equal((await checkPostcode('DA1 2AB')).status, 'serves');
-      // No address, or not one: nothing forwarded, and no shared bucket.
-      setRequestHeaders({ 'x-forwarded-for': 'unknown' });
-      aonikRequests.length = 0;
+    }
+    setRequestHeaders({ 'x-forwarded-for': '2001:db8:5:6::ffff' });
+    assert.equal((await checkPostcode('DA1 2AB')).status, 'unavailable');
+    // No address, or not one: nothing forwarded.
+    clearCoverageChecks();
+    setRequestHeaders({ 'x-forwarded-for': 'unknown' });
+    aonikRequests.length = 0;
+    assert.equal((await checkPostcode('DA1 2AB')).status, 'serves');
+    assert.equal(aonikRequests[0].headers['x-forwarded-for'], undefined);
+
+    // However many addresses ask, the site stays under Aonik's 30 a minute,
+    // which checkout shares: checks past the site's cap are not asked.
+    clearCoverageChecks();
+    for (let check = 1; check <= SITE_COVERAGE_CHECKS; check += 1) {
+      setRequestHeaders({ 'x-forwarded-for': `198.51.100.${check}` });
+      assert.equal((await checkPostcode('DA1 2AB')).status, 'serves', String(check));
+    }
+    assert.ok(SITE_COVERAGE_CHECKS < 30);
+    setRequestHeaders({ 'x-forwarded-for': '198.51.100.99' });
+    aonikRequests.length = 0;
+    assert.deepEqual(await checkPostcode('DA1 2AB'), { status: 'unavailable' });
+    assert.equal(aonikRequests.length, 0);
+  });
+  // Demo asks nobody, so nothing limits it.
+  await demo(async () => {
+    setRequestHeaders({ 'x-forwarded-for': '203.0.113.52' });
+    for (let check = 0; check <= SITE_COVERAGE_CHECKS; check += 1) {
       assert.equal((await checkPostcode('DA1 2AB')).status, 'serves');
-      assert.equal(aonikRequests[0].headers['x-forwarded-for'], undefined);
-    } finally {
-      console.warn = warn;
     }
   });
 });

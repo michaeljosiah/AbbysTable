@@ -201,8 +201,9 @@ Conventions inside `web/` that are easy to get wrong:
   "Please enter a valid UK postcode."). With no lookup the page renders NO checker. The tenant
   must configure its coverage and postcode provider before go-live (Aonik also refuses box
   payments without them), or every check says "could not check". Aonik's 30/min limit sees only
-  the storefront's address, so `checkPostcode` limits each customer itself
-  (`src/lib/delivery/rateLimit.ts`, 10/min); go-live also needs that Aonik limit raised. The nine
+  the storefront's address and is shared with checkout, so the live lookup limits each customer
+  (10/min) and the whole site (20/min) before asking (`src/lib/delivery/rateLimit.ts`); before live
+  ordering, Aonik needs checkout on a rate-limit policy of its own. The nine
   states are `src/lib/delivery/checker.ts`, reached only by real input — the prototype's
   `stateOverride` must never ship (contract §4b). "Use my current location" asks only on a click
   and renders only where the lookup can place a postcode. A served postcode goes to the box

@@ -18,16 +18,17 @@
  *     coordinates lookup, so live offers no "Use my current location".
  *
  * Rate limiting (contract §3b): Aonik allows 30 checks a minute per tenant and
- * address, shared with checkout's own reads — and the address it sees is the
+ * address, shared with checkout itself — and the address it sees is the
  * storefront's, not the customer's (it reads only the hop its ingress
- * appends), so the checker's action limits each customer itself
- * (`@/lib/delivery/rateLimit`). The customer's address still goes as
- * `X-Forwarded-For`, for a deployment where Aonik can trust it.
+ * appends), so the live lookup limits each customer and the site as a whole
+ * before asking (`@/lib/delivery/rateLimit`). The customer's address still
+ * goes as `X-Forwarded-For`, for a deployment where Aonik can trust it.
  *
  * SERVER-ONLY (the live lookup).
  */
 
 import { normalisePostcode, postcodeArea } from '@/lib/delivery/postcode';
+import { admitCoverageCheck } from '@/lib/delivery/rateLimit';
 import { clientAddress } from '@/lib/request/clientAddress';
 
 import type { AonikConfig } from './dataMode';
@@ -167,14 +168,14 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
  */
 export function readCoverage(body: unknown, asked: string): CoverageAnswer {
   const dto = (body ?? {}) as CoverageDto;
-  const answered = typeof dto.normalisedPostcode === 'string' ? normalisePostcode(dto.normalisedPostcode) : null;
   // Aonik answers for the postcode asked ("never redirect the decision"). An
-  // answer about another one is no answer: never "we deliver to" a postcode
-  // the customer did not enter, handed on to the box builder.
-  if (answered && answered !== normalisePostcode(asked)) {
+  // answer about another one — or one that is not a postcode at all — is no
+  // answer: never "we deliver to" a postcode the customer did not enter,
+  // handed on to the box builder.
+  if (typeof dto.normalisedPostcode === 'string' && normalisePostcode(dto.normalisedPostcode) !== normalisePostcode(asked)) {
     throw new Error('Coverage answered for a different postcode');
   }
-  const postcode = answered || asked;
+  const postcode = normalisePostcode(asked) ?? asked;
   if (dto.status === 'serves') {
     const earliest = typeof dto.earliestDate === 'string' && ISO_DATE.test(dto.earliestDate) ? dto.earliestDate : undefined;
     return earliest ? { status: 'serves', postcode, earliestDeliveryDate: earliest } : { status: 'serves', postcode };
@@ -190,6 +191,9 @@ export class HttpCoverageLookup implements CoverageLookup {
   constructor(private readonly config: AonikConfig) {}
 
   async check(postcode: string): Promise<CoverageAnswer> {
+    // Aonik's allowance is checkout's too: past the customer's or the site's
+    // pace, could not check — without asking.
+    if (!(await admitCoverageCheck())) throw new Error('Too many postcode checks; not asked');
     try {
       const body = await aonikFetch<unknown>(COVERAGE_PATH, {
         baseUrl: this.config.baseUrl,

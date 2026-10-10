@@ -25,7 +25,6 @@ import { isSignupRefused } from '@/lib/signup/server';
 
 import { upcomingDeliveryDate } from './checker';
 import { normalisePostcode, readPostcodeEntry } from './postcode';
-import { admitCoverageCheck } from './rateLimit';
 
 export type PostcodeCheck =
   | { status: 'serves'; postcode: string; earliestDeliveryDate: string | null }
@@ -83,11 +82,6 @@ export async function checkPostcode(raw: unknown): Promise<PostcodeCheck> {
   try {
     const client = await getAonikClient();
     if (!client.coverage) return { status: 'unavailable' };
-    // Past this address's pace: could not check, with a retry (`./rateLimit`).
-    if (!(await admitCoverageCheck())) {
-      console.warn('[delivery] too many postcode checks from one address');
-      return { status: 'unavailable' };
-    }
 
     const answer = await client.coverage.check(entry.postcode);
     // Well formed, but the lookup found no such postcode: said as any invalid one.

@@ -112,7 +112,11 @@ export function PostcodeChecker({
       // No such postcode, which only the lookup can tell: corrected in place,
       // as a malformed one is — the field takes focus with its text selected.
       dispatch({ type: 'correct', message: 'invalid', request });
-      if (request === counter.current) focusField(true);
+      // Not if the customer has moved on to something else while it checked:
+      // their next keystrokes would overwrite the selected postcode.
+      const active = document.activeElement;
+      const stayed = !active || active === document.body || Boolean(active.closest(`[data-postcode-checker="${id}"]`));
+      if (request === counter.current && stayed) focusField(true);
       return;
     }
 
@@ -249,7 +253,13 @@ export function PostcodeChecker({
 
               <div>
                 {/* Stacked on a phone, one pill from 640. */}
-                <form className={styles.form} onSubmit={onSubmit} noValidate aria-busy={busy === 'checking' || undefined}>
+                <form
+                  className={styles.form}
+                  onSubmit={onSubmit}
+                  noValidate
+                  aria-busy={busy === 'checking' || undefined}
+                  data-postcode-checker={id}
+                >
                   <label htmlFor={inputId} className="visuallyHidden">
                     Postcode
                   </label>
