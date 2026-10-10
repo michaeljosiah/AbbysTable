@@ -20,11 +20,12 @@ interface StatusMessageProps {
   /** `notFound` hugs its content on a phone; `error` holds the viewport. */
   kind: 'notFound' | 'error';
   /** The decorative status disc. The 404 has none, by design. */
-  mark?: 'error';
+  mark?: 'error' | 'link';
   eyebrow: string;
   title: string;
   lede: string;
-  primary: PrimaryAction;
+  /** Absent when the page replaces the action in place (Link no longer valid, once sent). */
+  primary?: PrimaryAction;
   /** Site text-CTA: sentence case, brass rule under label and arrow. */
   secondary?: { label: string; href: string };
   /**
@@ -34,6 +35,8 @@ interface StatusMessageProps {
    * stale chunk after a deploy) cannot be trusted to navigate at all.
    */
   fullPageLinks?: boolean;
+  /** Sits where the primary action does (what replaces it once used), above the text CTA. */
+  inPlace?: ReactNode;
   children?: ReactNode;
 }
 
@@ -46,6 +49,7 @@ export function StatusMessage({
   primary,
   secondary,
   fullPageLinks = false,
+  inPlace,
   children,
 }: StatusMessageProps) {
   const Anchor = fullPageLinks ? 'a' : Link;
@@ -54,7 +58,7 @@ export function StatusMessage({
     <section className={styles.band} data-kind={kind}>
       <div className={styles.inner}>
         <div className={styles.body}>
-          {mark === 'error' ? (
+          {mark ? (
             <div className={styles.mark} aria-hidden="true">
               <svg
                 width="34"
@@ -66,8 +70,17 @@ export function StatusMessage({
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
-                <path d="M12 3.6 21.2 19.5H2.8z" />
-                <path d="M12 9.6v4.6M12 16.9h.01" strokeWidth="1.8" />
+                {mark === 'link' ? (
+                  <>
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                  </>
+                ) : (
+                  <>
+                    <path d="M12 3.6 21.2 19.5H2.8z" />
+                    <path d="M12 9.6v4.6M12 16.9h.01" strokeWidth="1.8" />
+                  </>
+                )}
               </svg>
             </div>
           ) : null}
@@ -77,7 +90,7 @@ export function StatusMessage({
           <p className={styles.lede}>{lede}</p>
 
           <div className={styles.actions}>
-            {'href' in primary ? (
+            {!primary ? null : 'href' in primary ? (
               <Anchor href={primary.href} className={styles.primary}>
                 {primary.label}
               </Anchor>
@@ -86,6 +99,8 @@ export function StatusMessage({
                 {primary.label}
               </button>
             )}
+
+            {inPlace}
 
             {secondary ? (
               <Anchor href={secondary.href} className={styles.secondary}>

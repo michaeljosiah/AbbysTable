@@ -6,6 +6,21 @@ const nextConfig = {
     // bundle; next/image re-encodes them to modern formats on demand.
     formats: ['image/avif', 'image/webp'],
   },
+  async headers() {
+    return [
+      {
+        // The emailed secure link (#34). The token is in the fragment, which is
+        // never sent here, but the page still must not be cached, indexed or
+        // leave through a Referer.
+        source: '/account/access',
+        headers: [
+          { key: 'Cache-Control', value: 'no-store' },
+          { key: 'Referrer-Policy', value: 'no-referrer' },
+          { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
+        ],
+      },
+    ];
+  },
   async redirects() {
     return [
       // There is no create-account page (accounts are made during checkout), but
