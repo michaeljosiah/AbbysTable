@@ -208,7 +208,8 @@ test('anchors and external links are never current; nor is anything on the homep
 });
 
 test('My Account is current across the account area', () => {
-  assert.equal(ariaCurrentFor('/account/orders', ACCOUNT_ITEM.href), 'page');
+  assert.equal(ariaCurrentFor('/account', ACCOUNT_ITEM.href), 'page');
+  assert.equal(ariaCurrentFor('/account/orders', ACCOUNT_ITEM.href), 'true');
   assert.equal(ariaCurrentFor('/account/orders/AT-1', ACCOUNT_ITEM.href), 'true');
 });
 
@@ -219,7 +220,7 @@ test('"Log in" signed out, "My Account" signed in — label and destination', ()
   assert.equal(accountItem({ isSignedIn: false }), LOGIN_ITEM);
   assert.deepEqual(accountItem({ isSignedIn: true }), {
     label: 'My Account',
-    href: '/account/orders',
+    href: '/account',
   });
 });
 
@@ -271,7 +272,7 @@ test('the header links: the v2 five, in order — Gifting only once its page exi
 });
 
 test('no chrome link 404s or points at an anchor the v2 homepage drops', () => {
-  const BUILT = new Set(['/menu', '/how-it-works', '/our-story', '/standards', '/contact', '/delivery-and-faqs', '/private-table', '/allergens', '/privacy', '/terms-of-sale', '/box', '/login', '/account/orders']);
+  const BUILT = new Set(['/menu', '/how-it-works', '/our-story', '/standards', '/contact', '/delivery-and-faqs', '/private-table', '/allergens', '/privacy', '/terms-of-sale', '/box', '/login', '/account', '/account/orders']);
   const links = [...NAV_ITEMS, ...FOOTER_COLUMNS.flatMap((column) => column.links)];
   for (const link of links) {
     // Pages only: every interim homepage anchor (`/#private`, #25) is gone.

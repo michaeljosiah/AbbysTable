@@ -14,9 +14,10 @@ export const dynamic = 'force-dynamic';
  * account is drawn for a visitor who has none.
  *
  * The greeting needs the customer's first name; a profile that cannot be read
- * costs the name ("Hello"), never the page.
+ * costs the name ("Hello"), never the page. `hero` is the parallel `@hero`
+ * route: the overview's Next delivery card, and nothing anywhere else.
  */
-export default async function AccountLayout({ children }: { children: ReactNode }) {
+export default async function AccountLayout({ children, hero }: { children: ReactNode; hero?: ReactNode }) {
   const session = await readSessionView();
   if (!session.isSignedIn) return children;
 
@@ -26,7 +27,7 @@ export default async function AccountLayout({ children }: { children: ReactNode 
   ]);
 
   return (
-    <AccountShell firstName={profile?.firstName} purchaseBar={purchaseBar}>
+    <AccountShell firstName={profile?.firstName} purchaseBar={purchaseBar} heroAside={hero}>
       {children}
     </AccountShell>
   );

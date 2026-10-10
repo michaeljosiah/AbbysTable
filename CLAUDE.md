@@ -407,6 +407,26 @@ Conventions inside `web/` that are easy to get wrong:
   redirects it, `requireSignedIn`). The menu lists only sections that are built
   (`lib/account/sections.ts`); the mobile "menu IS the overview" and `/account` itself land with the
   overview (PR 2), which also flips `ACCOUNT_ITEM` and `DEFAULT_POST_AUTH_PATH` to `/account`.
+  **Overview (PR 2): `/account`.** Cards are read independently and a card that can't be read is
+  LEFT OUT, never guessed (an address book that is down): points
+  (`GET /commerce/storefront/loyalty`, Aonik's own `value`, never recomputed; Aonik answers 200 with
+  zeros both for "nothing earned yet" and for "programme off", so a zero balance draws NO card —
+  a product call to confirm), "Delivering to" (the
+  default address from `/profiles/customers/me/addresses`; Aonik's address has no name, phone or
+  notes, so none is shown) and the three latest orders. The forest-green Next delivery card lives
+  in the hero through a PARALLEL ROUTE (`(frame)/@hero`: `page.tsx` for the overview,
+  `[...rest]/page.tsx` saying nothing for every other path — a slot keeps its last content on a
+  client navigation to a path it has no page for, so each path needs one) so the other sections
+  never read it; its tracker is Aonik's four fulfilment steps (`lib/account/tracker.ts`; the
+  headlines "Your order is confirmed" / "Your box is on its way" await sign-off) and it carries no
+  delivery window. `AccountView` (client) makes the menu the overview on a phone — shown on
+  `/account`, replaced inside a section by "← Back to My Account" — and a sidebar from 1024. The
+  menu rows carry no live summaries (they'd need every section's data on every page): the overview
+  panel shows at every width instead. Not built until PR 3/4: Manage addresses, Order again.
+  The optional reads pass `forbiddenKeepsSession`: a 403 there is "may not read this", not "session
+  over" (`aonikAuthedFetch` otherwise clears the session on 401 and 403). `/account/<anything else>`
+  is a 404 with the site chrome, signed in or out (checked by hand: the `@hero` catch-all registers
+  `/account/[...rest]`, but the `children` slot has no page for it).
   Orders: Aonik's `historyGroup` decides Upcoming / Past (an unpaid order is in neither); status
   pills are Aonik's `fulfilmentStatus` (Confirmed / Cooking / Out for delivery / Delivered /
   Cancelled), else its own words; dishes are named AS PURCHASED (a selection with no name is left

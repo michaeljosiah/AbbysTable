@@ -7,7 +7,12 @@
  * and each gift order on the page (a handful, in parallel), and only for those:
  * a customer with years of past orders must not cost one read per card. A
  * detail that cannot be read costs its line, never the page.
+ *
+ * Cached per request (the argument is the page number), so the Orders page and
+ * the overview's Next delivery card share one set of reads.
  */
+
+import { cache } from 'react';
 
 import {
   getMyOrder,
@@ -34,7 +39,7 @@ export interface AccountOrders {
   extras: Map<string, OrderExtras>;
 }
 
-export async function loadAccountOrders(page: number): Promise<AccountOrders> {
+export const loadAccountOrders = cache(async (page: number): Promise<AccountOrders> => {
   const history = await listMyOrders(page, ORDERS_PAGE_SIZE);
   const { upcoming, past } = splitOrders(history.orders);
 
@@ -52,4 +57,4 @@ export async function loadAccountOrders(page: number): Promise<AccountOrders> {
   });
 
   return { history, upcoming, past, extras };
-}
+});

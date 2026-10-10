@@ -273,15 +273,28 @@ export async function sessionNeedsRefresh(): Promise<boolean> {
  */
 export async function aonikAuthedFetch<T>(
   path: string,
-  options: Omit<AonikFetchOptions, 'baseUrl' | 'tenantId' | 'policy' | 'accessToken'> = {},
+  options: Omit<AonikFetchOptions, 'baseUrl' | 'tenantId' | 'policy' | 'accessToken'> & {
+    /**
+     * A 403 is "this customer may not read this", not "this session is over":
+     * the call fails with Aonik's error and the session stays. For a read the
+     * page can do without (an overview card), where signing the customer out
+     * over a card they never needed would be the worse outcome.
+     */
+    forbiddenKeepsSession?: boolean;
+  } = {},
 ): Promise<T> {
   const config = authConfig();
   const session = await liveSession();
 
+  const { forbiddenKeepsSession, ...fetchOptions } = options;
   try {
-    return await authFetch<T>(path, config, { ...options, accessToken: session.accessToken });
+    return await authFetch<T>(path, config, { ...fetchOptions, accessToken: session.accessToken });
   } catch (error) {
-    if (error instanceof AonikError && error.isUnauthenticated) {
+    if (
+      error instanceof AonikError &&
+      error.isUnauthenticated &&
+      !(forbiddenKeepsSession && error.status === 403)
+    ) {
       await clearSession();
       throw new SessionExpiredError();
     }
