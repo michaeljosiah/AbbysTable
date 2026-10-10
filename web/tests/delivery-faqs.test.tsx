@@ -25,6 +25,7 @@ import {
 import { PRIVATE_TABLE_FROM_PENCE } from '../src/lib/content/marketing';
 import { CONTACT_HREF, DELIVERY_FAQS_HREF, PRIVATE_TABLE_ITEM } from '../src/lib/content/navigation';
 import { checkPostcode, joinNotifyList, locatePostcode } from '../src/lib/delivery/actions';
+import { clearCoverageChecks, COVERAGE_CHECKS } from '../src/lib/delivery/rateLimit';
 import { SIGNUP_FORM_CHANGED } from '../src/lib/signup/consent';
 import {
   checkerReducer,
@@ -110,6 +111,8 @@ async function live<T>(
   configureAonik({ AONIK_DATA_MODE: 'live' });
   stubAonik(responder);
   resetCookies();
+  setRequestHeaders({});
+  clearCoverageChecks();
   try {
     return await quietly(fn);
   } finally {
@@ -396,24 +399,90 @@ test('checkPostcode (live): Aonik’s answer — serves, not served, no such pos
   await live(coverage({ status: 200, body: { status: 'not_served', normalisedPostcode: 'AB12 3CD', earliestDate: null } }), async () => {
     assert.deepEqual(await checkPostcode('ab123cd'), { status: 'not-served', postcode: 'AB12 3CD' });
   });
+  // No normalised postcode in the answer: the one asked.
+  await live(coverage({ status: 200, body: { status: 'serves', normalisedPostcode: null, earliestDate: '2099-02-05' } }), async () => {
+    assert.deepEqual(await checkPostcode('da12ab'), { status: 'serves', postcode: 'DA1 2AB', earliestDeliveryDate: '2099-02-05' });
+  });
   // Well formed but no such postcode: said as any invalid one, never "not in your area".
   await live(
-    coverage({ status: 400, body: { code: 'commerce.invalid_postcode', errors: { postcode: ['Enter a current UK postcode.'] } } }),
+    coverage({ status: 400, body: { error: 'Enter a current UK postcode.', code: 'commerce.invalid_postcode', fieldName: 'postcode' } }),
     async () => {
       assert.deepEqual(await checkPostcode('ZZ9 9ZZ'), { status: 'invalid' });
     },
   );
-  // No coverage configured, the provider down, rate-limited, Aonik down: could not check — never a refusal.
+  // No coverage configured, the provider down, rate-limited, Aonik down, any
+  // other 400, an answer about another postcode: could not check — never a refusal.
   for (const reply of [
     { status: 200, body: { status: 'unavailable', normalisedPostcode: null, earliestDate: null } },
     { status: 429, body: { code: 'commerce.delivery_rate_limited' } },
     { status: 503, body: { error: 'down' } },
     { status: 200, body: { status: 'maybe' } },
+    { status: 400, body: { error: 'Bad request.' } },
+    { status: 400, body: { error: 'Bad request.', code: 'commerce.validation_failed' } },
+    { status: 200, body: { status: 'serves', normalisedPostcode: 'DA1 2AC', earliestDate: null } },
+    { status: 200, body: { status: 'not_served', normalisedPostcode: 'AB12 3CD', earliestDate: null } },
   ]) {
     await live(coverage(reply), async () => {
       assert.deepEqual(await checkPostcode('DA1 2AB'), { status: 'unavailable' }, JSON.stringify(reply));
     });
   }
+});
+
+test('checkPostcode (live): each address at a customer’s pace — Aonik’s allowance is the whole site’s', async () => {
+  const served = (request: { path: string }) =>
+    request.path.startsWith('/commerce/delivery/coverage')
+      ? { status: 200, body: { status: 'serves', normalisedPostcode: 'DA1 2AB', earliestDate: '2099-02-05' } }
+      : undefined;
+  await live(served, async () => {
+    const warn = console.warn;
+    console.warn = () => {};
+    try {
+      setRequestHeaders({ 'x-forwarded-for': '198.51.100.1, 203.0.113.50' });
+      for (let check = 1; check <= COVERAGE_CHECKS; check += 1) {
+        assert.equal((await checkPostcode('DA1 2AB')).status, 'serves', String(check));
+      }
+      aonikRequests.length = 0;
+      assert.deepEqual(await checkPostcode('DA1 2AB'), { status: 'unavailable' });
+      assert.equal(aonikRequests.length, 0, 'never reaches Aonik');
+      // A typo costs nothing, and another address is its own count.
+      assert.deepEqual(await checkPostcode('DA1ABC'), { status: 'invalid' });
+      setRequestHeaders({ 'x-forwarded-for': '203.0.113.51' });
+      assert.equal((await checkPostcode('DA1 2AB')).status, 'serves');
+      // No address, or not one: nothing forwarded, and no shared bucket.
+      setRequestHeaders({ 'x-forwarded-for': 'unknown' });
+      aonikRequests.length = 0;
+      assert.equal((await checkPostcode('DA1 2AB')).status, 'serves');
+      assert.equal(aonikRequests[0].headers['x-forwarded-for'], undefined);
+    } finally {
+      console.warn = warn;
+    }
+  });
+});
+
+test('checkPostcode (live): a slow date line never holds up "we deliver"', async () => {
+  await live(
+    () => undefined,
+    async () => {
+      const original = globalThis.fetch;
+      globalThis.fetch = (async (input: string | URL | Request) => {
+        const url = String(input instanceof Request ? input.url : input);
+        if (url.includes('/commerce/delivery/coverage')) {
+          return new Response(JSON.stringify({ status: 'serves', normalisedPostcode: 'DA1 2AB', earliestDate: null }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        return new Promise<Response>(() => undefined);
+      }) as typeof fetch;
+      try {
+        const started = Date.now();
+        assert.deepEqual(await checkPostcode('DA1 2AB'), { status: 'serves', postcode: 'DA1 2AB', earliestDeliveryDate: null });
+        assert.ok(Date.now() - started < 3000, 'answered without the date');
+      } finally {
+        globalThis.fetch = original;
+      }
+    },
+  );
 });
 
 test('locatePostcode: validates coordinates and never invents a postcode', async () => {

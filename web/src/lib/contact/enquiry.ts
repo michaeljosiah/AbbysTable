@@ -136,12 +136,15 @@ function cleanMessage(text: string): string {
 }
 
 /**
- * Over a limit as the customer sees it (characters) OR as the browser's
- * `maxLength` and Aonik count it (UTF-16 units — an emoji is two): Aonik
- * refuses past its count, so ours never lets through what it would refuse.
+ * Over a limit as the customer sees it (characters) OR as Aonik counts it
+ * (UTF-16 units — an emoji is two): Aonik refuses past its count, so ours never
+ * lets through what it would refuse. Measured as SENT: a form post carries
+ * every line break as CRLF, two units to Aonik, where a textarea's value
+ * (and its `maxLength`) counts one — so the browser and the server agree.
  */
 function overLimit(text: string, limit: number): boolean {
-  return text.length > limit || charactersUpTo(text, limit + 1) > limit;
+  const sent = text.replace(/\r\n|\r|\n/g, '\r\n');
+  return sent.length > limit || charactersUpTo(sent, limit + 1) > limit;
 }
 
 /**
@@ -237,20 +240,36 @@ const UPLOAD_EXTENSIONS: Readonly<Record<string, readonly string[]>> = {
   'image/heif': ['.heif', '.heic'],
 };
 
+/** Longest name sent, in UTF-16 units: Aonik refuses one over 200. */
+const UPLOAD_NAME_MAX = 150;
+
 /**
  * The name an image is sent under. Aonik checks a file's bytes AND that its
  * name's extension matches them (an extension proves nothing alone, but one
  * that disagrees is refused) — so a JPEG saved as "photo.jfif", or pasted with
  * no name at all, is sent as "photo.jpg". The bytes are never touched, and a
- * typeless HEIC keeps the name it was accepted by.
+ * typeless HEIC keeps the extension it was accepted by.
+ *
+ * Aonik also refuses a name with a path, a `:`, `<`, `>` or a control
+ * character, or over 200 units ("Screenshot from 2016-05-18 14:23:15.png") —
+ * as "couldn't be attached", which would blame a good photo. Those characters
+ * become "-", and a long name is shortened before its extension.
  */
 export function uploadName(name: string, type: string): string {
+  const last = name.split(/[/\\]/).at(-1) ?? '';
+  const safe = last.replace(/[:<>"\p{Cc}]/gu, '-').trim();
   const allowed = UPLOAD_EXTENSIONS[type];
-  if (!allowed) return name;
-  const lower = name.toLowerCase();
-  if (allowed.some((extension) => lower.endsWith(extension))) return name;
-  const base = name.replace(/\.[^./\\]*$/, '').trim() || 'image';
-  return `${base}${allowed[0]}`;
+  const lower = safe.toLowerCase();
+  const kept = allowed ? allowed.find((extension) => lower.endsWith(extension)) : /\.[a-z0-9]{1,5}$/i.exec(safe)?.[0];
+  const extension = kept ? safe.slice(safe.length - kept.length) : (allowed?.[0] ?? '');
+  const stem = (kept ? safe.slice(0, safe.length - kept.length) : safe.replace(/\.[^.]*$/, '')).trim();
+  // Shortened by code point, so an emoji is never cut in half.
+  let short = '';
+  for (const character of stem) {
+    if (short.length + character.length > UPLOAD_NAME_MAX - extension.length) break;
+    short += character;
+  }
+  return `${short.trim() || 'image'}${extension}`;
 }
 
 /** The parts of a `File` the rules read, so they are testable without one. */
@@ -367,6 +386,8 @@ export interface EnquiryState {
   imageError?: string;
   email?: string;
   newSubmission?: true;
+  /** With `error`: too many sends from this address for now. */
+  limited?: true;
 }
 
 export type EnquiryAction = (previous: EnquiryState, formData: FormData) => Promise<EnquiryState>;
@@ -376,11 +397,15 @@ export const ENQUIRY_ROUTE = '/api/enquiries';
 
 const STATUSES: ReadonlyArray<EnquiryState['status']> = ['idle', 'invalid', 'sent', 'error', 'unavailable'];
 
-/** An answer from `ENQUIRY_ROUTE` as the form may use it, or an `error` when it is not one. */
-export function readEnquiryAnswer(body: unknown): EnquiryState {
+/**
+ * An answer from `ENQUIRY_ROUTE` as the form may use it, or an `error` when it
+ * is not one — except a 413 with no answer of ours, which a platform's own
+ * body limit sends: trying again could never work, so it is the images.
+ */
+export function readEnquiryAnswer(body: unknown, httpStatus?: number): EnquiryState {
   const answer = body as Partial<EnquiryState> | null;
   if (typeof answer !== 'object' || answer === null || !STATUSES.includes(answer.status as EnquiryState['status'])) {
-    return { status: 'error' };
+    return httpStatus === 413 ? { status: 'invalid', imageError: IMAGE_MESSAGES.together } : { status: 'error' };
   }
   return answer as EnquiryState;
 }

@@ -73,8 +73,14 @@ answers; `unavailable` (coverage or provider not configured, a lookup that faile
 outage SHALL be "could not check" with a retry, never a refusal; a 400 `commerce.invalid_postcode`
 (well formed but nonexistent) SHALL read as any invalid postcode. Aonik names no earliest date yet
 (it waits on #346), so a served answer takes the tenant's delivery window. The customer's address
-goes as `X-Forwarded-For`: Aonik allows 30 checks a minute per address — per customer only when it
-trusts the storefront as a proxy. Aonik has no coordinates lookup, so live offers no "Use my
+goes as `X-Forwarded-For`, but Aonik reads only the hop its own ingress appends — the
+storefront's — so its 30 checks a minute per tenant and address (shared with checkout's reads) is
+one allowance for every customer. The checker's action SHALL therefore limit each customer itself:
+10 checks a minute per address (the last `X-Forwarded-For` entry), and past it "could not check".
+Go-live needs Aonik's `Commerce:DeliveryCoverage:RequestsPerMinute` raised to the site's real
+traffic, or a second trusted hop, before checkout shares that allowance. An answer for a different
+postcode than the one asked is "could not check", never shown or handed on. The optional date line
+is waited for 1.5 seconds at most. Aonik has no coordinates lookup, so live offers no "Use my
 current location".
 
 #### Scenario: Live

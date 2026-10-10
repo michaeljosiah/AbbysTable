@@ -486,20 +486,28 @@ accounts (`SOCIAL_LINKS`), so a "contact us" never lands on a dead end — and n
 form; demo mode SHALL NOT send or say it has (the newsletter's rule, #6).
 
 The scripted form SHALL post to `/api/enquiries` (a server action takes 1MB; three photos can be
-30), a route outside the middleware matcher that answers maintenance itself, caps the request at
-Aonik's 32MiB, requires its length and refuses another site's origin; a post without JavaScript
-goes to the server action, text only. Both SHALL re-run every rule on what arrived and answer
+30), a route outside the middleware matcher that answers maintenance itself, refuses another
+site's origin (one matching neither `X-Forwarded-Host` nor `Host`, as Next does for actions), and
+reads no body in demo, past the customer's limit, over three full images' worth, without a declared
+length, or while four others are in flight; a post without JavaScript goes to the server action,
+text only. Aonik limits enquiries per address but sees only the storefront's, so the storefront
+SHALL limit each customer itself (8 sends per 10 minutes, keyed by the last `X-Forwarded-For` entry
+— the platform's, never the client's own) and say so: "You've sent several messages in a short
+time…". Both SHALL re-run every rule on what arrived and answer
 `sent` only after Aonik's 202. Each send SHALL carry a `submission_id` (UUID) the form keeps while
 the content is unchanged, so a retry after a lost answer cannot send twice, and takes afresh when
 anything changes or Aonik answers 409. Aonik's 422 SHALL be said in the form's own words (its
 `fieldErrors` against our fields, the first of its `imageProblems` by file name — "isn't a JPG, PNG
 or HEIC", "couldn't be read", "is too large to process", "couldn't be attached"), a 413 as "Your
-images are too large to send together…", a 503 as unavailable; any other outcome keeps every field
-and image and says "We couldn't send your message just now. Everything you've written is still
+images are too large to send together…" (also a platform's bare 413); any other outcome — a 503
+included, which is nearly always passing and may follow a saved enquiry — keeps every field, image
+and the `submission_id`, and says "We couldn't send your message just now. Everything you've written is still
 here, so please try again." Every text field has a length cap, enforced by the field and again by
 the action in BOTH characters and UTF-16 units (Aonik counts the latter: name 200, email 254,
-order number 64, message 5,000), control characters are cleaned as Aonik would refuse them, images
-go under a name their type agrees with, and the email shape check is linear (`isEmailAddress`).
+order number 64, message 5,000 — a line break counting two, as it is posted as CRLF), control
+characters are cleaned as Aonik would refuse them, images go under a name Aonik accepts (its type's
+extension; no path, `:`, `<`, `>` or control character; at most 150 units), and the email shape
+check is linear (`isEmailAddress`).
 The thanks SHALL say "We'll send a confirmation to {email}" — Aonik acknowledges receipt with a
 reference, not a copy of the message (a departure from the design's "We've sent a copy").
 

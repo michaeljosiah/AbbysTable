@@ -33,10 +33,11 @@ the v2 design in [`design/`](design/) is #9):
 - **`/contact`** — Contact us: WhatsApp, email and phone cards, opening hours with an "Open now /
   Closed" indicator, and the message form, in one 12-column grid. Details and hours come from
   [`web/src/lib/content/contact.ts`](web/src/lib/content/contact.ts) and print "to be confirmed"
-  until set; the form is held back until Aonik can accept an enquiry (aonik#356). Rules in
+  until set; the form sends to Aonik's enquiry endpoint in live mode (aonik#356) and is held back
+  in demo. Rules in
   [`web/src/lib/contact/`](web/src/lib/contact/).
 - **`/delivery-and-faqs`** — the postcode checker (shown only where a coverage lookup exists: the
-  demo fixtures today; live waits on Aonik's coverage endpoint) and the FAQs: live search and eight
+  demo fixtures, or live, Aonik's coverage endpoint, aonik#352) and the FAQs: live search and eight
   topic groups. Prices in the answers come from the storefront config; a served postcode is handed
   to the box builder in session storage, never a URL
   ([`web/src/lib/delivery/`](web/src/lib/delivery/), spec
