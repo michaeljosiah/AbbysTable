@@ -467,11 +467,14 @@ Conventions inside `web/` that are easy to get wrong:
   food box SERVER-SIDE as a NEW box owned by the customer (every dish at its purchased quantity and
   personalisation, from today's menu; a dish now off the menu / short on stock comes back flagged
   `isUnavailable`, which Step 2 already swaps). `lib/cart/reorder.ts` stores it as the cart cookie
-  (no token invented: an account box answers to the bearer) and ends the last confirmation, and the
+  (no token invented: an account box answers to the bearer; the last order's confirmation pointer is
+  left alone, an order paid in another tab must still reach it), and the
   button does a FULL page load to `/box/dishes` (the tab's cart state is the old one). What Aonik
   can't do, so neither does this — and the design's sheet is therefore NOT built: merge into a box
-  already in progress (409 `commerce.active_box_exists` → "You already have a box in progress… finish
-  it first", VIEW BOX), carry a subset of the dishes (the whole box comes back; take any out on Step
+  already in progress (409 `commerce.active_box_exists` or `multiple_active_boxes` → "You already
+  have a box in progress… finish it first", VIEW BOX; the browser is pointed at the account's own box
+  via `GET /commerce/carts/box/current` when it holds no GUEST box, and a guest box WITH dishes also
+  counts, since a reorder would overwrite the only token that reaches it), carry a subset of the dishes (the whole box comes back; take any out on Step
   2), carry anything but food. An upcoming order's button says "This starts a new box. Your delivery
   won't change." Not offered: cancelled or unpaid orders; Recent-orders rows on the overview. Order
   ids are checked to be GUIDs before reaching Aonik's path. Pinned by `tests/account-reorder.test.tsx`.

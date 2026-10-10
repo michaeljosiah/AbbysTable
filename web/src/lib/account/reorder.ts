@@ -14,12 +14,14 @@ export const REORDER_COPY = {
 } as const;
 
 /**
- * Whether an order offers Order again: it was paid and is not cancelled. (Aonik
+ * Whether an order offers Order again: it was paid, is a sized food box and is not cancelled. (Aonik
  * decides the rest — only a confirmed, paid FOOD box can be reordered — and the
  * button says plainly when it can't.)
  */
-export function canOrderAgain(order: Pick<OrderSummary, 'fulfilmentStatus' | 'paymentStatus'>): boolean {
+export function canOrderAgain(order: Pick<OrderSummary, 'fulfilmentStatus' | 'paymentStatus' | 'boxSize'>): boolean {
   if (order.paymentStatus !== undefined && order.paymentStatus !== 'Captured') return false;
+  // Only a FOOD box can be reordered, and a food box has a size.
+  if (!order.boxSize) return false;
   return order.fulfilmentStatus !== 'Cancelled';
 }
 

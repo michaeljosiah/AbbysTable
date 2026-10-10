@@ -1,7 +1,6 @@
 'use client';
 
-import Link from 'next/link';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { reorderAction } from '@/lib/account/reorderActions';
 import { REORDER_COPY } from '@/lib/account/reorder';
@@ -38,9 +37,13 @@ export function OrderAgainButton({
   const cart = useCart();
   const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState<Said>(null);
+  /** A ref, not state: two taps before a render must not both send. */
+  const inFlight = useRef(false);
+  const hintId = `${orderId}-reorder-hint`;
 
   const go = async () => {
-    if (busy) return;
+    if (inFlight.current) return;
+    inFlight.current = true;
     setBusy(true);
     setSaid(null);
     try {
@@ -68,25 +71,38 @@ export function OrderAgainButton({
     } catch {
       setSaid({ kind: 'problem', text: REORDER_COPY.failed });
     }
+    inFlight.current = false;
     setBusy(false);
   };
 
   return (
     <div className={styles.reorder}>
-      <button type="button" className={`${styles.pill} ${styles.pillOutline}`} onClick={go} disabled={busy} aria-label={label}>
+      <button
+        type="button"
+        className={`${styles.pill} ${styles.pillOutline}`}
+        onClick={go}
+        aria-disabled={busy || undefined}
+        aria-label={busy ? 'Starting your box' : label}
+        aria-describedby={upcoming ? hintId : undefined}
+      >
         {busy ? 'Starting…' : 'Order again'}
       </button>
-      {upcoming ? <p className={styles.hint}>{REORDER_COPY.upcomingHint}</p> : null}
+      {upcoming ? (
+        <p className={styles.hint} id={hintId}>
+          {REORDER_COPY.upcomingHint}
+        </p>
+      ) : null}
       <div role="status" aria-live="polite">
         {said ? (
-          <p className={said.kind === 'active' ? styles.ok : styles.problem}>
+          <p className={said.kind === 'active' ? styles.note : styles.problem}>
             <span>{said.text}</span>
             {said.kind === 'active' ? (
               <>
                 {' '}
-                <Link href={resumeHrefFor(cart)} className={styles.inlineLink}>
+                {/* A plain link: the box this points at may have just been attached to this browser. */}
+                <a href={resumeHrefFor(cart)} className={styles.inlineLink}>
                   View box
-                </Link>
+                </a>
               </>
             ) : null}
           </p>

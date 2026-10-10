@@ -65,7 +65,7 @@ function stubAonik(reply: AonikReply) {
 
 /* ---- Aonik's side ----------------------------------------------------------- */
 
-test('a reorder POSTs for the order, stores the new box as the customer’s, and ends the last confirmation', async () => {
+test('a reorder POSTs for the order and stores the new box as the customer’s, leaving the last confirmation alone', async () => {
   stubAonik({ status: 200, body: reordered() });
 
   const outcome = await reorderOrder(ID);
@@ -76,7 +76,7 @@ test('a reorder POSTs for the order, stores the new box as the customer’s, and
   assert.equal(aonikRequests[0].path, `/commerce/storefront/orders/${ID}/reorder`);
   assert.equal(aonikRequests[0].headers.authorization, 'Bearer a');
   assert.deepEqual(JSON.parse(cookieValue(CART_COOKIE) ?? ''), { cartId: 'new-cart' }, 'the account box answers to the bearer: no token invented');
-  assert.equal(cookieValue(PAYMENT_COOKIE), undefined, 'the previous order’s confirmation is over');
+  assert.ok(cookieValue(PAYMENT_COOKIE), 'an order paid in another tab can still reach its confirmation');
 });
 
 test('a token Aonik discloses is kept', async () => {
@@ -87,19 +87,65 @@ test('a token Aonik discloses is kept', async () => {
   assert.deepEqual(JSON.parse(cookieValue(CART_COOKIE) ?? ''), { cartId: 'new-cart', cartToken: 'tok-1' });
 });
 
-test('with a box already in progress nothing starts: Aonik holds one at a time, and the cookie is untouched', async () => {
-  stubAonik({ status: 409, body: { error: 'You already have an active box.', code: 'commerce.active_box_exists' } });
+test('with a box already in progress nothing starts, and this browser is pointed at that box so VIEW BOX shows it', async () => {
+  installAonik((request: AonikRequest) => {
+    if (request.path.endsWith('/reorder')) return { status: 409, body: { error: 'You already have an active box.', code: 'commerce.active_box_exists' } };
+    if (request.path === '/commerce/carts/box/current') return { status: 200, body: reordered() };
+    return undefined;
+  });
 
   assert.deepEqual(await reorderOrder(ID), { status: 'active-box' });
-  assert.deepEqual(JSON.parse(cookieValue(CART_COOKIE) ?? ''), { cartId: 'old-cart' });
-  assert.ok(cookieValue(PAYMENT_COOKIE));
+  assert.deepEqual(JSON.parse(cookieValue(CART_COOKIE) ?? ''), { cartId: 'new-cart' }, 'the account’s own box, started elsewhere, is now this browser’s');
 });
 
-test('an order that is not a paid food box, or not theirs, is "not reorderable" and says no more', async () => {
-  for (const status of [404, 422, 400, 403]) {
-    stubAonik({ status, body: { error: 'Only a confirmed paid food box can be reordered.' } });
-    assert.deepEqual(await reorderOrder(ID), { status: 'not-reorderable' }, String(status));
-  }
+test('several active boxes is the same wall, not a retry loop', async () => {
+  installAonik((request: AonikRequest) =>
+    request.path.endsWith('/reorder') ? { status: 409, body: { error: 'more than one', code: 'commerce.multiple_active_boxes' } } : { status: 404, body: { error: 'none' } },
+  );
+
+  assert.deepEqual(await reorderOrder(ID), { status: 'active-box' });
+});
+
+test('a GUEST box with dishes counts as a box in progress: it is never overwritten, and Aonik is not asked', async () => {
+  resetCookies({
+    [SESSION_COOKIE]: JSON.stringify({ accessToken: 'a', expiresAt: Date.now() + 3_600_000, email: 'ada@example.com' }),
+    [CART_COOKIE]: JSON.stringify({ cartId: 'guest-cart', cartToken: 'guest-token' }),
+  });
+  installAonik((request: AonikRequest) => (request.path === '/commerce/carts/guest-cart' ? { status: 200, body: reordered() } : undefined));
+
+  assert.deepEqual(await reorderOrder(ID), { status: 'active-box' });
+  assert.deepEqual(JSON.parse(cookieValue(CART_COOKIE) ?? ''), { cartId: 'guest-cart', cartToken: 'guest-token' });
+  assert.equal(aonikRequests.some((request) => request.path.endsWith('/reorder')), false);
+});
+
+test('an EMPTY guest box does not stand in the way', async () => {
+  resetCookies({
+    [SESSION_COOKIE]: JSON.stringify({ accessToken: 'a', expiresAt: Date.now() + 3_600_000, email: 'ada@example.com' }),
+    [CART_COOKIE]: JSON.stringify({ cartId: 'guest-cart', cartToken: 'guest-token' }),
+  });
+  installAonik((request: AonikRequest) => {
+    if (request.path === '/commerce/carts/guest-cart') return { status: 200, body: reordered([]) };
+    if (request.path.endsWith('/reorder')) return { status: 200, body: reordered() };
+    return undefined;
+  });
+
+  assert.equal((await reorderOrder(ID)).status, 'started');
+});
+
+test('only what can never succeed is "can’t be ordered again"; the rest is a failure to try again', async () => {
+  stubAonik({ status: 404, body: { error: 'none' } });
+  assert.deepEqual(await reorderOrder(ID), { status: 'not-reorderable' });
+
+  stubAonik({ status: 400, body: { error: 'Only a confirmed paid food box can be reordered.' } });
+  assert.deepEqual(await reorderOrder(ID), { status: 'not-reorderable' });
+  stubAonik({ status: 422, body: { error: 'The purchased box contents are incomplete; start a new box instead.' } });
+  assert.deepEqual(await reorderOrder(ID), { status: 'not-reorderable' });
+
+  stubAonik({ status: 400, body: { error: 'The plan was repriced while this box was being created; try again.' } });
+  assert.deepEqual(await reorderOrder(ID), { status: 'failed' });
+  stubAonik({ status: 403, body: { error: 'forbidden' } });
+  assert.deepEqual(await reorderOrder(ID), { status: 'failed' });
+  assert.ok(cookieValue(SESSION_COOKIE), 'a 403 is not the end of the session');
 });
 
 test('an outage is "failed", a dead session is thrown to the action, and demo data is "unavailable"', async () => {
@@ -109,6 +155,7 @@ test('an outage is "failed", a dead session is thrown to the action, and demo da
 
   stubAonik({ status: 401, body: { error: 'expired' } });
   assert.deepEqual(await reorderAction(ID), { status: 'ended' });
+  resetCookies({ [CART_COOKIE]: JSON.stringify({ cartId: 'old-cart' }) });
 
   const saved = { url: process.env.AONIK_API_URL, tenant: process.env.AONIK_TENANT_ID };
   delete process.env.AONIK_API_URL;
@@ -133,10 +180,11 @@ test('the action refuses an id that is not a GUID without asking Aonik', async (
 /* ---- Rules and rendering -------------------------------------------------------- */
 
 test('an order offers Order again once paid and unless cancelled', () => {
-  assert.equal(canOrderAgain({ fulfilmentStatus: 'Cooking', paymentStatus: 'Captured' }), true);
-  assert.equal(canOrderAgain({ fulfilmentStatus: 'Delivered', paymentStatus: undefined }), true);
-  assert.equal(canOrderAgain({ fulfilmentStatus: 'Cancelled', paymentStatus: 'Captured' }), false);
-  assert.equal(canOrderAgain({ fulfilmentStatus: 'Confirmed', paymentStatus: 'Pending' }), false);
+  assert.equal(canOrderAgain({ fulfilmentStatus: 'Cooking', paymentStatus: 'Captured', boxSize: 6 }), true);
+  assert.equal(canOrderAgain({ fulfilmentStatus: 'Delivered', paymentStatus: undefined, boxSize: 6 }), true);
+  assert.equal(canOrderAgain({ fulfilmentStatus: 'Cancelled', paymentStatus: 'Captured', boxSize: 6 }), false);
+  assert.equal(canOrderAgain({ fulfilmentStatus: 'Confirmed', paymentStatus: 'Pending', boxSize: 6 }), false);
+  assert.equal(canOrderAgain({ fulfilmentStatus: 'Delivered', paymentStatus: 'Captured', boxSize: undefined }), false, 'not a food box');
   assert.equal(orderAgainLabel('Thursday 8 October'), 'Order again: dishes from Thursday 8 October');
 });
 
