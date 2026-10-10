@@ -208,6 +208,20 @@ Conventions inside `web/` that are easy to get wrong:
   #38). "Country or region" resolves against the FIXED list in `src/lib/content/countries.ts`
   (codes stored, aliases matched); the rules are React-free in `src/lib/private-table/`
   (`country.ts`, `waitlist.ts`, `join.ts`; `tests/private-table.test.tsx`).
+- **Shared shopping state (#14): `src/lib/shopping-state/` (React-free; `tests/shopping-state.test.tsx`).**
+  `boxStatus(facts)` is the ONE reading of where a box is — active, what it lacks, the furthest
+  valid step, where VIEW BOX goes — and `CartProvider` exposes it as `useCart().shopping`. The
+  header pill, the drawer, the purchase bar (`isBoxActive`/`resumeHrefFor`) and every step's gate
+  read it; a page never invents its own rule. Steps run choose → dishes → extras → review →
+  checkout and a step is enterable only when every step before it is satisfied
+  (`guardRedirect`); `useStepGuard(step)` sends an incomplete box, or one holding an unavailable
+  dish, back to Step 2 from Extras and Review (checkout's own gate does the same with
+  `?from=checkout`). The step reached is remembered forwards only in localStorage
+  (`abbys-table:last-step:v1`) so VIEW BOX resumes there — never beyond what is valid, never
+  before Extras for a complete box — and is forgotten with the box. Step 2 says "Your box needs N
+  replacement(s)" (`ReplacementNotice`, copy verbatim from SHOPPING-STATE §5) and its rail reads
+  "5 of 6 dishes / Add 1 more dish to continue." Not built: an "Unavailable" label on the line in
+  Your Box, and a demo "completed in another tab" state (live has `cart.ordered`).
 - **Choose Box (#28, Choose Box v2): `/box`; the entry rules are React-free in `src/lib/box/entry.ts`**
   (`tests/choose-box.test.tsx`). The demo box plan is ONE copy (`BOX_PLAN` in `fixtures.ts`):
   **£158 for six**, 6 to 99 dishes, delivery £5.95 charged — never struck through, and a

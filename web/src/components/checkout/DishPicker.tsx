@@ -41,6 +41,7 @@ import { formatPrice, formatSignedPrice } from '@/lib/format';
 
 import styles from './DishPicker.module.css';
 import { DriftNotices } from './DriftNotices';
+import { ReplacementNotice } from './ReplacementNotice';
 
 const OPTION_GROUP_CLASSES: OptionGroupControlClasses = {
   group: `${styles.group} ${styles.groupRuled}`,
@@ -207,7 +208,14 @@ export function DishPicker({
     updateLinePersonalisation,
     pending,
     isServerCart,
+    rememberStep,
   } = useCart();
+
+  // Reaching Step 2 with a size committed is a step reached (VIEW BOX resumes at
+  // the furthest one, never before it).
+  useEffect(() => {
+    if (hydrated && boxSize !== null) rememberStep('dishes');
+  }, [hydrated, boxSize, rememberStep]);
 
   /** This dish's own effective groups; an absent entry is not personalisable. */
   const optionsFor = useCallback(
@@ -1062,6 +1070,7 @@ export function DishPicker({
 
   return (
     <div className={styles.picker}>
+      <ReplacementNotice />
       <DriftNotices />
       {/* The template keeps box progress in the summary column and the mobile
           bar — the main column goes straight from the intro to the filters. */}

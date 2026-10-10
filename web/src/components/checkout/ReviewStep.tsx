@@ -47,6 +47,7 @@ import { formatPrice, formatPriceExact, formatSignedPrice } from '@/lib/format';
 import { DriftNotices } from './DriftNotices';
 import { ContinueLink } from './ContinueLink';
 import dmStyles from './DishPicker.module.css';
+import { useStepGuard } from './useStepGuard';
 import styles from './ReviewStep.module.css';
 
 const OPTION_GROUP_CLASSES: OptionGroupControlClasses = {
@@ -105,6 +106,7 @@ export function ReviewStep({
     pending,
     ordered,
   } = useCart();
+  const guard = useStepGuard('review');
 
   /** This dish's own effective groups. */
   const optionsFor = useCallback(
@@ -334,6 +336,15 @@ export function ReviewStep({
       document.body.style.overflow = previous;
     };
   }, [editor, closeEditor]);
+
+  // Sent back (an incomplete box, an unavailable dish): said, not flashed.
+  if (guard.blocked && boxSize !== null) {
+    return (
+      <div className={styles.noBox} role="status">
+        <p className={styles.noBoxTitle}>Taking you back to your dishes</p>
+      </div>
+    );
+  }
 
   if (hydrated && boxSize === null) {
     return (

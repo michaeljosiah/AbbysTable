@@ -29,6 +29,16 @@ import {
   type DemoCartLine,
   type DemoCartState,
 } from './demoStorage';
+import {
+  boxStatus,
+  forgetStep,
+  LAST_STEP_KEY,
+  readLastStep,
+  rememberStep as rememberStepIn,
+  type BoxStep,
+  type ShoppingStatus,
+} from '@/lib/shopping-state';
+
 import { deleteExtra, patchDishPersonalisation, patchExtra, postExtra } from './mutations';
 import { useServerCart, type ServerCartEngine } from './serverEngine';
 import { CartRequestError } from './transport';
@@ -107,6 +117,16 @@ interface CartContextValue extends CartState {
    * the customer do so rather than gating on a box that can no longer change.
    */
   ordered: boolean;
+  /**
+   * The shared shopping state (#14): whether a box is in progress, what it
+   * lacks, the furthest step it may be on and where VIEW BOX goes. The header,
+   * the drawer, the purchase bar and every step read THIS, never their own rule.
+   */
+  shopping: ShoppingStatus;
+  /** Names of the dishes Aonik reports no longer available (live). */
+  unavailableNames: string[];
+  /** Records that the customer reached `step` (so VIEW BOX can resume there). */
+  rememberStep: (step: BoxStep) => void;
   /** A mutation is in flight — disable controls rather than double-firing. */
   pending: boolean;
   /** The last cart failure, for inline messages. */
@@ -211,6 +231,22 @@ export function CartProvider({
   const [state, setState] = useState<CartState>(EMPTY);
   const [hydrated, setHydrated] = useState(false);
   const server = useServerCart(isServerCart, signedIn);
+
+  // The step this browser last reached: read after mount (and when another tab
+  // moves it), so the server and the first client render agree.
+  const [lastStep, setLastStep] = useState<BoxStep | null>(null);
+  useEffect(() => {
+    setLastStep(readLastStep(window.localStorage));
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === LAST_STEP_KEY || event.key === null) setLastStep(readLastStep(window.localStorage));
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+  const rememberStep = useCallback((step: BoxStep) => {
+    rememberStepIn(window.localStorage, step);
+    setLastStep(readLastStep(window.localStorage));
+  }, []);
 
   // Read storage after mount so server and first client render agree. Skipped
   // entirely in live mode, where the server cart is the truth.
@@ -489,6 +525,32 @@ export function CartProvider({
     [isServerCart, server.cart, server.display, state],
   );
 
+  const readyDishCount = isServerCart
+    ? (server.cart?.quote.unitsSelected ?? 0)
+    : effectiveState.lines.reduce((total, line) => total + line.quantity, 0);
+  const unavailableLines = useMemo(
+    () => (isServerCart ? (server.cart?.lines.filter((line) => line.isUnavailable && line.kind === 'BoxDish') ?? []) : []),
+    [isServerCart, server.cart],
+  );
+  const unavailableNames = useMemo(() => unavailableLines.map((line) => line.name), [unavailableLines]);
+  const shopping = useMemo(
+    () =>
+      boxStatus({
+        hydrated: isServerCart ? server.hydrated : hydrated,
+        boxSize: effectiveState.boxSize,
+        dishCount: readyDishCount,
+        unavailableCount: unavailableLines.reduce((total, line) => total + line.quantity, 0),
+        ordered: server.cart?.ordered ?? false,
+        lastStep,
+      }),
+    [isServerCart, server.hydrated, hydrated, effectiveState.boxSize, readyDishCount, unavailableLines, server.cart?.ordered, lastStep],
+  );
+
+  // A box that is gone (or became an order) leaves no step to resume at.
+  useEffect(() => {
+    if ((isServerCart ? server.hydrated : hydrated) && (!shopping.active || shopping.ordered)) forgetStep(window.localStorage);
+  }, [isServerCart, server.hydrated, hydrated, shopping.active, shopping.ordered]);
+
   const value = useMemo<CartContextValue>(
     () => ({
       ...effectiveState,
@@ -507,6 +569,9 @@ export function CartProvider({
       updateExtra,
       removeExtra,
       clear,
+      shopping,
+      unavailableNames,
+      rememberStep,
       quote: server.cart?.quote ?? null,
       changes: server.cart?.changes ?? [],
       hasUnavailableLine: server.cart?.lines.some((line) => line.isUnavailable) ?? false,
@@ -538,6 +603,9 @@ export function CartProvider({
       clear,
       revalidate,
       server.checkoutRequest,
+      shopping,
+      unavailableNames,
+      rememberStep,
     ],
   );
 

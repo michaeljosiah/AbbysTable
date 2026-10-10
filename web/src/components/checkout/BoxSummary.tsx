@@ -14,6 +14,7 @@ import { formatPrice, formatSignedPrice } from '@/lib/format';
 
 import { ContinueLink } from './ContinueLink';
 
+import { missingLine, progressLine } from '@/lib/shopping-state';
 import styles from './BoxSummary.module.css';
 
 /**
@@ -72,6 +73,7 @@ export function BoxSummary({
     isCustom,
     lines,
     dishCount,
+    shopping,
     hydrated,
     setBoxSize,
     removeLine,
@@ -323,14 +325,20 @@ export function BoxSummary({
   const spacesLeft = Math.max(0, boxSize - dishCount);
   const progress = Math.min(100, (inBox / boxSize) * 100);
 
-  const countLabel =
-    totals.extraDishes > 0
+  // A box holding a dish that is no longer available reads "5 of 6 dishes" and
+  // what it needs; the spaces wording is for a box that is simply not full yet.
+  const needsReplacement = shopping.replacements > 0;
+  const countLabel = needsReplacement
+    ? progressLine(inBox, boxSize)
+    : totals.extraDishes > 0
       ? `${dishCount} dishes selected`
       : `${inBox} of ${boxSize} dishes selected`;
 
   // When the box is full AND carrying extras, the breakdown line above says it
   // all — the template drops this note entirely in that state.
-  const slotsLabel = isFull
+  const slotsLabel = needsReplacement
+    ? missingLine(Math.max(1, spacesLeft))
+    : isFull
     ? totals.extraDishes > 0
       ? ''
       : `Your ${boxLabel} is complete. Continue to Extras, or change box size to add more.`
