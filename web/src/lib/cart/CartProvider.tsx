@@ -103,6 +103,12 @@ interface CartContextValue extends CartState {
   changes: BoxChange[];
   /** Any line Aonik flagged unavailable blocks continue and checkout. */
   hasUnavailableLine: boolean;
+  /**
+   * The server box already holds an order — its checkout's answer may never
+   * have arrived. Placing it again replays that order (Aonik), so Review lets
+   * the customer do so rather than gating on a box that can no longer change.
+   */
+  ordered: boolean;
   /** A mutation is in flight — disable controls rather than double-firing. */
   pending: boolean;
   /** The last cart failure, for inline messages. */
@@ -524,6 +530,7 @@ export function CartProvider({
       quote: server.cart?.quote ?? null,
       changes: server.cart?.changes ?? [],
       hasUnavailableLine: server.cart?.lines.some((line) => line.isUnavailable) ?? false,
+      ordered: server.cart?.ordered ?? false,
       pending: server.pending,
       error: server.error,
       isServerCart,

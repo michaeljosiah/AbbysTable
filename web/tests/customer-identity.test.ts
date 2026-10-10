@@ -16,7 +16,7 @@ import {
   type CustomerSession,
 } from '../src/lib/auth/session';
 import { CART_COOKIE } from '../src/lib/cart/cartCookie';
-import { adoptBoxCart } from '../src/lib/cart/server';
+import { adoptBoxCart, getBoxCart } from '../src/lib/cart/server';
 
 import { aonikRequests, configureAonik, useAonik } from './support/aonik';
 import { cookieValue, cookieWrites, renderMode, resetCookies } from './support/next-headers';
@@ -307,4 +307,26 @@ test('an unexpected failure is logged, not thrown, and leaves the cart alone', a
   } finally {
     logged.mock.restore();
   }
+});
+
+/* ---- An adopted box and an expired access token --------------------------------- */
+
+test('an adopted box is read with a refreshed token, never lost to an expired one', async () => {
+  signedInWith(session({ expiresAt: Date.now() - 1, refreshToken: 'refresh-1' }), {
+    [CART_COOKIE]: JSON.stringify({ cartId: CART_ID }),
+  });
+  useAonik((request) => {
+    if (request.path === '/auth/token') {
+      return { status: 200, body: { accessToken: 'access-2', refreshToken: 'refresh-2', expiresIn: 300, tokenType: 'Bearer', idToken: null } };
+    }
+    if (request.path === `/commerce/carts/${CART_ID}`) return { status: 200, body: guestBox('v3') };
+    return undefined;
+  });
+
+  const box = await getBoxCart();
+
+  assert.equal(box?.cartId, CART_ID);
+  const read = aonikRequests.find((request) => request.path === `/commerce/carts/${CART_ID}`);
+  assert.equal(read?.headers.authorization, 'Bearer access-2');
+  assert.equal(cookieValue(CART_COOKIE), JSON.stringify({ cartId: CART_ID }), 'the box is kept');
 });

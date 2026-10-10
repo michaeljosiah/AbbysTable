@@ -309,6 +309,19 @@ async function liveSession(): Promise<CustomerSession> {
 }
 
 /**
+ * The signed-in customer's session, refreshed if its access token has expired
+ * — or null when there is none to be had. Never throws: for a caller to whom a
+ * session is optional (a cart that a guest token may authorize instead).
+ */
+export async function currentSession(): Promise<CustomerSession | null> {
+  try {
+    return await liveSession();
+  } catch {
+    return null;
+  }
+}
+
+/**
  * One Aonik call as the signed-in customer.
  *
  * A 401 or 403 that survives refresh means the session is genuinely finished:

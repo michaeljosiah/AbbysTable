@@ -25,6 +25,7 @@ import {
 } from '@/lib/aonik/map';
 import { liveOrderingEnabled, readAonikConfig } from '@/lib/aonik/dataMode';
 
+import { currentSession } from '@/lib/auth/server';
 import { isExpired, readSession } from '@/lib/auth/session';
 
 import { clearCartCookie, readCartCookie, writeCartCookie } from './cartCookie';
@@ -33,6 +34,7 @@ import { cartExistsAfterProbe } from './convergence';
 import { ORDERING_DISABLED_MESSAGE } from './ordering';
 import {
   clearPlacedOrder,
+  readPlacedOrder,
   writePlacedOrder,
   type PlacedOrder,
   type PlacedOrderLine,
@@ -259,17 +261,15 @@ async function cartStillExists(cartId: string, auth: CartFetchOptions): Promise<
  * throws when there is no session, and the overwhelmingly common case here is a
  * perfectly valid guest cart with no session at all. A session that cannot be
  * refreshed simply means "no bearer to add", never "this cart call fails".
+ *
+ * An expired access token IS refreshed here (`currentSession`), though: an
+ * adopted box answers only to its bearer, so without one the box would read
+ * as gone — and the next size or dish would start a second box over it.
  */
 async function cartAuth(cartToken: string | undefined): Promise<CartFetchOptions> {
   const auth: CartFetchOptions = { cartToken };
-
-  try {
-    const session = await readSession();
-    if (session && !isExpired(session)) auth.accessToken = session.accessToken;
-  } catch {
-    // No session, unreadable cookie — guest semantics, exactly as before.
-  }
-
+  const session = await currentSession();
+  if (session) auth.accessToken = session.accessToken;
   return auth;
 }
 
@@ -578,9 +578,19 @@ export async function checkoutBoxCart(
   // customer reaches the confirmation rather than a false "nothing ordered"
   // (SHOPPING-STATE §42, §53).
   const snapshot = await fetchBoxCart();
-  if (!snapshot) throw new CartMissingError('There is no box to check out.');
+  if (!snapshot) {
+    // No box, but a receipt from this browser: another tab placed the order
+    // and took the box with it (SHOPPING-STATE §53).
+    if (await readPlacedOrder()) throw cartOrderedError();
+    throw new CartMissingError('There is no box to check out.');
+  }
   const placed = mapBoxCart(snapshot);
   const ordered = Boolean(snapshot.orderId) || snapshot.status === 'CheckedOut';
+  if (isFinished(snapshot.status) && !ordered) {
+    // Expired, and never ordered: nothing to place or replay.
+    await clearCartCookie();
+    throw new CartMissingError('There is no box to check out.');
+  }
 
   // That read is itself a chance for the box to move: Aonik saves a catalogue
   // repair on a read and reports it once, in `changes`. Sending the checkout
@@ -588,7 +598,16 @@ export async function checkoutBoxCart(
   // list of what changed would be lost — so nothing is placed, and the tab gets
   // the box with its changes to confirm again (Spec 068 A18). Any other move
   // (another tab's edit) Aonik refuses itself, on the version sent below.
-  if (!ordered && snapshot.changes.length > 0) throw changedBeforeCheckout(snapshot);
+  //
+  // A REPAIR (any reason but `unavailable`, which Aonik recomputes on every
+  // read) stops it whatever `orderId` says: a payment-failed (Retryable) box
+  // keeps its order id yet is editable, and Aonik checks its version. On a box
+  // with no order, an unavailable line stops it too — the checkout would only
+  // be refused for it.
+  const repaired = snapshot.changes.some((change) => change.reason !== 'unavailable');
+  if (snapshot.status !== 'CheckedOut' && (repaired || (!ordered && snapshot.changes.length > 0))) {
+    throw changedBeforeCheckout(snapshot);
+  }
 
   const dto = await withRequiredCart(
     (cartId, auth) =>
@@ -601,7 +620,10 @@ export async function checkoutBoxCart(
   );
 
   const order = mapCheckoutResult(dto);
-  await writePlacedOrder(snapshotOrder(order, placed, await earliestDeliveryDate()));
+  // A replay's promise was made at the first placement, and is not known here:
+  // better no date on the confirmation than today's, presented as that one.
+  const promised = ordered ? undefined : await earliestDeliveryDate();
+  await writePlacedOrder(snapshotOrder(order, placed, promised));
   await clearCartCookie();
   return order;
 }

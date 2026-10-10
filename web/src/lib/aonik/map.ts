@@ -633,6 +633,11 @@ export interface BoxCart {
    * back with its next change: that is how a tab says which box it is editing.
    */
   version?: string;
+  /**
+   * The box already holds an order (Aonik's `orderId`): mid-payment, or
+   * payment failed and retryable. Placing it again replays that order.
+   */
+  ordered?: boolean;
 }
 
 export function mapBoxLine(dto: BoxLineDto): BoxLine {
@@ -693,6 +698,7 @@ export function mapBoxCart(dto: BoxCartDto): BoxCart {
     quote: mapBoxQuote(dto.quote),
     changes: dto.changes.map(mapBoxChange),
     version: dto.cartVersion || undefined,
+    ...(dto.orderId ? { ordered: true } : {}),
   };
 }
 

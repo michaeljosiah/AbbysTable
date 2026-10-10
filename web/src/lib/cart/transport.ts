@@ -92,13 +92,13 @@ function enqueueCartRequest<T>(
   return next;
 }
 
+/** Another request is still running; this one was turned away, not queued. */
+export const CART_REQUEST_IN_FLIGHT_CODE = 'cart.request_in_flight';
+
 /**
  * Synchronous admission closes the React-state timing gap: a second activation
  * is rejected before it can enter the queue or issue a fetch.
  */
-/** Another request is still running; this one was turned away, not queued. */
-export const CART_REQUEST_IN_FLIGHT_CODE = 'cart.request_in_flight';
-
 export function admitCartRequest<T>(
   queue: { current: Promise<unknown> },
   inFlight: { current: boolean },

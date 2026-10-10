@@ -15,6 +15,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { BoxCart, CheckoutResult, PersonalisationSelection } from '@/lib/aonik/map';
 
+import { CART_ORDERED_CODE } from './cartMissing';
 import { ORDERING_DISABLED_CODE } from './ordering';
 import {
   admitCartRequest,
@@ -165,7 +166,12 @@ export function useServerCart(enabled: boolean, identity: unknown = null): Serve
           // Closed ordering says nothing about the box, and the Place order
           // button reports it itself. As the cart-wide error it would surface as
           // a "try again" alert on every cart surface, where retrying can't help.
-          if (failure.code !== ORDERING_DISABLED_CODE && init?.reportError !== false) setError(failure);
+          // A failure that took the box away is reported whoever asked: the
+          // caller's own message goes with the box it sat beside.
+          const boxGone = failure.code === CART_ORDERED_CODE || failure.code === 'cart.missing';
+          if (failure.code !== ORDERING_DISABLED_CODE && (init?.reportError !== false || boxGone)) {
+            setError(failure);
+          }
           throw failure;
         } finally {
           setPending(false);
