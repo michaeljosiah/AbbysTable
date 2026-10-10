@@ -21,8 +21,10 @@ import type { OpeningHours } from '@/lib/contact/hours';
  * Setting it shows both on the in-app error page at once. The static host
  * pages are generated from it too, so regenerate them afterwards
  * (`UPDATE_STATUS_PAGES=1 npm test`) — the test fails until you do.
- * Production values are to come from Aonik (michaeljosiah/aonik#358, not
- * built yet); until then this module is that configuration.
+ * The Contact page and the legal pages read the tenant's published business
+ * profile in Aonik (michaeljosiah/aonik#358) over this, fact by fact
+ * (`resolveBusinessDetails` in `./business`). The status pages do not: they
+ * must work with Aonik down, so they read this alone.
  */
 export interface SupportContact {
   email: string;
@@ -76,7 +78,8 @@ export function whatsAppHref(contact: WhatsAppContact): string {
  * Sun closed and its 2026 bank-holiday list are unverified placeholders, and a
  * wrong window produces "a confidently wrong answer on the page"
  * (build-handoff). While `null` the page shows no status at all and marks the
- * hours "to be confirmed". Production needs a maintained bank-holiday source
- * and a way to record exceptional closures (aonik#358).
+ * hours "to be confirmed". The tenant maintains the real table, its bank
+ * holidays and exceptional closures in Aonik's business profile (aonik#358),
+ * which the page prefers to this.
  */
 export const OPENING_HOURS: OpeningHours | null = null;

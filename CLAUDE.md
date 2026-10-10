@@ -124,9 +124,13 @@ Conventions inside `web/` that are easy to get wrong:
 - **Legal pages (#20): `/terms-of-sale` and `/privacy`.** Section slugs are a PUBLIC CONTRACT
   (`src/lib/legal/terms.ts`, `privacy.ts`; pinned by `tests/legal-documents.test.ts`) — never
   rename one; `#cookies` is committed. Legacy `#sN`/`#N` resolve to slugs. Clause copy is verbatim
-  from the design and awaits legal review (#38): do not reword it. Company details render from
-  `src/lib/content/company.ts` (all `null`, shown as "to be confirmed") — never copy the designs'
-  placeholder name, number, address, phone or email into it. The print stylesheet that drops the
+  from the design and awaits legal review (#38): do not reword it. Company details are what the
+  tenant publishes in Aonik's business profile (`GET /v1/business-profile`, aonik#358) over
+  `src/lib/content/company.ts` (all `null`, shown as "to be confirmed"), fact by fact
+  (`resolveBusinessDetails`, `src/lib/content/business.ts`); the page provides them to the clause
+  components through `CompanyProvider` (`src/components/legal/company.tsx` — client components only
+  because the clause bodies are module-level markup). Never copy the designs' placeholder name,
+  number, address, phone or email into either. The print stylesheet that drops the
   site chrome is a `<style media="print">` rendered by `LegalDocument`, so it exists only on these
   two pages. Privacy's "Cookie preferences" button relies on `html[data-consent-ready]`, which the
   consent manager sets once its trigger listener is bound.
@@ -158,10 +162,16 @@ Conventions inside `web/` that are easy to get wrong:
   (`admitEnquiry`, 8 per 10 minutes, keyed by `clientAddress` — the LAST `X-Forwarded-For` entry,
   the one the platform appended, never the client-written first). The route reads no body in demo,
   past the limit, over 3×10MB, without a `Content-Length`, or while 4 others are in flight. The
-  thanks says "We'll send a confirmation to" — Aonik sends a receipt, not a copy. Phone, email, WhatsApp (+ QR) and the hours come from
-  `src/lib/content/contact.ts` (all `null` → "to be confirmed", never a mailto:/tel:/wa.me with no
-  value; values from aonik#358 later). Never copy the design's number, email, hours, bank holidays
-  or placeholder QR. "Open now / Closed" is computed in the BROWSER in Europe/London from
+  thanks says "We'll send a confirmation to" — Aonik sends a receipt, not a copy. Phone, email,
+  WhatsApp and the hours are the tenant's published business profile (aonik#358,
+  `src/lib/aonik/businessProfile.ts`) over `src/lib/content/contact.ts`, fact by fact (all `null`
+  → "to be confirmed", never a mailto:/tel:/wa.me with no value). A profile fact that does not read
+  cleanly is left out and logged; hours with a break in a day or outside Europe/London are not
+  shown; exceptional closures close a whole London day without being called bank holidays; the QR
+  shows only with the configured number it encodes. 404 (unpublished), demo or a failed read →
+  configuration; never a failed page. The 500 and maintenance pages stay on `SUPPORT_CONTACT` (they
+  must work with Aonik down). Never copy the design's number, email, hours, bank holidays or
+  placeholder QR. "Open now / Closed" is computed in the BROWSER in Europe/London from
   configured hours only — no hours, no status. Topics, validation, images and the hours rules are
   React-free in `src/lib/contact/` (`tests/contact.test.tsx`); Private Table is never a topic, and
   its panel ("Join the waitlist") shows only while that waitlist is open (`waitlistOpen`).

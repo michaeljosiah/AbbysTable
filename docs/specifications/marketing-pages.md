@@ -114,9 +114,12 @@ question 6 for the homepage's nutrition line).
 ### Requirement: FR-04 Placeholder company details render as "to be confirmed"
 `capability: legal-pages` · `delta: ADDED (feat/marketing-pages)`
 
-Company details SHALL render from `src/lib/content/company.ts` (`COMPANY`), whose values are all
-`null` until the owner confirms them; a `null` value SHALL print the design's "to be confirmed"
-mark. The designs' placeholder values — "Abby's Table Foods Ltd", "Example Foods Ltd", company
+Company details SHALL be what the tenant publishes in Aonik's business profile
+(`GET /v1/business-profile`, aonik#358 — company name, number, registered office, email, phone),
+fact by fact over `src/lib/content/company.ts` (`COMPANY`), whose values are all `null` until the
+owner confirms them; a value neither sets SHALL print the design's "to be confirmed" mark. The
+payment provider is not in the profile and stays configuration. An unpublished profile (404), demo
+mode or a failed read SHALL fall back to the configuration, never fail the page. The designs' placeholder values — "Abby's Table Foods Ltd", "Example Foods Ltd", company
 number 12345678, "1 Example Street", phone 020 3875 1234, hello@FromAbbysTable.co.uk, "Stripe" as
 the payment provider — SHALL NOT be copied into `web/`. Contact details have one source,
 `SUPPORT_CONTACT` (`src/lib/content/contact.ts`), shared by both legal documents and the status
@@ -433,9 +436,15 @@ Aonik's `private-table` sign-up list; the panel links `PRIVATE_TABLE_WAITLIST_HR
 ### Requirement: FR-22 Contact details and opening hours from configuration
 `capability: contact-page` · `delta: ADDED (feat/marketing-pages)`
 
-WhatsApp (with its QR), email, phone and the opening hours SHALL come from
-`src/lib/content/contact.ts` (`WHATSAPP_CONTACT`, `SUPPORT_CONTACT`, `OPENING_HOURS`), each `null`
-until the owner confirms it (production values from Aonik, aonik#358). A `null` detail SHALL show
+WhatsApp (with its QR), email, phone and the opening hours SHALL be what the tenant publishes in
+Aonik's business profile (aonik#358), fact by fact over `src/lib/content/contact.ts`
+(`WHATSAPP_CONTACT`, `SUPPORT_CONTACT`, `OPENING_HOURS`), each `null` until the owner confirms it.
+A published fact that does not read cleanly SHALL be left out (logged), never guessed: a telephone
+number becomes E.164 for the link only from a leading `0`, `44`, `+44`, `00` or `+`; hours in
+another zone than Europe/London, or with a break inside a day (the table has one window a day),
+SHALL NOT be shown; touching periods join; ISO weekdays map to ours; bank holidays stay bank
+holidays and each exceptional closure closes its whole London day. The QR SHALL show only with the
+configured number it encodes. A `null` detail SHALL show
 the "to be confirmed" mark and SHALL NOT be a link: no `mailto:`, `tel:` or `wa.me` without a
 value. The design's phone, email, WhatsApp number, hours, bank holidays and placeholder QR SHALL
 NOT be copied into `web/`; the QR shows from 1024 only, unre-encoded, once a real tested code is
@@ -768,8 +777,10 @@ first two gaps recorded here, were closed by #15 (PR #59; T6, T9) and are no lon
   refusals in our words, `/api/enquiries` for the photos (outside the middleware matcher, its own
   32MiB cap and maintenance answer), the customer's address forwarded (FR-24). Aonik checks the
   images (type sniffing, virus scan, metadata stripping) and routes by subject
-- [ ] `T16` Contact details, hours, bank holidays and closures from Aonik (aonik#358), and a real,
-  tested WhatsApp QR (FR-22)
+- [x] `T16` Contact details, hours, bank holidays and closures from Aonik's business profile
+  (aonik#358) on Contact, and the company details on the legal pages (FR-04, FR-22) —
+  `tests/business-profile.test.tsx`
+- [ ] `T16a` A real, tested WhatsApp QR (FR-22) — needs the confirmed number
 - [x] `T17` Private Table (#25): the page, the CTAs, the form and its country typeahead, the
   action, the bar's waitlist variant, every Private Table link repointed to `/private-table` and
   the route on the desktop auto-hide list (FR-25–FR-29); held closed until aonik#357
