@@ -75,8 +75,9 @@ export default async function DeliveryAndFaqsPage() {
         </div>
       </section>
 
-      {/* Only where a coverage lookup can answer (demo today; live waits on
-          michaeljosiah/aonik#352). Never a checker that cannot check. */}
+      {/* Only where a coverage lookup can answer (demo's placeholder areas;
+          live, Aonik's — michaeljosiah/aonik#352). Never a checker that
+          cannot check. */}
       {data.checker ? (
         <PostcodeChecker
           canLocate={data.checker.canLocate}

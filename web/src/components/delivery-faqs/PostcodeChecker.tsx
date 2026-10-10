@@ -34,9 +34,10 @@ import styles from './PostcodeChecker.module.css';
  * every one is reachable only through real input — the prototype's
  * development-only state override does not exist here (contract §4b).
  *
- * The page renders it only where a coverage lookup exists (demo today; live
- * waits on michaeljosiah/aonik#352), so it never answers a question it cannot
- * ask. "We deliver" and "not in your area" come only from that lookup.
+ * The page renders it only where a coverage lookup exists (demo's placeholder
+ * areas; live, Aonik's — michaeljosiah/aonik#352), so it never answers a
+ * question it cannot ask. "We deliver" and "not in your area" come only from
+ * that lookup.
  *
  * The postcode never enters a URL: the field has no `name`, so a submit before
  * hydration posts nothing, and the check is a server action with the postcode

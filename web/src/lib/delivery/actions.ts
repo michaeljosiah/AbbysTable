@@ -29,7 +29,10 @@ import { normalisePostcode, readPostcodeEntry } from './postcode';
 export type PostcodeCheck =
   | { status: 'serves'; postcode: string; earliestDeliveryDate: string | null }
   | { status: 'not-served'; postcode: string }
-  /** Not a postcode — the browser checks first, so normally unreachable. */
+  /**
+   * Not a postcode: malformed (the browser checks that first), or well formed
+   * but nonexistent — which only the lookup can tell.
+   */
   | { status: 'invalid' }
   /** Could not check: a technical failure, answered with a retry. */
   | { status: 'unavailable' };
@@ -62,6 +65,8 @@ export async function checkPostcode(raw: unknown): Promise<PostcodeCheck> {
     if (!client.coverage) return { status: 'unavailable' };
 
     const answer = await client.coverage.check(entry.postcode);
+    // Well formed, but the lookup found no such postcode: said as any invalid one.
+    if (answer.status === 'invalid') return { status: 'invalid' };
     const postcode = normalisePostcode(answer.postcode) ?? entry.postcode;
     if (answer.status === 'not-served') return { status: 'not-served', postcode };
     if (answer.status !== 'serves') throw new Error('Unrecognised coverage answer');

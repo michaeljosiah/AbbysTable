@@ -25,7 +25,7 @@ import { consentOf, publishedSignupList } from '@/lib/signup/server';
 export interface DeliveryFaqsPageData {
   /** The figures the FAQ answers quote. */
   values: FaqValues;
-  /** Null: no coverage lookup, so no checker (contract §3b; aonik#352). */
+  /** Null: no coverage lookup, so no checker (contract §3b; Aonik's is aonik#352). */
   checker: { canLocate: boolean } | null;
   /**
    * The notify-me list's consent, when the not-in-area panel may offer it

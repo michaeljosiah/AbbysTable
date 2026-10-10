@@ -12,15 +12,24 @@
  * Which lookup a request gets is the data mode's decision (`AonikClient
  * .coverage`):
  *   - demo: `DemoCoverageLookup` below, the design's own placeholder areas;
- *   - live: none yet. Aonik has no coverage endpoint (michaeljosiah/aonik#352),
- *     so `HttpAonikClient.coverage` is null and the page holds its checker
- *     back rather than answering a question it cannot ask. Wiring it is an
- *     implementation of `CoverageLookup` over that endpoint.
+ *   - live: `HttpCoverageLookup`, Aonik's `GET /commerce/delivery/coverage`
+ *     (michaeljosiah/aonik#352): the tenant's configured outward codes, after
+ *     its postcode provider has confirmed the postcode exists. It has no
+ *     coordinates lookup, so live offers no "Use my current location".
  *
- * Rate limiting and abuse protection belong to the endpoint (contract §3b).
+ * Rate limiting belongs to the endpoint (contract §3b): Aonik allows 30
+ * checks a minute per address — per CUSTOMER only when it trusts this server
+ * to name the address (`X-Forwarded-For`, `ForwardedHeaders:KnownProxies`).
+ *
+ * SERVER-ONLY (the live lookup).
  */
 
 import { normalisePostcode, postcodeArea } from '@/lib/delivery/postcode';
+import { clientAddress } from '@/lib/request/clientAddress';
+
+import type { AonikConfig } from './dataMode';
+import { AonikError } from './errors';
+import { aonikFetch } from './http';
 
 export type CoverageAnswer =
   | {
@@ -33,7 +42,12 @@ export type CoverageAnswer =
        */
       earliestDeliveryDate?: string;
     }
-  | { status: 'not-served'; postcode: string };
+  | { status: 'not-served'; postcode: string }
+  /**
+   * The lookup confirmed there is no such postcode (it is well formed, but
+   * does not exist). The page says so as it says any invalid postcode.
+   */
+  | { status: 'invalid' };
 
 export interface CoverageLookup {
   /**
@@ -121,5 +135,70 @@ export class DemoCoverageLookup implements CoverageLookup {
       if (!nearest || km < nearest.km) nearest = { postcode: place.postcode, km };
     }
     return nearest && nearest.km <= DEMO_LOCATION_RADIUS_KM ? nearest.postcode : null;
+  }
+}
+
+/* ---- Live (Aonik) ------------------------------------------------------------ */
+
+export const COVERAGE_PATH = '/commerce/delivery/coverage';
+
+/**
+ * How long a check may take. Aonik's own postcode provider allows five
+ * seconds; past this the page says it could not check, and offers a retry.
+ */
+export const COVERAGE_TIMEOUT_MS = 8000;
+
+/** Aonik's answer: `serves`, `not_served` or `unavailable`. */
+interface CoverageDto {
+  status?: unknown;
+  normalisedPostcode?: unknown;
+  earliestDate?: unknown;
+}
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Aonik's coverage answer as ours. `unavailable` — no coverage configured, no
+ * postcode provider, or a lookup that failed — THROWS: it is "could not
+ * check", never a refusal. So does anything unrecognised.
+ */
+export function readCoverage(body: unknown, asked: string): CoverageAnswer {
+  const dto = (body ?? {}) as CoverageDto;
+  const postcode =
+    (typeof dto.normalisedPostcode === 'string' && normalisePostcode(dto.normalisedPostcode)) || asked;
+  if (dto.status === 'serves') {
+    const earliest = typeof dto.earliestDate === 'string' && ISO_DATE.test(dto.earliestDate) ? dto.earliestDate : undefined;
+    return earliest ? { status: 'serves', postcode, earliestDeliveryDate: earliest } : { status: 'serves', postcode };
+  }
+  if (dto.status === 'not_served') return { status: 'not-served', postcode };
+  throw new Error(`Coverage could not be checked (${String(dto.status)})`);
+}
+
+/** Aonik's 400 for a postcode it found malformed or nonexistent. */
+const INVALID_POSTCODE = 'commerce.invalid_postcode';
+
+export class HttpCoverageLookup implements CoverageLookup {
+  constructor(private readonly config: AonikConfig) {}
+
+  async check(postcode: string): Promise<CoverageAnswer> {
+    try {
+      const body = await aonikFetch<unknown>(COVERAGE_PATH, {
+        baseUrl: this.config.baseUrl,
+        tenantId: this.config.tenantId,
+        // Aonik answers no-store: coverage can change, and the provider's
+        // answer is per request.
+        policy: 'volatile',
+        query: { postcode },
+        signal: AbortSignal.timeout(COVERAGE_TIMEOUT_MS),
+        forwardedFor: (await clientAddress()) ?? undefined,
+      });
+      return readCoverage(body, postcode);
+    } catch (error) {
+      if (error instanceof AonikError && error.status === 400 && error.code === INVALID_POSTCODE) {
+        return { status: 'invalid' };
+      }
+      // A 429, a timeout, an outage: could not check — the caller says so.
+      throw error;
+    }
   }
 }

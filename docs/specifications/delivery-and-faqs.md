@@ -11,10 +11,10 @@ updated: 2026-10-10
 
 # Delivery & FAQs
 
-> **Status (2026-10-07): approved, partly implemented.** The page, the checker, the FAQ search and
-> groups, and the switch of every Delivery & FAQs link to `/delivery-and-faqs` are built (#23). Two
-> things wait on Aonik and are held back rather than faked: the live coverage lookup
-> (michaeljosiah/aonik#352) and the notify-me list (michaeljosiah/aonik#357). Sources:
+> **Status (2026-10-10): approved, implemented.** The page, the checker, the FAQ search and
+> groups, and the switch of every Delivery & FAQs link to `/delivery-and-faqs` are built (#23); the
+> live coverage lookup (michaeljosiah/aonik#352) and the notify-me list (michaeljosiah/aonik#357)
+> are Aonik's. "Use my current location" stays demo-only: Aonik has no coordinates lookup. Sources:
 > `design/Abby's Table - Delivery and FAQs.dc.html`, `design/build-handoff.md` §3l, the page
 > behaviour guide §9, `design/frontend-backend-contract.md` §3b–§3d and §4b,
 > `design/SHOPPING-STATE.md` §15. Where the issue and the design disagree, the design wins and the
@@ -68,13 +68,20 @@ The checker SHALL render only where the data source has a coverage lookup
 (`AonikClient.coverage`, `src/lib/aonik/coverage.ts`). "We deliver" and "not in your area" SHALL
 come only from that lookup's answer. Demo mode serves the design's placeholder coverage (outward
 areas AB, BT, GY, HS, IM, IV, JE, KW, ZE are not served) — a read, like every demo read. Live mode
-has no lookup until Aonik exposes one (aonik#352), so the page renders without the checker rather
-than a control that cannot check.
+asks Aonik (`GET /commerce/delivery/coverage?postcode=`, aonik#352): `serves` and `not_served` are
+answers; `unavailable` (coverage or provider not configured, a lookup that failed), a 429 or an
+outage SHALL be "could not check" with a retry, never a refusal; a 400 `commerce.invalid_postcode`
+(well formed but nonexistent) SHALL read as any invalid postcode. Aonik names no earliest date yet
+(it waits on #346), so a served answer takes the tenant's delivery window. The customer's address
+goes as `X-Forwarded-For`: Aonik allows 30 checks a minute per address — per customer only when it
+trusts the storefront as a proxy. Aonik has no coordinates lookup, so live offers no "Use my
+current location".
 
-#### Scenario: Live, before aonik#352
-- **WHEN** the page renders against a live tenant
-- **THEN** there is no checker and no request is made for coverage
-- **AND** the FAQs render with their figures from the storefront config
+#### Scenario: Live
+- **WHEN** a customer checks DA1 2AB against a live tenant whose coverage serves it
+- **THEN** Aonik is asked once, with the postcode, and the panel says "Great — we deliver to
+  DA1 2AB" with the delivery window's date
+- **AND** a postcode Aonik finds does not exist says "Please enter a valid UK postcode."
 
 ### Requirement: FR-03 Nine states, reached only by real input
 `capability: postcode-coverage` · `delta: ADDED (feat/delivery-and-faqs)`
@@ -232,9 +239,10 @@ degrade alone; the page never 500s. Client Components only where state lives: `P
 (`src/lib/delivery/actions.ts`) returning values, never throwing. Rules are React-free and unit
 tested: `postcode.ts`, `checker.ts`, `handoff.ts`, `faq/search.ts`, `content/deliveryFaqs.ts`.
 
-The coverage contract proposed to aonik#352 (`CoverageLookup`): `check(postcode)` resolves
-`{ status: 'serves', postcode, earliestDeliveryDate? } | { status: 'not-served', postcode }` and
-THROWS when it cannot tell; optional `postcodeAt(latitude, longitude)` resolves a postcode or null.
+The coverage contract (`CoverageLookup`): `check(postcode)` resolves
+`{ status: 'serves', postcode, earliestDeliveryDate? } | { status: 'not-served', postcode } |
+{ status: 'invalid' }` and THROWS when it cannot tell; optional `postcodeAt(latitude, longitude)`
+resolves a postcode or null (demo only). Live: `HttpCoverageLookup` over aonik#352.
 Notify-me is Aonik's sign-up list (aonik#357, shipped): `POST /v1/signup-lists/delivery-availability`
 `{ email, consentVersion, postcode }` → empty 202, de-duplicated by email.
 
@@ -250,10 +258,8 @@ Notify-me is Aonik's sign-up list (aonik#357, shipped): `POST /v1/signup-lists/d
 
 ### Known gaps — departures from the design, each deliberate
 
-1. **No notify-me form in demo, or where the tenant has not published the list** (FR-08); in live
-   it also needs the checker (aonik#352), since it lives in the not-in-area state.
-2. **No checker in live mode** until aonik#352 (FR-02), so live's "Where do you deliver?" answer
-   ("Enter your postcode above…") has nothing above it until then.
+1. **No notify-me form in demo, or where the tenant has not published the list** (FR-08).
+2. **No "Use my current location" in live mode**: Aonik's coverage has no coordinates lookup.
 3. Field corrections are 16px `--terracotta-ink` (the design: 14px `--chilli`, 3.8:1 on sand and a
    graphic-only token); "Earliest delivery" is `--brass-ink-warm` (`--brass-ink` is 4.28:1 on sage);
    the notify-me consent line is 14px (the floor for privacy notes; the design: 13px).
@@ -270,9 +276,10 @@ Notify-me is Aonik's sign-up list (aonik#357, shipped): `POST /v1/signup-lists/d
 
 ### Open questions (owner decisions, not requirements)
 
-1. **Coverage API (aonik#352)** — does the contract above suit; is the earliest date per postcode
-   or tenant-wide; who supplies the coordinates-to-postcode lookup (Aonik, or a third party such as
-   postcodes.io — which would need its own line in the Privacy Policy)?
+1. **Coverage (aonik#352, shipped)** — the courier's allowlist and exclusions are still the
+   owner's to configure; the earliest date per postcode waits on #346; a coordinates lookup (Aonik
+   or a third party such as postcodes.io — which would need its own line in the Privacy Policy) is
+   undecided. Aonik's provider (postcodes.io) receives the postcode only.
 2. **Changes and cancellations** — "Orders & changes" predates the 7-day rule (SHOPPING-STATE §49,
    behaviour guide §9); it is verbatim here until the copy is revised and signed off (#38).
 3. **Free delivery** — if the configured charge is 0, what do the two delivery answers say?
@@ -288,8 +295,8 @@ Notify-me is Aonik's sign-up list (aonik#357, shipped): `POST /v1/signup-lists/d
 - [x] `T1` The page: checker, delivery facts, FAQ search, topics, groups (#23)
 - [x] `T2` `DELIVERY_FAQS_HREF = '/delivery-and-faqs'`, status pages regenerated, desktop
   auto-hide (#8, #23)
-- [ ] `T3` Live coverage: `HttpAonikClient.coverage` over aonik#352's endpoint (+ the location
-  lookup); the checker then renders in live with no other change
+- [x] `T3` Live coverage: `HttpAonikClient.coverage` over aonik#352's endpoint; the checker
+  renders in live (the location lookup is not Aonik's — open question 1)
 - [x] `T4` Notify-me over Aonik's `delivery-availability` sign-up list (aonik#357), with its
   published consent wording and version
 - [ ] `T5` Choose Box v2 reads the hand-off (FR-07 scenario) (#28)
