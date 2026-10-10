@@ -1294,7 +1294,7 @@ export function DishPicker({
                   >
                     <Image
                       src={dish.imageUrl}
-                      alt={dish.title}
+                      alt={dish.imageAlt ?? dish.title}
                       width={720}
                       height={576}
                       className={styles.mediaImage}
@@ -1680,7 +1680,7 @@ export function DishPicker({
                   <div className={styles.dmHero}>
                     <Image
                       src={editor.dish.imageUrl}
-                      alt={editor.dish.title}
+                      alt={editor.dish.imageAlt ?? editor.dish.title}
                       width={860}
                       height={688}
                       className={styles.dmHeroImage}
@@ -1799,7 +1799,9 @@ export function DishPicker({
                           editor.dish.nutrition.calories !== undefined
                             ? { label: 'kcal', value: String(editor.dish.nutrition.calories) }
                             : null,
-                          { label: 'Protein', value: `${editor.dish.nutrition.proteinGrams}g` },
+                          editor.dish.nutrition.proteinGrams !== undefined
+                            ? { label: 'Protein', value: `${editor.dish.nutrition.proteinGrams}g` }
+                            : null,
                           editor.dish.nutrition.carbsGrams !== undefined
                             ? { label: 'Carbs', value: `${editor.dish.nutrition.carbsGrams}g` }
                             : null,

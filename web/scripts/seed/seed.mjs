@@ -68,6 +68,9 @@ for (const d of DATA.dishes) {
     categoryId: food?.id ?? null,
     tagsJson: JSON.stringify(d.tags ?? []),
     attributesJson: JSON.stringify(d.attributes),
+    // Typed facts (aonik#359): the storefront reads these before any attribute.
+    heat: d.heatLevel ?? null,
+    componentsLine: d.componentsLine ?? null,
   });
   if (!product) continue;
   dishIdBySlug.set(d.slug, product.id);
@@ -224,18 +227,19 @@ if (extrasCol) {
 
 console.log('\n  facets');
 // Menu Landing v3's four groups — Protein source, Eating style, Heat, Dietary
-// & other — exactly as the demo serves them, tokens and labels alike, each
-// matched on the product's `facets.<key>` attribute (`tenantFacetGroups` and
-// `dishFacetTokens` in src/lib/menu/facets.ts). Every option is authored,
-// even one no dish carries yet: the design shows the whole set.
+// & other — exactly as the demo serves them, tokens and labels alike: heat as
+// one-step Range bands on the typed `heat`, the rest matched on the product's
+// `facets.<key>` attribute (`tenantFacetGroups` and `dishFacetTokens` in
+// src/lib/menu/facets.ts). Every option is authored, even one no dish carries
+// yet: the design shows the whole set.
 const facets = DATA.facetGroups ?? [];
 
 for (const [i, f] of facets.entries()) {
   const made = await call('POST', '/commerce/admin/facet-groups', {
     key: f.key,
     label: f.label,
-    matchKind: 'Attribute',
-    // Dot path relative to attributesJson — never JSONPath.
+    matchKind: f.matchKind ?? 'Attribute',
+    // A dot path relative to attributesJson (never JSONPath), or a typed field.
     sourcePath: f.sourcePath,
     optionsJson: JSON.stringify(f.options),
     sortOrder: i,

@@ -80,7 +80,7 @@ export default async function DishPage({ params }: DishPageProps) {
           <div className={styles.figure}>
             <Image
               src={dish.imageUrl}
-              alt={dish.title}
+              alt={dish.imageAlt ?? dish.title}
               width={720}
               height={720}
               priority
