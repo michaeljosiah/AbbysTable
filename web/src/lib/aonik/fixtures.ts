@@ -381,7 +381,8 @@ export const PERSONALISATION_GROUP_SOURCE: EffectiveOptionGroupDto[] = [
     defaultChoiceKey: 'light',
     choices: [
       { key: 'light', label: 'Light table', note: '225g', price: 0, sortOrder: 0 },
-      { key: 'full', label: 'Full table', note: '450g', price: 10, sortOrder: 1 },
+      // Owner approved 10 October 2026: £5 per dish, additional to Signature.
+      { key: 'full', label: 'Full table', note: '450g', price: 5, sortOrder: 1 },
     ],
   },
   {

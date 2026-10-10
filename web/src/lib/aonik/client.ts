@@ -259,7 +259,9 @@ export class MockAonikClient implements AonikClient {
   async getDishOptionGroups(slug: string): Promise<MappedOptionGroup[]> {
     const dish = DISH_FIXTURES.find((candidate) => candidate.slug === slug);
     if (!dish) return [];
-    return fixtureOptionGroups(dish);
+    // The demo catalogue follows the approved portion-only dish model. The
+    // legacy fixture remains available for migration/transport contract tests.
+    return fixtureOptionGroups(dish).filter((group) => group.key === 'portion');
   }
 }
 

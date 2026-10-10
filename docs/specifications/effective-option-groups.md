@@ -6,10 +6,17 @@ branch: feat/effective-option-groups
 owner: michaeljosiah
 capabilities: [catalogue, personalisation, extras]
 created: 2026-08-31
-updated: 2026-08-31
+updated: 2026-10-10
 ---
 
 # Effective option groups in the storefront
+
+**Scoped supersession (10 October 2026):** [Portion model](portion-model.md), approved for
+implementation, replaces this spec's visible generic dish-editor requirements on dish pages,
+Add Dishes and Review. Those surfaces purchase Light Table / Full Table only, and Review dishes
+are read-only. Canonical transport, default omission, explicit reset, cardinality validation and
+authoritative cart guarantees remain in force. Extras keep their supported authored size/heat
+choices. The production catalogue/legacy transition remains a release gate in the new spec.
 
 ## Why
 

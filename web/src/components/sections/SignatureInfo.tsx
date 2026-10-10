@@ -24,7 +24,7 @@ import styles from './DishCard.module.css';
  * "i"; and dropped below the upgrade pill if it would cover the price. From
  * 1024 it sits to the right of the pill, which overlaps nothing.
  */
-export function SignatureInfo() {
+export function SignatureInfo({ wholePill = false }: { wholePill?: boolean }) {
   const id = useId();
   const noteId = `${id}-signature-note`;
   const pillRef = useRef<HTMLSpanElement>(null);
@@ -122,15 +122,16 @@ export function SignatureInfo() {
 
   return (
     <span ref={pillRef} className={`${styles.pill} ${styles.signaturePill}`}>
-      <span className={styles.lozenge} aria-hidden="true">
+      {!wholePill && <><span className={styles.lozenge} aria-hidden="true">
         ◆
       </span>
-      Signature
+      Signature</>}
       <button
         ref={buttonRef}
         type="button"
-        className={styles.info}
-        aria-label="What does Signature mean?"
+        className={wholePill ? styles.wholeSignature : styles.info}
+        aria-label={wholePill ? 'About Signature dishes' : 'What does Signature mean?'}
+        aria-expanded={wholePill ? open : undefined}
         aria-describedby={noteId}
         onPointerDown={() => {
           wasOpen.current = openRef.current;
@@ -158,7 +159,7 @@ export function SignatureInfo() {
           setOpen(false);
         }}
       >
-        i
+        {wholePill ? '◆ Signature ⓘ' : 'i'}
       </button>
       <span
         ref={noteRef}

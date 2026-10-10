@@ -15,6 +15,7 @@
 import { readFileSync } from 'node:fs';
 
 import { extraOptionGroupSeeds, slugify } from './extra-option-groups.mjs';
+import { dishPortionGroup } from './dish-portion-group.mjs';
 
 const API = (process.env.AONIK_API_URL ?? 'http://localhost:5050').replace(/\/$/, '');
 const T = process.env.TENANT_ID;
@@ -38,16 +39,12 @@ async function call(method, path, body) {
 }
 
 /**
- * `HEAT_STEPS` in the storefront: the choice key IS the step, as a string, and
- * `map.ts` parses it straight back into `heatStep`. Keep them in step.
+ * Local setup follows the approved portion model and uniform £5 upcharge.
+ * The helper validates before the first request. Retired tenant groups are not
+ * deactivated. Replacing product attachments is NOT a safe production migration:
+ * follow portion-model.md's preserve-and-repair rollout for existing carts.
  */
-const HEAT_STEPS = { none: 0, low: 1, medium: 2, high: 3 };
-
-/**
- * This is the same absolute-price DTO source that demo mode passes through the
- * live mapper. Adding an authored group does not require a parallel hierarchy.
- */
-const GROUPS = fixtures.optionGroups;
+const GROUPS = [dishPortionGroup(fixtures.optionGroups)];
 const EXTRA_GROUP_SEEDS = extraOptionGroupSeeds(fixtures.extras);
 const GROUPS_TO_AUTHOR = [
   ...GROUPS.map((group, index) => ({ group, tenantSortOrder: index })),
@@ -175,30 +172,7 @@ console.log('\n  per-dish attachment');
 const all = await call('GET', '/commerce/admin/products?pageSize=100');
 const bySlug = new Map((all?.items ?? []).map((p) => [p.slug, p.id]));
 
-/**
- * Every dish gets every group, because that is what the design does.
- *
- * All three templates — Step 2's personaliser and both dish-detail pages —
- * render "Choose your portion size / protein / side / heat level"
- * unconditionally. The only `sc-if` near the card's personalise block is
- * `d.notPersonalised`, which is a STATE (has this dish been personalised yet)
- * and not a capability.
- *
- * The fixtures' per-dish `personalisation` arrays say otherwise — some dishes
- * list two groups, three list none — but no template supports that, and the
- * fixture header claims only to lift values from the templates. Seeding from
- * them left dishes with a portion heading and no portions.
- */
 const ALL_GROUP_KEYS = GROUPS.map((group) => group.key);
-
-// The dish's own heat where it published one; otherwise the group's authored
-// default, as demo mode does (`fixtureOptionGroups`) — never a level made up
-// for the dish.
-const defaultChoiceKey = (groupKey, dish) => {
-  if (groupKey === 'heat' && Object.hasOwn(HEAT_STEPS, dish.heat ?? '')) return String(HEAT_STEPS[dish.heat]);
-  const group = GROUPS.find((g) => g.key === groupKey);
-  return group.defaultChoiceKey;
-};
 
 let attached = 0;
 
@@ -210,7 +184,7 @@ for (const dish of fixtures.dishes) {
     groups: ALL_GROUP_KEYS.map((groupKey, index) => ({
       groupKey,
       allowedChoiceKeys: null, // null = every choice on the group
-      defaultChoiceKey: defaultChoiceKey(groupKey, dish),
+      defaultChoiceKey: GROUPS.find((group) => group.key === groupKey).defaultChoiceKey,
       selectionModeOverride: null,
       sortOrder: index,
     })),
@@ -219,7 +193,7 @@ for (const dish of fixtures.dishes) {
   if (ok) { attached += 1; console.log(`    ${dish.slug} — ${ALL_GROUP_KEYS.join(', ')}`); }
 }
 
-console.log(`\n  attached all four groups to ${attached}/${fixtures.dishes.length} dishes`);
+console.log(`\n  attached portions to ${attached}/${fixtures.dishes.length} dishes`);
 
 /* ---- 3. Attach each extra's own namespaced groups -------------------------- */
 

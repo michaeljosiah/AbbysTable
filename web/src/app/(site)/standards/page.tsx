@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Fragment, type ReactNode } from 'react';
 
 import { BackToDish } from '@/components/standards/BackToDish';
+import { BackToQuickView } from '@/components/checkout/QuickStandardsReturn';
 import { ExampleDishPanel } from '@/components/standards/ExampleDishPanel';
 import { JumpLink } from '@/components/standards/JumpLink';
 import { MobilePurchaseBar } from '@/components/purchase-bar/MobilePurchaseBar';
@@ -189,6 +190,7 @@ export default async function StandardsPage({
       <section className={styles.hero}>
         <div className={styles.inner}>
           {dishReturn ? <BackToDish slug={dishReturn.slug} href={dishReturn.href} /> : null}
+          <BackToQuickView />
 
           <div className={styles.heroGrid}>
             <div className={styles.heroLead}>

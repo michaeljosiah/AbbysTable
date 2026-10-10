@@ -1,6 +1,6 @@
 'use client';
 
-import { selectionSummary } from '@/lib/aonik/personalisation';
+import { portionDescription, portionModel } from '@/lib/dish/portions';
 import { purchaseBarClasses } from '@/components/purchase-bar/classes';
 import { PurchaseBarShell } from '@/components/purchase-bar/PurchaseBarShell';
 
@@ -31,14 +31,14 @@ export function DishPurchaseBar() {
       <span className={purchaseBarClasses.text}>
         <span className={purchaseBarClasses.textLead}>Add to your box</span>
         <span className={purchaseBarClasses.textStrong}>
-          {selectionSummary(optionGroups, choice.personalisation)}
+          {portionDescription(optionGroups, choice.personalisation)}
         </span>
       </span>
       <button
         type="button"
         className={purchaseBarClasses.cta}
         onClick={addToBox}
-        disabled={pending}
+        disabled={pending || handingOff || !portionModel(optionGroups)}
         aria-disabled={handingOff || undefined}
       >
         Add to box
