@@ -1241,3 +1241,23 @@
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
 }
+
+/* ---- Order again ---- */
+
+.reorder {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.reorder .hint {
+  margin: 0;
+}
+
+.inlineLink {
+  color: var(--green-forest);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--brass);
+  text-underline-offset: 3px;
+}

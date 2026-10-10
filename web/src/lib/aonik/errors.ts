@@ -27,6 +27,8 @@ export const AONIK_CODES = {
   cartConflict: 'commerce.cart_conflict',
   /** The cart is not editable: a payment is in progress, or it was ordered. */
   cartLocked: 'commerce.cart_locked',
+  /** The account already holds an active box, so a new one (a reorder) cannot start. */
+  activeBoxExists: 'commerce.active_box_exists',
   /** Signing in with a guest box when the account holds a different one (#348). */
   boxChoiceRequired: 'commerce.box_choice_required',
   /** The keep/use-saved choice was made against boxes that have since moved on. */

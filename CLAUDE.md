@@ -463,6 +463,18 @@ Conventions inside `web/` that are easy to get wrong:
   gift card vs card, refunds), linked from each card; a non-GUID id is a 404 and never reaches Aonik. Pure rules: `lib/account/orders.ts`; pinned by `tests/account-orders.test.tsx`. Client
   components must not import `lib/aonik/orders` for values (it pulls `next/headers`): `formatOrderDate`
   lives in `lib/format.ts`.
+  **Order again (PR 4a).** `POST /commerce/storefront/orders/{id}/reorder` rebuilds the paid order's
+  food box SERVER-SIDE as a NEW box owned by the customer (every dish at its purchased quantity and
+  personalisation, from today's menu; a dish now off the menu / short on stock comes back flagged
+  `isUnavailable`, which Step 2 already swaps). `lib/cart/reorder.ts` stores it as the cart cookie
+  (no token invented: an account box answers to the bearer) and ends the last confirmation, and the
+  button does a FULL page load to `/box/dishes` (the tab's cart state is the old one). What Aonik
+  can't do, so neither does this — and the design's sheet is therefore NOT built: merge into a box
+  already in progress (409 `commerce.active_box_exists` → "You already have a box in progress… finish
+  it first", VIEW BOX), carry a subset of the dishes (the whole box comes back; take any out on Step
+  2), carry anything but food. An upcoming order's button says "This starts a new box. Your delivery
+  won't change." Not offered: cancelled or unpaid orders; Recent-orders rows on the overview. Order
+  ids are checked to be GUIDs before reaching Aonik's path. Pinned by `tests/account-reorder.test.tsx`.
 - **Internal links go through `next/link`.** `Button` and `NavLink` route on `href` automatically
   (`isExternalHref` in `src/lib/links.ts`); nav anchors are root-relative (`/#founder`) so they work
   from `/menu` as well as `/`.
