@@ -10,7 +10,7 @@
 
 import { redirect } from 'next/navigation';
 
-import { loginPathFor, sessionRefreshPath } from './redirect';
+import { loginPathFor, sessionEndedPath, sessionRefreshPath } from './redirect';
 import { sessionNeedsRefresh } from './server';
 import { readSessionView, type SessionView } from './session';
 
@@ -27,7 +27,10 @@ export async function requireSignedIn(returnTo: string): Promise<SessionView & {
   redirect(loginPathFor(returnTo));
 }
 
-/** Where a session that died mid-render goes: Log in, back to this page after. */
+/**
+ * A session that died mid-render (Aonik refused its token): Log in, back to this
+ * page after — via the route that ends the stale cookie, which a render cannot.
+ */
 export function redirectToLogin(returnTo: string): never {
-  redirect(loginPathFor(returnTo));
+  redirect(sessionEndedPath(returnTo));
 }

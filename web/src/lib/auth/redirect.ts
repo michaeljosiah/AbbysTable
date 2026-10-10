@@ -64,3 +64,8 @@ export function loginPathFor(returnTo: string): string {
 export function sessionRefreshPath(returnTo: string): string {
   return `/account/refresh?next=${encodeURIComponent(safePostAuthPath(returnTo))}`;
 }
+
+/** Where a page whose session died mid-render sends the customer: the same route ends the cookie. */
+export function sessionEndedPath(returnTo: string): string {
+  return `${sessionRefreshPath(returnTo)}&ended=1`;
+}

@@ -11,6 +11,7 @@
 
 import { loginPathFor, safePostAuthPath } from '@/lib/auth/redirect';
 import { currentSession } from '@/lib/auth/server';
+import { clearSession, isExpired } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +23,18 @@ function onwards(path: string) {
 }
 
 export async function GET(request: Request) {
-  const next = safePostAuthPath(new URL(request.url).searchParams.get('next'));
+  const params = new URL(request.url).searchParams;
+  const next = safePostAuthPath(params.get('next'));
+  // A page found its session dead mid-render (Aonik refused the token) and
+  // could not clear the cookie itself: end it here, so the header stops saying
+  // "My Account" and a revisit is not bounced again.
+  if (params.has('ended')) {
+    await clearSession();
+    return onwards(loginPathFor(next));
+  }
   const session = await currentSession();
-  return onwards(session ? next : loginPathFor(next));
+  // A renewed session that is already inside the expiry skew (very short-lived
+  // tokens) would send the page straight back here, spending a refresh token
+  // each time: treat it as signed out.
+  return onwards(session && !isExpired(session) ? next : loginPathFor(next));
 }

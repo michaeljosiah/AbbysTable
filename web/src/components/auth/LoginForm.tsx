@@ -39,7 +39,8 @@ type FieldErrors = NonNullable<AuthActionState['fieldErrors']>;
  * Submits to a SERVER ACTION, which keeps the password out of the browser's
  * world: it is posted same-origin, exchanged for a token on our server, and
  * never touches client JavaScript or an Aonik call from here. Without
- * JavaScript the form still posts; the server's answer is the one that decides.
+ * JavaScript the form still posts and the server's answer decides (a refusal
+ * there does not keep the typed email: that is the one thing JS adds).
  *
  * Validation also runs here, on submit, for the design's instant feedback and
  * focus move. The email is controlled so a refused attempt keeps it (React 19

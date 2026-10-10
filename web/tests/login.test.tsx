@@ -9,7 +9,13 @@ import ForgotPasswordPage from '../src/app/(site)/forgot-password/page';
 import LoginPage from '../src/app/(site)/login/page';
 import { loginAction, requestPasswordResetAction } from '../src/lib/auth/actions';
 import { LOGIN_MESSAGES, SIGN_IN_REFUSED, emailProblem } from '../src/lib/auth/messages';
-import { FORGOT_PASSWORD_PATH, requestPasswordReset } from '../src/lib/auth/passwordReset';
+import {
+  FORGOT_PASSWORD_PATH,
+  loginByAddress,
+  requestPasswordReset,
+  resetByAddress,
+  resetByEmail,
+} from '../src/lib/auth/passwordReset';
 import { loginPathFor, safePostAuthPath, sessionRefreshPath } from '../src/lib/auth/redirect';
 import { SESSION_COOKIE } from '../src/lib/auth/session';
 import { FORGOT_PASSWORD_HREF } from '../src/lib/content/navigation';
@@ -24,7 +30,12 @@ import { cookieValue, resetCookies, setRequestHeaders } from './support/next-hea
 
 configureAonik({ AONIK_AUTH_CLIENT_ID: 'storefront' });
 
-beforeEach(() => resetCookies());
+beforeEach(() => {
+  resetCookies();
+  loginByAddress.clear();
+  resetByAddress.clear();
+  resetByEmail.clear();
+});
 
 const TOKEN = { accessToken: 'access-1', refreshToken: 'refresh-1', expiresIn: 300, tokenType: 'Bearer', idToken: null };
 
@@ -240,4 +251,60 @@ test('a signed-out request is sent to Log in with a return path, or the bare pag
   assert.equal(loginPathFor('https://evil.example'), '/login');
   assert.equal(sessionRefreshPath('/account/orders'), '/account/refresh?next=%2Faccount%2Forders');
   assert.equal(sessionRefreshPath('//evil.example'), '/account/refresh?next=%2Faccount%2Forders');
+});
+
+/* ---- The storefront's own limits ------------------------------------------------ */
+
+test('a reset is limited per email, so one inbox cannot be flooded, and says so', async () => {
+  useAonik(() => ({ status: 200 }));
+  setRequestHeaders({ 'x-forwarded-for': '198.51.100.4' });
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const sent = await requestPasswordResetAction({ status: 'idle' }, form({ email: 'Victim@example.com' }));
+    assert.equal(sent.status, 'sent');
+  }
+  const limited = await requestPasswordResetAction({ status: 'idle' }, form({ email: 'victim@example.com' }));
+
+  assert.equal(limited.status, 'error');
+  assert.match(limited.message ?? '', /Too many requests/);
+  assert.equal(aonikRequests.length, 3, 'the fourth never reaches Aonik');
+});
+
+test('a reset is limited per address across emails', async () => {
+  useAonik(() => ({ status: 200 }));
+  setRequestHeaders({ 'x-forwarded-for': '198.51.100.4' });
+
+  for (let attempt = 0; attempt < 8; attempt++) {
+    await requestPasswordResetAction({ status: 'idle' }, form({ email: `person${attempt}@example.com` }));
+  }
+  const limited = await requestPasswordResetAction({ status: 'idle' }, form({ email: 'another@example.com' }));
+
+  assert.match(limited.message ?? '', /Too many requests/);
+  assert.equal(aonikRequests.length, 8);
+});
+
+test('log in is limited per address before it asks Aonik', async () => {
+  useAonik((request) => (request.path === '/auth/token' ? { status: 400, body: { error: 'no' } } : undefined));
+  setRequestHeaders({ 'x-forwarded-for': '198.51.100.4' });
+
+  for (let attempt = 0; attempt < 20; attempt++) {
+    await loginAction({ status: 'idle' }, form({ email: 'ada@example.com', password: `guess${attempt}` }));
+  }
+  const limited = await loginAction({ status: 'idle' }, form({ email: 'ada@example.com', password: 'guess-last' }));
+
+  assert.equal(limited.status, 'error');
+  assert.match(limited.message ?? '', /Too many attempts/);
+  assert.equal(aonikRequests.length, 20);
+});
+
+test('"accounts unavailable" does not carry the configuration text to the browser', async () => {
+  const saved = process.env.AONIK_AUTH_CLIENT_ID;
+  delete process.env.AONIK_AUTH_CLIENT_ID;
+  try {
+    useAonik(() => undefined);
+    const state = await loginAction({ status: 'idle' }, form({ email: 'ada@example.com', password: 'pw' }));
+    assert.deepEqual(state, { status: 'unavailable' });
+  } finally {
+    process.env.AONIK_AUTH_CLIENT_ID = saved;
+  }
 });

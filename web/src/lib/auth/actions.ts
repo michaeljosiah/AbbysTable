@@ -17,9 +17,11 @@ import { redirect } from 'next/navigation';
 
 import { adoptBoxCart } from '@/lib/cart/server';
 import { clientAddress } from '@/lib/request/clientAddress';
+import { addressKey } from '@/lib/request/rateLimit';
 
+import { loginByAddress } from './passwordReset';
 import { LOGIN_MESSAGES, SIGN_IN_REFUSED, emailProblem } from './messages';
-import { requestPasswordReset } from './passwordReset';
+import { admitPasswordReset, requestPasswordReset } from './passwordReset';
 import { safePostAuthPath } from './redirect';
 
 import { AccountsUnavailableError, CredentialError, signIn, signOut } from './server';
@@ -48,7 +50,8 @@ function text(form: FormData, key: string): string {
  */
 function toState(error: unknown): AuthActionState {
   if (error instanceof AccountsUnavailableError) {
-    return { status: 'unavailable', message: error.message };
+    // The text names configuration variables: it stays on the server.
+    return { status: 'unavailable' };
   }
 
   if (error instanceof CredentialError) {
@@ -90,6 +93,12 @@ export async function loginAction(
   if (!password) fieldErrors.password = LOGIN_MESSAGES.passwordMissing;
   if (Object.keys(fieldErrors).length > 0) return { status: 'error', fieldErrors };
 
+  // The storefront's own per-address limit: Aonik sees only this server's.
+  const address = await clientAddress();
+  if (address && !loginByAddress.admit(addressKey(address))) {
+    return { status: 'error', message: 'Too many attempts. Please wait a few minutes and try again.' };
+  }
+
   try {
     await signIn(email, password);
   } catch (error) {
@@ -115,7 +124,11 @@ export async function requestPasswordResetAction(
   const emailError = emailProblem(email);
   if (emailError) return { status: 'error', fieldErrors: { email: emailError }, email };
 
-  const outcome = await requestPasswordReset(email, (await clientAddress()) ?? undefined);
+  const address = await clientAddress();
+  if (!admitPasswordReset(email, address)) {
+    return { status: 'error', email, message: 'Too many requests. Please wait a few minutes and try again.' };
+  }
+  const outcome = await requestPasswordReset(email, address ?? undefined);
   switch (outcome.status) {
     case 'requested':
       return { status: 'sent', email };

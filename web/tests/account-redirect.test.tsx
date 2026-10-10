@@ -88,8 +88,32 @@ test('a session Aonik rejects mid-render becomes the same redirect, not a signed
     request.path.startsWith('/commerce/storefront/orders') ? { status: 401, body: { error: 'expired' } } : undefined,
   );
 
-  assert.equal(await redirectedTo(orders()), '/login?next=%2Faccount%2Forders');
-  assert.equal(await redirectedTo(order()), '/login?next=%2Faccount%2Forders%2Ford-1');
+  assert.equal(await redirectedTo(orders()), '/account/refresh?next=%2Faccount%2Forders&ended=1');
+  assert.equal(await redirectedTo(order()), '/account/refresh?next=%2Faccount%2Forders%2Ford-1&ended=1');
+});
+
+test('the refresh route ends a session a page found dead, then goes to Log in', async () => {
+  resetCookies({ [SESSION_COOKIE]: JSON.stringify(session()) });
+  useAonik(() => undefined);
+
+  const response = await refresh(new Request('https://shop.test/account/refresh?next=%2Faccount%2Forders&ended=1'));
+
+  assert.equal(response.headers.get('Location'), '/login?next=%2Faccount%2Forders');
+  assert.equal(cookieValue(SESSION_COOKIE), undefined);
+  assert.equal(aonikRequests.length, 0);
+});
+
+test('a renewed session already inside the expiry skew is signed out, not sent round again', async () => {
+  resetCookies({ [SESSION_COOKIE]: JSON.stringify(session({ expiresAt: Date.now() - 1, refreshToken: 'refresh-1' })) });
+  useAonik((request) =>
+    request.path === '/auth/token'
+      ? { status: 200, body: { accessToken: 'a2', refreshToken: 'r2', expiresIn: 10, tokenType: 'Bearer', idToken: null } }
+      : undefined,
+  );
+
+  const response = await refresh(new Request('https://shop.test/account/refresh?next=%2Faccount%2Forders'));
+
+  assert.equal(response.headers.get('Location'), '/login?next=%2Faccount%2Forders');
 });
 
 test('the refresh route renews the cookie and goes on to the page', async () => {

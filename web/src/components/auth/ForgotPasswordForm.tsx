@@ -19,6 +19,7 @@ import styles from './AuthForm.module.css';
  */
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState('');
+  /** The client's own message; `''` once the customer edits, which hides a server one too. */
   const [local, setLocal] = useState<string | null>(null);
   const [state, formAction, isPending] = useActionState<AuthActionState, FormData>(
     requestPasswordResetAction,
@@ -27,7 +28,7 @@ export function ForgotPasswordForm() {
   const emailRef = useRef<HTMLInputElement>(null);
   const sentRef = useRef<HTMLHeadingElement>(null);
 
-  const emailError = local ?? state.fieldErrors?.email;
+  const emailError = (local ?? state.fieldErrors?.email) || undefined;
 
   useEffect(() => {
     if (state.status === 'sent') sentRef.current?.focus();
@@ -86,7 +87,7 @@ export function ForgotPasswordForm() {
           value={email}
           onChange={(event) => {
             setEmail(event.target.value);
-            setLocal(null);
+            setLocal('');
           }}
           aria-invalid={emailError ? 'true' : undefined}
           aria-describedby={emailError ? 'forgot-email-error' : undefined}

@@ -374,7 +374,10 @@ Conventions inside `web/` that are easy to get wrong:
   pages call `requireSignedIn(returnTo)` (`lib/auth/guard.ts`), which redirects to
   `/login?next=…` — or, for an expired session that has a refresh token, via
   `/account/refresh?next=…` (a route handler; a render cannot write the renewed cookie) — and a
-  session that dies mid-render does the same (`redirectToLogin`). Pinned by `tests/login.test.tsx`
+  session that dies mid-render goes through `/account/refresh?…&ended=1` (`redirectToLogin`), which
+  also ends the stale cookie. Log in and reset requests are limited per address by the storefront
+  itself (`loginByAddress`, `resetByAddress`, `resetByEmail`: Aonik sees only this server's address,
+  so one script could otherwise use up the whole site's allowance). Pinned by `tests/login.test.tsx`
   and `tests/account-redirect.test.tsx`.
 - **Internal links go through `next/link`.** `Button` and `NavLink` route on `href` automatically
   (`isExternalHref` in `src/lib/links.ts`); nav anchors are root-relative (`/#founder`) so they work
