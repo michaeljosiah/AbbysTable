@@ -13,9 +13,10 @@ import {
 
 import MenuPage from '../src/app/(site)/menu/page';
 import { DishCard } from '../src/components/sections/DishCard';
-import type { ProductSummaryDto } from '../src/lib/aonik/dto';
+import { HttpAonikClient } from '../src/lib/aonik/client';
+import type { ProductDto, ProductSummaryDto } from '../src/lib/aonik/dto';
 import { DISH_FIXTURES, DELIVERY_FIXTURE, PERSONALISATION_GROUP_SOURCE } from '../src/lib/aonik/fixtures';
-import { heatFromStep, mapSummaryToDish } from '../src/lib/aonik/map';
+import { heatFromStep, mapProductToDish, mapSummaryToDish } from '../src/lib/aonik/map';
 import { HEAT_LABELS, HEAT_STEPS, type Dish, type HeatLevel } from '../src/lib/aonik/types';
 import { CartProvider } from '../src/lib/cart/CartProvider';
 import { DELIVERY_NOTE, EATING_STYLE_DEFINITIONS } from '../src/lib/content/menu';
@@ -36,7 +37,7 @@ import { activeFilters, filterCount, resultLabel } from '../src/lib/menu/filters
 import { ALL_SORTS, parseMenuSort, sortDishes, sortOptions } from '../src/lib/menu/sort';
 import { nextTopShown } from '../src/lib/menu/topControl';
 
-import { aonikRequests, configureAonik, useAonik as stubAonik } from './support/aonik';
+import { AONIK_BASE, TENANT_ID, aonikRequests, configureAonik, useAonik as stubAonik } from './support/aonik';
 import { resetCookies } from './support/next-headers';
 
 /*
@@ -270,12 +271,26 @@ test('cream tags: the first eating style (or the homepage category), then the kc
 
 test('the seeded tenant authors demo’s four groups, matched on the tokens each dish publishes', () => {
   const groups = tenantFacetGroups();
-  // Demo's groups exactly — keys, labels, tokens — each matched on `facets.<key>`.
+  // Demo's groups exactly — keys, labels, tokens.
   assert.deepEqual(
-    groups.map(({ key, label, options }) => ({ key, label, options })),
+    groups.map(({ key, label, options }) => ({ key, label, options: options.map(({ value, label: text }) => ({ value, label: text })) })),
     MENU_FACET_GROUPS.map(({ key, label, options }) => ({ key, label, options })),
   );
-  assert.deepEqual(groups.map((group) => group.sourcePath), ['facets.protein', 'facets.wellness', 'facets.heat', 'facets.dietary']);
+  // Heat on Aonik's typed heat (aonik#359), so the filter and the card's pips
+  // read one field; the rest on `facets.<key>`.
+  assert.deepEqual(groups.map((group) => group.sourcePath), ['facets.protein', 'facets.wellness', 'heat', 'facets.dietary']);
+  assert.deepEqual(groups.map((group) => group.matchKind), ['Attribute', 'Attribute', 'Range', 'Attribute']);
+  const heat = groups.find((group) => group.key === 'heat')!;
+  // One-step half-open bands: Hot is [3, 4), so typed heat 3 and nothing else.
+  assert.deepEqual(
+    heat.options.map(({ value, min, max }) => ({ value, min, max })),
+    [
+      { value: 'none', min: 0, max: 1 },
+      { value: 'mild', min: 1, max: 2 },
+      { value: 'medium', min: 2, max: 3 },
+      { value: 'hot', min: 3, max: 4 },
+    ],
+  );
   assert.ok(!groups.some((group) => group.options.some((option) => option.value === 'dash')), 'no DASH chip');
   // A URL means the same in both modes: lamb, not "Lamb".
   assert.ok(groups[0].options.some((option) => option.value === 'lamb'));
@@ -615,6 +630,97 @@ test('live: the typed facts on Aonik’s rows win, and an unknown stays unknown'
   // A category that is not a protein source is not read as one.
   assert.equal(mapSummaryToDish(typedRow('soup', { categoryName: 'Soups' })).proteinType, undefined);
   assert.equal(mapSummaryToDish(typedRow('soup', { categoryName: 'Soups' }, { protein: 'Fish' })).proteinType, 'Fish');
+});
+
+/** A product detail as Aonik sends it since #359. */
+function productDetail(slug: string, typed: Partial<ProductDto>, attributes: Record<string, unknown> = {}): ProductDto {
+  return {
+    id: slug,
+    slug,
+    name: slug,
+    description: '',
+    status: 'Active',
+    kind: 'Simple',
+    categoryId: null,
+    tagsJson: '[]',
+    attributesJson: JSON.stringify(attributes),
+    variants: [],
+    media: [],
+    effectiveOptionGroups: [],
+    unitSurcharge: null,
+    unitSurchargeCurrency: null,
+    content: null,
+    contentVersion: null,
+    ...typed,
+  };
+}
+
+test('the detail read: typed heat over the attribute, the first IMAGE as the hero, no attribute figures', () => {
+  const typed = mapProductToDish(
+    productDetail(
+      'typed',
+      {
+        heat: 1,
+        componentsLine: 'Egusi · Pounded yam',
+        media: [
+          { id: 'm1', url: '/docs/menu.pdf', kind: 'doc', sortOrder: 0, altText: 'Menu' },
+          { id: 'm2', url: '/images/egusi.jpg', kind: 'image', sortOrder: 1, altText: 'Egusi in a clay bowl' },
+        ],
+      },
+      { heatStep: 3, kcal: 300, proteinGrams: 20 },
+    ),
+  );
+  assert.equal(typed.heat, 'low');
+  assert.equal(typed.parts, 'Egusi · Pounded yam');
+  // Aonik's hero is the first image; a menu PDF is never the photograph.
+  assert.equal(typed.imageUrl, '/images/egusi.jpg');
+  assert.equal(typed.imageAlt, 'Egusi in a clay bowl');
+  // A typed record with no content block publishes no figures: none stand in from attributes.
+  assert.equal(typed.nutrition.calories, undefined);
+  assert.equal(typed.nutrition.proteinGrams, undefined);
+  // Unknown typed heat stays unknown.
+  assert.equal(mapProductToDish(productDetail('unknown', { heat: null }, { heatStep: 2 })).heat, undefined);
+  // An older Aonik (no typed members): the attributes, as before.
+  const legacy = mapProductToDish(productDetail('legacy', {}, { heatStep: 2, kcal: 300 }));
+  assert.equal(legacy.heat, 'medium');
+  assert.equal(legacy.nutrition.calories, 300);
+});
+
+test('the homepage rail: a typed row’s figures, so a stale block makes no card claim the menu would not', async () => {
+  const client = new HttpAonikClient({ baseUrl: AONIK_BASE, tenantId: TENANT_ID });
+  // The row withholds the stale block's figures; the detail still carries them for the dish page.
+  const row = typedRow('stale', { description: 'Stew.', kcal: null, proteinGrams: null, fibreGrams: null, heat: 2 });
+  const detail = productDetail('stale', {
+    description: 'Stew.',
+    heat: 2,
+    content: {
+      servingLabel: 'Per portion',
+      nutrition: { kcal: 420, proteinGrams: 32, carbsGrams: 40, fatGrams: 12, fibreGrams: 5, sugarsGrams: 3, saltGrams: 1 },
+      ingredients: null,
+      allergens: null,
+      declarationsWithheld: true,
+      heating: [],
+      heatingWithheld: true,
+      isStandardPreparation: false,
+      isStale: true,
+      canonicalSelectionJson: '{}',
+      matchedVariantSelectionJson: null,
+      contentVersion: 2,
+    },
+    contentVersion: 2,
+  });
+  stubAonik((request) => {
+    if (request.path === '/commerce/catalog/collections/featured') {
+      return { status: 200, body: { id: 'c', slug: 'featured', title: 'Featured', subtitle: null, kind: 'Manual', sortOrder: 0, products: [row] } };
+    }
+    if (request.path === '/commerce/catalog/products/stale') return { status: 200, body: detail };
+    return undefined;
+  });
+  const [card] = await client.getFeaturedDishes();
+  assert.equal(card.isFeatured, true);
+  assert.equal(card.heat, 'medium');
+  assert.deepEqual(card.nutrition, { proteinGrams: undefined, fibreGrams: undefined, calories: undefined });
+  assert.equal(isUnderKcal(card), false, 'no "Under 500 kcal" from figures under review');
 });
 
 test('live: Recommended sends no sort — the menu collection’s rank is Aonik’s default', async () => {

@@ -564,7 +564,11 @@ export function mapProductToDish(dto: ProductDto): Dish {
   const attributes = readAttributes(dto.attributesJson);
   const content = dto.content ? mapResolvedContent(dto.content) : null;
   const tags = parseJsonStringArray(dto.tagsJson);
-  const hero = [...dto.media].sort((a, b) => a.sortOrder - b.sortOrder)[0];
+  // The first IMAGE, as Aonik picks a row's hero: a menu PDF is never the photograph.
+  const hero = [...dto.media].filter((media) => media.kind === 'image').sort((a, b) => a.sortOrder - b.sortOrder)[0];
+  // A typed record (aonik#359) publishes its figures through content only: no
+  // attribute figures stand in where its content has none.
+  const typed = 'heat' in dto;
 
   return {
     id: dto.id,
@@ -578,13 +582,17 @@ export function mapProductToDish(dto: ProductDto): Dish {
     tags,
     isSignature: dto.unitSurcharge !== null,
     upgradePence: toPenceOrUndefined(dto.unitSurcharge),
-    nutrition: content?.nutrition ?? {
-      proteinGrams: attributes.proteinGrams,
-      fibreGrams: attributes.fibreGrams,
-      carbsGrams: attributes.carbsGrams,
-      fatGrams: attributes.fatGrams,
-      calories: attributes.kcal,
-    },
+    nutrition:
+      content?.nutrition ??
+      (typed
+        ? {}
+        : {
+            proteinGrams: attributes.proteinGrams,
+            fibreGrams: attributes.fibreGrams,
+            carbsGrams: attributes.carbsGrams,
+            fatGrams: attributes.fatGrams,
+            calories: attributes.kcal,
+          }),
     isFeatured: false,
     proteinType: proteinSource(dto.categoryName, attributes),
     mealType: attributes.meal as Dish['mealType'],

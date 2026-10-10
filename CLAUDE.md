@@ -172,8 +172,12 @@ Conventions inside `web/` that are easy to get wrong:
   before the browse — it would 400) and sorts by all three (Recommended = the `menu` collection's
   rank, `protein-desc`, `calories-asc`; aonik#359); demo mirrors Aonik in `MockAonikClient`.
   Aonik's rows carry typed facts (description, heat 0–3, components line, category, hero alt,
-  kcal/protein/fibre): a typed member that is PRESENT wins over `attributesJson`, and null there is
-  unknown (a stale figure is withheld as null) — never refilled from an attribute (`map.ts`). A
+  kcal/protein/fibre): a typed FACT that is present (heat, the figures) wins over `attributesJson`,
+  and null there is unknown (a stale figure is withheld as null) — never refilled from an attribute
+  (`map.ts`); copy (description, components line) and the protein source fall back to the attribute
+  only while the typed value is blank. The homepage rail takes a typed row's figures, never the
+  detail read's, so a stale block makes no card claim; the dish hero is the first `image` media.
+  The seed authors typed heat and the heat facet as Range bands on it (`tenantFacetGroups`). A
   dish matches only through a field it carries — no heat published, no heat row and no heat chip
   (`heatFromStep` never defaults to "Medium"); "Low sugar" is a live tenant facet on Aonik's typed
   `lowSugar` and has no chip in demo, whose dishes carry no such flag. "Next deliveries from" is Aonik's

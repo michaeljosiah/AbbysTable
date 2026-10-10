@@ -139,24 +139,45 @@ export const FACET_ATTRIBUTE = 'facets';
 export interface TenantFacetGroup {
   key: string;
   label: string;
-  /** The dot path into `attributesJson` Aonik matches the group's values against. */
+  matchKind: 'Attribute' | 'Range';
+  /**
+   * What Aonik matches the group's values against: a dot path into
+   * `attributesJson`, or one of its typed fields (`heat`, aonik#359).
+   */
   sourcePath: string;
-  options: MappedFacetOption[];
+  /** A Range group's options carry their half-open band, [min, max). */
+  options: Array<MappedFacetOption & { min?: number; max?: number }>;
 }
 
 /**
  * The design's four groups as a tenant should author them: demo's own groups,
- * values and labels unchanged, each matched on `facets.<key>`. No DASH, no
- * meal type, no calories: the groups the page no longer draws are not
- * authored either.
+ * values and labels unchanged. Heat is matched on Aonik's TYPED heat (0–3,
+ * aonik#359) as one-step bands, so the filter and the card's pips read the same
+ * field — the card shows typed heat wherever the record carries it; the rest on
+ * `facets.<key>`. No DASH, no meal type, no calories: the groups the page no
+ * longer draws are not authored either.
  */
 export function tenantFacetGroups(): TenantFacetGroup[] {
-  return MENU_FACET_GROUPS.map((group) => ({
-    key: group.key,
-    label: group.label,
-    sourcePath: `${FACET_ATTRIBUTE}.${group.key}`,
-    options: group.options.map(({ value, label }) => ({ value, label })),
-  }));
+  return MENU_FACET_GROUPS.map((group) =>
+    group.key === FACET_KEY.heat
+      ? {
+          key: group.key,
+          label: group.label,
+          matchKind: 'Range' as const,
+          sourcePath: 'heat',
+          options: group.options.map(({ value, label }) => {
+            const step = heatChipPips(value);
+            return { value, label, min: step, max: step + 1 };
+          }),
+        }
+      : {
+          key: group.key,
+          label: group.label,
+          matchKind: 'Attribute' as const,
+          sourcePath: `${FACET_ATTRIBUTE}.${group.key}`,
+          options: group.options.map(({ value, label }) => ({ value, label })),
+        },
+  );
 }
 
 /**

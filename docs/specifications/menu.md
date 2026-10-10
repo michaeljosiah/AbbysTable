@@ -152,11 +152,20 @@ counts only for a source without the typed member; anything absent or not an int
 no heat (it used to read "Medium"), and every surface (card, dish page, Standards and How It Works
 examples, Add Dishes, Review) SHALL leave the heat out rather than draw a level. The same holds for
 the card's figures: Aonik's typed kcal, protein and fibre (null when unknown or withheld as stale)
-over the attributes, and the protein source is the product's category where it names one.
+over the attributes (the homepage rail takes them from the row too, never the detail read), and the
+protein source is the product's category where it names one. Copy — the description and the
+components line — falls back to the legacy attribute only while the typed value is blank. A seeded
+tenant authors typed heat and its heat facet as one-step Range bands on it, so the filter and the
+pips read one field.
 
 #### Scenario: No heat published
-- **WHEN** a live row has no `heatStep`
+- **WHEN** a live row's typed `heat` is null (or, from an older Aonik, it has no `heatStep`)
 - **THEN** its card has no pips and no heat word, and it matches none of None/Mild/Medium/Hot
+
+#### Scenario: Figures under review
+- **WHEN** a dish's default content block is stale, so Aonik withholds its figures from rows
+- **THEN** neither its menu card nor its homepage rail card shows protein, fibre or "Under 500
+  kcal", and it sorts after every dish with the figure
 
 ### Requirement: FR-07 Sort, at the source
 `capability: catalog-browse` · `delta: ADDED (feat/menu-landing-v3)`

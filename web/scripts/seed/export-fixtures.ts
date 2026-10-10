@@ -63,6 +63,10 @@ console.log(
       dishes: DISH_FIXTURES.map((dish) => ({
         ...dish,
         name: dish.title,
+        // Aonik's typed facts (aonik#359), which the storefront reads before
+        // any attribute: heat 0–3 (null when unpublished) and the components line.
+        heatLevel: dish.heat === undefined ? null : HEAT_STEPS[dish.heat],
+        componentsLine: dish.parts ?? null,
         attributes: attributesOf(dish),
         // Admin money is decimal major units; the fixtures store pence.
         unitSurcharge: dish.upgradePence === undefined ? null : dish.upgradePence / 100,
@@ -71,7 +75,7 @@ console.log(
       box: BOX_PRICING_FIXTURE,
       heating: HEATING_FIXTURE,
       optionGroups: PERSONALISATION_GROUP_SOURCE,
-      // The menu's four filter groups, matched on `facets.<key>`.
+      // The menu's four filter groups: heat on the typed field, the rest on `facets.<key>`.
       facetGroups: tenantFacetGroups(),
     },
     null,

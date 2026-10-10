@@ -427,18 +427,19 @@ export class HttpAonikClient implements AonikClient {
         `/commerce/catalog/collections/${encodeURIComponent(FEATURED_COLLECTION_SLUG)}`,
       );
 
-      const summaries = collection.products.map((product) => ({
-        ...mapSummaryToDish(product),
-        isFeatured: true,
-      }));
-
       return await Promise.all(
-        summaries.map(async (summary) => {
+        collection.products.map(async (product) => {
+          const summary = { ...mapSummaryToDish(product), isFeatured: true };
+          // A typed row's figures are the card's (aonik#359): Aonik withholds a
+          // stale block's from cards, which the detail read still carries for
+          // the dish page's captioned panel — so the rail card agrees with /menu.
+          const typedFigures = 'kcal' in product || 'proteinGrams' in product || 'fibreGrams' in product;
           try {
             const detail = await this.getDishBySlug(summary.slug);
             // Curation lives on the collection, not the product, so `isFeatured`
             // is re-applied over the detail read.
-            return detail ? { ...detail, isFeatured: true } : summary;
+            if (!detail) return summary;
+            return { ...detail, nutrition: typedFigures ? summary.nutrition : detail.nutrition, isFeatured: true };
           } catch {
             return summary;
           }
