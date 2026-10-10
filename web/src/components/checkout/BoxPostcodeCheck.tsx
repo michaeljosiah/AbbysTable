@@ -34,12 +34,13 @@ export function BoxPostcodeCheck() {
 
   const { busy, message, result } = state;
 
-  const check = async (raw: string) => {
+  /** `fromUser`: a check the customer asked for may take focus; the prefill never does. */
+  const check = async (raw: string, fromUser = true) => {
     const entry = readPostcodeEntry(raw);
     if (!entry.ok) {
       ++counter.current;
       dispatch({ type: 'correct', message: entry.reason });
-      inputRef.current?.focus();
+      if (fromUser) inputRef.current?.focus();
       return;
     }
     const request = ++counter.current;
@@ -54,8 +55,10 @@ export function BoxPostcodeCheck() {
     if (request !== counter.current) return;
     if (answer.status === 'invalid') {
       dispatch({ type: 'correct', message: 'invalid', request });
-      inputRef.current?.focus();
-      inputRef.current?.select();
+      if (fromUser) {
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      }
       return;
     }
     const next: CheckerResult =
@@ -76,7 +79,7 @@ export function BoxPostcodeCheck() {
     const carried = readCheckedPostcode(sessionStore());
     if (!carried || inputRef.current?.value) return;
     setValue(carried);
-    void checkRef.current(carried);
+    void checkRef.current(carried, false);
   }, []);
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -143,16 +146,19 @@ export function BoxPostcodeCheck() {
               Meal delivery is available to <strong>mainland UK addresses only.</strong>
             </p>
           </div>
-          {line ? (
-            <p className={styles.message} id={messageId} data-tone={tone} role="status" aria-live="polite">
-              {line}
-              {result?.kind === 'not-served' ? (
-                <>
-                  See <Link href={DELIVERY_FAQS_HREF}>Delivery &amp; FAQs</Link> for our latest delivery areas.
-                </>
-              ) : null}
-            </p>
-          ) : null}
+          {/* Always mounted, so a screen reader announces what arrives in it. */}
+          <div className={styles.live} role="status" aria-live="polite">
+            {line ? (
+              <p className={styles.message} id={messageId} data-tone={tone}>
+                {line}
+                {result?.kind === 'not-served' ? (
+                  <>
+                    See <Link href={DELIVERY_FAQS_HREF}>Delivery &amp; FAQs</Link> for our latest delivery areas.
+                  </>
+                ) : null}
+              </p>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>

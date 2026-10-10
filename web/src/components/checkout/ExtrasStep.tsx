@@ -453,9 +453,10 @@ export function ExtrasStep({
       <div className={styles.estRow}>
         <span>{boxLabel}</span>
         <span className={styles.estStrong}>
+          {/* The box row is the box — the delivery row below it is its own. */}
           {boxTotals?.totalPence === undefined
             ? 'Price unavailable'
-            : formatPrice(boxTotals.totalPence)}
+            : formatPrice(boxTotals.totalPence - boxTotals.deliveryPence)}
         </span>
       </div>
       {extrasSum.quantity > 0 ? (

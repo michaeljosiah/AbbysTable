@@ -127,6 +127,10 @@
   color: var(--green-forest);
 }
 
+.live:empty {
+  display: contents;
+}
+
 .message {
   margin: 0;
   padding-top: 10px;

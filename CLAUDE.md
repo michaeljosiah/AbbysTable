@@ -219,10 +219,12 @@ Conventions inside `web/` that are easy to get wrong:
   "Your box has N dishes. To choose a smaller box, remove dishes on the next step." — nothing
   is deleted. Set-your-own's quantity is typeable (two digits; an out-of-range entry reverts with
   "Choose between 6 and 99 dishes."). The postcode band is the Delivery & FAQs lookup
-  (`lib/delivery/*`, the session hand-off) and renders only where `AonikClient.coverage` exists.
-  "Back" is a real `history.back()` when `NavigationTrail` (root layout; the path only, in
-  sessionStorage) knows there is a page of this site behind it that is not the funnel; otherwise
-  it is the link to the menu. The demo steps' running total includes delivery, as Review's
+  (`lib/delivery/*`, the session hand-off) and renders wherever the client has a coverage lookup (live answers "could not check" until the
+  tenant's coverage is configured, aonik#352, as Delivery & FAQs does).
+  "Back" is a real `history.back()` when the router's last hop (`NavigationTrail`, root layout;
+  `{from, to}` paths only, in sessionStorage, trusted only for the page it ends on and cleared by
+  a full load) shows a page of this site behind it that is not the funnel — decided when the link
+  is CLICKED, never at mount; otherwise it is the link to the menu. The demo steps' running total includes delivery, as Review's
   demo quote and a live quote do (`cartTotals`).
 - **Menu (#21, Menu Landing v3): the rules live React-free in `src/lib/menu/`** — the four
   groups and their matching (`facets.ts`), the pills and result line (`filters.ts`), the three

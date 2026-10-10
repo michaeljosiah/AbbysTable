@@ -4,9 +4,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { BOX_FIXTURES, BOX_PRICING_FIXTURE, STOREFRONT_CONFIG_FIXTURE } from '../src/lib/aonik/fixtures';
-import { heldSizeCopy, rangeError, readTypedSize, resolveEntrySize, sizeFloor } from '../src/lib/box/entry';
+import { deriveSelection, entrySizeFromLink, heldSizeCopy, rangeError, readTypedSize, resolveEntrySize, selectionForSize, sizeFloor } from '../src/lib/box/entry';
 import { boxPricePence, cartTotals, customBoxPricePence } from '../src/lib/cart/CartProvider';
-import { canGoBackTo, isSitePath, readPreviousPath, recordPath, TRAIL_KEY } from '../src/lib/dom/trail';
+import { canGoBackTo, clearHop, isSitePath, readPreviousPath, recordHop, TRAIL_KEY } from '../src/lib/dom/trail';
 
 /*
  * Choose Box v2 (#28): the entry size from `?dishes=`, the size a box can take,
@@ -39,7 +39,7 @@ test('a box is never smaller than the dishes in it, and nothing says it is delet
   assert.equal(heldSizeCopy(1), 'Your box has 1 dish. To choose a smaller box, remove dishes on the next step.');
 });
 
-test('a typed quantity: a whole number in range is taken; below the dishes held it is raised; anything else reverts with the range', () => {
+test('a typed quantity: a whole number in range is taken; below the dishes held it is raised; anything else changes nothing and says the range', () => {
   const bounds = { min: 6, max: 99, floor: 9 };
   assert.deepEqual(readTypedSize('24', bounds), { ok: true, size: 24 });
   assert.deepEqual(readTypedSize(' 24 ', bounds), { ok: true, size: 24 });
@@ -48,8 +48,33 @@ test('a typed quantity: a whole number in range is taken; below the dishes held 
   assert.deepEqual(readTypedSize('7', bounds), { ok: true, size: 9 });
   const error = rangeError(6, 99);
   assert.equal(error, 'Choose between 6 and 99 dishes.');
+  // An entry we cannot use carries no size at all: the quantity the field had stands.
   for (const bad of ['', '0', '5', '100', 'abc', '1.5', '-8', '1e2']) {
-    assert.deepEqual(readTypedSize(bad, bounds), { ok: false, error, revertTo: 9 }, bad);
+    assert.deepEqual(readTypedSize(bad, bounds), { ok: false, error }, bad);
+  }
+});
+
+test('what is lit: a choice below the box’s floor is raised to its tier or to set-your-own, and said; the size already held is adopted whole', () => {
+  const presets = PRESETS;
+  const preset = (size: number) => ({ source: 'preset' as const, size });
+  // Nothing raised.
+  assert.deepEqual(deriveSelection({ chosen: preset(12), chosenQty: 6, floor: 6, presets }), { selection: preset(12), customQty: 6, raised: false });
+  // Choosing the tier the box is already at is a choice, not a raise.
+  assert.equal(deriveSelection({ chosen: preset(12), chosenQty: 6, floor: 12, presets }).raised, false);
+  // Six chosen, twelve held: raised to the 12 tier.
+  assert.deepEqual(deriveSelection({ chosen: preset(6), chosenQty: 6, floor: 12, presets }), { selection: preset(12), customQty: 12, raised: true });
+  // Six chosen, eleven held: no tier of eleven, so set-your-own at eleven.
+  assert.deepEqual(deriveSelection({ chosen: preset(6), chosenQty: 6, floor: 11, presets }), { selection: { source: 'custom' }, customQty: 11, raised: true });
+  // A typed 8 over a floor of 11.
+  assert.deepEqual(deriveSelection({ chosen: { source: 'custom' }, chosenQty: 8, floor: 11, presets }), { selection: { source: 'custom' }, customQty: 11, raised: true });
+
+  // A live box reports a plain size: a tier lights its card, anything else opens set-your-own at it.
+  assert.deepEqual(selectionForSize(12, presets), { selection: preset(12), customQty: null });
+  assert.deepEqual(selectionForSize(24, presets), { selection: { source: 'custom' }, customQty: 24 });
+
+  // A link's size is this entry's choice only when it named one we recognise.
+  for (const [param, from] of [['12', true], ['custom', true], ['24', true], ['', false], ['banana', false], [undefined, false], ['100', false]] as const) {
+    assert.equal(entrySizeFromLink(param, presets, 6, 99), from, String(param));
   }
 });
 
@@ -76,6 +101,13 @@ test('one demo plan: £158 for six, the tiers and the custom scale derive from i
   // The steps' running total counts delivery, as Review's demo quote and a live quote do.
   const total = cartTotals({ boxSize: 6, isCustom: false, lines: [] }, BOX_PRICING_FIXTURE);
   assert.equal(total.totalPence, 15800 + 595);
+  assert.equal(total.deliveryPence, 595);
+  // …so a screen that prints the box and delivery on their own rows can make the rows add up to the total.
+  assert.equal(total.boxPence + (total.surchargePence ?? 0) + total.extraPence + total.deliveryPence, total.totalPence);
+  const line = { lineId: 'l', dishId: 'd', slug: 's', title: 't', imageUrl: '/i.jpg', quantity: 8, surchargePence: 100 };
+  const over = cartTotals({ boxSize: 6, isCustom: false, lines: [line] }, BOX_PRICING_FIXTURE);
+  assert.equal(over.extraDishes, 2, 'two dishes beyond the box');
+  assert.equal(over.totalPence, 15800 + 800 + 2 * BOX_PRICING_FIXTURE.extraDishPence + 595);
 
   // Delivery is the same figure in the steps and in the storefront config, and never a struck-through "was".
   const delivery = BOX_PRICING_FIXTURE.delivery!;
@@ -83,7 +115,7 @@ test('one demo plan: £158 for six, the tiers and the custom scale derive from i
   assert.equal(delivery.pricePence, STOREFRONT_CONFIG_FIXTURE.delivery.chargedPence);
 });
 
-test('Back goes back only to a page of this site that is not the box builder; the trail keeps a path, never a query', () => {
+test('Back goes back only to a page of this site that is not the box builder; a hop is trusted only for the page it ends on', () => {
   assert.equal(canGoBackTo('/dishes/seafood-okra', '/menu'), true);
   assert.equal(canGoBackTo('/how-it-works', '/menu'), true);
   assert.equal(canGoBackTo('/menu', '/menu'), true);
@@ -94,13 +126,30 @@ test('Back goes back only to a page of this site that is not the box builder; th
   for (const bad of ['//evil.test/menu', 'https://evil.test', 'menu', '/a b', '/a\\b', '', null, 5]) assert.equal(isSitePath(bad), false, String(bad));
 
   const store = new Map<string, string>();
-  const storage = { getItem: (key: string) => store.get(key) ?? null, setItem: (key: string, value: string) => void store.set(key, value) };
-  assert.equal(readPreviousPath(storage), null);
-  recordPath(storage, '/dishes/seafood-okra');
-  assert.equal(readPreviousPath(storage), '/dishes/seafood-okra');
-  recordPath(storage, '//evil.test');
-  assert.equal(store.get(TRAIL_KEY), '/dishes/seafood-okra', 'a path that is not ours is never kept');
-  // Unreadable storage is no trail, not an error.
-  assert.equal(readPreviousPath({ getItem: () => { throw new Error('blocked'); } }), null);
-  recordPath({ setItem: () => { throw new Error('full'); } }, '/menu');
+  const storage = {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => void store.set(key, value),
+    removeItem: (key: string) => void store.delete(key),
+  };
+  assert.equal(readPreviousPath(storage, '/box'), null);
+  recordHop(storage, '/how-it-works', '/box');
+  assert.equal(readPreviousPath(storage, '/box'), '/how-it-works');
+  // Another visit to another site and back, landing on a different page: the old hop is not about this page.
+  assert.equal(readPreviousPath(storage, '/menu'), null);
+  // A full load starts a trail of its own.
+  clearHop(storage);
+  assert.equal(readPreviousPath(storage, '/box'), null);
+
+  recordHop(storage, '/menu', '/box');
+  recordHop(storage, '//evil.test', '/box');
+  assert.equal(readPreviousPath(storage, '/box'), '/menu', 'a path that is not ours is never kept');
+  assert.ok(store.get(TRAIL_KEY)?.includes('/menu'));
+  store.set(TRAIL_KEY, 'not json');
+  assert.equal(readPreviousPath(storage, '/box'), null);
+  store.set(TRAIL_KEY, JSON.stringify({ from: '//evil.test', to: '/box' }));
+  assert.equal(readPreviousPath(storage, '/box'), null);
+  // Unreadable or unwritable storage is no trail, not an error.
+  assert.equal(readPreviousPath({ getItem: () => { throw new Error('blocked'); } }, '/box'), null);
+  recordHop({ setItem: () => { throw new Error('full'); } }, '/menu', '/box');
+  clearHop({ removeItem: () => { throw new Error('blocked'); } });
 });

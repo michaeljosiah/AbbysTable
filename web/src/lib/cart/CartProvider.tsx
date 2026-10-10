@@ -596,13 +596,15 @@ export function cartTotals(
   const overflow = state.boxSize === null ? 0 : Math.max(0, dishCount - state.boxSize);
   const extras = overflow * pricing.extraDishPence;
 
+  const delivery = pricing.delivery?.pricePence ?? 0;
   return {
     dishCount,
     boxPence: box,
     surchargePence: surcharges,
     extraDishes: overflow,
     extraPence: extras,
-    totalPence: surcharges === undefined ? undefined : box + surcharges + extras + (pricing.delivery?.pricePence ?? 0),
+    deliveryPence: delivery,
+    totalPence: surcharges === undefined ? undefined : box + surcharges + extras + delivery,
   };
 }
 

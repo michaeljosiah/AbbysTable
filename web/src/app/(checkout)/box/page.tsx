@@ -4,7 +4,7 @@ import { BackLink } from '@/components/checkout/BackLink';
 import { BoxChooser } from '@/components/checkout/BoxChooser';
 import { BoxPostcodeCheck } from '@/components/checkout/BoxPostcodeCheck';
 import { getAonikClient } from '@/lib/aonik/client';
-import { resolveEntrySize } from '@/lib/box/entry';
+import { entrySizeFromLink, resolveEntrySize } from '@/lib/box/entry';
 import { formatDeliveryDate } from '@/lib/format';
 
 import styles from './page.module.css';
@@ -67,7 +67,7 @@ export default async function ChooseBoxPage({
           pricing={pricing}
           earliestDeliveryLabel={formatDeliveryDate(delivery?.earliestDeliveryDate)}
           initialSize={initialSize}
-          sizeFromLink={dishes !== undefined}
+          sizeFromLink={entrySizeFromLink(dishes, pricing.presets, pricing.custom.minDishes, pricing.custom.maxDishes)}
           heading={
             <div className={styles.stepHeading}>
               {/* The progress band above already says "Step 1 of 5". */}

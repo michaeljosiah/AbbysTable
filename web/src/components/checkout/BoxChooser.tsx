@@ -15,7 +15,7 @@ import {
 } from 'react';
 
 import { type BoxOffer, type BoxPricing } from '@/lib/aonik/types';
-import { heldSizeCopy, readTypedSize, sizeFloor, type EntrySize } from '@/lib/box/entry';
+import { deriveSelection, heldSizeCopy, readTypedSize, selectionForSize, sizeFloor, type EntrySize, type Selection } from '@/lib/box/entry';
 import {
   boxPricePence,
   cartTotals,
@@ -60,7 +60,6 @@ interface BoxChooserProps {
 }
 
 /** Which card is lit. A custom box takes its size from the stepper. */
-type Selection = { source: 'preset'; size: number } | { source: 'custom' };
 
 function presetFor(pricing: BoxPricing, size: number): BoxOffer | undefined {
   return pricing.presets.find((offer) => offer.dishCount === size);
@@ -98,7 +97,6 @@ function offerFor(pricing: BoxPricing, size: number) {
 export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSize, sizeFromLink }: BoxChooserProps) {
   const {
     boxSize,
-    isCustom: cartIsCustom,
     lines,
     hydrated,
     addLine,
@@ -113,6 +111,7 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
   const summaryTitleId = useId();
   const sheetTitleId = useId();
   const typedErrorId = useId();
+  const typedErrorIdSm = useId();
 
   // The template preselects the entry box rather than starting empty.
   const [chosen, setSelection] = useState<Selection>(
@@ -129,14 +128,7 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
    */
   const heldDishes = !hydrated ? 0 : isServerCart ? (quote?.unitsSelected ?? 0) : lines.reduce((total, line) => total + line.quantity, 0);
   const floor = sizeFloor(heldDishes, minDishes, maxDishes);
-  const chosenSize = chosen.source === 'custom' ? chosenQty : chosen.size;
-  const raised = chosenSize < floor;
-  const selection: Selection = raised
-    ? presetFor(pricing, floor)
-      ? { source: 'preset', size: floor }
-      : { source: 'custom' }
-    : chosen;
-  const customQty = raised ? floor : chosenQty;
+  const { selection, customQty, raised } = deriveSelection({ chosen, chosenQty, floor, presets: pricing.presets });
 
   const [estOpen, setEstOpen] = useState(true);
   const [tipOpen, setTipOpen] = useState(false);
@@ -155,9 +147,12 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
   // Adopt a size chosen on an earlier visit, once storage has been read.
   useEffect(() => {
     if (sizeFromLink || !hydrated || boxSize === null) return;
-    setSelection(cartIsCustom ? { source: 'custom' } : { source: 'preset', size: boxSize });
-    if (cartIsCustom) setCustomQty(boxSize);
-  }, [sizeFromLink, hydrated, boxSize, cartIsCustom]);
+    // A live box reports a plain size (never "custom"): a size that is no tier
+    // is set-your-own at that size, whatever the cart says.
+    const adopted = selectionForSize(boxSize, pricing.presets);
+    setSelection(adopted.selection);
+    if (adopted.customQty !== null) setCustomQty(adopted.customQty);
+  }, [sizeFromLink, hydrated, boxSize, pricing.presets]);
 
   const customSelected = selection.source === 'custom';
   const size = selection.source === 'custom' ? customQty : selection.size;
@@ -182,8 +177,8 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
   const carried = hydrated ? (lines[0] ?? null) : null;
   const carriedNote = carried?.personalisation ? 'Personalised on the dish page' : null;
 
-  // The box holds more than the smallest tier and is as small as it can be.
-  const held = heldDishes > minDishes && size === heldDishes;
+  // A smaller tier was chosen than the box can take: raised, and said.
+  const held = raised;
   const filled = Math.min(totals.dishCount, size);
   const remaining = size - filled;
   const boxLabel = `${size}-dish box`;
@@ -214,14 +209,17 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
     );
   };
 
-  /** A typed quantity is taken when the field is left or Enter is pressed; anything else reverts. */
+  /**
+   * A typed quantity is taken when the field is left or Enter is pressed. One
+   * we cannot use changes nothing: the field shows the quantity it had, with
+   * the range said beside it.
+   */
   const takeTyped = () => {
     if (typed === null) return;
     const result = readTypedSize(typed, { min: minDishes, max: maxDishes, floor });
     setTyped(null);
     if (!result.ok) {
       setTypedError(result.error);
-      setCustomQty(result.revertTo);
       return;
     }
     setTypedError(null);
@@ -230,7 +228,7 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
   };
 
   /** The quantity, typeable (both layouts): digits only, taken on blur or Enter. */
-  const quantityInput = (className: string) => (
+  const quantityInput = (className: string, errorId: string) => (
     <input
       className={className}
       type="text"
@@ -240,7 +238,7 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
       value={typed ?? String(customQty)}
       aria-label={`Number of dishes, ${minDishes} to ${maxDishes}`}
       aria-invalid={typedError ? true : undefined}
-      aria-describedby={typedError ? typedErrorId : undefined}
+      aria-describedby={typedError ? errorId : undefined}
       onClick={(event) => event.stopPropagation()}
       onFocus={(event) => event.currentTarget.select()}
       onChange={(event) => {
@@ -257,11 +255,13 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
     />
   );
 
-  const typedErrorLine = typedError ? (
-    <p className={styles.typedError} id={typedErrorId} role="alert">
-      {typedError}
-    </p>
-  ) : null;
+  // One id per layout: both are in the markup, one hidden by CSS.
+  const typedErrorLine = (errorId: string) =>
+    typedError ? (
+      <p className={styles.typedError} id={errorId} role="status">
+        {typedError}
+      </p>
+    ) : null;
 
   const onCardKeyDown = (event: KeyboardEvent<HTMLDivElement>, select: () => void) => {
     // Ignore keys that belong to the stepper buttons inside the card.
@@ -601,7 +601,7 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
                     >
                       −
                     </button>
-                    {quantityInput(styles.stepInput)}
+                    {quantityInput(styles.stepInput, typedErrorId)}
                     <button
                       type="button"
                       className={styles.stepButton}
@@ -613,7 +613,7 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
                     </button>
                   </span>
 
-                  {typedErrorLine}
+                  {typedErrorLine(typedErrorId)}
 
                   <span className={styles.priceRow} data-variant="open">
                     {customOffer.listPence !== undefined ? (
@@ -772,7 +772,7 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
                     >
                       −
                     </button>
-                    {quantityInput(`${styles.stepInput} ${styles.stepInputSm}`)}
+                    {quantityInput(`${styles.stepInput} ${styles.stepInputSm}`, typedErrorIdSm)}
                     <button
                       type="button"
                       className={styles.stepButton}
@@ -784,7 +784,7 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
                       +
                     </button>
                   </span>
-                  {typedErrorLine}
+                  {typedErrorLine(typedErrorIdSm)}
                   <span className={styles.rowPriceCol}>
                     <span className={styles.rowPriceLine}>
                       {customOffer.listPence !== undefined ? (

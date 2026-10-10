@@ -1604,10 +1604,12 @@
 /* ---- Set your own: a typeable quantity, and the line under it ---------------------------------- */
 
 .stepInput {
+  box-sizing: border-box;
   width: 74px;
-  padding: 0;
+  min-height: 44px;
+  padding: 0 4px;
   border: 0;
-  border-bottom: 1px solid transparent;
+  border-bottom: 1.5px solid var(--sand-2);
   border-radius: 0;
   background: transparent;
   text-align: center;
@@ -1629,9 +1631,10 @@
 }
 
 .typedError {
+  flex-basis: 100%;
   margin: 8px 0 0;
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.4;
   color: var(--terracotta-ink);
   text-align: center;
@@ -1646,6 +1649,6 @@
 }
 
 .stepInputSm {
-  width: 52px;
+  width: 56px;
   font-size: 24px;
 }
