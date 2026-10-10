@@ -1,7 +1,7 @@
 /* ===========================================================================
    Log in and Forgot password — design/Abby's Table - Log in.dc.html
    ---------------------------------------------------------------------------
-   Mobile is the base; 640 adds the card's padding, min-width only. One band
+   Mobile is the base; 640 and 1024 apply the approved spacing, min-width only. One band
    holds the page open to a full viewport so the footer cannot ride up under a
    short card (min-height, never a fixed height: it grows with accessibility
    text; dvh so mobile browser chrome cannot clip it). Field, label and error
@@ -194,7 +194,9 @@
   font-family: var(--font-sans);
   font-size: 16px;
   color: var(--green-forest);
-  transition: color 0.16s ease, border-color 0.16s ease;
+  transition:
+    color 0.16s ease,
+    border-color 0.16s ease;
 }
 
 .link:hover span {
@@ -318,8 +320,28 @@
 }
 
 @media (min-width: 640px) {
+  .page {
+    padding: 56px 0 60px;
+    min-height: calc(100dvh - 230px);
+  }
+  .inner {
+    padding-inline: 34px;
+  }
   .card {
-    padding: 32px 36px 34px;
+    padding: 30px 30px 32px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .page {
+    padding: 72px 0 76px;
+    min-height: calc(100dvh - 250px);
+  }
+  .inner {
+    padding-inline: 48px;
+  }
+  .card {
+    padding: 34px 34px 36px;
   }
 }
 

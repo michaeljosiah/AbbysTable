@@ -145,11 +145,7 @@ export function FlowShell({
         {quote ? (
           summaryRows(quote, { deliveryDate: null }).map((row) => (
             <div key={row.key}>
-              <dt>
-                {row.label === 'Personalisation' && !legacy
-                  ? 'Full Table'
-                  : row.label}
-              </dt>
+              <dt>{row.label}</dt>
               <dd>
                 {row.was && <del>{row.was}</del>} {row.value}
               </dd>

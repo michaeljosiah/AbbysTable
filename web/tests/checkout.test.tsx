@@ -2,6 +2,8 @@ import './support/runtime';
 
 import assert from 'node:assert/strict';
 import test, { mock } from 'node:test';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { HelpPanel } from '../src/components/checkout/HelpPanel';
 
 import { DELETE as checkoutDelete, GET as checkoutGet, PUT as checkoutPut } from '../src/app/api/checkout/[action]/route';
 import type { BoxCartDto, CartDeliveryReservationDto, CheckoutDraftResponseDto } from '../src/lib/aonik/dto';
@@ -290,6 +292,14 @@ test('the summary renders Aonik’s components as given, a row only where it app
   );
   // No date held yet: "Delivery", never the suggestion as though it were chosen.
   assert.equal(summaryRows(quote, { deliveryDate: null }).find((row) => row.key.startsWith('deliveryCharged'))?.label, 'Delivery');
+  assert.deepEqual(
+    summaryRows({ ...quote, components: [
+      { key: 'personalisation', amountPence: 1000 },
+      { key: 'unitSurcharges', amountPence: 900 },
+    ] }, { deliveryDate: null }).map(({ label, value }) => [label, value]),
+    [['Full Table portions', '+£10.00'], ['Signature upgrades', '+£9.00']],
+    'Full Table and Signature remain separate, without the old personaliser label',
+  );
 });
 
 /* ---- The route, against Aonik ------------------------------------------------------- */
@@ -620,4 +630,12 @@ test('the entry gate: no box, an incomplete box, an order, a payment in progress
   renderMode();
   assert.equal((await loadCheckout()).kind, 'none');
   assert.equal(aonikRequests.length, 0);
+});
+
+
+test('checkout help offers real contact navigation without simulated messaging success', () => {
+  const html = renderToStaticMarkup(<HelpPanel open onClose={() => {}} />);
+  assert.match(html, /href="\/contact"/);
+  assert.doesNotMatch(html, /Live chat|Send email|Your message is on its way|within a few hours/);
+  assert.doesNotMatch(html, /<form/);
 });

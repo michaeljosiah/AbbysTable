@@ -787,8 +787,8 @@
     font-size: 52px;
   }
   .rail {
-    top: 184px;
-    max-height: calc(100dvh - 208px);
+    top: calc(var(--checkout-header-height, 190px) + 24px);
+    max-height: calc(100dvh - var(--checkout-header-height, 190px) - 48px);
   }
 }
 @media (min-width: 1280px) {
@@ -832,8 +832,8 @@
     display: flex;
     flex-direction: column;
     position: sticky;
-    top: 184px;
-    max-height: calc(100dvh - 208px);
+    top: calc(var(--checkout-header-height, 190px) + 24px);
+    max-height: calc(100dvh - var(--checkout-header-height, 190px) - 48px);
   }
   .rail[data-review] {
     display: block;
