@@ -1,9 +1,14 @@
 import type { Metadata } from 'next';
+import { PointsMilestoneLine } from '@/components/account/PointsBalance';
 import Link from 'next/link';
 import { unstable_rethrow } from 'next/navigation';
 
 import { loadAccountOrders } from '@/lib/account/loadOrders';
-import { orderBoxLabel, orderHeading, orderStatusLabel } from '@/lib/account/orders';
+import {
+  orderBoxLabel,
+  orderHeading,
+  orderStatusLabel,
+} from '@/lib/account/orders';
 import { ACCOUNT_HOME_HREF } from '@/lib/account/sections';
 import { getMyAddressBook } from '@/lib/aonik/addresses';
 import { AonikError } from '@/lib/aonik/errors';
@@ -23,13 +28,18 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 /** A read the overview can do without: its card is left out, and the page carries on. */
-async function optional<T>(read: Promise<T>): Promise<{ value?: T; ended: boolean }> {
+async function optional<T>(
+  read: Promise<T>,
+): Promise<{ value?: T; ended: boolean }> {
   try {
     return { value: await read, ended: false };
   } catch (error) {
     unstable_rethrow(error);
     if (error instanceof SessionExpiredError) return { ended: true };
-    console.error('[account] an overview card could not be read', error instanceof AonikError ? error.status : error);
+    console.error(
+      '[account] an overview card could not be read',
+      error instanceof AonikError ? error.status : error,
+    );
     return { ended: false };
   }
 }
@@ -48,7 +58,8 @@ export default async function AccountOverviewPage() {
     optional(getMyAddressBook()),
     optional(loadAccountOrders(1)),
   ]);
-  if (points.ended || addresses.ended || orders.ended) redirectToLogin(ACCOUNT_HOME_HREF);
+  if (points.ended || addresses.ended || orders.ended)
+    redirectToLogin(ACCOUNT_HOME_HREF);
 
   const recent = orders.value
     ? [...orders.value.upcoming, ...orders.value.past]
@@ -67,7 +78,12 @@ export default async function AccountOverviewPage() {
           {points.value && points.value.balancePoints > 0 ? (
             <div className={styles.points}>
               <span className={styles.pointsIcon} aria-hidden="true">
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor">
+                <svg
+                  width="30"
+                  height="30"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
                   <path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3-4.6-4.4 6.3-.9z" />
                 </svg>
               </span>
@@ -75,7 +91,19 @@ export default async function AccountOverviewPage() {
                 {points.value.balancePoints.toLocaleString('en-GB')}{' '}
                 {points.value.balancePoints === 1 ? 'point' : 'points'}
               </span>
-              <span className={styles.pointsWorth}>Worth {formatPrice(points.value.valuePence)}</span>
+              <span className={styles.pointsWorth}>
+                <PointsMilestoneLine balance={points.value} />
+                <b>Worth {formatPrice(points.value.valuePence)}</b> off your
+                next order. Use any amount at checkout.{' '}
+                <Link
+                  href="/account/points"
+                  className={styles.textLink}
+                  style={{ minHeight: 0 }}
+                >
+                  <span>How points work</span>
+                  <span aria-hidden="true">→</span>
+                </Link>
+              </span>
             </div>
           ) : null}
 
@@ -93,7 +121,9 @@ export default async function AccountOverviewPage() {
                 </p>
               ) : (
                 <p className={styles.p}>
-                  {addresses.value.addresses.length > 0 ? 'No default address set.' : 'No saved address yet.'}
+                  {addresses.value.addresses.length > 0
+                    ? 'No default address set.'
+                    : 'No saved address yet.'}
                 </p>
               )}
               <Link href="/account/addresses" className={styles.textLink}>
@@ -116,12 +146,21 @@ export default async function AccountOverviewPage() {
                 const status = orderStatusLabel(order);
                 return (
                   <div className={styles.row} key={order.orderId}>
-                    <Link href={`/account/orders/${encodeURIComponent(order.orderId)}`} className={styles.rowMain}>
-                      <span className={styles.rowTitle}>{orderHeading(order)}</span>
-                      <span className={styles.rowDetail}>
-                        {[order.orderNumber, orderBoxLabel(order), status.label].filter(Boolean).join(' · ')}
+                    <Link
+                      href={`/account/orders/${encodeURIComponent(order.orderId)}`}
+                      className={styles.rowMain}
+                    >
+                      <span className={styles.rowTitle}>
+                        {orderHeading(order)}
                       </span>
-                      <span className={styles.rowValue}>{formatPrice(order.totalPence)}</span>
+                      <span className={styles.rowDetail}>
+                        {[order.orderNumber, orderBoxLabel(order), status.label]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </span>
+                      <span className={styles.rowValue}>
+                        {formatPrice(order.totalPence)}
+                      </span>
                     </Link>
                   </div>
                 );

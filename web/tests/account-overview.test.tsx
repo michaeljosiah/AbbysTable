@@ -66,7 +66,7 @@ test('an address book reads its default by id, else by flag, with empty lines dr
 test('a points balance is read in pence from Aonik’s own value, never recomputed', () => {
   assert.deepEqual(
     mapLoyaltyBalance({ balancePoints: 1250, reservedPoints: 100, availablePoints: 1150, value: 12.5, highestFivePoundMarkSeen: 2 }),
-    { balancePoints: 1250, reservedPoints: 100, availablePoints: 1150, valuePence: 1250 },
+    { balancePoints: 1250, reservedPoints: 100, availablePoints: 1150, valuePence: 1250, highestFivePoundMarkSeen: 2 },
   );
 });
 
@@ -128,7 +128,7 @@ test('the overview shows points, the default address and the latest orders', asy
   const read = text(html);
 
   assert.match(read, /Overview/);
-  assert.match(read, /1,250 points Worth £12\.50/);
+  assert.match(read, /1,250 points Your points are now worth £10 Worth £12\.50/);
   assert.match(read, /Delivering to 12 High Street Dartford DA1 1AA/);
   assert.match(read, /Recent orders Thursday 8 October AT-10517 · 6-dish box · Cooking £158/);
   assert.match(read, /Thursday 6 August AT-10482 · 6-dish box · Delivered £109/);

@@ -394,9 +394,9 @@ test('the Details page: name and phone editable, email shown and not editable, n
   assert.match(read, /Details & preferences/);
   assert.match(html, /id="details-first"[^>]*value="Ada"/);
   assert.match(html, /id="details-phone"[^>]*value="07700 900123"/);
-  assert.match(html, /id="details-email"[^>]*readOnly=""[^>]*|readOnly=""[^>]*id="details-email"/);
+  assert.doesNotMatch(html, /readOnly=""/);
   assert.match(html, /value="ada@example.com"/);
-  assert.match(read, /To change your email address, contact us\./);
+  assert.match(read, /If you change it, we’ll email a link to confirm the new address\./);
   assert.match(read, /Password We’ll email you a secure link to set a new password\. Send reset link/);
   assert.match(read, /Emails & cookies Order and delivery emails are always sent\. Cookie preferences/);
   assert.match(html, /data-consent-open/);
@@ -410,6 +410,8 @@ test('the account menu lists every built section', () => {
     [
       ['Overview', '/account'],
       ['Orders', '/account/orders'],
+      ['Points', '/account/points'],
+      ['Gift cards', '/account/gifts'],
       ['Addresses', '/account/addresses'],
       ['Details & preferences', '/account/details'],
     ],

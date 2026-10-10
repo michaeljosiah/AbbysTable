@@ -289,6 +289,27 @@ export interface QuoteComponentDto {
   amount: number;
 }
 
+export interface LoyaltyQuoteDto {
+  requestedPoints: number;
+  maxRedeemablePoints: number;
+  appliedPoints: number;
+  appliedValue: number;
+  estimatedEarnedPoints: number;
+  balancePoints?: number | null;
+  availablePoints?: number | null;
+  reasonCode?: string | null;
+  message?: string | null;
+}
+
+export interface GiftCardTenderQuoteDto {
+  requestedAmount: number;
+  maxRedeemableAmount: number;
+  giftAmount: number;
+  cardAmount: number;
+  maskedCode?: string | null;
+  reasonCode?: string | null;
+}
+
 export interface BoxQuoteDto {
   /** Ordered and additive — iterate, never reconstruct from known keys. */
   components: QuoteComponentDto[];
@@ -307,6 +328,8 @@ export interface BoxQuoteDto {
    * applies — Aonik's typed reason (aonik#355). Null with no code.
    */
   discount?: DiscountCodeStatusDto | null;
+  loyalty?: LoyaltyQuoteDto | null;
+  giftCard?: GiftCardTenderQuoteDto | null;
 }
 
 export interface BoxChangeDto {
@@ -555,8 +578,24 @@ export interface StorefrontOrderDetailDto {
   taxTotal: number;
   total: number;
   boxSize: number | null;
-  items: Array<{ itemType: string; quantity: number | null; unitPrice: number | null; amountIn: number; sku: string | null; name?: string | null; itemIndex?: number }>;
-  selections: Array<{ productVariantId: string; quantity: number; sku: string; personalisationSummary: string | null; orderItemIndex?: number; name?: string | null; isSignature?: boolean | null }>;
+  items: Array<{
+    itemType: string;
+    quantity: number | null;
+    unitPrice: number | null;
+    amountIn: number;
+    sku: string | null;
+    name?: string | null;
+    itemIndex?: number;
+  }>;
+  selections: Array<{
+    productVariantId: string;
+    quantity: number;
+    sku: string;
+    personalisationSummary: string | null;
+    orderItemIndex?: number;
+    name?: string | null;
+    isSignature?: boolean | null;
+  }>;
   paymentStatus: string;
   delivery?: {
     purchaser: CheckoutContactDto;
