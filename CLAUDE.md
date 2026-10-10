@@ -379,6 +379,25 @@ Conventions inside `web/` that are easy to get wrong:
   itself (`loginByAddress`, `resetByAddress`, `resetByEmail`: Aonik sees only this server's address,
   so one script could otherwise use up the whole site's allowance). Pinned by `tests/login.test.tsx`
   and `tests/account-redirect.test.tsx`.
+- **The emailed secure link (#34): `/account/access`.** Aonik's account-setup email links to
+  `{storefrontOrigin}{setupPath}#token=…` (the operator sets `setupPath` to `/account/access`; the
+  token is in the FRAGMENT, valid ten minutes). A fragment never reaches a server, so the page is a
+  200 shell, not the design's HTTP 410: `AccountAccess` reads `location.hash`, strips it at once
+  with `history.replaceState`, and keeps the token in a ref only — never state that renders, a prop,
+  a URL or storage. `next.config.mjs` serves the route `no-store`, `no-referrer`, `noindex`.
+  `lib/auth/accountAccess.ts`: `resolve` (200 `ready`, 410 for every invalid/expired/used link — ONE
+  "This link is no longer valid." page, also for a visit with no token) and `resend` (takes the
+  ORIGINAL token, always an empty 202, so the "Check your email" panel never confirms an address or
+  an account; a throttled or unusable token answers the same). Outage/429 on resolve is "could not
+  check", never "gone". Per-address limits are the storefront's own (`checkByAddress`,
+  `resendByAddress`). A second link opened in the same tab (`hashchange`) is read and stripped
+  likewise; Next's router can re-write the canonical URL on a `router.refresh()`, so the strip is
+  best-effort against that (known, rare). Reload after the strip is "no longer valid" by design.
+  NOT built: the "Continue" hand-off (identity-provider registration with PKCE,
+  then `POST /identity/account-access/complete` with the bearer) — it needs the operator to enable
+  registration + email verification and a PKCE public client in the realm, so a good link says
+  "your link is ready… we can't finish set-up from this page yet" and points at Contact. Pinned by
+  `tests/account-access.test.tsx`.
 - **Internal links go through `next/link`.** `Button` and `NavLink` route on `href` automatically
   (`isExternalHref` in `src/lib/links.ts`); nav anchors are root-relative (`/#founder`) so they work
   from `/menu` as well as `/`.

@@ -89,6 +89,7 @@ export const DESKTOP_STATIC_EXAMPLES: readonly string[] = [
   '/login',
   FORGOT_PASSWORD_HREF,
   '/account/orders',
+  '/account/access',
   '/box',
 ];
 

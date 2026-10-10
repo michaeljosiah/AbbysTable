@@ -1,0 +1,43 @@
+/* Link no longer valid — the sage confirmation that replaces SEND A NEW LINK
+   in place (design: Link Expired, .nf-sent). Role status; focus moves to the
+   heading. It never confirms an address or that an account exists. */
+
+.sent {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 420px;
+  padding: 18px 20px;
+  border: var(--border-hairline) solid var(--sand);
+  border-radius: var(--radius-sm);
+  background: var(--sage);
+  text-align: left;
+}
+
+.sentHeading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--green-forest);
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: var(--weight-semibold);
+  outline: none;
+}
+
+.sentBody {
+  margin: 8px 0 0;
+  color: var(--text-body);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+/* A failure is information: 16px, --chilli, never colour alone (the text says it). */
+.problem {
+  margin: 0;
+  color: var(--chilli);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.45;
+}
