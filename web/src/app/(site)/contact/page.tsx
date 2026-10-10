@@ -17,8 +17,8 @@ import { waitlistOpen } from '@/lib/private-table/availability';
  * is `null` until the owner confirms it, and the page marks what is missing.
  *
  * The form is given its send action only when an enquiry can really be sent
- * (`enquiriesAvailable`: live data and the Aonik endpoint, aonik#356, which
- * does not exist yet). Until then the page says the form is not available
+ * (`enquiriesAvailable`: live data and a configured Aonik, whose enquiry
+ * endpoint is aonik#356). In demo the page says the form is not available
  * rather than thanking anyone for a message that went nowhere (#6's rule).
  *
  * The Private Table panel ("Join the waitlist") shows only while that

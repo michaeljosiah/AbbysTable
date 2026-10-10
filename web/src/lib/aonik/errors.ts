@@ -82,6 +82,11 @@ export class AonikError extends Error {
    * Absent when the refusal was not about a field.
    */
   readonly fieldErrors?: Readonly<Record<string, readonly string[]>>;
+  /**
+   * The error body as parsed, for a refusal with details of its own (the
+   * Contact form's `imageProblems`). Never shown to a customer as it is.
+   */
+  readonly body?: unknown;
 
   constructor(init: {
     status: number;
@@ -92,6 +97,7 @@ export class AonikError extends Error {
     drift?: { box: unknown; quote: unknown; changes: unknown; cartVersion?: string };
     cartStatus?: string;
     fieldErrors?: Readonly<Record<string, readonly string[]>>;
+    body?: unknown;
   }) {
     super(init.message);
     this.name = 'AonikError';
@@ -102,6 +108,7 @@ export class AonikError extends Error {
     this.drift = init.drift;
     this.cartStatus = init.cartStatus;
     this.fieldErrors = init.fieldErrors;
+    this.body = init.body;
   }
 
   /** Catalogue drift at continue/checkout — Spec 068's A18 stop. */
@@ -195,5 +202,6 @@ export function toAonikError(status: number, path: string, body: unknown): Aonik
     drift,
     cartStatus: asString(envelope.status),
     fieldErrors: asFieldErrors(envelope.fieldErrors) ?? asFieldErrors(envelope.errors),
+    body,
   });
 }

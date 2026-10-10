@@ -15,7 +15,7 @@ updated: 2026-10-10
 > requirements for built pages describe what `web/` does on `main` at 213ee0b, read from the
 > source. Implemented: How It Works (#16, PR #55), Our Standards and the Back to dish round trip
 > (#17, PR #54), Abby's Story (#18, PR #52), Allergens (#19, PR #49), Privacy Policy and Terms of
-> Sale (#20, PR #56), Homepage v2 (#15, PR #59), Contact (#24; its form waits on aonik#356) and
+> Sale (#20, PR #56), Homepage v2 (#15, PR #59), Contact (#24; its form sends to aonik#356) and
 > Private Table (#25; its waitlist waits on aonik#357) — the last three specified from their
 > issues and `design/` page files. Where an issue and `design/`
 > disagree, the design wins and the requirement says so. Header, drawer, footer, cookie consent,
@@ -478,23 +478,52 @@ the form and the server action.
 ### Requirement: FR-24 Never a false "sent"
 `capability: contact-page` · `delta: ADDED (feat/marketing-pages)`
 
-The form SHALL render only when an enquiry can really be sent: live data and the Aonik enquiry
-endpoint (`ENQUIRY_PATH` in `src/lib/aonik/enquiries.ts`; aonik#356, not built). Until then the
-page keeps "Send us a message" and says "Our message form isn't available yet." — adding "Please
-use one of the ways above to get in touch." when a direct route is configured, and otherwise the
-brand's social accounts (`SOCIAL_LINKS`), so a "contact us" never lands on a dead end — and no jump
-points at the form; demo mode SHALL NOT send or say it has (the newsletter's rule, #6). The server
-action SHALL re-run every rule on what arrived and answer `sent` only after a 2xx from the
-endpoint. Any other outcome keeps every field and image and says "We couldn't send your message
-just now. Everything you've written is still here, so please try again." The request is multipart
-in the contract's field names (§3e), never retried. Every text field has a length cap, enforced by
-the field and again by the action (name 200, email 254, order number 64, message 5,000 characters),
-and the email shape check is linear (`isEmailAddress`), so no field can hold the server.
+The form SHALL render only when an enquiry can really be sent: live data and a configured Aonik,
+whose enquiry endpoint is `POST /v1/contact-enquiries` (aonik#356). In demo the page keeps "Send
+us a message" and says "Our message form isn't available yet." — adding "Please use one of the
+ways above to get in touch." when a direct route is configured, and otherwise the brand's social
+accounts (`SOCIAL_LINKS`), so a "contact us" never lands on a dead end — and no jump points at the
+form; demo mode SHALL NOT send or say it has (the newsletter's rule, #6).
 
-#### Scenario: No endpoint, no thanks
-- **WHEN** a valid enquiry is posted to the action while `ENQUIRY_PATH` is `null`
+The scripted form SHALL post to `/api/enquiries` (a server action takes 1MB; three photos can be
+30), a route outside the middleware matcher that answers maintenance itself, refuses another
+site's origin (one matching neither `X-Forwarded-Host` nor `Host`), and reads no body in demo, over
+three full images' worth, without a declared length, while four others or this address's own are
+in flight (busy, which costs no attempt), or past the customer's limit; a body that stalls for 15
+seconds or takes over three minutes is abandoned. A post without JavaScript goes to the server
+action, text only. Aonik limits enquiries per address but sees only the storefront's, so the
+storefront SHALL limit each customer itself (8 sends per 10 minutes, keyed by the
+`X-Forwarded-For` entry the platform appended — `TRUSTED_PROXY_HOPS` from the end — and an IPv6
+host by its /64) and say so: "You've sent several messages in a short time…". Aonik's own 429 is
+never that message: it is its busy slots or the site's allowance, and reads as "please try
+again". Both SHALL re-run every rule on what arrived and answer
+`sent` only after Aonik's 202. Each send SHALL carry a `submission_id` (UUID) the form keeps while
+the content is unchanged, so a retry after a lost answer cannot send twice, and takes afresh when
+anything changes or Aonik answers 409. Aonik's 422 SHALL be said in the form's own words (its
+`fieldErrors` against our fields, the first of its `imageProblems` by file name — "isn't a JPG, PNG
+or HEIC", "couldn't be read", "is too large to process", "couldn't be attached"), a 413 as "Your
+images are too large to send together…" (also a platform's bare 413); any other outcome — a 503
+included, which is nearly always passing and may follow a saved enquiry — keeps every field, image
+and the `submission_id`, and says "We couldn't send your message just now. Everything you've written is still
+here, so please try again." Every text field has a length cap, enforced by the field and again by
+the action in BOTH characters and UTF-16 units (Aonik counts the latter: name 200, email 254,
+order number 64, message 5,000 — a line break counting two, as it is posted as CRLF), control
+characters are cleaned as Aonik would refuse them, images go under a name Aonik accepts (its type's
+extension; no path, `:`, `<`, `>` or control character; at most 150 units), and the email shape
+check is linear (`isEmailAddress`).
+The thanks SHALL say "We'll send a confirmation to {email}" — Aonik acknowledges receipt with a
+reference, not a copy of the message (a departure from the design's "We've sent a copy").
+
+#### Scenario: No live data, no thanks
+- **WHEN** a valid enquiry is posted to the action in demo mode
 - **THEN** it answers `unavailable`
 - **AND** no request leaves the server
+
+#### Scenario: A lost answer, then a retry
+- **WHEN** a send reaches Aonik but its answer never arrives, and the customer presses Send again
+  without changing anything
+- **THEN** the retry carries the same `submission_id`, and Aonik returns the original receipt —
+  one enquiry, not two
 
 ### Requirement: FR-25 Private Table page
 `capability: private-table` · `delta: ADDED (feat/marketing-pages)`
@@ -691,9 +720,11 @@ first two gaps recorded here, were closed by #15 (PR #59; T6, T9) and are no lon
 8. **Contact's undesigned states.** The failure line and the "form isn't available yet" notice are
    ours (the design has neither); and should unconfirmed routes stay visible as "to be confirmed"
    (as the legal pages do) or be left out until confirmed?
-9. **Contact's promises.** "We've sent a copy to …" holds only if aonik#356 sends an
-   acknowledgement email; "within two working days" is an unconfirmed reply time. Spam protection
-   (honeypot, timing or an invisible challenge — no CAPTCHA) is the endpoint's to choose.
+9. **Contact's promises.** Aonik (#356) sends an acknowledgement with a receipt reference, not a
+   copy, so the thanks reads "We'll send a confirmation to …"; "within two working days" is still
+   an unconfirmed reply time. Spam protection is Aonik's per-address rate limit (per customer only
+   when it trusts the storefront as a proxy); a honeypot was left out on purpose — browser autofill
+   can fill it, and Aonik drops such a post silently while answering 202.
 10. **Private Table while the waitlist is closed** (FR-28). The page hides every "Join the
     waitlist", the form and the bar, and says "The Private Table waitlist isn't open yet." (our
     words); Contact hides its Private Table panel. Alternatively the CTAs could stay and lead to
@@ -736,13 +767,10 @@ first two gaps recorded here, were closed by #15 (PR #59; T6, T9) and are no lon
 - [x] `T13` The Signature info button as a real button outside the card link (FR-11) (#21) — with
   the v2 tag stack; `SPEC-2026-10-07-menu`
 - [x] `T14` Contact (#24): the grid, routes, hours and status, the form held back (FR-21–FR-24)
-- [ ] `T15` Wire the enquiry endpoint when aonik#356 ships: set `ENQUIRY_PATH`, reconcile the
-  field names, confirm the acknowledgement email, routing by subject, spam protection and
-  server-side image checks (type sniffing, virus scan, EXIF stripping) (FR-24). Three 10MB
-  images exceed Next's server-action (1MB) and middleware (10MB) body limits: send the form to a
-  route handler (`app/api/enquiries/route.ts`) that streams with its own cap and is left out of the
-  middleware matcher (checking `MAINTENANCE_MODE` itself), or upload images direct to storage —
-  never raise either limit globally
+- [x] `T15` The enquiry endpoint (aonik#356): Aonik's field names and `submission_id`, its
+  refusals in our words, `/api/enquiries` for the photos (outside the middleware matcher, its own
+  32MiB cap and maintenance answer), the customer's address forwarded (FR-24). Aonik checks the
+  images (type sniffing, virus scan, metadata stripping) and routes by subject
 - [ ] `T16` Contact details, hours, bank holidays and closures from Aonik (aonik#358), and a real,
   tested WhatsApp QR (FR-22)
 - [x] `T17` Private Table (#25): the page, the CTAs, the form and its country typeahead, the

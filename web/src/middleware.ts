@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { renderStatusPage } from '@/lib/status-pages/render';
+import { inMaintenance, maintenanceResponse } from '@/lib/status-pages/maintenance';
 
 /**
  * Maintenance mode: with `MAINTENANCE_MODE=true` in the server's environment,
@@ -25,32 +25,19 @@ import { renderStatusPage } from '@/lib/status-pages/render';
  *    while the flag is off) helps no one. Any other root-level file in
  *    `public/` is still matched: add it here if it must load during
  *    maintenance.
+ *  - `/api/enquiries`: the Contact form's photos (up to 30MB) are larger than
+ *    the request body middleware buffers (10MB), so the route is left out and
+ *    answers maintenance itself (`maintenanceResponse`).
  */
 
-/** A hint, not a promise: the page itself names no return time, by decision. */
-const RETRY_AFTER_SECONDS = 3600;
-
-let maintenancePage: string | undefined;
-
 export function middleware(): NextResponse {
-  if (process.env.MAINTENANCE_MODE !== 'true') return NextResponse.next();
-
-  maintenancePage ??= renderStatusPage('maintenance');
-
-  return new NextResponse(maintenancePage, {
-    status: 503,
-    headers: {
-      'Content-Type': 'text/html; charset=utf-8',
-      'Retry-After': String(RETRY_AFTER_SECONDS),
-      // Nothing between here and the customer may keep this page once the
-      // site is back.
-      'Cache-Control': 'no-store',
-    },
-  });
+  if (!inMaintenance()) return NextResponse.next();
+  const answer = maintenanceResponse();
+  return new NextResponse(answer.body, { status: answer.status, headers: answer.headers });
 }
 
 export const config = {
   matcher: [
-    '/((?!\\.swa(?:/|$)|_next/static/|_next/image(?:/|$)|assets/|fonts/|favicon\\.ico$|icon\\.svg$|apple-icon\\.png$).*)',
+    '/((?!\\.swa(?:/|$)|_next/static/|_next/image(?:/|$)|api/enquiries(?:/|$)|assets/|fonts/|favicon\\.ico$|icon\\.svg$|apple-icon\\.png$).*)',
   ],
 };

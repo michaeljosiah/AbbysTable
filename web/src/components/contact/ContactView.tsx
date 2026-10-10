@@ -35,7 +35,7 @@ import { OpenNow } from './OpenNow';
  *   a link — no mailto:, tel: or wa.me with nothing behind it;
  * - no hours, no "Open now / Closed": the status is computed in the browser
  *   from configured hours only;
- * - no send action, no form (aonik#356): the heading stays and says so;
+ * - no send action (demo), no form: the heading stays and says so;
  * - the FAQs card appears once its page does, and the Private Table panel
  *   once the waitlist can take a name (#25; aonik#357).
  */
@@ -386,9 +386,9 @@ export function ContactView({
                 {sendAction ? (
                   <ContactForm action={sendAction} />
                 ) : (
-                  // Held back until Aonik can accept an enquiry (aonik#356):
-                  // never a form that thanks someone for a message that went
-                  // nowhere (the newsletter's rule, #6).
+                  // Held back where nothing can accept an enquiry (demo): never
+                  // a form that thanks someone for a message that went nowhere
+                  // (the newsletter's rule, #6).
                   <div className={styles.heldBack}>
                     <p className={styles.heldBackText}>Our message form isn&rsquo;t available yet.</p>
                     {anyDirectRoute ? (
