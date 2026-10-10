@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 
 import type { PersonalisationSelection } from '@/lib/aonik/map';
 import type { Dish, HeatingInstruction } from '@/lib/aonik/types';
@@ -208,11 +208,15 @@ export function DishInfoPanelsView({
    * case where `isStandardPreparation` is false yet the figures are no longer
    * current, and it would otherwise pass as fact.
    */
-  const figuresCaption = state?.figuresAreStandardPreparation
-    ? 'These figures are for the standard preparation.'
-    : state?.figuresAreStale
-      ? 'These figures are under review and may not reflect the current recipe.'
-      : undefined;
+  const figuresCaption =
+    [
+      state?.figuresAreStandardPreparation ? 'These figures are for the standard preparation.' : '',
+      // Both when both hold: the standard block standing in for other choices
+      // can itself be under review, and that must not be lost.
+      state?.figuresAreStale ? 'These figures are under review and may not reflect the current recipe.' : '',
+    ]
+      .filter(Boolean)
+      .join(' ') || undefined;
 
   const servingCaption = state?.servingLabel ?? 'Per serving, as Abby designed it.';
 
@@ -220,10 +224,19 @@ export function DishInfoPanelsView({
      catalogue-wide steps, which must be framed as such. */
   const isGenericHeating = state?.heatingWithheld ?? false;
 
+  /* Once the panels have described other choices, going back to the standard
+     recipe is a change to announce too; on arrival there is nothing to say. */
+  const [describedChoices, setDescribedChoices] = useState(false);
+  useEffect(() => {
+    if (forSelection) setDescribedChoices(true);
+  }, [forSelection]);
+
   /* What the panels now say about the customer's choices, for a screen reader:
      the region is always rendered, so a change of choice is announced. */
   const announcement = !forSelection
-    ? ''
+    ? describedChoices
+      ? 'Showing the ingredients and allergens for the standard recipe.'
+      : ''
     : checking
       ? 'Checking the ingredients and allergens for your choices…'
       : unchecked
@@ -365,11 +378,11 @@ export function DishInfoPanelsView({
         {/* Generic guidance is allowed here — unlike allergens, reheating has a
             safe default — but it is framed so it is never mistaken for
             dish-specific instructions the kitchen actually authored. */}
-        {isGenericHeating && heating.length > 0 ? (
+        {/* Only ever the standard preparation's: other choices get their own
+            authored steps or none (`useSelectionContent`). */}
+        {isGenericHeating && heating.length > 0 && !forSelection ? (
           <p className={styles.heatingNote}>
-            {forSelection
-              ? 'General guidance — specific instructions for your choices have not been published yet.'
-              : 'General guidance — specific instructions for this dish have not been published yet.'}
+            General guidance — specific instructions for this dish have not been published yet.
           </p>
         ) : null}
       </Panel>

@@ -28,7 +28,7 @@ export const dynamic = 'force-dynamic';
 /** A catalogue slug: lower-case words joined by hyphens. */
 const SLUG = /^[a-z0-9][a-z0-9-]{0,159}$/;
 
-/** As long as a page waits for a dish's own content before saying it is not published. */
+/** As long as a page waits for a dish's own content before saying it couldn't check. */
 const CONTENT_TIMEOUT_MS = 4000;
 
 function answer(body: SelectionContentAnswer, status = 200) {
@@ -65,9 +65,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
       },
     });
   } catch (error) {
-    if (error instanceof AonikError && error.isNotFound) return answer({ status: 'unpublished' });
-    // A 4xx is this request's own (a selection Aonik rejects), not an outage.
-    if (!(error instanceof AonikError && error.status < 500)) {
+    if (error instanceof AonikError && error.isNotFound) {
+      // Safe to say, but noted: every choice reading "not published" would
+      // otherwise hide a missing endpoint.
+      console.warn('[dish-content] no content for a selection', { slug, status: error.status });
+      return answer({ status: 'unpublished' });
+    }
+    // A selection Aonik rejects is this request's own; anything else — an
+    // outage, a refusal, a limit — is a fault to see.
+    if (!(error instanceof AonikError && (error.status === 400 || error.status === 422))) {
       console.error('[dish-content] content for a selection could not be read', error);
     }
     return answer({ status: 'unavailable' });

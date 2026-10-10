@@ -130,6 +130,41 @@ test('an answer counts only for the dish AND the choices it was asked for', () =
   assert.equal(selectionView(STANDARD, [{ method: 'Oven', body: 'x' }], null, held).state, 'standard');
 });
 
+test('a resolved answer shows that selection’s own declaration; any other answer withholds it', () => {
+  const selection = { protein: 'king-prawns' };
+  const key = selectionKey('jollof-chicken', selection);
+  const content = {
+    ingredients: 'King prawns, rice, tomato.',
+    allergens: 'Crustaceans',
+    precautionaryStatement: 'Made in a kitchen that also handles fish.',
+    nutrition: { calories: 480 },
+    state: { ...STANDARD.contentState!, contentVersion: 5 },
+    heating: [{ method: 'Hob', body: 'Heat through.' }],
+  };
+  const resolvedHtml = renderToStaticMarkup(
+    <DishInfoPanelsView view={selectionView(STANDARD, [], key, { key, answer: { status: 'resolved', content } })} />,
+  );
+  assert.match(resolvedHtml, /<strong>Allergens:<\/strong> Crustaceans/);
+  assert.match(resolvedHtml, /also handles fish/);
+  assert.doesNotMatch(resolvedHtml, /Celery|handles peanuts/);
+  assert.match(resolvedHtml, /role="status">Ingredients and allergens updated for your choices\.</);
+
+  for (const status of ['unpublished', 'unavailable'] as const) {
+    const view = selectionView(STANDARD, [{ method: 'Oven', body: 'x' }], key, { key, answer: { status } });
+    assert.equal(view.state, status);
+    assert.equal(view.dish.allergens, undefined);
+    assert.equal(view.dish.precautionaryStatement, undefined);
+    assert.deepEqual(view.heating, []);
+  }
+
+  // A standard block standing in for other choices that is ALSO under review says both.
+  const stale = { ...STANDARD, contentState: { ...STANDARD.contentState!, figuresAreStale: true } };
+  const staleHtml = renderToStaticMarkup(
+    <DishInfoPanelsView view={selectionView(stale, [], key, { key, answer: { status: 'unpublished' } })} />,
+  );
+  assert.match(staleHtml, /These figures are for the standard preparation\. These figures are under review/);
+});
+
 test('"not yet published" and "couldn’t check" are different answers, said differently', () => {
   const view = (state: 'unpublished' | 'unavailable') =>
     renderToStaticMarkup(
@@ -210,6 +245,7 @@ test('live: the route asks Aonik for exactly that selection and passes on only w
 
     // A product with no content: not published. An outage: couldn't check. Never the standard's.
     const errors = mock.method(console, 'error', () => undefined);
+    const warnings = mock.method(console, 'warn', () => undefined);
     useAonik(() => ({ status: 404, body: {} }));
     assert.deepEqual(await (await ROUTE('jollof-chicken', '{"protein":"king-prawns"}')).json(), { status: 'unpublished' });
     useAonik(() => ({ status: 400, body: { error: 'Unknown option.', code: 'commerce.option_validation' } }));
@@ -218,7 +254,9 @@ test('live: the route asks Aonik for exactly that selection and passes on only w
     useAonik(() => ({ status: 503, body: {} }));
     assert.deepEqual(await (await ROUTE('jollof-chicken', '{"protein":"king-prawns"}')).json(), { status: 'unavailable' });
     assert.equal(errors.mock.callCount(), 1, 'an outage is logged');
+    assert.equal(warnings.mock.callCount(), 1, 'no content at all is noted, not hidden');
     errors.mock.restore();
+    warnings.mock.restore();
     assert.equal((await ROUTE('jollof-chicken', 'nope')).status, 400);
     assert.equal((await ROUTE('Bad Slug', '{"a":"b"}')).status, 400);
     assert.equal((await ROUTE('x'.repeat(161), '{"a":"b"}')).status, 400);
