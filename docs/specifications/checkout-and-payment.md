@@ -272,7 +272,7 @@ version is only ever adopted together with the box, draft and hold it belongs to
 - `src/app/api/checkout/[action]/route.ts`: `GET sync`, `PUT draft`, `GET|PUT reservation`,
   `PUT|DELETE discount` and `GET dates`.
 - `AonikClient.getDeliveryCalendar(fromDate, days)`:
-  - **Live:** `/commerce/config/delivery` and `/commerce/config/delivery/dates`, both uncached.
+  - **Live:** `/commerce/config/delivery/dates`, uncached; its `earliestDeliveryDate` is the suggestion.
   - **Demo:** the design's holding availability, counted from today.
 - `src/components/checkout/checkout/`: `CheckoutView` (state), `DeliveryDate`,
   `DeliveryCalendar`, `InfoNote`, `OrderSummary`, `CheckoutStatus`, and `useOverlay` (sheet vs
