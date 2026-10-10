@@ -23,6 +23,7 @@ import { FlowDialog } from './FlowDialog';
 import { useFlowActions } from './FlowActions';
 import { DishLines, ExtraLines } from './FlowLines';
 import { ReturnLink, ReviewChangeLink, useReviewReturn } from './ReviewReturn';
+import { GiftBanner } from '@/components/gifting/GiftBanner';
 import styles from './Flow.module.css';
 
 export function FlowShell({
@@ -218,12 +219,7 @@ export function FlowShell({
           </button>
         </p>
       )}
-      {cart.gift?.giftIntent && (
-        <p className={styles.giftNotice}>
-          You’re building a gift food box. Choose your dishes now; add recipient
-          details, hide prices and a greeting card at checkout.
-        </p>
-      )}
+      <GiftBanner />
       <div className={styles.shell} aria-busy={actions.busy || undefined}>
         <div
           className={styles.main}

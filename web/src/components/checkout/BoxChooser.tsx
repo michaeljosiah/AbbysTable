@@ -38,6 +38,7 @@ import { linePortion, portionDescription } from '@/lib/dish/portions';
 import { subscribePageScroll } from '@/lib/dom/pageScroll';
 import { formatPrice, formatSignedPrice } from '@/lib/format';
 
+import { GiftBanner } from '@/components/gifting/GiftBanner';
 import styles from './BoxChooser.module.css';
 import { DriftNotices } from './DriftNotices';
 import { useOverlay } from './checkout/useOverlay';
@@ -590,6 +591,7 @@ export function BoxChooser({
       <div className={styles.shell}>
         <div className={styles.mainColumn}>
           {heading}
+          <GiftBanner first />
           <DriftNotices />
 
           {carried ? (

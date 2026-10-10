@@ -291,13 +291,13 @@ const text = (value: unknown) => (typeof value === 'string' ? value : '');
 export function detailsFromDraft(draft: CheckoutDraftDto | null | undefined): CheckoutDetails {
   return {
     email: text(draft?.purchaser?.email),
-    firstName: text(draft?.purchaser?.firstName),
-    lastName: text(draft?.purchaser?.lastName),
+    firstName: draft?.gift?.giftIntent && draft.recipient ? text(draft.recipient.name).split(' ')[0] : text(draft?.purchaser?.firstName),
+    lastName: draft?.gift?.giftIntent && draft.recipient ? text(draft.recipient.name).split(' ').slice(1).join(' ') : text(draft?.purchaser?.lastName),
     line1: text(draft?.address?.line1),
     line2: text(draft?.address?.line2),
     city: text(draft?.address?.city),
     postcode: text(draft?.address?.postcode),
-    phone: text(draft?.purchaser?.phone),
+    phone: draft?.gift?.giftIntent ? text(draft.recipient?.phone) : text(draft?.purchaser?.phone),
     notes: text(draft?.notes),
   };
 }
