@@ -282,6 +282,13 @@ export interface BoxCartDto {
   changes: BoxChangeDto[];
   /** Disclosed EXACTLY ONCE, on creation. Never returned again. */
   cartToken: string | null;
+  /**
+   * The cart's row version (Aonik #347), on every box response. The next write
+   * must send it as `X-Cart-Version`; it changes with every write.
+   */
+  cartVersion?: string;
+  /** `Open` while editable; `CheckedOut` once an order completed. */
+  status?: string;
 }
 
 /* ---- Extras rail (Spec 071) -------------------------------------------------- */

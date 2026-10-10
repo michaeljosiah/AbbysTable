@@ -19,6 +19,8 @@ import { ORDERING_DISABLED_CODE } from './ordering';
 import {
   admitCartRequest,
   adoptCartResponse,
+  adoptCartVersion,
+  CART_VERSION_HEADER,
   CartRequestError,
   processCartResponse,
   type CartResponse,
@@ -92,6 +94,13 @@ export function useServerCart(enabled: boolean): ServerCartEngine {
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   /** Synchronous admission; unlike React state, this changes before the next click. */
   const inFlight = useRef(false);
+  /**
+   * The version of the box this tab last adopted, sent with every request so
+   * Aonik can refuse a change based on a box that has since moved on (another
+   * tab, another device). A ref, not state: requests run one at a time, and the
+   * next one must read what the previous response set, not a render's copy.
+   */
+  const version = useRef<string | undefined>(undefined);
 
   /**
    * One `/api/cart` round trip, queued behind any in-flight mutation.
@@ -107,9 +116,13 @@ export function useServerCart(enabled: boolean): ServerCartEngine {
       const run = async () => {
         setPending(true);
         try {
+          const headers: Record<string, string> = {};
+          if (init?.body) headers['Content-Type'] = 'application/json';
+          if (version.current) headers[CART_VERSION_HEADER] = version.current;
+
           const response = await fetch(`/api/cart${path}`, {
             method: init?.method ?? 'GET',
-            headers: init?.body ? { 'Content-Type': 'application/json' } : undefined,
+            headers,
             body: init?.body ? JSON.stringify(init.body) : undefined,
           });
 
@@ -118,6 +131,7 @@ export function useServerCart(enabled: boolean): ServerCartEngine {
           processCartResponse(response, payload, (authoritative) => {
             // Null is an authoritative empty cart. Absence carries no cart
             // information and therefore preserves the confirmed projection.
+            version.current = adoptCartVersion(version.current, authoritative);
             setCart((current) => adoptCartResponse(current, authoritative));
           });
 

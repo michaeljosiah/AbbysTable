@@ -8,15 +8,21 @@
  * Every successful cart operation returns the whole `{ cart }`. A mutation
  * against a missing cart returns a non-2xx `{ cart: null, error, code }`, so the
  * provider can clear stale state before rejecting the caller.
+ *
+ * Every write forwards the tab's `X-Cart-Version` (the version of the box it
+ * last adopted) to Aonik, which refuses a change based on an older box. The
+ * refusal comes back as 409 `cart.conflict` / `cart.locked` carrying the box as
+ * it really is, so the tab shows the current box before anything is retried.
  */
 
 import { NextResponse } from 'next/server';
 
 import type { BoxCartDto } from '@/lib/aonik/dto';
-import { AonikError } from '@/lib/aonik/errors';
-import { mapBoxCart, type PersonalisationSelection } from '@/lib/aonik/map';
+import { AONIK_CODES, AonikError } from '@/lib/aonik/errors';
+import { mapBoxCart, type BoxCart, type PersonalisationSelection } from '@/lib/aonik/map';
 import { CartMissingError, mapCartMissingError } from '@/lib/cart/cartMissing';
 import { ORDERING_DISABLED_CODE } from '@/lib/cart/ordering';
+import { CART_CONFLICT_CODE, CART_LOCKED_CODE, CART_VERSION_HEADER } from '@/lib/cart/transport';
 import {
   CartUnavailableError,
   OrderingDisabledError,
@@ -55,11 +61,26 @@ interface Body {
 }
 
 /**
+ * Customer copy for a refused write. Ours; the design has no wording for it.
+ * The cart alert adds "Please try the action again." beneath a conflict, so the
+ * message does not say it twice — and a locked box gets no such line at all.
+ */
+const REFUSED_WRITE_MESSAGES = {
+  [CART_CONFLICT_CODE]: 'Your box changed in another window, so we’ve updated it here.',
+  [CART_LOCKED_CODE]: 'Your box can’t be changed while its payment is being processed.',
+} as const;
+
+/** The version this tab's change is based on, as the provider sent it. */
+function versionOf(request: Request): string | undefined {
+  return request.headers.get(CART_VERSION_HEADER)?.trim() || undefined;
+}
+
+/**
  * Turns an `AonikError` into a response the UI can branch on, WITHOUT leaking
  * anything Aonik deliberately withholds — a 404 stays opaque about whether the
  * cart is unknown or simply not ours.
  */
-function errorResponse(error: unknown) {
+async function errorResponse(error: unknown) {
   if (error instanceof CartMissingError) {
     const mapped = mapCartMissingError(error);
     return NextResponse.json(mapped.payload, { status: mapped.status });
@@ -75,6 +96,25 @@ function errorResponse(error: unknown) {
   // untouched, so the response carries no cart and the provider keeps its own.
   if (error instanceof OrderingDisabledError) {
     return NextResponse.json({ error: error.message, code: ORDERING_DISABLED_CODE }, { status: 403 });
+  }
+
+  /*
+   * The box moved on (another tab or device) or is mid-payment. Nothing was
+   * changed, and the version the tab holds is stale, so the answer carries the
+   * box as it is now — with its current version — for the tab to adopt before
+   * the customer tries again. Never retried here: re-sending the change against
+   * a box the customer has not seen is exactly what the version prevents.
+   */
+  if (error instanceof AonikError && error.isCartWriteRefused) {
+    const code = error.code === AONIK_CODES.cartLocked ? CART_LOCKED_CODE : CART_CONFLICT_CODE;
+    let cart: BoxCart | null | undefined;
+    try {
+      cart = await getBoxCart();
+    } catch (readFailure) {
+      // The refusal stands either way; without a fresh box the tab keeps its own.
+      console.error('[api/cart] could not re-read the box after a refused write', readFailure);
+    }
+    return NextResponse.json({ error: REFUSED_WRITE_MESSAGES[code], code, cart }, { status: 409 });
   }
 
   if (error instanceof AonikError) {
@@ -107,8 +147,8 @@ function errorResponse(error: unknown) {
 function mapDriftCart(error: AonikError) {
   if (!error.drift) return undefined;
   try {
-    const { box, quote, changes } = error.drift;
-    return mapBoxCart({ box, quote, changes, cartToken: null } as BoxCartDto);
+    const { box, quote, changes, cartVersion } = error.drift;
+    return mapBoxCart({ box, quote, changes, cartToken: null, cartVersion } as BoxCartDto);
   } catch (mappingFailure) {
     console.error('[api/cart] drift body did not map', mappingFailure);
     return undefined;
@@ -124,13 +164,14 @@ export async function GET() {
   try {
     return cartResponse(await getBoxCart());
   } catch (error) {
-    return errorResponse(error);
+    return await errorResponse(error);
   }
 }
 
 export async function POST(request: Request, context: { params: Promise<{ action?: string[] }> }) {
   const { action = [] } = await context.params;
   const body = (await request.json().catch(() => ({}))) as Body;
+  const version = versionOf(request);
 
   try {
     switch (action.join('/')) {
@@ -155,11 +196,14 @@ export async function POST(request: Request, context: { params: Promise<{ action
           return NextResponse.json({ error: 'slug is required' }, { status: 400 });
         }
         return cartResponse(
-          await addBoxLine({
-            slug: body.slug,
-            quantity: body.quantity ?? 1,
-            choices: body.choices,
-          }),
+          await addBoxLine(
+            {
+              slug: body.slug,
+              quantity: body.quantity ?? 1,
+              choices: body.choices,
+            },
+            version,
+          ),
         );
 
       case 'extras':
@@ -167,21 +211,24 @@ export async function POST(request: Request, context: { params: Promise<{ action
           return NextResponse.json({ error: 'productVariantId is required' }, { status: 400 });
         }
         return cartResponse(
-          await addBoxExtra({
-            productVariantId: body.productVariantId,
-            quantity: body.quantity ?? 1,
-            personalisation: body.personalisation,
-          }),
+          await addBoxExtra(
+            {
+              productVariantId: body.productVariantId,
+              quantity: body.quantity ?? 1,
+              personalisation: body.personalisation,
+            },
+            version,
+          ),
         );
 
       case 'continue':
-        return cartResponse(await continueBoxCart());
+        return cartResponse(await continueBoxCart(version));
 
       // Not idempotent and the only call that creates durable state, so it is
       // never retried. A 409 drift falls to `errorResponse`, which forwards the
       // refreshed box for the review page to re-render from.
       case 'checkout': {
-        const result = await checkoutBoxCart({ discountCode: body.discountCode });
+        const result = await checkoutBoxCart({ discountCode: body.discountCode }, version);
         /*
          * `cart: null` is not decoration — checkout has just deleted the cart
          * cookie, so it is the literal truth, and it is what resets the
@@ -197,13 +244,14 @@ export async function POST(request: Request, context: { params: Promise<{ action
         return NextResponse.json({ error: 'Unknown cart action' }, { status: 404 });
     }
   } catch (error) {
-    return errorResponse(error);
+    return await errorResponse(error);
   }
 }
 
 export async function PATCH(request: Request, context: { params: Promise<{ action?: string[] }> }) {
   const { action = [] } = await context.params;
   const body = (await request.json().catch(() => ({}))) as Body;
+  const version = versionOf(request);
 
   try {
     // `size` and `lines/{lineId}` are the two patchable surfaces.
@@ -211,34 +259,38 @@ export async function PATCH(request: Request, context: { params: Promise<{ actio
       if (typeof body.size !== 'number') {
         return NextResponse.json({ error: 'size is required' }, { status: 400 });
       }
-      return cartResponse(await setBoxSize(body.size));
+      return cartResponse(await setBoxSize(body.size, version));
     }
 
     if (action[0] === 'lines' && action[1]) {
       return cartResponse(
-        await updateBoxLine(action[1], {
-          quantity: body.quantity,
-          personalisation: body.personalisation,
-          applyToUnits: body.applyToUnits,
-        }),
+        await updateBoxLine(
+          action[1],
+          {
+            quantity: body.quantity,
+            personalisation: body.personalisation,
+            applyToUnits: body.applyToUnits,
+          },
+          version,
+        ),
       );
     }
 
     return NextResponse.json({ error: 'Unknown cart action' }, { status: 404 });
   } catch (error) {
-    return errorResponse(error);
+    return await errorResponse(error);
   }
 }
 
-export async function DELETE(_request: Request, context: { params: Promise<{ action?: string[] }> }) {
+export async function DELETE(request: Request, context: { params: Promise<{ action?: string[] }> }) {
   const { action = [] } = await context.params;
 
   try {
     if (action[0] === 'lines' && action[1]) {
-      return cartResponse(await removeBoxLine(action[1]));
+      return cartResponse(await removeBoxLine(action[1], versionOf(request)));
     }
     return NextResponse.json({ error: 'Unknown cart action' }, { status: 404 });
   } catch (error) {
-    return errorResponse(error);
+    return await errorResponse(error);
   }
 }

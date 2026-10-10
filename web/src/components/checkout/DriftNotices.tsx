@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import type { BoxChange } from '@/lib/aonik/map';
 import { useCart } from '@/lib/cart/CartProvider';
+import { CART_LOCKED_CODE } from '@/lib/cart/transport';
 import { formatPrice } from '@/lib/format';
 
 import styles from './DriftNotices.module.css';
@@ -136,7 +137,10 @@ export function DriftNotices() {
           </span>
           <span className={styles.body}>
             <span className={styles.title}>{error.message}</span>
-            <span className={styles.detail}>Please try the action again.</span>
+            {/* Retrying cannot help while the box is locked for payment. */}
+            {error.code === CART_LOCKED_CODE ? null : (
+              <span className={styles.detail}>Please try the action again.</span>
+            )}
           </span>
         </li>
       ) : null}

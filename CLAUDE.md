@@ -82,6 +82,14 @@ Conventions inside `web/` that are easy to get wrong:
   disagree: one order CTA on screen at a time. Never give either its own scroll listener for it.
   While the bar is slid in it holds `data-purchase-bar-shown` on `<html>`; `/menu`'s ↑ Top reads it
   (with `--at-bar-h`) to sit 14px above the bar.
+- **Live cart writes carry the tab's box version (Aonik #347).** Every box response has
+  `cartVersion` (mapped to `BoxCart.version`); the provider sends the version of the box it last
+  adopted as `X-Cart-Version` on every `/api/cart` call, and `lib/cart/server.ts` forwards it on
+  each write. Aonik refuses a missing or older one (409 `commerce.cart_conflict`) or a box
+  mid-payment (`commerce.cart_locked`); the route answers `cart.conflict` / `cart.locked` with the
+  box as it is now, for the tab to adopt. Never fetch a fresh version server-side to make a write
+  succeed — that is the blind overwrite SHOPPING-STATE §53 forbids. Only adoption on sign-in
+  reads it (ownership changes, not contents). Spec: `server-box-cart.md`.
 - **Site chrome (#10) is the v2 header, drawer and footer** (Homepage v2 is canonical). There is no
   announcement strip — the v2 design dropped it site-wide, and the homepage must never show the
   earliest delivery date. Every chrome destination is defined ONCE in `src/lib/content/navigation.ts`;

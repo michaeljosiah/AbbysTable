@@ -1,5 +1,20 @@
 import type { BoxCart, CheckoutResult } from '../aonik/map';
 
+/**
+ * The header a tab sends to `/api/cart` naming the box version its change is
+ * based on — the `version` of the last cart it adopted. The route forwards it
+ * to Aonik as the same header (#347). Same-origin, so no CORS preflight.
+ */
+export const CART_VERSION_HEADER = 'X-Cart-Version';
+
+/**
+ * The route's answers when Aonik refused a write because the box is not the
+ * one the tab was looking at, or cannot be changed now. Either way nothing
+ * changed, and the response carries the box as it really is.
+ */
+export const CART_CONFLICT_CODE = 'cart.conflict';
+export const CART_LOCKED_CODE = 'cart.locked';
+
 /** An `/api/cart` failure, carrying whatever the handler could tell us. */
 export class CartRequestError extends Error {
   readonly status: number;
@@ -21,6 +36,19 @@ export interface CartResponse {
   order?: CheckoutResult;
   error?: string;
   code?: string;
+}
+
+/**
+ * The version the next write is based on, after this response: the adopted
+ * box's own, none once the box is gone, unchanged when the response carried no
+ * box. Mirrors `adoptCartResponse`, so the version always belongs to the box on
+ * screen.
+ */
+export function adoptCartVersion(
+  current: string | undefined,
+  payload: Pick<CartResponse, 'cart'>,
+): string | undefined {
+  return payload.cart === undefined ? current : (payload.cart?.version ?? undefined);
 }
 
 /** Object/null replace server truth; an absent cart preserves it. */

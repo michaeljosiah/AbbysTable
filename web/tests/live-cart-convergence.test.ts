@@ -25,6 +25,7 @@ import { ORDER_COOKIE } from '../src/lib/cart/orderCookie';
 import {
   admitCartRequest,
   adoptCartResponse,
+  adoptCartVersion,
   CartRequestError,
   processCartResponse,
   type CartResponse,
@@ -85,6 +86,18 @@ test('production response processing adopts object/null/absence on success and e
     assert.ok(failed.failure instanceof CartRequestError);
     assert.equal(failed.failure.code, 'commerce.failure');
   }
+});
+
+test('the version a tab sends next is always the version of the box it shows', () => {
+  const seen = { ...cart, version: 'v2' };
+  // A box in the response — success, drift or a refused write — brings its version.
+  assert.equal(adoptCartVersion('v1', { cart: seen }), 'v2');
+  // The box is gone: there is nothing left to base a change on.
+  assert.equal(adoptCartVersion('v1', { cart: null }), undefined);
+  // No box in the response: the box on screen, and so its version, stand.
+  assert.equal(adoptCartVersion('v1', {}), 'v1');
+  // A box mapped without a version (older Aonik) clears rather than keeps a stale one.
+  assert.equal(adoptCartVersion('v1', { cart: { ...cart, version: undefined } }), undefined);
 });
 
 test('cart-missing HTTP mapping is non-2xx and carries authoritative null', () => {

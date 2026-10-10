@@ -26,7 +26,7 @@ export interface AonikFetchOptions {
   baseUrl: string;
   tenantId: string;
   policy: CachePolicy;
-  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   /**
    * Request body. JSON, encoded here so no caller hand-rolls it — except a
    * `FormData`, which goes as multipart (the Contact form's image attachments,
@@ -35,6 +35,13 @@ export interface AonikFetchOptions {
   body?: unknown;
   /** Per-cart possession proof (`server-box-cart`). */
   cartToken?: string;
+  /**
+   * The cart version the write is based on (Aonik #347). Every cart mutation
+   * must carry the `cartVersion` of the box the customer last saw: a missing or
+   * older one is refused with 409 `commerce.cart_conflict`, so a stale tab can
+   * never overwrite a newer change blindly (SHOPPING-STATE §53).
+   */
+  cartVersion?: string;
   /** Signed-in customer's access token (`customer-identity`). */
   accessToken?: string;
   /** Query parameters; undefined and null values are dropped. */
@@ -90,6 +97,7 @@ export async function aonikFetch<T>(path: string, options: AonikFetchOptions): P
     method = 'GET',
     body,
     cartToken,
+    cartVersion,
     accessToken,
     query,
     signal,
@@ -110,6 +118,7 @@ export async function aonikFetch<T>(path: string, options: AonikFetchOptions): P
   // Possession (cart) and identity (session) are separate proofs and can both
   // be absent: the catalogue is anonymous.
   if (cartToken) headers['X-Cart-Token'] = cartToken;
+  if (cartVersion) headers['X-Cart-Version'] = cartVersion;
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
   const response = await fetch(url, {

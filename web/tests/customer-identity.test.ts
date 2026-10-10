@@ -166,6 +166,29 @@ test('a refresh that fails is the same as no session', async () => {
 
 const GUEST_CART = JSON.stringify({ cartId: CART_ID, cartToken: CART_TOKEN });
 
+/** The guest box as Aonik answers a read of it, at version `version`. */
+function guestBox(version = 'v7') {
+  return {
+    box: { cartId: CART_ID, bundleProductId: 'bundle-1', size: 6, currency: 'GBP', lines: [] },
+    quote: { components: [], deliveryList: 0, total: 158, currency: 'GBP', unitsSelected: 0, boxSize: 6, spacesLeft: 6, isFull: false },
+    changes: [],
+    cartToken: null,
+    cartVersion: version,
+    status: 'Open',
+  };
+}
+
+/** Answers the read of the guest box, and `adopt` for the adoption itself. */
+function adoptionResponder(adopt: { status: number; body?: unknown }) {
+  return (request: { method: string; path: string }) => {
+    if (request.method === 'GET' && request.path === `/commerce/carts/${CART_ID}`) {
+      return { status: 200, body: guestBox() };
+    }
+    if (request.method === 'POST' && request.path === `/commerce/carts/${CART_ID}/adopt`) return adopt;
+    return undefined;
+  };
+}
+
 test('nothing to adopt without a guest token or without a session', async () => {
   useAonik(() => undefined);
 
@@ -183,17 +206,40 @@ test('nothing to adopt without a guest token or without a session', async () => 
 
 test('a successful adoption drops the dead guest token and keeps the cart', async () => {
   signedInWith(session(), { [CART_COOKIE]: GUEST_CART });
-  useAonik((request) =>
-    request.method === 'POST' && request.path === `/commerce/carts/${CART_ID}/adopt`
-      ? { status: 200, body: {} }
-      : undefined,
-  );
+  useAonik(adoptionResponder({ status: 200, body: {} }));
 
   assert.equal(await adoptBoxCart(), 'adopted');
 
-  assert.equal(aonikRequests[0].headers['x-cart-token'], CART_TOKEN);
-  assert.equal(aonikRequests[0].headers.authorization, 'Bearer access-1');
+  // Adoption is a cart write (#347): it is based on the guest box's version,
+  // read from the box itself first.
+  assert.equal(aonikRequests[0].method, 'GET');
+  const adopt = aonikRequests[1];
+  assert.equal(adopt.path, `/commerce/carts/${CART_ID}/adopt`);
+  assert.equal(adopt.headers['x-cart-token'], CART_TOKEN);
+  assert.equal(adopt.headers['x-cart-version'], 'v7');
+  assert.equal(adopt.headers.authorization, 'Bearer access-1');
   assert.deepEqual(JSON.parse(cookieValue(CART_COOKIE) ?? '{}'), { cartId: CART_ID });
+});
+
+test('an account that already holds a different box leaves the guest box as it is, quietly', async () => {
+  signedInWith(session(), { [CART_COOKIE]: GUEST_CART });
+  useAonik(
+    adoptionResponder({
+      status: 409,
+      body: { code: AONIK_CODES.boxChoiceRequired, message: 'Choose a box.', guest: {}, savedCandidates: [] },
+    }),
+  );
+  const logged = mock.method(console, 'error', () => undefined);
+
+  try {
+    // KEEP THIS BOX / USE SAVED BOX is not built yet (#14): nothing is lost,
+    // the guest box simply stays a guest box, and this is not a fault.
+    assert.equal(await adoptBoxCart(), 'skipped');
+    assert.equal(cookieValue(CART_COOKIE), GUEST_CART);
+    assert.equal(logged.mock.callCount(), 0);
+  } finally {
+    logged.mock.restore();
+  }
 });
 
 test('a 404 on adoption clears the cart cookie without failing sign-in', async () => {
@@ -207,7 +253,7 @@ test('a 404 on adoption clears the cart cookie without failing sign-in', async (
 
 test('a storefront-validation 400 leaves the cart alone, as an expected outcome', async () => {
   signedInWith(session(), { [CART_COOKIE]: GUEST_CART });
-  useAonik(() => ({ status: 400, body: { error: 'Cart is not open.', code: AONIK_CODES.storefrontValidation } }));
+  useAonik(adoptionResponder({ status: 400, body: { error: 'Cart is not open.', code: AONIK_CODES.storefrontValidation } }));
   const logged = mock.method(console, 'error', () => undefined);
 
   try {
@@ -223,7 +269,7 @@ test('a storefront-validation 400 leaves the cart alone, as an expected outcome'
 
 test('an unexpected failure is logged, not thrown, and leaves the cart alone', async () => {
   signedInWith(session(), { [CART_COOKIE]: GUEST_CART });
-  useAonik(() => ({ status: 500, body: { error: 'Boom.' } }));
+  useAonik(adoptionResponder({ status: 500, body: { error: 'Boom.' } }));
   const logged = mock.method(console, 'error', () => undefined);
 
   try {

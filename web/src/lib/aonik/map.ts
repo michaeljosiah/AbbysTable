@@ -627,6 +627,12 @@ export interface BoxCart {
   lines: BoxLine[];
   quote: BoxQuote;
   changes: BoxChange[];
+  /**
+   * The version of the box this is (Aonik's `cartVersion`). Not a secret — it
+   * proves nothing on its own — so it travels to the browser, which sends it
+   * back with its next change: that is how a tab says which box it is editing.
+   */
+  version?: string;
 }
 
 export function mapBoxLine(dto: BoxLineDto): BoxLine {
@@ -686,6 +692,7 @@ export function mapBoxCart(dto: BoxCartDto): BoxCart {
     lines: dto.box.lines.map(mapBoxLine),
     quote: mapBoxQuote(dto.quote),
     changes: dto.changes.map(mapBoxChange),
+    version: dto.cartVersion || undefined,
   };
 }
 
