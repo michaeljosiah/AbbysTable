@@ -2,13 +2,12 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import styles from '@/components/account/Account.module.css';
+import { addressText, giftLine, orderStatusLabel } from '@/lib/account/orders';
 import { formatOrderDate, getMyOrder } from '@/lib/aonik/orders';
-import { SessionExpiredError } from '@/lib/auth/server';
 import { redirectToLogin, requireSignedIn } from '@/lib/auth/guard';
-import { CONTACT_HREF } from '@/lib/content/navigation';
-import { formatPrice, formatPriceExact } from '@/lib/format';
-
-import styles from './page.module.css';
+import { SessionExpiredError } from '@/lib/auth/server';
+import { formatDeliveryDateLong, formatPrice, formatPriceExact } from '@/lib/format';
 
 /**
  * Static, and deliberately so: putting the order reference or its contents in a
@@ -51,129 +50,109 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
   if (!order) notFound();
 
   const placed = formatOrderDate(order.placedAtUtc);
-  const hasDiscount = order.discountTotalPence > 0;
-  const hasTax = order.taxTotalPence > 0;
+  const status = orderStatusLabel({ fulfilmentStatus: order.fulfilmentStatus, status: order.status });
+  const { delivery, loyalty, refund } = order;
+  const deliveryDay = formatDeliveryDateLong(delivery?.deliveryDate);
+  const cardPaid = order.totalPence - order.giftCardPaidPence;
 
   return (
-    <section className={styles.page}>
-      <div className={styles.inner}>
-        <Link href="/account/orders" className={styles.back}>
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M15 6l-6 6 6 6" />
-          </svg>
-          All orders
-        </Link>
+    <section className={styles.section} aria-labelledby="order-h">
+      <Link href="/account/orders" className={styles.textLink}>
+        <span aria-hidden="true">&larr;</span>
+        <span>All orders</span>
+      </Link>
 
-        <article className={styles.card}>
-          <header className={styles.header}>
-            <h1 className={styles.heading}>
-              {order.boxSize ? `Your ${order.boxSize}-dish box` : 'Your order'}
-            </h1>
-            <div className={styles.meta}>
-              {placed ? <span className={styles.placed}>Placed {placed}</span> : null}
-              <span className={styles.status}>{order.status}</span>
-            </div>
-          </header>
+      <div className={styles.ordTop}>
+        <h2 className={styles.h2} id="order-h">
+          {order.orderNumber ? `Order ${order.orderNumber}` : order.boxSize ? `Your ${order.boxSize}-dish box` : 'Your order'}
+        </h2>
+        <span className={styles.status} data-k={status.kind}>
+          {status.label}
+        </span>
+      </div>
 
-          <div className={styles.reference}>
-            <span className={styles.referenceLabel}>Order reference</span>
-            <code className={styles.referenceValue}>{order.orderId}</code>
-          </div>
-
-          {order.selections.length > 0 ? (
-            <div className={styles.block}>
-              <h2 className={styles.blockHeading}>What&rsquo;s in this box</h2>
-              {/* The detail read carries no product name for a selection — only
-                  the variant id and the sku — so the sku is what is shown.
-                  Inventing a dish title from it would be a guess. */}
-              <p className={styles.blockNote}>Listed by product code.</p>
-              <ul className={styles.lines}>
-                {order.selections.map((selection, index) => (
-                  <li key={`${selection.productVariantId}-${index}`} className={styles.line}>
-                    <span className={styles.lineQty}>{selection.quantity}&times;</span>
-                    <span className={styles.lineBody}>
-                      <span className={styles.lineName}>{selection.sku}</span>
-                      {selection.personalisationSummary ? (
-                        <span className={styles.lineDetail}>
-                          {selection.personalisationSummary}
-                        </span>
-                      ) : null}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+      <div className={styles.card}>
+        <div className={styles.ordBody}>
+          {deliveryDay ? <h3 className={styles.cardTitle}>{deliveryDay}</h3> : null}
+          {delivery && delivery.addressLines.length > 0 ? (
+            <p className={styles.p}>
+              {delivery.recipientName ? `${delivery.recipientName}, ` : ''}
+              {addressText(delivery.addressLines)}
+            </p>
           ) : null}
-
-          {order.items.length > 0 ? (
-            <div className={styles.block}>
-              <h2 className={styles.blockHeading}>What you were charged for</h2>
-              <ul className={styles.lines}>
-                {order.items.map((item, index) => (
-                  <li key={`${item.itemType}-${item.sku ?? ''}-${index}`} className={styles.line}>
-                    <span className={styles.lineQty}>
-                      {item.quantity !== undefined ? `${item.quantity}×` : ''}
-                    </span>
-                    <span className={styles.lineBody}>
-                      <span className={styles.lineName}>{item.itemType}</span>
-                      {item.sku ? <span className={styles.lineDetail}>{item.sku}</span> : null}
-                      {item.unitPricePence !== undefined ? (
-                        <span className={styles.lineDetail}>
-                          {formatPriceExact(item.unitPricePence)} each
-                        </span>
-                      ) : null}
-                    </span>
-                    <span className={styles.linePrice}>{formatPriceExact(item.amountPence)}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+          <p className={styles.ordMeta}>
+            {order.boxSize ? <span>{order.boxSize}-dish box</span> : null}
+            {placed ? <span>Placed {placed.replace(/ at \d.*$/, '')}</span> : null}
+          </p>
+          {delivery?.gift ? (
+            <p className={styles.gift}>
+              <span>{giftLine(delivery.gift, delivery.recipientName)}</span>
+            </p>
           ) : null}
+        </div>
+      </div>
 
-          <div className={styles.totals}>
-            <div className={styles.totalRow}>
-              <span>Subtotal</span>
-              <span>{formatPrice(order.subtotalPence)}</span>
-            </div>
-            {hasDiscount ? (
-              <div className={styles.totalRow}>
-                <span>Discount</span>
-                <span className={styles.discount}>
-                  &minus;{formatPrice(order.discountTotalPence)}
+      {order.selections.length > 0 ? (
+        <div className={styles.card}>
+          <h3 className={styles.h3}>In this box</h3>
+          <ul className={styles.dishes}>
+            {order.selections.map((selection, index) => (
+              <li key={`${selection.productVariantId}-${index}`}>
+                <b>{selection.quantity}×</b>
+                <span>
+                  {/* A dish with no purchased name is shown by its code: a name
+                      is never made up from it. */}
+                  {selection.name ?? selection.sku}
+                  {selection.isSignature ? <span className={styles.sig}>Signature</span> : null}
+                  {selection.personalisationSummary ? (
+                    <span className={styles.lineNote}>{selection.personalisationSummary}</span>
+                  ) : null}
                 </span>
-              </div>
-            ) : null}
-            {hasTax ? (
-              <div className={styles.totalRow}>
-                <span>Tax</span>
-                <span>{formatPrice(order.taxTotalPence)}</span>
-              </div>
-            ) : null}
-            <div className={styles.grandRow}>
-              <span>Total</span>
-              <span className={styles.grandValue}>{formatPrice(order.totalPence)}</span>
-            </div>
-          </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
-          <div className={styles.actions}>
-            <Link href="/menu" className={styles.primary}>
-              Order it again
-            </Link>
-            <Link href={CONTACT_HREF} className={styles.secondary}>
-              Questions about this order?
-            </Link>
+      <div className={styles.card}>
+        <h3 className={styles.h3}>What you paid</h3>
+        <dl className={styles.totals}>
+          <div>
+            <dt>Subtotal</dt>
+            <dd>{formatPriceExact(order.subtotalPence)}</dd>
           </div>
-        </article>
+          {order.discountTotalPence > 0 ? (
+            <div>
+              <dt>Discount{order.discountCode ? ` (${order.discountCode})` : ''}</dt>
+              <dd>&minus;{formatPriceExact(order.discountTotalPence)}</dd>
+            </div>
+          ) : null}
+          {loyalty && loyalty.redeemedPoints > 0 ? (
+            <div>
+              <dt>{loyalty.redeemedPoints} points</dt>
+              <dd>&minus;{formatPriceExact(loyalty.appliedValuePence)}</dd>
+            </div>
+          ) : null}
+          {order.taxTotalPence > 0 ? (
+            <div>
+              <dt>Tax</dt>
+              <dd>{formatPriceExact(order.taxTotalPence)}</dd>
+            </div>
+          ) : null}
+          {order.giftCardPaidPence > 0 ? (
+            <div>
+              <dt>Paid with gift card</dt>
+              <dd>{formatPriceExact(order.giftCardPaidPence)}</dd>
+            </div>
+          ) : null}
+          <div className={styles.totalsGrand}>
+            <dt>{order.giftCardPaidPence > 0 ? 'Paid by card' : 'Total'}</dt>
+            <dd>{formatPrice(order.giftCardPaidPence > 0 ? cardPaid : order.totalPence)}</dd>
+          </div>
+        </dl>
+        {refund && refund.totalReturnedPence > 0 ? (
+          <p className={styles.p}>{formatPriceExact(refund.totalReturnedPence)} has been returned to you.</p>
+        ) : null}
       </div>
     </section>
   );
