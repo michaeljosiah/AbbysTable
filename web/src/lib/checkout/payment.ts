@@ -166,7 +166,11 @@ export async function readPaymentState(): Promise<CartPaymentStateDto | null> {
   // order, and the next page to load clears its cookie — which can be this
   // page's own hydration, a moment after the payment landed. The attempt in
   // the payment cookie is then read as the order it became: paid is paid.
-  const found = await readPaymentOrder();
+  // An order that cannot be read just now is no answer, never an error page.
+  const found = await readPaymentOrder().catch((error: unknown) => {
+    if (error instanceof AonikError) return null;
+    throw error;
+  });
   if (found?.dto.paymentStatus !== 'Captured') return null;
   return {
     orderId: found.dto.orderId,
@@ -186,7 +190,8 @@ export async function readPaymentState(): Promise<CartPaymentStateDto | null> {
  * anything uncertain changes nothing.
  */
 export async function recoverPayment(state: CartPaymentStateDto): Promise<CartPaymentStateDto> {
-  if (!state.paymentIntentId) return state;
+  // A paid order read without its box carries no version to recover on.
+  if (!state.paymentIntentId || state.status === 'succeeded' || !state.cartVersion) return state;
   return cartCall<CartPaymentStateDto>(
     '/payment/recover',
     { method: 'POST', body: { paymentIntentId: state.paymentIntentId } },
@@ -222,6 +227,8 @@ const DATE_CODES = new Set([
  * 3. Otherwise it is still being decided: never a second payment.
  */
 export async function retryPayment(origin: string): Promise<PaymentRetry> {
+  // Before the date is held again: a return origin Aonik would reject starts nothing.
+  returnUrls(origin);
   let state = await readPaymentState();
   if (!state) throw new CartMissingError();
   if (state.status === 'succeeded') return { kind: 'paid' };

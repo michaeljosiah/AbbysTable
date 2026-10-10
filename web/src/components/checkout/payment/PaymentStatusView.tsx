@@ -67,7 +67,7 @@ function RetryActions({ primary }: { primary: string }) {
       <p className={styles.busy} role="status">
         {busy ? 'Taking you to secure payment…' : (error ?? '')}
       </p>
-      <Link href="/box/checkout" className={styles.back}>
+      <Link href="/box/checkout" prefetch={false} className={styles.back}>
         <span>
           Return to checkout<span aria-hidden="true">→</span>
         </span>
