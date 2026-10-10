@@ -26,7 +26,7 @@ import styles from './MenuTopButton.module.css';
  * while the bar is in (`data-purchase-bar-shown`, `--at-bar-h`) and drops to
  * the viewport edge when the bar retracts.
  */
-export function MenuTopButton() {
+export function MenuTopButton({ label = 'Back to top of menu' }: { label?: string }) {
   const [shown, setShown] = useState(false);
 
   useEffect(() => {
@@ -103,7 +103,7 @@ export function MenuTopButton() {
       data-consent-yield=""
       inert={!shown}
       onClick={goTop}
-      aria-label="Back to top of menu"
+      aria-label={label}
     >
       <svg
         width="16"

@@ -1,44 +1,79 @@
 'use client';
 
-import { hasOptionChoices } from '@/lib/aonik/personalisation';
+import { useEffect } from 'react';
+import {
+  linePortion,
+  portionModel,
+  portionSelection,
+  type PortionKey,
+} from '@/lib/dish/portions';
 
-import { DishPersonaliser } from './DishPersonaliser';
+import { PortionCard, PortionMacros } from './PortionCard';
 import { useDishOrder } from './DishOrderProvider';
 import { StandardsLink } from './StandardsLink';
 import { useDishReturn } from './useDishReturn';
 import styles from './DishOrderPanel.module.css';
 
 /**
- * Joins the personaliser to the cart through `DishOrderProvider`, which owns
+ * Joins the portion card to the cart through `DishOrderProvider`, which owns
  * the current choice and the add-to-box action this button shares with the
  * mobile purchase bar.
  *
  * It also holds both dish-side ends of the Our Standards round trip
  * (`lib/dish-return.ts`), because it is what knows the current choice: "See
  * our standards" records the whole selection, and on a genuine return
- * `useDishReturn` hands it back for the personaliser to restore.
+ * `useDishReturn` hands it back for the portion card to restore.
  */
 export function DishOrderPanel() {
-  const { dish, optionGroups, choice, setChoice, addToBox, pending, handingOff, error } =
-    useDishOrder();
-  const { selection: restoredSelection, discard: discardReturn } = useDishReturn(
-    dish.slug,
+  const {
+    dish,
     optionGroups,
-  );
+    choice,
+    setChoice,
+    addToBox,
+    pending,
+    handingOff,
+    error,
+  } = useDishOrder();
+  const { selection: restoredSelection, discard: discardReturn } =
+    useDishReturn(dish.slug, optionGroups);
+  const model = portionModel(optionGroups);
+  const portion = linePortion(choice.personalisation) ?? 'light';
+  const select = (key: PortionKey) => {
+    discardReturn();
+    setChoice({
+      personalisation: portionSelection(key),
+      complete: { portion: key },
+      surchargePence: model?.choices.find((item) => item.key === key)
+        ?.pricePence,
+    });
+  };
+  useEffect(() => {
+    const key = restoredSelection?.portion?.[0];
+    if (key !== 'light' && key !== 'full') return;
+    const restored = portionModel(optionGroups)?.choices.find(
+      (item) => item.key === key,
+    );
+    if (restored)
+      setChoice({
+        personalisation: portionSelection(key),
+        complete: { portion: key },
+        surchargePence: restored.pricePence,
+      });
+  }, [restoredSelection, optionGroups, setChoice]);
 
   return (
     <>
       <StandardsLink slug={dish.slug} selection={choice.complete} />
 
-      {hasOptionChoices(optionGroups) ? (
-        <DishPersonaliser
-          dish={dish}
-          optionGroups={optionGroups}
-          onChange={setChoice}
-          onEdit={discardReturn}
-          restoredSelection={restoredSelection}
-        />
-      ) : null}
+      <PortionCard
+        groups={optionGroups}
+        value={portion}
+        onChange={select}
+        disabled={pending || handingOff}
+      >
+        <PortionMacros dish={dish} portion={portion} />
+      </PortionCard>
 
       {/* Scrolling past this button is what reveals the mobile bar's "Add to
           box" — one add control on screen at a time (Dish Landing v2). */}
@@ -46,11 +81,11 @@ export function DishOrderPanel() {
         type="button"
         className={styles.cta}
         onClick={addToBox}
-        disabled={pending}
+        disabled={pending || handingOff || !model}
         aria-disabled={handingOff || undefined}
         data-purchase-bar-reveal=""
       >
-        Add this dish to your box
+        Add to your box
         <svg
           width="20"
           height="20"

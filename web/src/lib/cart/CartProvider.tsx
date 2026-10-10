@@ -18,6 +18,7 @@ import type {
 } from '@/lib/aonik/map';
 import { localSurcharge, selectionDraft } from '@/lib/aonik/personalisation';
 import type { BoxPricing, Extra } from '@/lib/aonik/types';
+import { linePortion, selectionIdentity } from '@/lib/dish/portions';
 
 import {
   projectAddOnLines,
@@ -74,6 +75,8 @@ const STORAGE_KEY = 'abbys-table:box:v2';
 const LEGACY_STORAGE_KEY = 'abbys-table:box:v1';
 
 interface CartContextValue extends CartState {
+  gift?: BoxCart['gift'];
+  refresh: () => Promise<void>;
   /** False during the first client render, before storage or the server answered. */
   hydrated: boolean;
   dishCount: number;
@@ -192,7 +195,7 @@ function projectServerCart(
       title: line.name,
       imageUrl: display[line.productId]?.imageUrl ?? '',
       quantity: line.quantity,
-      personalisation: line.isDefaultPersonalisation ? undefined : line.personalisation,
+      personalisation: line.isDefaultPersonalisation && linePortion(line.personalisation) !== null ? undefined : line.personalisation,
       surchargePence: line.personalisationAdjustmentPence + line.unitSurchargePence,
       ...(line.isUnavailable ? { unavailable: true } : {}),
     }));
@@ -286,11 +289,11 @@ export function CartProvider({
   const addLineLocal = useCallback((line: Omit<CartLine, 'lineId'> & { lineId?: string }) => {
     setState((current) => {
       // Same dish with identical personalisation merges into one line.
-      const signature = JSON.stringify(line.personalisation ?? null);
+      const signature = selectionIdentity(line.personalisation);
       const existing = current.lines.find(
         (candidate) =>
           candidate.dishId === line.dishId &&
-          JSON.stringify(candidate.personalisation ?? null) === signature,
+          selectionIdentity(candidate.personalisation) === signature,
       );
 
       if (existing) {
@@ -304,7 +307,7 @@ export function CartProvider({
         };
       }
 
-      const lineId = line.lineId ?? `${line.dishId}-${current.lines.length + 1}`;
+      const lineId = line.lineId ?? crypto.randomUUID();
       return { ...current, lines: [...current.lines, { ...line, lineId }] };
     });
   }, []);
@@ -409,7 +412,7 @@ export function CartProvider({
             ...current.lines.map((line) =>
               line.lineId === lineId ? { ...line, quantity: line.quantity - units } : line,
             ),
-            { ...updated, lineId: `${source.dishId}-${current.lines.length + 1}` },
+            { ...updated, lineId: crypto.randomUUID() },
           ],
         };
       });
@@ -441,7 +444,7 @@ export function CartProvider({
           extras: [
             ...current.extras,
             {
-              lineId: `${variantId}-${current.extras.length + 1}`,
+              lineId: crypto.randomUUID(),
               variantId,
               quantity,
               personalisation,
@@ -545,9 +548,10 @@ export function CartProvider({
     : 0;
   // Aonik counts a flagged dish in `unitsSelected` — it stays in the box until
   // removed — so the dishes that can be ordered are what is left of it.
-  const readyDishes = isServerCart
+  const legacyCount = effectiveState.lines.filter((line) => !line.unavailable && linePortion(line.personalisation) === null).reduce((total, line) => total + line.quantity, 0);
+  const readyDishes = (isServerCart
     ? readyDishCount(server.cart?.quote.unitsSelected ?? 0, unavailableCount)
-    : effectiveState.lines.reduce((total, line) => total + line.quantity, 0);
+    : effectiveState.lines.reduce((total, line) => total + line.quantity, 0)) - legacyCount;
   const shopping = useMemo(
     () =>
       boxStatus({
@@ -573,6 +577,7 @@ export function CartProvider({
     }
   }, [isServerCart, server.hydrated, hydrated, readFailed, shopping.active, shopping.ordered]);
 
+  const refreshRequest = server.request;
   const value = useMemo<CartContextValue>(
     () => ({
       ...effectiveState,
@@ -595,6 +600,8 @@ export function CartProvider({
       unavailableDishes,
       rememberStep,
       quote: server.cart?.quote ?? null,
+      gift: server.cart?.gift ?? null,
+      refresh: async () => { if (isServerCart) await refreshRequest('', { method: 'GET' }); },
       changes: server.cart?.changes ?? [],
       hasUnavailableLine: server.cart?.lines.some((line) => line.isUnavailable) ?? false,
       ordered: server.cart?.ordered ?? false,
@@ -627,6 +634,7 @@ export function CartProvider({
       clear,
       revalidate,
       server.checkoutRequest,
+      refreshRequest,
       shopping,
       unavailableDishes,
       rememberStep,

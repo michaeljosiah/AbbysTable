@@ -17,6 +17,7 @@ import { allergenLine, declaredAllergens, declaresNone, NONE_DECLARED, splitAlle
 
 import type {
   BoxCartDto,
+  CartGiftDraftDto,
   CheckoutResultDto,
   ExtraRowDto,
   BoxChangeDto,
@@ -30,7 +31,7 @@ import type {
   ProductSummaryDto,
   ResolvedContentDto,
 } from './dto';
-import { EXTRA_CATEGORIES, HEAT_STEPS, PROTEIN_TYPES } from './types';
+import { HEAT_STEPS, PROTEIN_TYPES } from './types';
 import type {
   BoxOffer,
   Dish,
@@ -243,6 +244,8 @@ export function nutritionCaptionKind(
  */
 export interface MappedOptionGroup {
   key: string;
+  currency?: string;
+  valid?: boolean;
   label: string;
   helpText?: string;
   /** `One` accepts a bare string; `Multi` REQUIRES an array (a string is rejected). */
@@ -266,6 +269,8 @@ export function mapOptionGroup(dto: EffectiveOptionGroupDto): MappedOptionGroup 
 
   return {
     key: dto.key,
+    currency: dto.currency,
+    valid: dto.choices.some((choice) => choice.key === dto.defaultChoiceKey) && dto.choices.every((choice) => Number.isFinite(choice.price)),
     label: dto.label,
     helpText: dto.helpText ?? undefined,
     selectionMode: dto.selectionMode,
@@ -714,6 +719,7 @@ export interface BoxChange {
 }
 
 export interface BoxCart {
+  gift?: CartGiftDraftDto | null;
   cartId: string;
   bundleProductId: string;
   size: number;
@@ -793,6 +799,7 @@ export function mapBoxChange(dto: BoxChangeDto): BoxChange {
 /** Every mutation returns the whole box; the provider replaces state wholesale. */
 export function mapBoxCart(dto: BoxCartDto): BoxCart {
   return {
+    ...(dto.checkoutDraft?.gift ? { gift: dto.checkoutDraft.gift } : {}),
     cartId: dto.box.cartId,
     bundleProductId: dto.box.bundleProductId,
     size: dto.box.size,
@@ -935,9 +942,7 @@ function parseExtraAttributes(json: string | null): ExtraAttributes {
 }
 
 function extraCategory(value: string | undefined): ExtraCategory {
-  return (EXTRA_CATEGORIES as readonly string[]).includes(value ?? '')
-    ? (value as ExtraCategory)
-    : 'Sides';
+  return value?.trim() ?? '';
 }
 
 function extraServeStyle(value: string | undefined): ExtraServeStyle {
@@ -957,6 +962,8 @@ export function mapExtraRow(dto: ExtraRowDto): Extra {
 
   return {
     id: dto.productVariantId,
+    slug: dto.slug,
+    contentState: content?.state,
     name: dto.name,
     category: extraCategory(attributes.category),
     pricePence: toPence(dto.unitPrice),

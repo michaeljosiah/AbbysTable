@@ -341,11 +341,12 @@ async function resolveForCart(slug: string): Promise<{
     { ...connection(), policy: 'catalog' },
   );
 
-  const variant = product.variants.find((candidate) => candidate.isActive) ?? product.variants[0];
+  const active = product.variants.filter((candidate) => candidate.isActive);
+  const variant = active.length === 1 ? active[0] : undefined;
   if (!variant) {
     throw new Error(
-      `"${slug}" has no variant to add. A product with no variant cannot be put in a box; ` +
-        'the catalogue needs fixing rather than this call retrying.',
+      `"${slug}" needs one unambiguous active ordering variant. ` +
+        'The catalogue mapping must be fixed before this dish can be added.',
     );
   }
 

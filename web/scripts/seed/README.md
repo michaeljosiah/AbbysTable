@@ -44,7 +44,13 @@ node scripts/seed/images.mjs          /tmp/fixtures.json    # attach catalog pho
 ```
 
 Without `option-groups.mjs` every dish and optioned extra returns
-`effectiveOptionGroups: []`, so personalisation simply disappears. Extra group
+`effectiveOptionGroups: []`, so dish purchasing is unavailable. Dishes now attach only
+the `portion` group: Light Table is included and Full Table adds **£5 per dish**,
+with Signature charged separately (owner approval, 10 October 2026). The setup
+validates the £5 delta before writing. This script is local catalogue setup, not
+a production migration: existing customised carts and saved boxes require the
+preserve-and-repair rollout in `docs/specifications/portion-model.md` before
+replacing attachments. Extra group
 keys are namespaced by fixture id because Aonik groups are tenant-global: Puff
 Puff's `size/lg`, another extra's differently-priced `size/lg`, and dish `heat`
 must remain separate authored groups. Each extra attachment allows only its own

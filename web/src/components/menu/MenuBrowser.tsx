@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
 
 import type { MappedFacetGroup } from '@/lib/aonik/map';
 import type { Dish } from '@/lib/aonik/types';
@@ -24,6 +24,8 @@ function clearFacets(params: URLSearchParams): void {
 }
 
 interface MenuBrowserProps {
+  renderDish?: (dish: Dish) => ReactNode;
+  gridClassName?: string;
   dishes: Dish[];
   /** Matches across the whole catalogue, not just this page. */
   totalCount: number;
@@ -60,6 +62,8 @@ export function MenuBrowser({
   query,
   sort,
   sorts,
+  renderDish,
+  gridClassName,
 }: MenuBrowserProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -215,6 +219,8 @@ export function MenuBrowser({
       />
 
       <MenuGrid
+        renderDish={renderDish}
+        gridClassName={gridClassName}
         dishes={dishes}
         resultLabel={label}
         pending={isPending}

@@ -8,7 +8,7 @@ import { DishOrderPanel } from '@/components/dish/DishOrderPanel';
 import { DishOrderProvider } from '@/components/dish/DishOrderProvider';
 import { DishPurchaseBar } from '@/components/dish/DishPurchaseBar';
 import { RelatedDishes } from '@/components/dish/RelatedDishes';
-import { FlavourBand } from '@/components/menu/FlavourBand';
+import { MenuDeliveryStrip } from '@/components/menu/MenuDeliveryStrip';
 import { HeatPips } from '@/components/ui';
 import { getAonikClient, getDishPageData } from '@/lib/aonik/client';
 import { formatDeliveryDate, formatPrice } from '@/lib/format';
@@ -74,7 +74,7 @@ export default async function DishPage({ params }: DishPageProps) {
             >
               <path d="M15 6l-6 6 6 6" />
             </svg>
-            Back to menu
+            Back
           </Link>
 
           <div className={styles.figure}>
@@ -137,78 +137,16 @@ export default async function DishPage({ params }: DishPageProps) {
 
           <h1 className={styles.title}>{dish.title}</h1>
 
-          {/* No published heat, no row — never a guessed level. */}
-          {dish.heat ? (
-            <div className={styles.heatRow}>
-              <span className={styles.heatLabel}>Heat</span>
-              <HeatPips heat={dish.heat} />
-            </div>
-          ) : null}
-
+          {dish.parts && <p className={styles.components}>{dish.parts}</p>}
           <p className={styles.description}>{dish.description}</p>
-
-          <p className={styles.flavourLine}>
-            Flavour built from real food.{' '}
-            <em>Never a bouillon, stock cube or additive.</em>
-          </p>
-
-          <nav className={styles.jumpNav} aria-label="Jump to dish information">
-            <a href="#dish-nutrition" className={styles.jumpLink}>
-              Nutrition
-            </a>
-            <span aria-hidden="true" className={styles.jumpSep}>
-              ·
-            </span>
-            <a href="#dish-ingredients" className={styles.jumpLink}>
-              Ingredients &amp; allergens
-            </a>
-            <span aria-hidden="true" className={styles.jumpSep}>
-              ·
-            </span>
-            <a href="#dish-heating" className={styles.jumpLink}>
-              How to heat
-            </a>
-          </nav>
+          {dish.heat && <div className={styles.heatRow}><span className={styles.heatLabel}>Heat</span><HeatPips heat={dish.heat} /></div>}
+          <p className={styles.flavourLine}>Flavour built properly.</p>
+          <p>Herbs, spices, aromatics and house-made stocks. No commercial seasoning blends or added MSG.</p>
 
           <DishOrderPanel />
 
-          <p className={styles.deliveryNote}>
-            <svg
-              width="15"
-              height="15"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="var(--green-forest)"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <rect x="3" y="4.5" width="18" height="16" rx="2" />
-              <path d="M3 9h18" />
-              <path d="M8 2.5v4" />
-              <path d="M16 2.5v4" />
-            </svg>
-            <span>
-              Prepared for your chosen delivery date.
-              {earliestDeliveryLabel ? (
-                <>
-                  {' '}
-                  Earliest UK-wide delivery: <strong>{earliestDeliveryLabel}</strong>.
-                </>
-              ) : null}
-            </span>
-          </p>
-
-          <div className={styles.noteRule} aria-hidden="true" />
-
-          <p className={styles.boxNote}>
-            Ordered as part of a box.{' '}
-            <strong>
-              Boxes start at {formatPrice(entryBox.pricePence)} for {entryBox.dishCount} dishes.
-            </strong>
-          </p>
-          <p className={styles.boxNoteSub}>Choose your box size on the next step.</p>
+          <p className={styles.boxNote}>Minimum order: any {entryBox?.dishCount ?? 6} dishes.</p>
+          {earliestDeliveryLabel && <MenuDeliveryStrip date={earliestDeliveryLabel} />}
 
           <DishInfoPanels dish={dish} heating={heating} />
 
@@ -218,7 +156,6 @@ export default async function DishPage({ params }: DishPageProps) {
         </div>
       </div>
 
-      <FlavourBand />
 
       {/* Mobile only; revealed once the inline button is scrolled past, gone
           from the footer on (the footer carries data-purchase-bar-stop). */}
