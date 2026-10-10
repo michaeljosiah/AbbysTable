@@ -49,15 +49,8 @@ export const STANDARDS_ITEM: NavItem = { label: 'Our standards', href: '/standar
 
 export const ALLERGENS_ITEM: NavItem = { label: 'Allergens', href: '/allergens' };
 
-/**
- * Gifting (#26, `/gifting`) is designed but not built, and the homepage's
- * `#gifting` section is gone from the v2 homepage (#15) — so there is no honest
- * destination for it yet. It stays OUT of the header, drawer and footer until
- * its page lands: flip this flag in the same change that adds the route. A
- * link to `/gifting` today would 404, and `/#gifting` would be a dead anchor
- * the moment #15 merges.
- */
-export const GIFTING_LIVE = false;
+/** Gifting has a dedicated route; all site navigation uses it. */
+export const GIFTING_LIVE = true;
 
 export const GIFTING_ITEM: NavItem = { label: 'Gifting', href: '/gifting' };
 

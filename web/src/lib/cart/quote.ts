@@ -40,6 +40,10 @@ const COMPONENT_LABELS: Record<string, string> = {
   deliveryCharged: 'Delivery',
   discount: 'Discount',
   tax: 'Tax',
+  greetingCard: 'Greeting card',
+  giftCardValue: 'Gift card',
+  giftCardGreeting: 'Gift-card greeting card',
+  giftCardPostage: 'Gift-card postage',
 };
 
 export function quoteComponentLabel(key: string): string {
@@ -107,6 +111,9 @@ export function buildDemoQuote({
   }
 
   const deliveryChargedPence = pricing.delivery?.pricePence ?? 0;
+  const greetingPence = state.gift?.giftIntent && state.gift.includeGreetingCard ? 300 : 0;
+  const giftCardGreetingPence = state.giftCard?.includeGreetingCard ? 300 : 0;
+  const giftCardPence = state.giftCard ? state.giftCard.value * state.giftCard.quantity * 100 : 0;
 
   // Same order Aonik emits, with zero-valued optional components omitted just
   // as it omits `addOns` when there are none.
@@ -117,6 +124,9 @@ export function buildDemoQuote({
   if (addOnsPence !== 0) components.push({ key: 'addOns', amountPence: addOnsPence });
   if (extraDishPence !== 0)
     components.push({ key: 'extraDishes', amountPence: extraDishPence });
+  if (greetingPence) components.push({ key: 'greetingCard', amountPence: greetingPence });
+  if (giftCardPence) components.push({ key: 'giftCardValue', amountPence: giftCardPence });
+  if (giftCardGreetingPence) components.push({ key: 'giftCardGreeting', amountPence: giftCardGreetingPence });
   components.push({ key: 'deliveryCharged', amountPence: deliveryChargedPence });
 
   return {
@@ -154,13 +164,14 @@ export function useCartQuote(
         isCustom: cart.isCustom,
         lines: cart.lines,
         extras: cart.extras,
+        gift: cart.gift, giftCard: cart.giftCard,
       },
       pricing,
       extrasCatalogue,
       signatureUpgradeFor,
     });
   }, [
-    cart.quote,
+    cart.quote, cart.gift, cart.giftCard,
     cart.isServerCart,
     cart.boxSize,
     cart.isCustom,

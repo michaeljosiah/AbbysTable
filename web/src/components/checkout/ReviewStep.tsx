@@ -14,6 +14,7 @@ import type {
   Extra,
   HeatingInstruction,
 } from '@/lib/aonik/types';
+import { BoxGiftCardLine } from '@/components/gifting/BoxGiftCardLine';
 import { useCart } from '@/lib/cart/CartProvider';
 import { FlowActions } from './FlowActions';
 import { FlowShell } from './FlowShell';
@@ -150,6 +151,7 @@ function Review({
           </p>
         )}
       </section>
+      <BoxGiftCardLine />
       {cart.gift?.giftIntent && (
         <section className={styles.section}>
           <h2>Gift food box</h2>
