@@ -20,6 +20,7 @@
 
 import type {
   BoxCartDto,
+  CartPaymentStateDto,
   CartDeliveryReservationDto,
   CartDiscountQuoteDto,
   CheckoutDraftDto,
@@ -44,7 +45,7 @@ export type CheckoutEntry =
   | { kind: 'none' }
   /** It became an order (here, or in another tab): SHOPPING-STATE §53. */
   | { kind: 'completed' }
-  /** A payment attempt holds it: nothing on it can change until that resolves. */
+  /** A payment attempt holds it: nothing on it can change until Aonik resolves it. */
   | { kind: 'payment' }
   /** Not full, or holding a dish that is no longer available: back to the dishes. */
   | { kind: 'incomplete' }
@@ -87,7 +88,12 @@ export async function loadCheckout(): Promise<CheckoutEntry> {
   if (!dto) return { kind: 'none' };
   if (dto.status === 'CheckedOut') return { kind: 'completed' };
   if (dto.status && dto.status !== 'Open') return { kind: 'none' };
-  if (dto.orderId) return { kind: 'payment' };
+  if (dto.orderId) {
+    // An attempt exists. Only once Aonik has proven it closed unpaid (recovery)
+    // may the box change and pay again — with its date chosen afresh.
+    const payment = await cartCall<CartPaymentStateDto>('/payment');
+    if (!payment.canEdit) return { kind: 'payment' };
+  }
   if (!dto.quote.isFull || dto.box.lines.some((line) => line.isUnavailable)) return { kind: 'incomplete' };
 
   return {
@@ -101,7 +107,7 @@ export async function loadCheckout(): Promise<CheckoutEntry> {
 /**
  * The box, its draft and its hold as they are now — after a refused write, or
  * when the tab finds the box has moved on. Null when there is no open box;
- * `locked` when a payment attempt holds it.
+ * `locked` while a payment attempt holds it.
  */
 export async function readCheckoutSync(): Promise<(CheckoutSync & { locked: boolean }) | null> {
   const dto = await readStoredBoxCart();
@@ -110,7 +116,8 @@ export async function readCheckoutSync(): Promise<(CheckoutSync & { locked: bool
     cart: mapBoxCart(dto),
     details: detailsFromDraft(dto.checkoutDraft),
     reservation: await reservationOf(dto),
-    locked: Boolean(dto.orderId),
+    // An attempt holds the box until Aonik proves it closed unpaid (recovery).
+    locked: dto.orderId ? !(await cartCall<CartPaymentStateDto>('/payment')).canEdit : false,
   };
 }
 

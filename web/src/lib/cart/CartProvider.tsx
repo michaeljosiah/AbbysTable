@@ -14,7 +14,6 @@ import type {
   BoxCart,
   BoxChange,
   BoxQuote,
-  CheckoutResult,
   PersonalisationSelection,
 } from '@/lib/aonik/map';
 import { localSurcharge, selectionDraft } from '@/lib/aonik/personalisation';
@@ -31,7 +30,6 @@ import {
   type DemoCartState,
 } from './demoStorage';
 import { deleteExtra, patchDishPersonalisation, patchExtra, postExtra } from './mutations';
-import { ORDERING_DISABLED_CODE, ORDERING_DISABLED_MESSAGE } from './ordering';
 import { useServerCart, type ServerCartEngine } from './serverEngine';
 import { CartRequestError } from './transport';
 
@@ -116,7 +114,7 @@ interface CartContextValue extends CartState {
   /** True when this cart is server-backed, for surfaces that must know. */
   isServerCart: boolean;
   /**
-   * Whether `placeOrder` may create an order. False on demo data and, in live
+   * Whether checkout may start a payment. False on demo data and, in live
    * mode, until live ordering is switched on (see `@/lib/cart/ordering`).
    */
   orderingEnabled: boolean;
@@ -126,15 +124,6 @@ interface CartContextValue extends CartState {
    * is nothing to validate against, so it resolves to none.
    */
   revalidate: () => Promise<BoxChange[]>;
-  /**
-   * Places the order and resolves with it.
-   *
-   * REJECTS on drift with a `CartRequestError` whose `drift` is the refreshed
-   * box — which the provider has already adopted, so the UI re-renders server
-   * truth on its own. Nothing was ordered; the customer confirms again. This is
-   * never retried automatically: the stop exists so a person sees the change.
-   */
-  placeOrder: () => Promise<CheckoutResult>;
   /**
    * `/box/checkout`'s calls (`/api/checkout`), in the same queue and with the
    * same box version as every other change to this box. Live only.
@@ -494,20 +483,6 @@ export function CartProvider({
     return cart?.changes ?? [];
   }, [isServerCart, server]);
 
-  /** Terminal. See the contract above for why drift propagates rather than retries. */
-  const placeOrder = useCallback(async (): Promise<CheckoutResult> => {
-    if (!isServerCart) {
-      throw new Error(
-        'Checkout requires a server cart. This build is running on demo data, where the box ' +
-          'is held client-side and no order can be placed.',
-      );
-    }
-    if (!orderingEnabled) {
-      throw new CartRequestError(403, ORDERING_DISABLED_MESSAGE, ORDERING_DISABLED_CODE);
-    }
-    return server.checkout();
-  }, [isServerCart, orderingEnabled, server]);
-
   /* In live mode the projected server cart IS the state; demo uses its own. */
   const effectiveState = useMemo<CartState>(
     () => (isServerCart ? (server.cart ? projectServerCart(server.cart, server.display) : EMPTY) : state),
@@ -541,7 +516,6 @@ export function CartProvider({
       isServerCart,
       orderingEnabled,
       revalidate,
-      placeOrder,
       checkoutRequest: server.checkoutRequest,
     }),
     [
@@ -563,7 +537,6 @@ export function CartProvider({
       removeExtra,
       clear,
       revalidate,
-      placeOrder,
       server.checkoutRequest,
     ],
   );

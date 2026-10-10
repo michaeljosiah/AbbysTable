@@ -21,6 +21,14 @@ export const CHECKOUT_CODES = {
   reservationConflict: 'checkout.reservation_conflict',
   /** What was sent could not be stored. */
   invalid: 'checkout.invalid',
+  /** The total moved since the customer saw it: show the new one, ask again. */
+  totalChanged: 'checkout.total_changed',
+  /** The box changed (a dish became unavailable, a price moved): back to the box. */
+  boxChanged: 'checkout.box_changed',
+  /** Aonik's own check of the address refused it. */
+  notServed: 'checkout.not_served',
+  /** Aonik could not check the address just now. */
+  coverageUnavailable: 'checkout.coverage_unavailable',
   /** Aonik's rate limit: wait, then try again. */
   busy: 'checkout.busy',
   /** Anything else: could not be done just now. */
@@ -57,6 +65,19 @@ export interface CheckoutSyncAnswer {
 
 export interface CheckoutCodeAnswer {
   cart: BoxCart;
+}
+
+/** `pay` and `retry`: where the customer goes next. */
+export type CheckoutPayAnswer =
+  | { kind: 'redirect'; checkoutUrl: string }
+  | { kind: 'paid' }
+  | { kind: 'pending' }
+  | { kind: 'checkout'; reason: 'date' | 'total' | 'other' };
+
+/** The processing page's poll: the state only, never the Stripe URL. */
+export interface CheckoutPaymentAnswer {
+  status: string | null;
+  canEdit: boolean;
 }
 
 export interface CheckoutDatesAnswer {

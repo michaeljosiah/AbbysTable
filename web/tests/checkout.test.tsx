@@ -321,6 +321,9 @@ const SAVED_DRAFT: CheckoutDraftResponseDto = {
   },
 };
 
+/** An attempt Aonik has not yet proven closed: the box stays locked. */
+const PAYMENT_UNDECIDED = { orderId: 'o1', paymentIntentId: 'pi1', status: 'processing', canEdit: false, cartVersion: 'v2', checkoutUrl: null };
+
 function box(overrides: Partial<BoxCartDto> = {}): BoxCartDto {
   return {
     box: { cartId: 'c1', bundleProductId: 'b1', size: 6, currency: 'GBP', lines: [] },
@@ -492,6 +495,7 @@ test('reading the hold reports the box’s version without handing it over; a sy
   let cart: BoxCartDto | null = box({ cartVersion: 'v8' });
   useAonik((request) => {
     if (request.path === '/commerce/carts/c1/delivery-reservation') return { status: 200, body: reservationDto() };
+    if (request.path === '/commerce/carts/c1/payment') return { status: 200, body: PAYMENT_UNDECIDED };
     if (request.path === '/commerce/carts/c1') return cart ? { status: 200, body: cart } : { status: 404, body: {} };
     return undefined;
   });
@@ -572,6 +576,7 @@ test('the entry gate: no box, an incomplete box, an order, a payment in progress
   useAonik((request) => {
     if (request.path === '/commerce/carts/c1') return cart ? { status: 200, body: cart } : { status: 404, body: {} };
     if (request.path === '/commerce/carts/c1/delivery-reservation') return { status: 200, body: reservationDto() };
+    if (request.path === '/commerce/carts/c1/payment') return { status: 200, body: PAYMENT_UNDECIDED };
     return undefined;
   });
 

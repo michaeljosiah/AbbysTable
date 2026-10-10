@@ -44,6 +44,11 @@ export interface AonikFetchOptions {
   cartVersion?: string;
   /** Signed-in customer's access token (`customer-identity`). */
   accessToken?: string;
+  /**
+   * A guest's read capability for one order (`X-Order-Token`, from checkout).
+   * A secret: sent only in this header, never in a URL or a log.
+   */
+  orderToken?: string;
   /** Query parameters; undefined and null values are dropped. */
   query?: Record<string, string | number | boolean | undefined | null>;
   /**
@@ -106,6 +111,7 @@ export async function aonikFetch<T>(path: string, options: AonikFetchOptions): P
     cartToken,
     cartVersion,
     accessToken,
+    orderToken,
     query,
     signal,
     ignoreBody = false,
@@ -128,6 +134,7 @@ export async function aonikFetch<T>(path: string, options: AonikFetchOptions): P
   if (cartToken) headers['X-Cart-Token'] = cartToken;
   if (cartVersion) headers['X-Cart-Version'] = cartVersion;
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  if (orderToken) headers['X-Order-Token'] = orderToken;
   if (forwardedFor) headers['X-Forwarded-For'] = forwardedFor;
 
   const response = await fetch(url, {

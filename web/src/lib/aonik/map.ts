@@ -293,6 +293,8 @@ export interface StorefrontConfigDto {
   defaultBoxSlug: string | null;
   extrasCollectionSlug: string | null;
   box: StorefrontBoxPlanDto | null;
+  /** The Terms of Sale a checkout must accept, when the tenant configured them. */
+  saleTerms?: { version: string; url: string } | null;
 }
 
 export interface StorefrontBoxPlanDto {
@@ -325,6 +327,7 @@ export function mapStorefrontConfig(dto: StorefrontConfigDto): StorefrontConfig 
     defaultBoxSlug: dto.defaultBoxSlug ?? undefined,
     extrasCollectionSlug: dto.extrasCollectionSlug ?? undefined,
     box: dto.box ? mapEmbeddedBoxPlan(dto.box) : undefined,
+    ...(dto.saleTerms?.version ? { saleTerms: { version: dto.saleTerms.version, url: dto.saleTerms.url } } : {}),
   };
 }
 

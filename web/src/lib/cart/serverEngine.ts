@@ -13,7 +13,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { BoxCart, CheckoutResult, PersonalisationSelection } from '@/lib/aonik/map';
+import type { BoxCart, PersonalisationSelection } from '@/lib/aonik/map';
 
 import { CART_ORDERED_CODE } from './cartMissing';
 import { ORDERING_DISABLED_CODE } from './ordering';
@@ -78,12 +78,6 @@ export interface ServerCartEngine {
     path: string,
     init?: { method?: string; body?: unknown },
   ) => Promise<BoxCart | null | undefined>;
-  /**
-   * Places the order. Resolves with the order on success; on drift it has
-   * already replaced the box with the refreshed one and then throws, so the
-   * caller re-renders and the customer confirms the change. Never retried.
-   */
-  checkout: (body?: { discountCode?: string }) => Promise<CheckoutResult>;
   /**
    * One `/api/checkout` call (`/box/checkout`), QUEUED behind any other box
    * request rather than turned away — a draft save may follow a date choice —
@@ -255,19 +249,6 @@ export function useServerCart(enabled: boolean, identity: unknown = null): Serve
     [],
   );
 
-  const checkout = useCallback(
-    async (body?: { discountCode?: string }): Promise<CheckoutResult> => {
-      const payload = await send('/checkout', { method: 'POST', body: body ?? {}, reportError: false });
-      if (!payload.order) {
-        const failure = new CartRequestError(500, 'The order was placed but could not be read back.');
-        setError(failure);
-        throw failure;
-      }
-      return payload.order;
-    },
-    [send],
-  );
-
   // Hydrate from the server after mount, and again whenever the identity the
   // box belongs to changes (sign-in adopts it, which moves its version).
   useEffect(() => {
@@ -297,7 +278,7 @@ export function useServerCart(enabled: boolean, identity: unknown = null): Serve
     });
   }, []);
 
-  return { cart, hydrated, pending, error, display, rememberDisplay, request, checkout, checkoutRequest };
+  return { cart, hydrated, pending, error, display, rememberDisplay, request, checkoutRequest };
 }
 
 export type { PersonalisationSelection };

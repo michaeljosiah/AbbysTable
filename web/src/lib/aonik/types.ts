@@ -371,6 +371,11 @@ export interface StorefrontConfig {
   /** The collection whose members are the Step 3 extras rail. */
   extrasCollectionSlug?: string;
   box?: StorefrontBoxPlan;
+  /**
+   * The Terms of Sale version checkout accepts on the customer's behalf when
+   * they continue to payment (the legal line). Absent when not configured.
+   */
+  saleTerms?: { version: string; url: string };
 }
 
 /* ---- Extras (Step 3) ------------------------------------------------------ */

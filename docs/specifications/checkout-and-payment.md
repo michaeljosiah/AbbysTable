@@ -28,12 +28,12 @@ outcome back, and the confirmation that shows only a paid order.
 
 Delivered in two PRs:
 
-1. **This PR (#31):** `/box/checkout` up to CONTINUE TO PAYMENT. The draft, coverage,
-   calendar, reservation and code are all live. CONTINUE validates everything, then says that
-   online ordering is not open yet: nothing is ordered and nothing is charged.
-2. **Next (#32, #5):** the Stripe hand-off, `/box/payment/return`, `/box/payment` (processing /
-   not completed / cancelled), retry against the same order, and Order Confirmation v2 read
-   with the guest order token.
+1. **#31 (PR #76):** `/box/checkout` up to CONTINUE TO PAYMENT. The draft, coverage,
+   calendar, reservation and code are all live.
+2. **#32, #5 (this PR):** the Stripe hand-off, `/box/payment/return`, `/box/payment`
+   (processing / not completed / cancelled), retry against the same order, and Order
+   Confirmation v2 read back from Aonik. Online ordering stays behind `LIVE_ORDERING_ENABLED`
+   until a Stripe sandbox run has passed end to end.
 
 ## What changes
 
@@ -43,7 +43,10 @@ Delivered in two PRs:
 - ADDED discount-codes — one code, applied or refused by Aonik at once (FR-6)
 - ADDED checkout — one blocker function, CONTINUE focus rules, summary/bar/sheet (FR-7, FR-8)
 - MODIFIED checkout — Review's CTA goes to `/box/checkout`; `PlaceOrderButton` is removed (breaking: no)
-- ADDED payment-states, order-confirmation — next PR (FR-9 to FR-11)
+- ADDED payment-states — the Stripe hand-off, the return, the payment pages and retry (FR-9, FR-10)
+- ADDED order-confirmation — Order Confirmation v2, only for a paid order (FR-11)
+- REMOVED checkout — the order snapshot cookie and the cart route's `checkout` action (breaking: no;
+  nothing outside the box builder used them)
 
 ---
 
@@ -56,8 +59,10 @@ The system SHALL decide `/box/checkout` on the server from Aonik's box (live):
 - no box, or an expired one → `/box`;
 - a box that is not full, or holds an unavailable dish → `/box/dishes`;
 - `CheckedOut` → "This order has already been completed." with VIEW ORDER (SHOPPING-STATE §53);
-- an `orderId` on an open box (a payment attempt holds it) → "We're checking your payment. Please
-  don't pay again yet." (§42). The next PR routes this to `/box/payment` instead.
+- an `orderId` on an open box that Aonik has not proven closed (`canEdit` false) → through
+  `/box/payment/return?outcome=cancel`, which asks Aonik to recover the attempt and then shows
+  what it found (D26). Once recovery has proven it closed unpaid, the box is editable and
+  checkout opens as usual.
 
 Demo keeps the box in the browser, so its gate runs in the page and makes the same redirects.
 The page is `force-dynamic` and `noindex`. A page render cannot set cookies, so a box that has
@@ -216,29 +221,99 @@ date is held it reads "Delivery" (D25).
 
 The legal line's links open Terms and Privacy in a new tab with `?from=checkout`.
 
-### Requirement: FR-9 to FR-11 (next PR)
-`capability: payment-states, order-confirmation` · `delta: ADDED (feat/checkout-and-payment)`
+### Requirement: FR-9 CONTINUE TO PAYMENT hands off to Stripe
+`capability: payment-states` · `delta: ADDED (feat/checkout-and-payment)`
 
-- **FR-9:** CONTINUE flushes the draft (with `acceptedTermsVersion` when sale terms are
-  configured), then sends `POST …/checkout` with the following settings:
-  - `Stripe`/`Card`;
-  - return and cancel URLs on the configured origin;
-  - `expectedTotal` set to the total on screen;
-  - no `delivery`, no `discountCode` and no `customerAccountId`.
+The system SHALL start payment only from CONTINUE, and only while `LIVE_ORDERING_ENABLED` is
+on (checked on the server: `ordering.disabled`, 403, with no Aonik call). CONTINUE first saves
+the form; a save that failed or merged another tab's change stops it there. Then
+`POST /api/checkout/pay { expectedTotalPence }` runs, on the version the form was read with:
+1. The current Terms of Sale version is recorded on the draft (`acceptedTermsVersion`, D29: the
+   legal line says continuing is acceptance). Nothing is written when the tenant has none.
+2. `POST /commerce/carts/{id}/checkout` with `Stripe`/`Card`, return and cancel URLs on
+   `STOREFRONT_ORIGIN` (or the request's origin), and `expectedTotal` set to the total on
+   screen. There is no `delivery`, no `discountCode` and no `customerAccountId`: the saved
+   draft is the source, and an account-backed order would need staff to recover.
+3. The attempt's references go into an httpOnly cookie (`abbys-table-payment`: `orderId`,
+   `paymentIntentId`, the guest order token, the agreed total; 7 days). They never go into a
+   URL, a log or analytics.
+4. The page goes to Aonik's `checkoutUrl` (HTTPS only). A replayed attempt that has already been
+   paid goes to the confirmation; one that cannot take payment now goes to `/box/payment`.
 
-  It then writes an httpOnly order cookie (`orderId`, `paymentIntentId`, `guestOrderToken`)
-  and redirects to `checkoutUrl`. It stays behind `LIVE_ORDERING_ENABLED` until a Stripe
-  sandbox run has passed end to end.
-- **FR-10:** `/box/payment/return` reads, and on a cancel recovers. `/box/payment` then shows
-  processing, not completed or cancelled. That choice comes from Aonik's state, never from the
-  browser:
-  - "No charges have been made" appears only after recovery proves the payment is closed;
-  - a retry reuses the live session, or re-reserves the saved date and makes a new attempt on
-    the same order.
-- **FR-11:** Order Confirmation v2 leaves the checkout layout. It is read with `X-Order-Token`
-  (guest) or the bearer token, and renders only when payment is `Captured`. Its Guest / Logged
-  in / Account set up variant comes from `loyalty.earningStatus`. The snapshot cookie is
-  removed.
+Aonik's refusals come back named:
+- the total moved: with the box, so the summary shows the new one;
+- the box changed: an unavailable dish goes back to the dishes;
+- the date: full, ended or availability unknown;
+- the postcode is not served, or coverage could not be checked;
+- the terms changed.
+
+Nothing is retried automatically except a network failure, which is asked once more: Aonik
+resumes the same attempt. After that the page goes to `/box/payment`, which reads what
+happened.
+
+#### Scenario: the total moved since the page was drawn
+- **WHEN** Aonik refuses the checkout with `commerce.discount_price_changed`
+- **THEN** nothing is started and no cookie is written
+- **AND** the summary shows the box as it is now, and the page asks the customer to check it
+
+### Requirement: FR-10 The payment pages read Aonik, never the browser
+`capability: payment-states` · `delta: ADDED (feat/checkout-and-payment)`
+
+`/box/payment/return?outcome=success|cancel` is navigation only. A success return goes to
+`/box/payment`. A cancel return asks Aonik to RECOVER the attempt (`POST …/payment/recover`),
+then goes to what Aonik found:
+- `?outcome=cancelled` once the attempt is proven closed and unpaid;
+- `?outcome=failed` for a failed attempt;
+- `?outcome=checking` while it is uncertain;
+- the confirmation once it has been captured.
+
+`/box/payment` shows processing, not completed or cancelled (`paymentStatusPage`), from Aonik's
+`GET …/payment`. While the payment is being confirmed it polls at 2s, 5s, then every 10s (30s
+after a 429), and after 20s says it is taking longer than usual. A paid order goes to the
+confirmation. A box with no attempt goes back to checkout.
+
+"No charges have been made" appears only after recovery has proven the attempt closed.
+
+TRY AGAIN, USE ANOTHER CARD and CONTINUE TO PAYMENT are one action (`/api/checkout/retry`):
+- an attempt that can still take payment returns to the SAME Stripe session;
+- one that recovery closed unpaid has its saved date reserved again (D16), and a new attempt
+  starts on the same order with the total the customer agreed to;
+- a date that has gone, or a total that moved, goes back to checkout to choose or confirm
+  again;
+- anything still undecided stays on the page and never starts a second payment.
+
+#### Scenario: the customer cancels on Stripe's page
+- **WHEN** Stripe sends the customer to the cancel URL
+- **THEN** Aonik is asked to recover the attempt before anything is said
+- **AND** "cancelled" is shown only if Aonik proved the attempt closed and unpaid
+
+### Requirement: FR-11 Order Confirmation v2, only for a paid order
+`capability: order-confirmation` · `delta: ADDED (feat/checkout-and-payment)`
+
+`/box/confirmation` (the site's own chrome) reads the order from Aonik for the attempt in the
+payment cookie:
+- a guest's with `X-Order-Token` (`/commerce/storefront/guest-orders/{id}`);
+- a signed-in customer's with their bearer token.
+
+It renders only when Aonik reports the payment `Captured`. An unpaid order goes to
+`/box/payment`; with nothing to read, the page says so and implies nothing about whether an
+order exists.
+
+The rows are what the order records. Delivery is derived as total − (subtotal − discount −
+points + tax). The variant comes from `loyalty.earningStatus`:
+- `Earned` (signed in) → Logged in, with the points added;
+- `AccountSetupRequired` → Account set up, with neutral copy (D8);
+- anything else → Guest, with nothing after Total.
+
+The tracking-email line is left out (D10): nothing sends one yet. The lede's "We've emailed
+your order confirmation" is Aonik's own email, sent once the payment is captured (aonik#349).
+The Stripe sandbox run must confirm it arrives before ordering is turned on. The old order
+snapshot cookie is gone.
+
+#### Scenario: a guest's paid order
+- **WHEN** the payment cookie names an order whose payment is `Captured`
+- **THEN** the order number, delivery, rows and total are Aonik's
+- **AND** no account or points wording is shown
 
 ---
 
@@ -297,7 +372,9 @@ version is only ever adopted together with the box, draft and hold it belongs to
 - [x] Engine `checkoutRequest` (queued, version-adopting)
 - [x] `/box/checkout`: gate, sections 1–4, calendar, hold, eligibility, code, summary/bar/sheet
 - [x] Review's CTA → `/box/checkout`; `PlaceOrderButton` removed; stepper step 5 lit
-- [ ] FR-9 to FR-11 (next PR)
+- [x] FR-9 the Stripe hand-off: terms, `POST …/checkout`, the payment cookie, named refusals
+- [x] FR-10 `/box/payment/return`, `/box/payment` (processing / not completed / cancelled), retry
+- [x] FR-11 Order Confirmation v2; the order snapshot cookie and the cart route's `checkout` removed
 
 ### Testing
 - Unit (`tests/checkout.test.tsx`):
@@ -309,6 +386,15 @@ version is only ever adopted together with the box, draft and hold it belongs to
   - the route: a draft echo on the tab's version, conflict sync, reservation refusals, code
     refusals, the calendar read;
   - the entry gate in a page render.
+- Unit (`tests/payment.test.tsx`):
+  - the payment pages' mapping and polling delays;
+  - pay: closed ordering, the terms then the checkout on the right versions, the cookie, the
+    named refusals;
+  - the return: success, a cancel recovered, failed, uncertain, paid;
+  - retry: the same session, then a re-reserved date and a new attempt, a full date, an
+    undecided payment;
+  - the gate during an attempt;
+  - the confirmation's rows and variant, read with the guest token, paid only.
 - Browser, against a stand-in Aonik in live mode:
   - eligibility refused and served;
   - draft saved;
