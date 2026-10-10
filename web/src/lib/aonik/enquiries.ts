@@ -52,8 +52,10 @@ export class EnquiriesUnavailableError extends Error {
 /**
  * Whether an enquiry sent from this deployment would reach Aonik: the data is
  * live and Aonik is configured. Whether the TENANT takes enquiries (routing
- * set up) only Aonik knows; it answers 503 `contact.unavailable` when not,
- * which the form reports as "can't be sent from this page". Never throws.
+ * set up) only Aonik knows; it answers 503 `contact.unavailable` when not —
+ * the same answer as a passing outage, so the form says "please try again"
+ * (`@/lib/contact/send`); routing must be configured before go-live. Never
+ * throws.
  */
 export async function enquiriesAvailable(): Promise<boolean> {
   try {

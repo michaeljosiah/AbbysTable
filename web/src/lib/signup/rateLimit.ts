@@ -11,14 +11,14 @@
  * address (double opt-in) is the real answer and belongs to Aonik.
  *
  * Only attempts that would reach Aonik count — a typo the action refuses
- * costs nothing. With no client address to key on (local development) there
- * is no limit, rather than one shared bucket that would block everyone.
+ * costs nothing. With no client address to key on there is no limit, rather
+ * than one shared bucket that would block everyone.
  *
  * SERVER-ONLY.
  */
 
 import { clientAddress } from '@/lib/request/clientAddress';
-import { AttemptLimiter } from '@/lib/request/rateLimit';
+import { addressKey, AttemptLimiter } from '@/lib/request/rateLimit';
 
 /** Sign-ups to one list from one address… */
 export const SIGNUP_ATTEMPTS = 5;
@@ -39,5 +39,5 @@ export function clearSignupAttempts(): void {
 export async function admitSignup(list: string, now = Date.now()): Promise<boolean> {
   const address = await clientAddress();
   if (!address) return true;
-  return limiter.admit(`${list}|${address}`, now);
+  return limiter.admit(`${list}|${addressKey(address)}`, now);
 }

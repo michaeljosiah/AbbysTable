@@ -10,6 +10,25 @@
  * SERVER-ONLY.
  */
 
+/**
+ * The key a limit counts an address under. An IPv6 host is given a /64 — one
+ * home or phone network — and can pick any address inside it, so counting each
+ * address alone would let one host rotate past every limit. An IPv4 address
+ * (also one written IPv4-mapped, `::ffff:203.0.113.9`) is itself.
+ */
+export function addressKey(address: string): string {
+  const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i.exec(address);
+  if (mapped) return mapped[1];
+  if (!address.includes(':')) return address;
+  const [head, tail = ''] = address.toLowerCase().split('::');
+  const left = head ? head.split(':') : [];
+  const right = tail ? tail.split(':') : [];
+  const groups = address.includes('::')
+    ? [...left, ...Array<string>(Math.max(0, 8 - left.length - right.length)).fill('0'), ...right]
+    : left;
+  return `${groups.slice(0, 4).map((group) => group.replace(/^0+(?=.)/, '')).join(':')}::/64`;
+}
+
 /** Bounds the memory a flood of distinct addresses can take. */
 const MAX_TRACKED = 10_000;
 
