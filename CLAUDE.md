@@ -390,7 +390,10 @@ Conventions inside `web/` that are easy to get wrong:
   ORIGINAL token, always an empty 202, so the "Check your email" panel never confirms an address or
   an account; a throttled or unusable token answers the same). Outage/429 on resolve is "could not
   check", never "gone". Per-address limits are the storefront's own (`checkByAddress`,
-  `resendByAddress`). NOT built: the "Continue" hand-off (identity-provider registration with PKCE,
+  `resendByAddress`). A second link opened in the same tab (`hashchange`) is read and stripped
+  likewise; Next's router can re-write the canonical URL on a `router.refresh()`, so the strip is
+  best-effort against that (known, rare). Reload after the strip is "no longer valid" by design.
+  NOT built: the "Continue" hand-off (identity-provider registration with PKCE,
   then `POST /identity/account-access/complete` with the bearer) — it needs the operator to enable
   registration + email verification and a PKCE public client in the realm, so a good link says
   "your link is ready… we can't finish set-up from this page yet" and points at Contact. Pinned by

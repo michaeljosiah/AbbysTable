@@ -4,7 +4,7 @@
  * await sign-off. ONE message for expired and used.
  */
 export const ACCESS_COPY = {
-  title: "This link is no longer valid — Abby's Table",
+  title: "Secure link — Abby's Table",
   eyebrow: 'Secure link',
   login: 'Log in',
   checking: 'Checking your link…',
@@ -26,7 +26,7 @@ export const ACCESS_COPY = {
   },
   failed: {
     heading: 'We couldn’t check this link.',
-    lede: 'Something went wrong on our side, and your link is unchanged. Please try again.',
+    lede: 'Your link is unchanged. Please try again in a moment.',
     retry: 'Try again',
   },
   unavailable: {
