@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { DishPicker } from '@/components/checkout/DishPicker';
 import { getAonikClient, getMenuPageData } from '@/lib/aonik/client';
+import { upcomingDeliveryDate } from '@/lib/delivery/checker';
 import { formatDeliveryDate } from '@/lib/format';
 import { filtersFromParams } from '@/lib/menu/facets';
 
@@ -15,5 +16,5 @@ export default async function BoxDishesPage({ searchParams }: { searchParams: Pr
     client.getDishes(), client.getBoxPricing(), client.getHeatingInstructions(), client.getExtras(), client.getDeliveryWindow(),
   ]);
   const optionGroupsBySlug = Object.fromEntries(await Promise.all(catalogue.map(async (dish) => [dish.slug, await client.getDishOptionGroups(dish.slug).catch(() => [])])));
-  return <DishPicker earliestDeliveryLabel={formatDeliveryDate(delivery?.earliestDeliveryDate)} dishes={menu.dishes} catalogue={catalogue} extras={extras} pricing={pricing} heating={heating} optionGroupsBySlug={optionGroupsBySlug} browse={{ totalCount: menu.totalCount, facetGroups: menu.facetGroups, filters: menu.filters, sort: menu.sort, sorts: menu.sorts, query, limit }} />;
+  return <DishPicker earliestDeliveryLabel={formatDeliveryDate(upcomingDeliveryDate(delivery?.earliestDeliveryDate))} dishes={menu.dishes} catalogue={catalogue} extras={extras} pricing={pricing} heating={heating} optionGroupsBySlug={optionGroupsBySlug} browse={{ totalCount: menu.totalCount, facetGroups: menu.facetGroups, filters: menu.filters, sort: menu.sort, sorts: menu.sorts, query, limit }} />;
 }

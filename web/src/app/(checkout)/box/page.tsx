@@ -5,13 +5,15 @@ import { BoxChooser } from '@/components/checkout/BoxChooser';
 import { BoxPostcodeCheck } from '@/components/checkout/BoxPostcodeCheck';
 import { getAonikClient } from '@/lib/aonik/client';
 import { entrySizeFromLink, resolveEntrySize } from '@/lib/box/entry';
+import { upcomingDeliveryDate } from '@/lib/delivery/checker';
 import { formatDeliveryDate } from '@/lib/format';
 
 import styles from './page.module.css';
 
 export const metadata: Metadata = {
   title: "Build your box — Abby's Table",
-  description: "Choose a set box size or set your own quantity. You'll add your dishes next.",
+  description:
+    "Choose a set box size or set your own quantity. You'll add your dishes next.",
 };
 
 /**
@@ -36,8 +38,16 @@ export default async function ChooseBoxPage({
   const client = await getAonikClient();
   const { dishes } = await searchParams;
 
-  const [pricing, delivery] = await Promise.all([client.getBoxPricing(), client.getDeliveryWindow()]);
-  const initialSize = resolveEntrySize(dishes, pricing.presets, pricing.custom.minDishes);
+  const [pricing, delivery, extras] = await Promise.all([
+    client.getBoxPricing(),
+    client.getDeliveryWindow(),
+    client.getExtras(),
+  ]);
+  const initialSize = resolveEntrySize(
+    dishes,
+    pricing.presets,
+    pricing.custom.minDishes,
+  );
 
   return (
     <div className={styles.page}>
@@ -65,15 +75,23 @@ export default async function ChooseBoxPage({
       <div className={styles.body}>
         <BoxChooser
           pricing={pricing}
-          earliestDeliveryLabel={formatDeliveryDate(delivery?.earliestDeliveryDate)}
+          extras={extras}
+          earliestDeliveryLabel={formatDeliveryDate(
+            upcomingDeliveryDate(delivery?.earliestDeliveryDate),
+          )}
           initialSize={initialSize}
-          sizeFromLink={entrySizeFromLink(dishes, pricing.presets, pricing.custom.minDishes)}
+          sizeFromLink={entrySizeFromLink(
+            dishes,
+            pricing.presets,
+            pricing.custom.minDishes,
+          )}
           heading={
             <div className={styles.stepHeading}>
               {/* The progress band above already says "Step 1 of 5". */}
               <h1 className={styles.heading}>Build your box</h1>
               <p className={styles.intro}>
-                Choose a set box size or set your own quantity. You&apos;ll add your dishes next.
+                Choose a set box size or set your own quantity. You&apos;ll add
+                your dishes next.
               </p>
             </div>
           }

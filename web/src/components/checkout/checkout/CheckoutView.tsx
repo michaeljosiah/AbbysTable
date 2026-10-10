@@ -106,6 +106,7 @@ export interface CheckoutViewProps {
   /** Demo's quote is computed from these, as on Review. */
   pricing: BoxPricing;
   extras: Extra[];
+  signatureUpgrades: Record<string, number>;
 }
 
 type MonthStatuses = Map<string, DayStatus>;
@@ -161,10 +162,15 @@ export function CheckoutView({
   today,
   pricing,
   extras,
+  signatureUpgrades,
 }: CheckoutViewProps) {
   const router = useRouter();
   const cart = useCart();
-  const liveQuote = useCartQuote(pricing, { extrasCatalogue: extras });
+  const signatureUpgradeFor = useCallback(
+    (dishId: string) => signatureUpgrades[dishId] ?? 0,
+    [signatureUpgrades],
+  );
+  const liveQuote = useCartQuote(pricing, { extrasCatalogue: extras, signatureUpgradeFor });
   const quote = liveQuote ?? initialCart?.quote ?? null;
 
   /* ---- The form --------------------------------------------------------------- */

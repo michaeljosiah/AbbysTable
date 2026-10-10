@@ -4,8 +4,7 @@
    Mobile-first: the rules with no media query ARE the phone design; 640 and
    1024 are min-width only, in ascending order. Values are the design file's.
    Sections are routes here (/account/orders …) rather than the prototype's
-   hash views. Until the overview lands the menu shows on every width, above the
-   section on a phone; the design's mobile "menu IS the overview" arrives with it.
+   hash views. The menu is the mobile overview and a permanent desktop sidebar.
    =========================================================================== */
 
 .inner {
@@ -552,10 +551,6 @@
   .inner {
     padding: 0 34px;
   }
-
-  .help .submit {
-    width: auto;
-  }
 }
 
 @media (min-width: 1024px) {
@@ -564,7 +559,11 @@
   }
 
   .hero {
-    padding: 44px 0 30px;
+    padding: 60px 0 40px;
+  }
+
+  .body {
+    padding: 8px 0 88px;
   }
 
   .layout {
@@ -1276,4 +1275,53 @@
   font-size: 16px;
   line-height: 1.45;
   color: var(--brown);
+}
+
+@media (min-width: 640px) {
+  .hero {
+    padding: 44px 0 30px;
+  }
+  .next {
+    padding: 26px 28px 22px;
+  }
+  .card,
+  .points,
+  .help,
+  .empty {
+    padding: 24px 26px;
+  }
+  .submit {
+    width: auto;
+  }
+  .formActs {
+    justify-items: start;
+    grid-auto-flow: column;
+    justify-content: start;
+    gap: 18px;
+    align-items: center;
+  }
+  .help .submit {
+    padding-inline: 40px;
+  }
+}
+@media (min-width: 1024px) {
+  .hero {
+    padding: 60px 0 40px;
+  }
+  .nextHeadline {
+    font-size: 30px;
+  }
+  .trackLabel {
+    font-size: 14px;
+  }
+}
+
+/* On a phone the menu is the overview; its cards belong to the desktop composition. */
+.layout[data-view='overview'] .section {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .layout[data-view='overview'] .section {
+    display: flex;
+  }
 }

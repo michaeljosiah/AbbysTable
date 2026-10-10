@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { Logo } from '@/components/brand/Logo';
 
@@ -35,7 +35,11 @@ export const CHECKOUT_STEPS: CheckoutStep[] = [
   { number: 2, label: 'Add dishes', href: '/box/dishes' },
   { number: 3, label: 'Extras', href: '/box/extras' },
   { number: 4, label: 'Review', href: '/box/review' },
-  { number: 5, label: 'Checkout', match: ['/box/checkout', '/box/confirmation'] },
+  {
+    number: 5,
+    label: 'Checkout',
+    match: ['/box/checkout', '/box/confirmation'],
+  },
 ];
 
 /**
@@ -44,89 +48,57 @@ export const CHECKOUT_STEPS: CheckoutStep[] = [
  */
 export function CheckoutHeader() {
   const pathname = usePathname();
+  const header = useRef<HTMLElement>(null);
+
+  // Rails and anchor targets follow the real header height, including text zoom.
+  useEffect(() => {
+    const element = header.current;
+    if (!element) return;
+    const root = document.documentElement;
+    const measure = () =>
+      root.style.setProperty(
+        '--checkout-header-height',
+        `${element.getBoundingClientRect().height}px`,
+      );
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty('--checkout-header-height');
+    };
+  }, []);
   const [helpOpen, setHelpOpen] = useState(false);
 
   // Longest matching prefix wins, so `/box/dishes` beats `/box`.
   const current =
-    CHECKOUT_STEPS.flatMap((step) => (step.match ?? (step.href ? [step.href] : [])).map((path) => ({ step, path })))
+    CHECKOUT_STEPS.flatMap((step) =>
+      (step.match ?? (step.href ? [step.href] : [])).map((path) => ({
+        step,
+        path,
+      })),
+    )
       .filter((candidate) => pathname.startsWith(candidate.path))
-      .sort((a, b) => b.path.length - a.path.length)[0]?.step ?? CHECKOUT_STEPS[0];
+      .sort((a, b) => b.path.length - a.path.length)[0]?.step ??
+    CHECKOUT_STEPS[0];
 
   return (
     // data-help-open lifts this stacking context while the help drawer, which
     // renders inside it, is open (CheckoutHeader.module.css).
-    <header className={styles.header} data-flow-v2={current.number >= 2 && current.number <= 4 || undefined} data-help-open={helpOpen || undefined}>
+    <header
+      ref={header}
+      className={styles.header}
+      data-choose-box={current.number === 1 || undefined}
+      data-help-open={helpOpen || undefined}
+    >
       <div className={styles.row}>
-        <Link href="/" aria-label="Abby's Table — home" className={styles.logoLink}>
-          {/* Sized entirely from CSS so the ≤640px / ≤440px overrides apply. */}
-          <Logo className={styles.logo} />
+        <Link
+          href="/"
+          aria-label="Abby's Table — home"
+          className={styles.logoLink}
+        >
+          <Logo className={styles.logo} withRegistered={false} />
         </Link>
-
-        <div className={styles.spacer} aria-hidden="true" />
-
-        {/* Template geometry: fixed 74px step columns (circle above label) joined
-            by flexible 2px lead lines that run through the circles' centres. The
-            line lives inside each <li> so the list markup stays valid. */}
-        <ol className={styles.stepper} aria-label="Order progress">
-          {CHECKOUT_STEPS.map((step) => {
-            const state =
-              step.number < current.number
-                ? 'done'
-                : step.number === current.number
-                  ? 'current'
-                  : 'upcoming';
-            return (
-              <li
-                key={step.number}
-                className={styles.step}
-                data-state={state}
-                aria-current={state === 'current' ? 'step' : undefined}
-              >
-                {step.number > 1 ? <span className={styles.lead} aria-hidden="true" /> : null}
-                <span className={styles.col}>
-                  <span className={styles.marker} aria-hidden="true">
-                    {state === 'done' ? (
-                      <svg
-                        width="15"
-                        height="15"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="var(--white)"
-                        strokeWidth="2.6"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M5 12.5l4.5 4.5L19 7" />
-                      </svg>
-                    ) : (
-                      step.number
-                    )}
-                  </span>
-                  <span className={styles.stepLabel}>{step.label}</span>
-                </span>
-              </li>
-            );
-          })}
-        </ol>
-
-        {/* Compact indicator: wraps to a full-width second header row ≤1080px. */}
-        <div className={styles.mobileStepper}>
-          <div className={styles.mobileText}>
-            <span className={styles.mobileCount}>
-              Step {current.number} of {CHECKOUT_STEPS.length}
-            </span>
-            <span className={styles.mobileLabel}>{current.label}</span>
-          </div>
-          <div className={styles.mobileTrack} aria-hidden="true">
-            <span
-              className={styles.mobileFill}
-              style={{ width: `${(current.number / CHECKOUT_STEPS.length) * 100}%` }}
-            />
-          </div>
-        </div>
-
-        <div className={styles.spacer} aria-hidden="true" />
-
         <button
           type="button"
           className={styles.help}
@@ -136,8 +108,8 @@ export function CheckoutHeader() {
           aria-expanded={helpOpen}
         >
           <svg
-            width="19"
-            height="19"
+            width="20"
+            height="20"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -152,6 +124,78 @@ export function CheckoutHeader() {
           </svg>
           <span className={styles.helpLabel}>Questions?</span>
         </button>
+      </div>
+
+      <div className={styles.progress}>
+        <div className={styles.progressInner}>
+          {/* Template geometry: fixed 74px step columns (circle above label) joined
+            by flexible 2px lead lines that run through the circles' centres. The
+            line lives inside each <li> so the list markup stays valid. */}
+          <ol className={styles.stepper} aria-label="Order progress">
+            {CHECKOUT_STEPS.map((step) => {
+              const state =
+                step.number < current.number
+                  ? 'done'
+                  : step.number === current.number
+                    ? 'current'
+                    : 'upcoming';
+              return (
+                <li
+                  key={step.number}
+                  className={styles.step}
+                  data-state={state}
+                  aria-current={state === 'current' ? 'step' : undefined}
+                >
+                  {step.number > 1 ? (
+                    <span className={styles.lead} aria-hidden="true" />
+                  ) : null}
+                  <span className={styles.col}>
+                    <span className={styles.marker} aria-hidden="true">
+                      {state === 'done' ? (
+                        <svg
+                          width="15"
+                          height="15"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="var(--white)"
+                          strokeWidth="2.6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M5 12.5l4.5 4.5L19 7" />
+                        </svg>
+                      ) : (
+                        step.number
+                      )}
+                    </span>
+                    <span className={styles.stepLabel}>{step.label}</span>
+                    {step.number === 3 && current.number !== 1 ? (
+                      <span className={styles.optional}>Optional</span>
+                    ) : null}
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+
+          {/* The same progress state, compact below the design’s stepper breakpoint. */}
+          <div className={styles.mobileStepper}>
+            <div className={styles.mobileText}>
+              <span className={styles.mobileCount}>
+                Step {current.number} of {CHECKOUT_STEPS.length}
+              </span>
+              <span className={styles.mobileLabel}>{current.label}</span>
+            </div>
+            <div className={styles.mobileTrack} aria-hidden="true">
+              <span
+                className={styles.mobileFill}
+                style={{
+                  width: `${(current.number / CHECKOUT_STEPS.length) * 100}%`,
+                }}
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       <HelpPanel open={helpOpen} onClose={() => setHelpOpen(false)} />

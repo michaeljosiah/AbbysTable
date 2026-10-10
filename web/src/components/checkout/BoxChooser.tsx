@@ -14,21 +14,33 @@ import {
   type ReactNode,
 } from 'react';
 
-import { type BoxOffer, type BoxPricing } from '@/lib/aonik/types';
-import { deriveSelection, heldSizeCopy, readTypedSize, selectionForSize, sizeFloor, type EntrySize, type Selection } from '@/lib/box/entry';
+import { type BoxOffer, type BoxPricing, type Extra } from '@/lib/aonik/types';
+import {
+  deriveSelection,
+  heldSizeCopy,
+  readTypedSize,
+  selectionForSize,
+  sizeFloor,
+  type EntrySize,
+  type Selection,
+} from '@/lib/box/entry';
 import {
   boxPricePence,
   cartTotals,
+  extrasTotals,
   customBoxPricePence,
   useCart,
   type CartLine,
 } from '@/lib/cart/CartProvider';
 import { afterCartMutation } from '@/lib/cart/convergence';
 import { quoteComponentLabel } from '@/lib/cart/quote';
+import { linePortion, portionDescription } from '@/lib/dish/portions';
+import { subscribePageScroll } from '@/lib/dom/pageScroll';
 import { formatPrice, formatSignedPrice } from '@/lib/format';
 
 import styles from './BoxChooser.module.css';
 import { DriftNotices } from './DriftNotices';
+import { useOverlay } from './checkout/useOverlay';
 
 /**
  * Step 1: choose a set box or build your own.
@@ -42,6 +54,7 @@ import { DriftNotices } from './DriftNotices';
  */
 interface BoxChooserProps {
   pricing: BoxPricing;
+  extras: Extra[];
   /**
    * Pre-formatted delivery date, e.g. "6 August", or null when the tenant
    * publishes no promise — in which case the line is not rendered at all. A
@@ -91,13 +104,25 @@ function offerFor(pricing: BoxPricing, size: number) {
    * computed itself would be a number nobody authored. So a non-preset size
    * shows its price alone. See SPEC-2026-07-22-catalog-browse FR-6.
    */
-  return { pricePence: customBoxPricePence(pricing, size), listPence: undefined, savingPence: 0 };
+  return {
+    pricePence: customBoxPricePence(pricing, size),
+    listPence: undefined,
+    savingPence: 0,
+  };
 }
 
-export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSize, sizeFromLink }: BoxChooserProps) {
+export function BoxChooser({
+  pricing,
+  extras,
+  earliestDeliveryLabel,
+  heading,
+  initialSize,
+  sizeFromLink,
+}: BoxChooserProps) {
   const {
     boxSize,
     lines,
+    extras: extraLines,
     hydrated,
     addLine,
     removeLine,
@@ -115,9 +140,13 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
 
   // The template preselects the entry box rather than starting empty.
   const [chosen, setSelection] = useState<Selection>(
-    initialSize.kind === 'custom' ? { source: 'custom' } : { source: 'preset', size: initialSize.size },
+    initialSize.kind === 'custom'
+      ? { source: 'custom' }
+      : { source: 'preset', size: initialSize.size },
   );
-  const [chosenQty, setCustomQty] = useState(initialSize.kind === 'custom' ? initialSize.size : minDishes);
+  const [chosenQty, setCustomQty] = useState(
+    initialSize.kind === 'custom' ? initialSize.size : minDishes,
+  );
   const [typed, setTyped] = useState<string | null>(null);
   const [typedError, setTypedError] = useState<string | null>(null);
 
@@ -126,9 +155,18 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
    * deleted to make a smaller box fit; choosing a smaller tier raises it to
    * the floor and says why (the rail's held-size line).
    */
-  const heldDishes = !hydrated ? 0 : isServerCart ? (quote?.unitsSelected ?? 0) : lines.reduce((total, line) => total + line.quantity, 0);
+  const heldDishes = !hydrated
+    ? 0
+    : isServerCart
+      ? (quote?.unitsSelected ?? 0)
+      : lines.reduce((total, line) => total + line.quantity, 0);
   const floor = sizeFloor(heldDishes, minDishes, maxDishes);
-  const { selection, customQty, raised } = deriveSelection({ chosen, chosenQty, floor, presets: pricing.presets });
+  const { selection, customQty, raised } = deriveSelection({
+    chosen,
+    chosenQty,
+    floor,
+    presets: pricing.presets,
+  });
 
   const [estOpen, setEstOpen] = useState(true);
   const [tipOpen, setTipOpen] = useState(false);
@@ -139,6 +177,23 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
   const [removed, setRemoved] = useState<CartLine | null>(null);
 
   const [toast, setToast] = useState('');
+  const [hideBar, setHideBar] = useState(false);
+
+  useEffect(() => {
+    const measure = () => {
+      const footer = document
+        .querySelector('[data-purchase-bar-stop]')
+        ?.getBoundingClientRect();
+      setHideBar(Boolean(footer && footer.top < window.innerHeight * 0.75));
+    };
+    measure();
+    const unsubscribe = subscribePageScroll(measure);
+    window.addEventListener('resize', measure);
+    return () => {
+      unsubscribe();
+      window.removeEventListener('resize', measure);
+    };
+  }, []);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [showMore, setShowMore] = useState(false);
@@ -158,11 +213,24 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
   const size = selection.source === 'custom' ? customQty : selection.size;
   const isCustom = presetFor(pricing, size) === undefined;
 
-  const demoTotals = isServerCart
+  const demoExtras = extrasTotals(extraLines, extras);
+  const demoBase = isServerCart
     ? null
     : cartTotals({ boxSize: size, isCustom, lines }, pricing);
+  const demoTotals = demoBase
+    ? {
+        ...demoBase,
+        totalPence:
+          demoBase.totalPence === undefined ||
+          demoExtras.totalPence === undefined
+            ? undefined
+            : demoBase.totalPence + demoExtras.totalPence,
+      }
+    : null;
   const totals = demoTotals ?? {
-    dishCount: quote?.unitsSelected ?? lines.reduce((total, line) => total + line.quantity, 0),
+    dishCount:
+      quote?.unitsSelected ??
+      lines.reduce((total, line) => total + line.quantity, 0),
     boxPence: offerFor(pricing, size).pricePence,
     surchargePence: undefined,
     extraDishes: 0,
@@ -174,13 +242,25 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
 
   // Before hydration the cart is always empty, so gate on it rather than render
   // a banner on the server that the client would immediately drop.
-  const carried = hydrated ? (lines[0] ?? null) : null;
-  const carriedNote = carried?.personalisation ? 'Personalised on the dish page' : null;
+  const carried =
+    hydrated && lines.length === 1 && lines[0].quantity === 1 ? lines[0] : null;
+  const carriedNote = carried
+    ? `${portionDescription([], carried.personalisation)}${linePortion(carried.personalisation) === null ? '' : ' portion'}`
+    : null;
 
   // A smaller tier was chosen than the box can take: raised, and said.
   const held = raised;
   const filled = Math.min(totals.dishCount, size);
   const remaining = size - filled;
+  const nextTitle = carried
+    ? 'Next up'
+    : filled
+      ? `${filled} ${filled === 1 ? 'dish' : 'dishes'} in your box`
+      : 'No dishes yet';
+  const nextBody =
+    carried || !filled
+      ? 'Choose your dishes from the menu on the next step.'
+      : 'Your dishes are saved. You can change them on the next step.';
   const boxLabel = `${size}-dish box`;
   /*
    * A live quote is for the box it was made for. A size chosen here (a link,
@@ -190,7 +270,10 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
    */
   const quoteIsForSize = !isServerCart || !quote || quote.boxSize === size;
   const showServerQuote = isServerCart && quoteIsForSize;
-  const planTotalPence = cartTotals({ boxSize: size, isCustom, lines: [] }, pricing).totalPence;
+  const planTotalPence = cartTotals(
+    { boxSize: size, isCustom, lines: [] },
+    pricing,
+  ).totalPence;
   const totalLabel = showServerQuote
     ? quote
       ? formatPrice(quote.totalPence)
@@ -214,19 +297,22 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
     setSelection({ source: 'preset', size: preset.dishCount });
   };
 
-  const stepCustom = (delta: number) => (event: MouseEvent<HTMLButtonElement>) => {
-    // The stepper sits inside a card that is itself a button.
-    event.stopPropagation();
-    const next = Math.min(maxDishes, Math.max(floor, customQty + delta));
-    setTyped(null);
-    setTypedError(null);
-    setCustomQty(next);
-    // The template's stepper re-selects the matching preset card when the
-    // count lands on one, so 6/12/18 always light their own tier.
-    setSelection(
-      presetFor(pricing, next) ? { source: 'preset', size: next } : { source: 'custom' },
-    );
-  };
+  const stepCustom =
+    (delta: number) => (event: MouseEvent<HTMLButtonElement>) => {
+      // The stepper sits inside a card that is itself a button.
+      event.stopPropagation();
+      const next = Math.min(maxDishes, Math.max(floor, customQty + delta));
+      setTyped(null);
+      setTypedError(null);
+      setCustomQty(next);
+      // The template's stepper re-selects the matching preset card when the
+      // count lands on one, so 6/12/18 always light their own tier.
+      setSelection(
+        presetFor(pricing, next)
+          ? { source: 'preset', size: next }
+          : { source: 'custom' },
+      );
+    };
 
   /**
    * A typed quantity is taken when the field is left or Enter is pressed. One
@@ -235,7 +321,11 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
    */
   const takeTyped = () => {
     if (typed === null) return;
-    const result = readTypedSize(typed, { min: minDishes, max: maxDishes, floor });
+    const result = readTypedSize(typed, {
+      min: minDishes,
+      max: maxDishes,
+      floor,
+    });
     setTyped(null);
     if (!result.ok) {
       setTypedError(result.error);
@@ -243,7 +333,11 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
     }
     setTypedError(null);
     setCustomQty(result.size);
-    setSelection(presetFor(pricing, result.size) ? { source: 'preset', size: result.size } : { source: 'custom' });
+    setSelection(
+      presetFor(pricing, result.size)
+        ? { source: 'preset', size: result.size }
+        : { source: 'custom' },
+    );
   };
 
   /** The quantity, typeable (both layouts): digits only, taken on blur or Enter. */
@@ -277,15 +371,24 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
   // One id per layout: both are in the markup, one hidden by CSS.
   // The status region stays mounted and is filled, so it is announced.
   const typedErrorLine = (errorId: string) => (
-    <p className={styles.typedError} id={errorId} role="status" data-empty={typedError ? undefined : true}>
+    <p
+      className={styles.typedError}
+      id={errorId}
+      role="status"
+      data-empty={typedError ? undefined : true}
+    >
       {typedError}
     </p>
   );
 
-  const onCardKeyDown = (event: KeyboardEvent<HTMLDivElement>, select: () => void) => {
+  const onCardKeyDown = (
+    event: KeyboardEvent<HTMLDivElement>,
+    select: () => void,
+  ) => {
     // Ignore keys that belong to the stepper buttons inside the card.
     if (event.target !== event.currentTarget) return;
-    if (event.key !== 'Enter' && event.key !== ' ' && event.key !== 'Spacebar') return;
+    if (event.key !== 'Enter' && event.key !== ' ' && event.key !== 'Spacebar')
+      return;
     event.preventDefault();
     select();
   };
@@ -296,9 +399,12 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
     toastTimer.current = setTimeout(() => setToast(''), 4200);
   }, []);
 
-  useEffect(() => () => {
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+    },
+    [],
+  );
 
   const removeCarried = async (line: CartLine) => {
     if (pending) return;
@@ -329,7 +435,10 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
   const stepLine = async (line: CartLine, delta: number) => {
     if (pending) return;
     try {
-      await setQuantity(line.lineId, Math.min(maxDishes, Math.max(1, line.quantity + delta)));
+      await setQuantity(
+        line.lineId,
+        Math.min(maxDishes, Math.max(1, line.quantity + delta)),
+      );
     } catch {
       // The provider exposes the failure and keeps the confirmed quantity.
     }
@@ -353,23 +462,27 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
 
   const scrollForMore = () => {
     const el = scrollRef.current;
-    if (el) el.scrollTo({ top: Math.round(el.clientHeight * 0.8), behavior: 'smooth' });
+    if (el)
+      el.scrollTo({
+        top: Math.round(el.clientHeight * 0.8),
+        behavior: 'smooth',
+      });
   };
 
-  // One owner for the sheet's Escape key and the body scroll lock, so closing
-  // always unwinds cleanly.
+  const sheet = useRef<HTMLDivElement>(null);
+  const sheetScrim = useRef<HTMLDivElement>(null);
+  const sheetOpener = useRef<HTMLButtonElement>(null);
+  useOverlay({
+    open: sheetOpen,
+    modal: true,
+    onClose: () => setSheetOpen(false),
+    panel: sheet,
+    scrim: sheetScrim,
+    opener: sheetOpener,
+  });
   useEffect(() => {
-    if (!sheetOpen) return;
-    const onKey = (event: globalThis.KeyboardEvent) => {
-      if (event.key === 'Escape') setSheetOpen(false);
-    };
-    document.addEventListener('keydown', onKey);
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = previous;
-    };
+    if (sheetOpen)
+      sheet.current?.querySelector<HTMLButtonElement>('button')?.focus();
   }, [sheetOpen]);
 
   /** Itemised rows shared by the desktop panel and the sheet. */
@@ -379,7 +492,9 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
         {quote.components.map((component, index) => (
           <div key={`${component.key}:${index}`} className={styles.estRow}>
             <span>{quoteComponentLabel(component.key)}</span>
-            <span className={styles.estStrong}>{formatPrice(component.amountPence)}</span>
+            <span className={styles.estStrong}>
+              {formatPrice(component.amountPence)}
+            </span>
           </div>
         ))}
       </>
@@ -402,15 +517,30 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
 
       {totals.surchargePence !== undefined && totals.surchargePence !== 0 ? (
         <div className={styles.estRow}>
-          <span>Personalisation</span>
-          <span className={styles.estAccent}>{formatSignedPrice(totals.surchargePence)}</span>
+          <span>Portions &amp; upgrades</span>
+          <span className={styles.estAccent}>
+            {formatSignedPrice(totals.surchargePence)}
+          </span>
         </div>
       ) : null}
 
       {totals.extraDishes > 0 ? (
         <div className={styles.estRow}>
           <span>Extra dishes</span>
-          <span className={styles.estAccent}>+{formatPrice(totals.extraPence)}</span>
+          <span className={styles.estAccent}>
+            +{formatPrice(totals.extraPence)}
+          </span>
+        </div>
+      ) : null}
+
+      {demoExtras.quantity > 0 ? (
+        <div className={styles.estRow}>
+          <span>Extras</span>
+          <span className={styles.estAccent}>
+            {demoExtras.totalPence === undefined
+              ? 'Price unavailable'
+              : formatPrice(demoExtras.totalPence)}
+          </span>
         </div>
       ) : null}
 
@@ -419,10 +549,14 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
           <span>Delivery</span>
           <span className={styles.estDelivery}>
             {pricing.delivery.listPence > pricing.delivery.pricePence ? (
-              <span className={styles.estWas}>{formatPrice(pricing.delivery.listPence)}</span>
+              <span className={styles.estWas}>
+                {formatPrice(pricing.delivery.listPence)}
+              </span>
             ) : null}
             <span className={styles.estNow}>
-              {pricing.delivery.pricePence === 0 ? 'Free' : formatPrice(pricing.delivery.pricePence)}
+              {pricing.delivery.pricePence === 0
+                ? 'Free'
+                : formatPrice(pricing.delivery.pricePence)}
             </span>
           </span>
         </div>
@@ -459,82 +593,52 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
           <DriftNotices />
 
           {carried ? (
-            <>
-              {/* Compact banner, ≤1023px. */}
-              <div className={styles.carry}>
+            <div className={styles.savedDish}>
+              <div className={styles.savedDishRow}>
                 <Image
                   src={carried.imageUrl}
-                  alt={carried.title}
-                  width={44}
-                  height={44}
-                  className={styles.carryImage}
+                  alt=""
+                  width={108}
+                  height={96}
+                  className={styles.savedDishImage}
                 />
-                <div className={styles.carryMain}>
-                  <div className={styles.carryTitle}>
-                    <span className={styles.carryTick} aria-hidden="true">
-                      <CheckIcon size={11} strokeWidth={3} />
-                    </span>
-                    <span>
-                      <strong>{carried.title}</strong> will be added to your box
-                    </span>
-                  </div>
-                  {carriedNote ? (
-                    <div className={styles.carryNote}>
-                      <SlidersIcon size={15} />
-                      <span>{carriedNote}</span>
-                    </div>
-                  ) : null}
+                <div className={styles.savedDishBody}>
+                  <h2 className={styles.savedDishTitle}>{carried.title}</h2>
+                  <p className={styles.savedDishPortion}>{carriedNote}</p>
                 </div>
                 <button
                   type="button"
-                  className={`${styles.lineRemove} ${styles.carryRemove}`}
+                  className={styles.savedDishRemove}
                   onClick={() => void removeCarried(carried)}
                   disabled={pending}
                   aria-label={`Remove ${carried.title}`}
                 >
-                  <TrashIcon size={14} />
-                  Remove
+                  <TrashIcon size={20} />
+                  <span>Remove</span>
                 </button>
               </div>
-
-              {/* Full banner, desktop. */}
-              <div className={styles.banner}>
-                <div className={styles.bannerTop}>
-                  <Image
-                    src={carried.imageUrl}
-                    alt={carried.title}
-                    width={108}
-                    height={92}
-                    className={styles.bannerImage}
-                  />
-                  <div className={styles.bannerMain}>
-                    <span className={styles.bannerTick} aria-hidden="true">
-                      <CheckIcon size={17} strokeWidth={2.4} />
-                    </span>
-                    <div className={styles.bannerText}>
-                      <h2 className={styles.bannerTitle}>
-                        {carried.title} will be added to your box
-                      </h2>
-                      <p className={styles.bannerBody}>
-                        Choose your box size first. You won&apos;t need to add this dish again.
-                      </p>
-                      {carriedNote ? (
-                        <div className={styles.bannerNote}>
-                          <SlidersIcon size={17} />
-                          <span>{carriedNote}.</span>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
+              <div className={styles.savedDishNotice}>
+                <span className={styles.savedDishTick} aria-hidden="true">
+                  <CheckIcon size={12} strokeWidth={3} />
+                </span>
+                <div>
+                  <strong>Your dish is saved.</strong>
+                  <span>
+                    Choose your box size. You won’t need to add this dish again.
+                  </span>
                 </div>
               </div>
-            </>
+            </div>
           ) : null}
+
+          <h2 className={styles.sizeHeading}>Choose your box size</h2>
 
           {/* Desktop / tablet cards. */}
           <div className={styles.grid}>
             {pricing.presets.map((preset, index) => {
-              const selected = selection.source === 'preset' && selection.size === preset.dishCount;
+              const selected =
+                selection.source === 'preset' &&
+                selection.size === preset.dishCount;
               const savingPence = preset.savingPence ?? 0;
               const isTop = index === pricing.presets.length - 1;
 
@@ -547,14 +651,19 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
                   aria-pressed={selected}
                   data-selected={selected || undefined}
                   onClick={selectPreset(preset)}
-                  onKeyDown={(event) => onCardKeyDown(event, selectPreset(preset))}
+                  onKeyDown={(event) =>
+                    onCardKeyDown(event, selectPreset(preset))
+                  }
                 >
                   <span className={styles.tick} aria-hidden="true">
                     <CheckIcon size={15} strokeWidth={2.6} />
                   </span>
 
                   {preset.badge ? (
-                    <span className={styles.badge} data-emphasis={isTop ? 'strong' : 'soft'}>
+                    <span
+                      className={styles.badge}
+                      data-emphasis={isTop ? 'strong' : 'soft'}
+                    >
                       {preset.badge}
                     </span>
                   ) : null}
@@ -563,7 +672,9 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
                     {isTop ? <StackGlyph size={54} /> : <BoxGlyph size={52} />}
                   </span>
 
-                  <span className={styles.cardTitle}>{preset.dishCount} dishes</span>
+                  <span className={styles.cardTitle}>
+                    {preset.dishCount} dishes
+                  </span>
 
                   <span className={styles.priceRow}>
                     {savingPence > 0 ? (
@@ -571,11 +682,15 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
                         {formatPrice(preset.pricePence + savingPence)}
                       </span>
                     ) : null}
-                    <span className={styles.price}>{formatPrice(preset.pricePence)}</span>
+                    <span className={styles.price}>
+                      {formatPrice(preset.pricePence)}
+                    </span>
                   </span>
 
                   {savingPence > 0 ? (
-                    <span className={styles.saving}>Save {formatPrice(savingPence)}</span>
+                    <span className={styles.saving}>
+                      Save {formatPrice(savingPence)}
+                    </span>
                   ) : null}
 
                   <span
@@ -584,7 +699,9 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
                     aria-hidden="true"
                   />
 
-                  {preset.blurb ? <span className={styles.cardBlurb}>{preset.blurb}</span> : null}
+                  {preset.blurb ? (
+                    <span className={styles.cardBlurb}>{preset.blurb}</span>
+                  ) : null}
                 </div>
               );
             })}
@@ -640,7 +757,9 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
                         {formatPrice(customOffer.listPence)}
                       </span>
                     ) : null}
-                    <span className={styles.price}>{formatPrice(customOffer.pricePence)}</span>
+                    <span className={styles.price}>
+                      {formatPrice(customOffer.pricePence)}
+                    </span>
                   </span>
 
                   {customOffer.savingPence > 0 ? (
@@ -657,7 +776,8 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
                 <>
                   <span className={styles.priceRow}>
                     <span className={styles.price}>
-                      From {formatPrice(boxPricePence(minDishes, true, pricing))}
+                      From{' '}
+                      {formatPrice(boxPricePence(minDishes, true, pricing))}
                     </span>
                   </span>
 
@@ -668,7 +788,9 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
 
                   <span className={styles.cardRule} aria-hidden="true" />
 
-                  <span className={styles.cardBlurb}>Savings update as you add dishes</span>
+                  <span className={styles.cardBlurb}>
+                    Savings update as you add dishes
+                  </span>
                 </>
               )}
             </div>
@@ -677,7 +799,9 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
           {/* Compact rows, ≤1023px. */}
           <div className={styles.boxlist}>
             {pricing.presets.map((preset, index) => {
-              const selected = selection.source === 'preset' && selection.size === preset.dishCount;
+              const selected =
+                selection.source === 'preset' &&
+                selection.size === preset.dishCount;
               const savingPence = preset.savingPence ?? 0;
               const isTop = index === pricing.presets.length - 1;
 
@@ -690,7 +814,9 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
                   aria-pressed={selected}
                   data-selected={selected || undefined}
                   onClick={selectPreset(preset)}
-                  onKeyDown={(event) => onCardKeyDown(event, selectPreset(preset))}
+                  onKeyDown={(event) =>
+                    onCardKeyDown(event, selectPreset(preset))
+                  }
                 >
                   <span className={styles.rowIcon} aria-hidden="true">
                     {isTop ? <StackGlyph size={30} /> : <BoxGlyph size={30} />}
@@ -698,7 +824,9 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
 
                   <span className={styles.rowMain}>
                     <span className={styles.rowTitleLine}>
-                      <span className={styles.rowTitle}>{preset.dishCount} dishes</span>
+                      <span className={styles.rowTitle}>
+                        {preset.dishCount} dishes
+                      </span>
                       {preset.badge ? (
                         <span
                           className={styles.rowBadge}
@@ -708,7 +836,9 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
                         </span>
                       ) : null}
                     </span>
-                    {preset.blurb ? <span className={styles.rowBlurb}>{preset.blurb}</span> : null}
+                    {preset.blurb ? (
+                      <span className={styles.rowBlurb}>{preset.blurb}</span>
+                    ) : null}
                   </span>
 
                   <span className={styles.rowEnd}>
@@ -723,11 +853,15 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
                               {formatPrice(preset.pricePence)}
                             </span>
                           </span>
-                          <span className={styles.rowSave}>Save {formatPrice(savingPence)}</span>
+                          <span className={styles.rowSave}>
+                            Save {formatPrice(savingPence)}
+                          </span>
                         </>
                       ) : (
                         <>
-                          <span className={styles.rowPrice}>{formatPrice(preset.pricePence)}</span>
+                          <span className={styles.rowPrice}>
+                            {formatPrice(preset.pricePence)}
+                          </span>
                           <span className={styles.rowFull}>Full price</span>
                         </>
                       )}
@@ -762,7 +896,9 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
 
                 <span className={styles.rowMain}>
                   <span className={styles.rowTitle}>Set your own</span>
-                  <span className={styles.rowBlurb}>Savings update as you add dishes</span>
+                  <span className={styles.rowBlurb}>
+                    Savings update as you add dishes
+                  </span>
                 </span>
 
                 <span className={styles.rowEnd}>
@@ -791,7 +927,10 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
                     >
                       −
                     </button>
-                    {quantityInput(`${styles.stepInput} ${styles.stepInputSm}`, typedErrorIdSm)}
+                    {quantityInput(
+                      `${styles.stepInput} ${styles.stepInputSm}`,
+                      typedErrorIdSm,
+                    )}
                     <button
                       type="button"
                       className={styles.stepButton}
@@ -828,7 +967,10 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
         </div>
 
         {/* Desktop summary. */}
-        <aside className={styles.summaryColumn} aria-labelledby={summaryTitleId}>
+        <aside
+          className={styles.summaryColumn}
+          aria-labelledby={summaryTitleId}
+        >
           <div className={styles.summaryCard}>
             <div className={styles.summaryHead}>
               <CubeIcon size={24} />
@@ -838,7 +980,11 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
             </div>
 
             <div className={styles.summaryViewport}>
-              <div className={styles.summaryScroll} ref={scrollRef} onScroll={updateShowMore}>
+              <div
+                className={styles.summaryScroll}
+                ref={scrollRef}
+                onScroll={updateShowMore}
+              >
                 <p className={styles.boxLabel}>{boxLabel}</p>
                 <p className={styles.filledLabel}>
                   {filled} of {size} dishes selected
@@ -850,9 +996,12 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
                   />
                 </span>
                 <p className={styles.remaining}>
-                  {remaining} {remaining === 1 ? 'space' : 'spaces'} left to fill
+                  {remaining} {remaining === 1 ? 'space' : 'spaces'} left to
+                  fill
                 </p>
-                {held ? <p className={styles.held}>{heldSizeCopy(heldDishes)}</p> : null}
+                {held ? (
+                  <p className={styles.held}>{heldSizeCopy(heldDishes)}</p>
+                ) : null}
 
                 <span className={styles.rule} aria-hidden="true" />
 
@@ -868,12 +1017,19 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
                       />
                       <div className={styles.lineText}>
                         <div className={styles.lineTop}>
-                          <span className={styles.lineTitle}>{carried.title}</span>
-                          {isServerCart ? null : carried.surchargePence === undefined ? (
-                            <span className={styles.linePrice}>Price unavailable</span>
+                          <span className={styles.lineTitle}>
+                            {carried.title}
+                          </span>
+                          {isServerCart ? null : carried.surchargePence ===
+                            undefined ? (
+                            <span className={styles.linePrice}>
+                              Price unavailable
+                            </span>
                           ) : carried.surchargePence !== 0 ? (
                             <span className={styles.linePrice}>
-                              {formatSignedPrice(carried.surchargePence * carried.quantity)}
+                              {formatSignedPrice(
+                                carried.surchargePence * carried.quantity,
+                              )}
                             </span>
                           ) : null}
                         </div>
@@ -903,7 +1059,9 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
                               className={styles.stepButton}
                               data-size="xs"
                               onClick={() => void stepLine(carried, 1)}
-                              disabled={pending || carried.quantity >= maxDishes}
+                              disabled={
+                                pending || carried.quantity >= maxDishes
+                              }
                               aria-label="More"
                             >
                               +
@@ -933,50 +1091,21 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
                 <div className={styles.nextUp}>
                   <BookIcon size={22} />
                   <div>
-                    <p className={styles.nextUpTitle}>Next up</p>
-                    <p className={styles.nextUpBody}>
-                      Choose your remaining dishes from the menu and personalise to your table as
-                      required.
-                    </p>
+                    <p className={styles.nextUpTitle}>{nextTitle}</p>
+                    <p className={styles.nextUpBody}>{nextBody}</p>
                   </div>
                 </div>
 
-                <span className={styles.rule} data-variant="tight" aria-hidden="true" />
-
-                <div className={styles.estHead}>
-                  <span className={styles.estHeadLeft}>
-                    <button
-                      type="button"
-                      className={styles.estToggle}
-                      onClick={() => setEstOpen((open) => !open)}
-                      aria-expanded={estOpen}
-                    >
-                      Estimated total
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.infoButton}
-                      onClick={() => setTipOpen((open) => !open)}
-                      aria-expanded={tipOpen}
-                      aria-label="About pricing"
-                    >
-                      i
-                    </button>
-                  </span>
-                  <button
-                    type="button"
-                    className={styles.estValueButton}
-                    onClick={() => setEstOpen((open) => !open)}
-                    aria-expanded={estOpen}
-                  >
-                    <span className={styles.estValue}>{totalLabel}</span>
-                    <ChevronIcon size={18} className={styles.estChevron} data-open={estOpen} />
-                  </button>
-                </div>
+                <span
+                  className={styles.rule}
+                  data-variant="tight"
+                  aria-hidden="true"
+                />
 
                 {tipOpen ? (
                   <div className={styles.infoCard}>
-                    Price changes may apply based on your personalisation.
+                    Total is estimated and may change depending on portion size
+                    and Signature upgrades.
                     <button
                       type="button"
                       className={styles.infoClose}
@@ -989,14 +1118,7 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
                 ) : null}
 
                 {estOpen ? (
-                  <div className={styles.estPanel}>
-                    {breakdownRows}
-                    <span className={styles.rule} data-variant="total" aria-hidden="true" />
-                    <div className={styles.totalRow}>
-                      <span className={styles.totalLabel}>Total</span>
-                      <span className={styles.totalValue}>{totalLabel}</span>
-                    </div>
-                  </div>
+                  <div className={styles.estPanel}>{breakdownRows}</div>
                 ) : null}
               </div>
 
@@ -1014,20 +1136,56 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
             </div>
 
             <div className={styles.summaryFoot}>
-              <ContinueCta onCommit={commit} className={styles.cta} pending={pending}>
-                <span className={styles.ctaMain}>
-                  Continue to dishes
-                  <ArrowIcon size={20} />
+              <div className={styles.estHead}>
+                <span className={styles.estHeadLeft}>
+                  <button
+                    type="button"
+                    className={styles.estToggle}
+                    onClick={() => setEstOpen((open) => !open)}
+                    aria-expanded={estOpen}
+                  >
+                    Estimated total
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.infoButton}
+                    onClick={() => setTipOpen((open) => !open)}
+                    aria-expanded={tipOpen}
+                    aria-label="About pricing"
+                  >
+                    i
+                  </button>
                 </span>
-                <span className={styles.ctaSub}>
-                  <ShieldIcon />
-                  Secure checkout
+                <button
+                  type="button"
+                  className={styles.estValueButton}
+                  onClick={() => setEstOpen((open) => !open)}
+                  aria-expanded={estOpen}
+                >
+                  <span className={styles.estValue}>{totalLabel}</span>
+                  <ChevronIcon
+                    size={18}
+                    className={styles.estChevron}
+                    data-open={estOpen}
+                  />
+                </button>
+              </div>
+
+              <ContinueCta
+                onCommit={commit}
+                className={styles.cta}
+                pending={pending}
+              >
+                <span className={styles.ctaMain}>
+                  Add dishes
+                  <ArrowIcon size={20} />
                 </span>
               </ContinueCta>
 
               {earliestDeliveryLabel ? (
                 <p className={styles.deliveryNote}>
-                  Earliest UK-wide delivery: <strong>{earliestDeliveryLabel}</strong>
+                  Earliest UK-wide delivery:{' '}
+                  <strong>{earliestDeliveryLabel}</strong>
                 </p>
               ) : null}
             </div>
@@ -1036,9 +1194,15 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
       </div>
 
       {/* Sticky action bar, ≤1023px. */}
-      <div className={styles.mobileBar} data-consent-yield>
+      <div
+        className={styles.mobileBar}
+        data-hidden={hideBar || sheetOpen || undefined}
+        data-overlay-yield
+        data-consent-yield
+      >
         <button
           type="button"
+          ref={sheetOpener}
           className={styles.barSummary}
           onClick={() => setSheetOpen(true)}
           aria-label="View your box"
@@ -1052,22 +1216,33 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
             <span className={styles.barLabel}>{boxLabel}</span>
             <span className={styles.barTotalLine}>
               <span className={styles.barTotal}>{totalLabel}</span>
-              <ChevronUpIcon size={15} />
+              <span className={styles.viewBox}>
+                View box
+                <ChevronUpIcon size={15} />
+              </span>
             </span>
           </span>
         </button>
 
-        <ContinueCta onCommit={commit} className={styles.mobileCta} pending={pending}>
-          Continue
-          <ArrowIcon size={18} />
+        <ContinueCta
+          onCommit={commit}
+          className={styles.mobileCta}
+          pending={pending}
+        >
+          Add dishes
         </ContinueCta>
       </div>
 
       {/* "Your box" bottom sheet, opened from the bar. */}
       {sheetOpen ? (
         <>
-          <div className={styles.sheetOverlay} onClick={() => setSheetOpen(false)} />
           <div
+            ref={sheetScrim}
+            className={styles.sheetOverlay}
+            onClick={() => setSheetOpen(false)}
+          />
+          <div
+            ref={sheet}
             className={styles.sheet}
             role="dialog"
             aria-modal="true"
@@ -1107,7 +1282,9 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
               <p className={styles.remaining}>
                 {remaining} {remaining === 1 ? 'space' : 'spaces'} left to fill
               </p>
-              {held ? <p className={styles.held}>{heldSizeCopy(heldDishes)}</p> : null}
+              {held ? (
+                <p className={styles.held}>{heldSizeCopy(heldDishes)}</p>
+              ) : null}
             </div>
 
             <div className={styles.sheetScroll}>
@@ -1123,11 +1300,16 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
                   <div className={styles.lineText}>
                     <div className={styles.lineTop}>
                       <span className={styles.lineTitle}>{carried.title}</span>
-                      {isServerCart ? null : carried.surchargePence === undefined ? (
-                        <span className={styles.linePrice}>Price unavailable</span>
+                      {isServerCart ? null : carried.surchargePence ===
+                        undefined ? (
+                        <span className={styles.linePrice}>
+                          Price unavailable
+                        </span>
                       ) : carried.surchargePence !== 0 ? (
                         <span className={styles.linePrice}>
-                          {formatSignedPrice(carried.surchargePence * carried.quantity)}
+                          {formatSignedPrice(
+                            carried.surchargePence * carried.quantity,
+                          )}
                         </span>
                       ) : null}
                     </div>
@@ -1149,7 +1331,11 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
                         >
                           −
                         </button>
-                        <span className={styles.lineQty} data-context="sheet" aria-live="polite">
+                        <span
+                          className={styles.lineQty}
+                          data-context="sheet"
+                          aria-live="polite"
+                        >
                           {carried.quantity}
                         </span>
                         <button
@@ -1183,15 +1369,16 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
               <div className={styles.nextUp} data-context="sheet">
                 <BookIcon size={22} />
                 <div>
-                  <p className={styles.nextUpTitle}>Next up</p>
-                  <p className={styles.nextUpBody}>
-                    Choose your remaining dishes from the menu and personalise to your table as
-                    required.
-                  </p>
+                  <p className={styles.nextUpTitle}>{nextTitle}</p>
+                  <p className={styles.nextUpBody}>{nextBody}</p>
                 </div>
               </div>
 
-              <span className={styles.rule} data-variant="sheet" aria-hidden="true" />
+              <span
+                className={styles.rule}
+                data-variant="sheet"
+                aria-hidden="true"
+              />
 
               {breakdownRows}
             </div>
@@ -1199,7 +1386,9 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
             <div className={styles.sheetFoot}>
               <div className={styles.sheetTotalRow}>
                 <span className={styles.sheetTotalLeft}>
-                  <span className={styles.sheetTotalLabel}>Estimated total</span>
+                  <span className={styles.sheetTotalLabel}>
+                    Estimated total
+                  </span>
                   <button
                     type="button"
                     className={styles.infoButton}
@@ -1215,7 +1404,8 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
 
               {sheetTipOpen ? (
                 <div className={styles.infoCard} data-context="sheet">
-                  Price changes may apply based on your personalisation.
+                  Total is estimated and may change depending on portion size
+                  and Signature upgrades.
                   <button
                     type="button"
                     className={styles.infoClose}
@@ -1234,18 +1424,15 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
                 data-context="sheet"
               >
                 <span className={styles.ctaMain} data-context="sheet">
-                  Continue to dishes
+                  Add dishes
                   <ArrowIcon size={18} />
-                </span>
-                <span className={styles.ctaSub}>
-                  <ShieldIcon />
-                  Secure checkout
                 </span>
               </ContinueCta>
 
               {earliestDeliveryLabel ? (
                 <p className={styles.deliveryNote} data-context="sheet">
-                  Earliest UK-wide delivery: <strong>{earliestDeliveryLabel}</strong>
+                  Earliest UK-wide delivery:{' '}
+                  <strong>{earliestDeliveryLabel}</strong>
                 </p>
               ) : null}
             </div>
@@ -1254,7 +1441,11 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
       ) : null}
 
       {/* Toast with undo, mirroring the template's remove flow. */}
-      <div className={styles.toast} data-shown={toast ? '' : undefined} role="status">
+      <div
+        className={styles.toast}
+        data-shown={toast ? '' : undefined}
+        role="status"
+      >
         <span>{toast}</span>
         {removed ? (
           <button
@@ -1314,7 +1505,13 @@ function ContinueCta({
 /* ---- Glyphs -------------------------------------------------------------------
    Stroked with `currentColor` so every colour decision stays in the stylesheet. */
 
-function CheckIcon({ size, strokeWidth = 2.6 }: { size: number; strokeWidth?: number }) {
+function CheckIcon({
+  size,
+  strokeWidth = 2.6,
+}: {
+  size: number;
+  strokeWidth?: number;
+}) {
   return (
     <svg
       width={size}
@@ -1496,26 +1693,6 @@ function ArrowIcon({ size }: { size: number }) {
   );
 }
 
-function ShieldIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M12 3l7 3v5c0 4.4-3 8.3-7 9.5C8 19.3 5 15.4 5 11V6z" />
-      <path d="M9.5 12l1.8 1.8L15 10" />
-    </svg>
-  );
-}
-
-/** Chevron pointing down; rotated via CSS where needed. */
 function ChevronIcon({
   size,
   className,
