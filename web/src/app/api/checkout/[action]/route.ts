@@ -134,6 +134,7 @@ async function failure(error: unknown) {
       const code = locked || error.code === AONIK_CODES.cartLocked ? CART_LOCKED_CODE : CART_CONFLICT_CODE;
       return refuse(409, { error: 'Your checkout changed in another window.', code, ...current });
     } catch (readFailure) {
+      if (readFailure instanceof CartMissingError) return failure(readFailure);
       console.error('[api/checkout] could not re-read the box after a refused write', readFailure);
       return refuse(409, { error: 'Your checkout changed in another window. Reload the page to see it.', code: CART_RELOAD_CODE });
     }
