@@ -29,7 +29,10 @@ import { normalisePostcode, readPostcodeEntry } from './postcode';
 export type PostcodeCheck =
   | { status: 'serves'; postcode: string; earliestDeliveryDate: string | null }
   | { status: 'not-served'; postcode: string }
-  /** Not a postcode — the browser checks first, so normally unreachable. */
+  /**
+   * Not a postcode: malformed (the browser checks that first), or well formed
+   * but nonexistent — which only the lookup can tell.
+   */
   | { status: 'invalid' }
   /** Could not check: a technical failure, answered with a retry. */
   | { status: 'unavailable' };
@@ -41,13 +44,32 @@ const log = (message: string, error?: unknown) => {
   console.error(`[delivery] ${message}`, error ?? '');
 };
 
-/** The tenant-wide earliest delivery, when the lookup named none. Optional. */
+/** How long a served answer waits for the optional date line. */
+const WINDOW_WAIT_MS = 1500;
+
+/**
+ * The tenant-wide earliest delivery, when the lookup named none. Optional, so
+ * a slow read is cut off rather than holding up "we deliver".
+ */
 async function earliestFromWindow(client: AonikClient): Promise<string | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<null>((resolve) => {
+    timer = setTimeout(() => {
+      log('delivery window too slow; the result shows no date');
+      resolve(null);
+    }, WINDOW_WAIT_MS);
+  });
+  const read = client.getDeliveryWindow().then(
+    (window) => window?.earliestDeliveryDate ?? null,
+    (error: unknown) => {
+      log('delivery window unavailable; the result shows no date', error);
+      return null;
+    },
+  );
   try {
-    return (await client.getDeliveryWindow())?.earliestDeliveryDate ?? null;
-  } catch (error) {
-    log('delivery window unavailable; the result shows no date', error);
-    return null;
+    return await Promise.race([read, late]);
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -62,6 +84,8 @@ export async function checkPostcode(raw: unknown): Promise<PostcodeCheck> {
     if (!client.coverage) return { status: 'unavailable' };
 
     const answer = await client.coverage.check(entry.postcode);
+    // Well formed, but the lookup found no such postcode: said as any invalid one.
+    if (answer.status === 'invalid') return { status: 'invalid' };
     const postcode = normalisePostcode(answer.postcode) ?? entry.postcode;
     if (answer.status === 'not-served') return { status: 'not-served', postcode };
     if (answer.status !== 'serves') throw new Error('Unrecognised coverage answer');

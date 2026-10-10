@@ -34,9 +34,10 @@ import styles from './PostcodeChecker.module.css';
  * every one is reachable only through real input — the prototype's
  * development-only state override does not exist here (contract §4b).
  *
- * The page renders it only where a coverage lookup exists (demo today; live
- * waits on michaeljosiah/aonik#352), so it never answers a question it cannot
- * ask. "We deliver" and "not in your area" come only from that lookup.
+ * The page renders it only where a coverage lookup exists (demo's placeholder
+ * areas; live, Aonik's — michaeljosiah/aonik#352), so it never answers a
+ * question it cannot ask. "We deliver" and "not in your area" come only from
+ * that lookup.
  *
  * The postcode never enters a URL: the field has no `name`, so a submit before
  * hydration posts nothing, and the check is a server action with the postcode
@@ -108,7 +109,14 @@ export function PostcodeChecker({
       answer = { status: 'unavailable' };
     }
     if (answer.status === 'invalid') {
+      // No such postcode, which only the lookup can tell: corrected in place,
+      // as a malformed one is — the field takes focus with its text selected.
       dispatch({ type: 'correct', message: 'invalid', request });
+      // Not if the customer has moved on to something else while it checked:
+      // their next keystrokes would overwrite the selected postcode.
+      const active = document.activeElement;
+      const stayed = !active || active === document.body || Boolean(active.closest(`[data-postcode-checker="${id}"]`));
+      if (request === counter.current && stayed) focusField(true);
       return;
     }
 
@@ -245,7 +253,13 @@ export function PostcodeChecker({
 
               <div>
                 {/* Stacked on a phone, one pill from 640. */}
-                <form className={styles.form} onSubmit={onSubmit} noValidate aria-busy={busy === 'checking' || undefined}>
+                <form
+                  className={styles.form}
+                  onSubmit={onSubmit}
+                  noValidate
+                  aria-busy={busy === 'checking' || undefined}
+                  data-postcode-checker={id}
+                >
                   <label htmlFor={inputId} className="visuallyHidden">
                     Postcode
                   </label>

@@ -23,7 +23,7 @@ import type {
   PublicCollectionDto,
   ExtrasListDto,
 } from './dto';
-import { DemoCoverageLookup, type CoverageLookup } from './coverage';
+import { DemoCoverageLookup, HttpCoverageLookup, type CoverageLookup } from './coverage';
 import { AONIK_CODES, AonikError } from './errors';
 import { EXTRA_FIXTURES } from './extras';
 import { dishMatchesSearch, filterDishes, sanitiseFilters } from '@/lib/menu/facets';
@@ -278,13 +278,14 @@ export class HttpAonikClient implements AonikClient {
   constructor(private readonly options: HttpAonikClientOptions) {}
 
   /**
-   * None yet: Aonik has no coverage endpoint (michaeljosiah/aonik#352). Null,
-   * not a stub that fails every check — "we couldn't check that postcode just
-   * now, try again in a moment" would be untrue when no moment will fix it.
-   * The Delivery & FAQs page holds its checker back until this is a
-   * `CoverageLookup` over that endpoint.
+   * Aonik's coverage lookup (michaeljosiah/aonik#352). The tenant must have
+   * configured its coverage and postcode provider before go-live — Aonik also
+   * refuses box payments without them — or every check answers "could not
+   * check". No coordinates lookup, so no "Use my current location".
    */
-  readonly coverage: CoverageLookup | null = null;
+  get coverage(): CoverageLookup {
+    return new HttpCoverageLookup(this.options);
+  }
 
   /**
    * Recommended only. Aonik's browse sorts by `name | newest | rank`, and its

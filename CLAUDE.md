@@ -195,8 +195,15 @@ Conventions inside `web/` that are easy to get wrong:
   (`upcomingDeliveryDate`); the cooking run "with capacity" waits on aonik#346. The lede says
   "mainland UK", not the design's "across the UK".
 - **Delivery & FAQs (#23): never fake an answer.** "We deliver" / "not in your area" come only from
-  `AonikClient.coverage` (contract §3b); it is the design's placeholder areas in demo and `null` in
-  live until michaeljosiah/aonik#352, and with no lookup the page renders NO checker. The nine
+  `AonikClient.coverage` (contract §3b): the design's placeholder areas in demo, Aonik's
+  `GET /commerce/delivery/coverage` in live (aonik#352 — `serves` / `not_served`; its `unavailable`,
+  a 429 or an outage is "could not check", never a refusal; its 400 `commerce.invalid_postcode` is
+  "Please enter a valid UK postcode."). With no lookup the page renders NO checker. The tenant
+  must configure its coverage and postcode provider before go-live (Aonik also refuses box
+  payments without them), or every check says "could not check". Aonik's 30/min limit sees only
+  the storefront's address and is shared with checkout, so the live lookup limits each customer
+  (10/min) and the whole site (20/min) before asking (`src/lib/delivery/rateLimit.ts`); before live
+  ordering, Aonik needs checkout on a rate-limit policy of its own. The nine
   states are `src/lib/delivery/checker.ts`, reached only by real input — the prototype's
   `stateOverride` must never ship (contract §4b). "Use my current location" asks only on a click
   and renders only where the lookup can place a postcode. A served postcode goes to the box
