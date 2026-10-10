@@ -149,3 +149,61 @@ export function formatCountInWords(count: number): string {
     ? COUNT_WORDS[count]
     : String(count);
 }
+
+/**
+ * Formats `placedAtUtc` as "21 July 2026 at 14:32".
+ *
+ * Two things it gets right that a bare `new Date(x).toLocaleString()` does not:
+ *
+ *  1. A .NET `DateTime` with `Kind=Unspecified` serialises with NO timezone
+ *     designator, and `new Date(...)` then reads it as LOCAL time. The field is
+ *     named `...Utc`, so a missing designator means UTC and is made explicit
+ *     rather than left to the server's clock.
+ *  2. The zone is pinned to Europe/London instead of inherited from whatever
+ *     the render host is set to. A UK storefront telling a customer their order
+ *     was placed at 02:32 because the box runs on UTC+12 is a bug nobody would
+ *     think to look for.
+ *
+ * Returns null for a missing or unparseable value so callers render nothing
+ * rather than "Invalid Date" — the same rule `formatDeliveryDate` follows.
+ */
+export function formatOrderDate(placedAtUtc: string | null | undefined): string | null {
+  const date = parseInstant(placedAtUtc);
+  return date ? PLACED_AT.format(date) : null;
+}
+
+/**
+ * `placedAtUtc` as a day alone: "21 July 2026" (Europe/London), or null. Its own
+ * formatter rather than `formatOrderDate` with the time cut off, which would
+ * depend on how the platform's ICU joins date and time.
+ */
+export function formatOrderDay(placedAtUtc: string | null | undefined): string | null {
+  const date = parseInstant(placedAtUtc);
+  return date ? PLACED_DAY.format(date) : null;
+}
+
+const PLACED_DAY = new Intl.DateTimeFormat('en-GB', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+  timeZone: 'Europe/London',
+});
+
+const PLACED_AT = new Intl.DateTimeFormat('en-GB', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+  timeZone: 'Europe/London',
+});
+
+function parseInstant(value: string | null | undefined): Date | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+
+  const hasDesignator = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(trimmed);
+  const date = new Date(hasDesignator ? trimmed : `${trimmed}Z`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}

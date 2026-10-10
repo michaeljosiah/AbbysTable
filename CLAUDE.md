@@ -398,6 +398,29 @@ Conventions inside `web/` that are easy to get wrong:
   registration + email verification and a PKCE public client in the realm, so a good link says
   "your link is ready… we can't finish set-up from this page yet" and points at Contact. Pinned by
   `tests/account-access.test.tsx`.
+- **My Account (#35), built in four PRs; PR 1 = the frame and Orders.** Sections are ROUTES
+  (`/account/orders` …), not the prototype's hash views. `(site)/account/layout.tsx` draws the
+  frame — hero "Hello, {first name}" (`getMyProfile`; a profile that can't be read costs the name,
+  not the page), the box-in-progress strip (`AccountBoxStrip`, the shared `activeBoxSummary`), the
+  menu (`AccountNav`; Sign out is its last row and the ONLY place the site offers it) and the
+  "Need help with an order?" panel — and draws NOTHING for a signed-out request (the page inside
+  redirects it, `requireSignedIn`). The menu lists only sections that are built
+  (`lib/account/sections.ts`); the mobile "menu IS the overview" and `/account` itself land with the
+  overview (PR 2), which also flips `ACCOUNT_ITEM` and `DEFAULT_POST_AUTH_PATH` to `/account`.
+  Orders: Aonik's `historyGroup` decides Upcoming / Past (an unpaid order is in neither); status
+  pills are Aonik's `fulfilmentStatus` (Confirmed / Cooking / Out for delivery / Delivered /
+  Cancelled), else its own words; dishes are named AS PURCHASED (a selection with no name is left
+  out of the card and shown by its code on the order page, never named from it). The list carries no
+  address, so the detail is read only for upcoming and gift orders (`loadAccountOrders`, at most 8).
+  Deliberately NOT built: Order again (PR 4), the delivery window (Aonik rejects windows), "Need to
+  change this delivery? Contact us" (confirmed orders are read-only, decided 5 Oct 2026).
+  The frame is a route group (`account/(frame)/`) so `/account/access` — the emailed secure link —
+  is NOT wrapped in it. An order that was never PAID (`paymentStatus` other than `Captured`) is in
+  neither list: Aonik files an abandoned checkout under Past as "Cancelled". `/account/orders/
+  [orderId]` is not in the design; it stays as the price breakdown (what was charged, what was paid,
+  gift card vs card, refunds), linked from each card; a non-GUID id is a 404 and never reaches Aonik. Pure rules: `lib/account/orders.ts`; pinned by `tests/account-orders.test.tsx`. Client
+  components must not import `lib/aonik/orders` for values (it pulls `next/headers`): `formatOrderDate`
+  lives in `lib/format.ts`.
 - **Internal links go through `next/link`.** `Button` and `NavLink` route on `href` automatically
   (`isExternalHref` in `src/lib/links.ts`); nav anchors are root-relative (`/#founder`) so they work
   from `/menu` as well as `/`.

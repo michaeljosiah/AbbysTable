@@ -42,6 +42,21 @@ export interface StorefrontOrderSummaryDto {
   currency: string;
   total: number;
   boxSize: number | null;
+  /** The booked delivery day, `YYYY-MM-DD`. Null on an order with none. */
+  deliveryDate?: string | null;
+  isGift?: boolean;
+  /** The customer-facing number (`AT-10517`); null on an old order. */
+  orderNumber?: string | null;
+  paymentStatus?: string | null;
+  discountCode?: string | null;
+  discountTotal?: number;
+  /** The dishes of the box, named as purchased. Absent on an older Aonik. */
+  selections?: StorefrontOrderSelectionDto[] | null;
+  /** `Confirmed | Cooking | OutForDelivery | Delivered | Cancelled`; null until paid. */
+  fulfilmentStatus?: string | null;
+  /** `Upcoming | Past | PendingPayment`. */
+  historyGroup?: string | null;
+  pointsAppliedValue?: number;
 }
 
 /** `StorefrontOrderItemDto` — a charged retail line. */
@@ -51,6 +66,9 @@ export interface StorefrontOrderItemDto {
   unitPrice: number | null;
   amountIn: number;
   sku: string | null;
+  /** The name as purchased. */
+  name?: string | null;
+  itemIndex?: number;
 }
 
 /** `StorefrontOrderSelectionDto` — one dish line of the placed box. */
@@ -59,6 +77,26 @@ export interface StorefrontOrderSelectionDto {
   quantity: number;
   sku: string;
   personalisationSummary: string | null;
+  /** Which order item this dish sits under (an order may carry several boxes). */
+  orderItemIndex?: number;
+  /** The name as purchased, never refreshed from today's catalogue; null on a legacy snapshot. */
+  name?: string | null;
+  isSignature?: boolean | null;
+}
+
+/** `OrderDeliveryDto` (the parts the account reads). */
+export interface StorefrontOrderDeliveryDto {
+  address: {
+    line1: string;
+    line2?: string | null;
+    city: string;
+    region?: string | null;
+    postcode: string;
+    countryCode: string;
+  };
+  deliveryDate: string;
+  recipient?: { name: string; phone: string } | null;
+  gift?: { hidePrices: boolean; includeGreetingCard: boolean; greetingCardMessage?: string | null } | null;
 }
 
 /** `StorefrontOrderDetailDto`. */
@@ -74,6 +112,15 @@ export interface StorefrontOrderDetailDto {
   boxSize: number | null;
   items: StorefrontOrderItemDto[];
   selections: StorefrontOrderSelectionDto[];
+  paymentStatus?: string | null;
+  delivery?: StorefrontOrderDeliveryDto | null;
+  orderNumber?: string | null;
+  discountCode?: string | null;
+  fulfilmentStatus?: string | null;
+  loyalty?: { redeemedPoints: number; appliedValue: number; earnedPoints: number | null; earningStatus: string } | null;
+  giftCardPaid?: number;
+  cardAmount?: number | null;
+  refund?: { status: string; cashReturned: number; giftRestored: number; totalReturned: number } | null;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -90,6 +137,26 @@ export interface OrderSummary {
   currency: string;
   totalPence: number;
   boxSize?: number;
+  /** The booked delivery day, `YYYY-MM-DD`. */
+  deliveryDate?: string;
+  isGift: boolean;
+  /** `AT-10517`. Absent on an old order: nothing may stand in for it. */
+  orderNumber?: string;
+  /** Aonik's payment status (`Captured` once paid), when it sent one. */
+  paymentStatus?: string;
+  /** Aonik's own history grouping, when it sent one. */
+  historyGroup?: 'Upcoming' | 'Past' | 'PendingPayment';
+  /** Aonik's fulfilment status: `Confirmed | Cooking | OutForDelivery | Delivered | Cancelled`. */
+  fulfilmentStatus?: string;
+  /** The dishes, named as purchased. Empty when Aonik did not send them. */
+  dishes: OrderDish[];
+}
+
+/** One dish of a placed box. */
+export interface OrderDish {
+  name: string;
+  quantity: number;
+  isSignature: boolean;
 }
 
 /**
@@ -104,6 +171,9 @@ export interface OrderItem {
   unitPricePence?: number;
   amountPence: number;
   sku?: string;
+  /** The name as purchased. */
+  name?: string;
+  itemIndex?: number;
 }
 
 /**
@@ -118,6 +188,19 @@ export interface OrderSelection {
   quantity: number;
   sku: string;
   personalisationSummary?: string;
+  orderItemIndex?: number;
+  /** As purchased; absent on a legacy snapshot (nothing may be made up from the sku). */
+  name?: string;
+  isSignature?: boolean;
+}
+
+/** Where and when an order is delivered. */
+export interface OrderDelivery {
+  /** One line each, in order: `12 High Street`, `Dartford`, `DA1 1AA`. */
+  addressLines: string[];
+  deliveryDate: string;
+  recipientName?: string;
+  gift?: { hidePrices: boolean; includeGreetingCard: boolean; greetingCardMessage?: string };
 }
 
 export interface OrderDetail {
@@ -134,6 +217,15 @@ export interface OrderDetail {
   items: OrderItem[];
   /** What is in the box. */
   selections: OrderSelection[];
+  orderNumber?: string;
+  paymentStatus?: string;
+  fulfilmentStatus?: string;
+  delivery?: OrderDelivery;
+  discountCode?: string;
+  /** Points redeemed on this order, and what they were worth. */
+  loyalty?: { redeemedPoints: number; appliedValuePence: number; earnedPoints?: number; earningStatus: string };
+  giftCardPaidPence: number;
+  refund?: { status: string; totalReturnedPence: number };
 }
 
 /** One page of history, with the paging maths already done. */
@@ -151,6 +243,8 @@ export interface OrderHistoryPage {
 /* Mappers                                                                     */
 /* -------------------------------------------------------------------------- */
 
+const HISTORY_GROUPS = ['Upcoming', 'Past', 'PendingPayment'] as const;
+
 export function mapOrderSummary(dto: StorefrontOrderSummaryDto): OrderSummary {
   return {
     orderId: dto.orderId,
@@ -159,7 +253,20 @@ export function mapOrderSummary(dto: StorefrontOrderSummaryDto): OrderSummary {
     currency: dto.currency,
     totalPence: toPence(dto.total),
     boxSize: dto.boxSize ?? undefined,
+    deliveryDate: dto.deliveryDate ?? undefined,
+    isGift: dto.isGift === true,
+    orderNumber: dto.orderNumber?.trim() || undefined,
+    paymentStatus: dto.paymentStatus ?? undefined,
+    historyGroup: HISTORY_GROUPS.find((group) => group === dto.historyGroup),
+    fulfilmentStatus: dto.fulfilmentStatus ?? undefined,
+    dishes: (dto.selections ?? []).flatMap(mapOrderDish),
   };
+}
+
+/** A selection with no purchased name is left out: a dish is never named from its sku. */
+function mapOrderDish(dto: StorefrontOrderSelectionDto): OrderDish[] {
+  const name = dto.name?.trim();
+  return name ? [{ name, quantity: dto.quantity, isSignature: dto.isSignature === true }] : [];
 }
 
 export function mapOrderItem(dto: StorefrontOrderItemDto): OrderItem {
@@ -169,6 +276,8 @@ export function mapOrderItem(dto: StorefrontOrderItemDto): OrderItem {
     unitPricePence: toPenceOrUndefined(dto.unitPrice),
     amountPence: toPence(dto.amountIn),
     sku: dto.sku ?? undefined,
+    name: dto.name?.trim() || undefined,
+    itemIndex: dto.itemIndex,
   };
 }
 
@@ -178,6 +287,27 @@ export function mapOrderSelection(dto: StorefrontOrderSelectionDto): OrderSelect
     quantity: dto.quantity,
     sku: dto.sku,
     personalisationSummary: dto.personalisationSummary ?? undefined,
+    orderItemIndex: dto.orderItemIndex,
+    name: dto.name?.trim() || undefined,
+    isSignature: dto.isSignature ?? undefined,
+  };
+}
+
+function mapOrderDelivery(dto: StorefrontOrderDeliveryDto): OrderDelivery {
+  const { address } = dto;
+  return {
+    addressLines: [address.line1, address.line2, address.city, address.region, address.postcode]
+      .map((line) => line?.trim())
+      .filter((line): line is string => Boolean(line)),
+    deliveryDate: dto.deliveryDate,
+    recipientName: dto.recipient?.name?.trim() || undefined,
+    gift: dto.gift
+      ? {
+          hidePrices: dto.gift.hidePrices,
+          includeGreetingCard: dto.gift.includeGreetingCard,
+          greetingCardMessage: dto.gift.greetingCardMessage?.trim() || undefined,
+        }
+      : undefined,
   };
 }
 
@@ -194,6 +324,23 @@ export function mapOrderDetail(dto: StorefrontOrderDetailDto): OrderDetail {
     boxSize: dto.boxSize ?? undefined,
     items: dto.items.map(mapOrderItem),
     selections: dto.selections.map(mapOrderSelection),
+    orderNumber: dto.orderNumber?.trim() || undefined,
+    paymentStatus: dto.paymentStatus ?? undefined,
+    fulfilmentStatus: dto.fulfilmentStatus ?? undefined,
+    delivery: dto.delivery ? mapOrderDelivery(dto.delivery) : undefined,
+    discountCode: dto.discountCode ?? undefined,
+    loyalty: dto.loyalty
+      ? {
+          redeemedPoints: dto.loyalty.redeemedPoints,
+          appliedValuePence: toPence(dto.loyalty.appliedValue),
+          earnedPoints: dto.loyalty.earnedPoints ?? undefined,
+          earningStatus: dto.loyalty.earningStatus,
+        }
+      : undefined,
+    giftCardPaidPence: toPence(dto.giftCardPaid ?? 0),
+    refund: dto.refund
+      ? { status: dto.refund.status, totalReturnedPence: toPence(dto.refund.totalReturned) }
+      : undefined,
   };
 }
 
@@ -265,50 +412,4 @@ export async function getMyOrder(orderId: string): Promise<OrderDetail | null> {
   }
 }
 
-/* -------------------------------------------------------------------------- */
-/* Presentation                                                                */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Formats `placedAtUtc` as "21 July 2026 at 14:32".
- *
- * This belongs in `lib/format.ts` with the other formatters and is here only
- * because that file is owned by another stream; move it when they meet.
- *
- * Two things it gets right that a bare `new Date(x).toLocaleString()` does not:
- *
- *  1. A .NET `DateTime` with `Kind=Unspecified` serialises with NO timezone
- *     designator, and `new Date(...)` then reads it as LOCAL time. The field is
- *     named `...Utc`, so a missing designator means UTC and is made explicit
- *     rather than left to the server's clock.
- *  2. The zone is pinned to Europe/London instead of inherited from whatever
- *     the render host is set to. A UK storefront telling a customer their order
- *     was placed at 02:32 because the box runs on UTC+12 is a bug nobody would
- *     think to look for.
- *
- * Returns null for a missing or unparseable value so callers render nothing
- * rather than "Invalid Date" — the same rule `formatDeliveryDate` follows.
- */
-export function formatOrderDate(placedAtUtc: string | null | undefined): string | null {
-  const date = parseInstant(placedAtUtc);
-  return date ? PLACED_AT.format(date) : null;
-}
-
-const PLACED_AT = new Intl.DateTimeFormat('en-GB', {
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false,
-  timeZone: 'Europe/London',
-});
-
-function parseInstant(value: string | null | undefined): Date | null {
-  const trimmed = value?.trim();
-  if (!trimmed) return null;
-
-  const hasDesignator = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(trimmed);
-  const date = new Date(hasDesignator ? trimmed : `${trimmed}Z`);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
+export { formatOrderDate } from '@/lib/format';

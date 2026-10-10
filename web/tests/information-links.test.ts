@@ -198,7 +198,7 @@ const IN_PAGE_LINKS: Array<{ file: string; contact: number; faqs: number; why: s
     faqs: 0,
     why: 'no order to show: "Contact us"',
   },
-  { file: 'app/(site)/account/orders/[orderId]/page.tsx', contact: 1, faqs: 0, why: '"Questions about this order?"' },
+  { file: 'components/account/AccountHelp.tsx', contact: 1, faqs: 0, why: 'My Account\'s "Need help with an order?" → "Contact us"' },
   {
     file: 'app/(site)/allergens/page.tsx',
     contact: 2,
