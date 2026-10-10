@@ -1,12 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 
+import type { PersonalisationSelection } from '@/lib/aonik/map';
 import type { Dish, HeatingInstruction } from '@/lib/aonik/types';
 import { CONTACT_HREF } from '@/lib/content/navigation';
 
 import styles from './DishInfoPanels.module.css';
+import { useOptionalDishOrder } from './DishOrderProvider';
+import { useSelectionContent, type SelectionView } from './useSelectionContent';
 
 /**
  * The three expandable panels beneath the CTA: full nutrition, ingredients and
@@ -22,6 +25,13 @@ interface DishInfoPanelsProps {
   compact?: boolean;
   /** Where "Back to top" should scroll — the modal passes its own scroller. */
   onBackToTop?: () => void;
+  /**
+   * The customer's choices (Add Dishes, Review): `null` for the standard
+   * preparation; left out, read from the dish page's order state. For other
+   * choices the panels describe THOSE choices (`useSelectionContent`), never
+   * the standard recipe's declaration.
+   */
+  selection?: PersonalisationSelection | null;
 }
 
 type PanelId = 'nutrition' | 'ingredients' | 'heating';
@@ -148,7 +158,25 @@ function Panel({
   );
 }
 
-export function DishInfoPanels({ dish, heating, compact, onBackToTop }: DishInfoPanelsProps) {
+export function DishInfoPanels({ dish: standard, heating: standardHeating, compact, onBackToTop, selection }: DishInfoPanelsProps) {
+  const order = useOptionalDishOrder();
+  const chosen = selection === undefined ? (order?.choice.personalisation ?? null) : selection;
+  const view = useSelectionContent(standard, standardHeating, chosen);
+  return <DishInfoPanelsView view={view} compact={compact} onBackToTop={onBackToTop} />;
+}
+
+/** The panels for one view of the dish (`useSelectionContent`): what they say in each state. */
+export function DishInfoPanelsView({
+  view: { dish, heating, forSelection, state: selectionState },
+  compact,
+  onBackToTop,
+}: {
+  view: SelectionView;
+  compact?: boolean;
+  onBackToTop?: () => void;
+}) {
+  const checking = selectionState === 'pending';
+  const unchecked = selectionState === 'unavailable';
   const [open, setOpen] = useState<Record<PanelId, boolean>>({
     nutrition: true,
     ingredients: true,
@@ -180,17 +208,42 @@ export function DishInfoPanels({ dish, heating, compact, onBackToTop }: DishInfo
    * case where `isStandardPreparation` is false yet the figures are no longer
    * current, and it would otherwise pass as fact.
    */
-  const figuresCaption = state?.figuresAreStandardPreparation
-    ? 'These figures are for the standard preparation.'
-    : state?.figuresAreStale
-      ? 'These figures are under review and may not reflect the current recipe.'
-      : undefined;
+  const figuresCaption =
+    [
+      state?.figuresAreStandardPreparation ? 'These figures are for the standard preparation.' : '',
+      // Both when both hold: the standard block standing in for other choices
+      // can itself be under review, and that must not be lost.
+      state?.figuresAreStale ? 'These figures are under review and may not reflect the current recipe.' : '',
+    ]
+      .filter(Boolean)
+      .join(' ') || undefined;
 
   const servingCaption = state?.servingLabel ?? 'Per serving, as Abby designed it.';
 
   /* Heating withheld (or never authored) means the caller passed the generic
      catalogue-wide steps, which must be framed as such. */
   const isGenericHeating = state?.heatingWithheld ?? false;
+
+  /* Once the panels have described other choices, going back to the standard
+     recipe is a change to announce too; on arrival there is nothing to say. */
+  const [describedChoices, setDescribedChoices] = useState(false);
+  useEffect(() => {
+    if (forSelection) setDescribedChoices(true);
+  }, [forSelection]);
+
+  /* What the panels now say about the customer's choices, for a screen reader:
+     the region is always rendered, so a change of choice is announced. */
+  const announcement = !forSelection
+    ? describedChoices
+      ? 'Showing the ingredients and allergens for the standard recipe.'
+      : ''
+    : checking
+      ? 'Checking the ingredients and allergens for your choices…'
+      : unchecked
+        ? 'We couldn’t check the ingredients and allergens for your choices just now.'
+        : allergens
+          ? 'Ingredients and allergens updated for your choices.'
+          : 'Allergen information for the choices you’ve made is not yet published.';
 
   const { nutrition } = dish;
   const cells: { label: string; value: string }[] = [
@@ -208,6 +261,9 @@ export function DishInfoPanels({ dish, heating, compact, onBackToTop }: DishInfo
 
   return (
     <div className={styles.panels} data-compact={compact || undefined}>
+      <p className="visuallyHidden" role="status">
+        {announcement}
+      </p>
       <Panel
         id={PANEL_IDS[0]}
         title="Full nutrition"
@@ -238,7 +294,13 @@ export function DishInfoPanels({ dish, heating, compact, onBackToTop }: DishInfo
           <p className={styles.ingredients}>{ingredients}</p>
         ) : (
           <p className={styles.ingredients}>
-            The ingredient list for this dish has not been published yet.
+            {checking
+              ? 'Checking the ingredients for your choices…'
+              : unchecked
+                ? 'We couldn’t check the ingredient list for the choices you’ve made just now.'
+                : forSelection
+                  ? 'The ingredient list for the choices you’ve made has not been published yet.'
+                  : 'The ingredient list for this dish has not been published yet.'}
           </p>
         )}
 
@@ -251,6 +313,15 @@ export function DishInfoPanels({ dish, heating, compact, onBackToTop }: DishInfo
               {precaution ? <span className={styles.precaution}>{precaution}</span> : null}
             </span>
           </div>
+        ) : checking ? (
+          /* Neither the standard declaration nor "not published" while the
+             answer for these choices is on its way. */
+          <div className={styles.allergens}>
+            <AllergenIcon />
+            <span>
+              <strong>Checking the allergens for your choices…</strong>
+            </span>
+          </div>
         ) : (
           /* Never guess allergens. Absent data is stated plainly and routed to a
              human: "please contact us" means ask a person (Contact), not the
@@ -258,7 +329,14 @@ export function DishInfoPanels({ dish, heating, compact, onBackToTop }: DishInfo
           <div className={styles.allergens} role="note">
             <AllergenIcon />
             <span>
-              <strong>Allergen information is not yet published for this dish.</strong> If you have
+              <strong>
+                {unchecked
+                  ? 'We couldn’t check the allergens for the choices you’ve made just now.'
+                  : forSelection
+                    ? 'Allergen information for the choices you’ve made is not yet published.'
+                    : 'Allergen information is not yet published for this dish.'}
+              </strong>{' '}
+              If you have
               an allergy or intolerance, please{' '}
               <Link href={CONTACT_HREF} className={styles.allergensLink}>
                 contact us
@@ -276,18 +354,33 @@ export function DishInfoPanels({ dish, heating, compact, onBackToTop }: DishInfo
         onToggle={() => toggle('heating')}
         onBackToTop={onBackToTop}
       >
-        <ul className={styles.heating}>
-          {heating.map((instruction) => (
-            <li key={instruction.method} className={styles.heatingItem}>
-              <span className={styles.heatingMethod}>{instruction.method}</span>
-              <p className={styles.heatingBody}>{instruction.body}</p>
-            </li>
-          ))}
-        </ul>
+        {heating.length > 0 ? (
+          <ul className={styles.heating}>
+            {heating.map((instruction) => (
+              <li key={instruction.method} className={styles.heatingItem}>
+                <span className={styles.heatingMethod}>{instruction.method}</span>
+                <p className={styles.heatingBody}>{instruction.body}</p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          /* Never the standard preparation's timings for other choices. */
+          <p className={styles.ingredients}>
+            {checking
+              ? 'Checking how to heat your choices…'
+              : unchecked
+                ? 'We couldn’t check how to heat the choices you’ve made just now.'
+                : forSelection
+                  ? 'Heating instructions for the choices you’ve made have not been published yet.'
+                  : 'Heating instructions for this dish have not been published yet.'}
+          </p>
+        )}
         {/* Generic guidance is allowed here — unlike allergens, reheating has a
             safe default — but it is framed so it is never mistaken for
             dish-specific instructions the kitchen actually authored. */}
-        {isGenericHeating ? (
+        {/* Only ever the standard preparation's: other choices get their own
+            authored steps or none (`useSelectionContent`). */}
+        {isGenericHeating && heating.length > 0 && !forSelection ? (
           <p className={styles.heatingNote}>
             General guidance — specific instructions for this dish have not been published yet.
           </p>

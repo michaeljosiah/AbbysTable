@@ -1844,8 +1844,14 @@ export function DishPicker({
                       shared panels, which state plainly when allergens are
                       unpublished instead of guessing them. */}
                   <DishInfoPanels
+                    key={editor.dish.id}
                     dish={editor.dish}
                     heating={heating}
+                    // The customer's own choices (null: the standard
+                    // preparation): the panels describe THOSE, never the
+                    // standard recipe's declaration. Keyed by dish, so
+                    // nothing one dish showed carries to the next.
+                    selection={(isCustom && draft ? encodeSelection(dishOptions, draft, true) : undefined) ?? null}
                     compact
                     onBackToTop={() =>
                       document

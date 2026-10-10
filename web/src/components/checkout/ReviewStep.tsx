@@ -1073,8 +1073,14 @@ export function ReviewStep({
                   </div>
 
                   <DishInfoPanels
+                    key={editor.dish.id}
                     dish={editor.dish}
                     heating={heating}
+                    // The customer's own choices (null: the standard
+                    // preparation): the panels describe THOSE, never the
+                    // standard recipe's declaration. Keyed by dish, so
+                    // nothing one dish showed carries to the next.
+                    selection={encodeSelection(editorOptions, editor.draft, true) ?? null}
                     compact
                     onBackToTop={() =>
                       document

@@ -173,6 +173,11 @@ export function DishOrderProvider({
   );
 }
 
+/** The dish page's order state where there is one (the panels read the customer's choices), else null. */
+export function useOptionalDishOrder(): DishOrderState | null {
+  return useContext(DishOrderContext);
+}
+
 export function useDishOrder(): DishOrderState {
   const state = useContext(DishOrderContext);
   if (!state) throw new Error('useDishOrder must be used inside <DishOrderProvider>.');
