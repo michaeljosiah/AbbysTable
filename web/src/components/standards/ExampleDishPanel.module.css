@@ -229,3 +229,10 @@
     border-left: none;
   }
 }
+
+/* The kitchen's precautionary statement (aonik#351): its own line, as authored. */
+.precaution {
+  display: block;
+  margin-top: 4px;
+  white-space: pre-line;
+}

@@ -12,23 +12,27 @@
  * information is not yet published and sends the customer to a person.
  */
 
-/** Aonik's value → the name a customer reads. */
-export const ALLERGEN_NAMES: Readonly<Record<string, string>> = {
-  Celery: 'Celery',
-  CerealsContainingGluten: 'Cereals containing gluten',
-  Crustaceans: 'Crustaceans',
-  Eggs: 'Eggs',
-  Fish: 'Fish',
-  Lupin: 'Lupin',
-  Milk: 'Milk',
-  Molluscs: 'Molluscs',
-  Mustard: 'Mustard',
-  Peanuts: 'Peanuts',
-  Sesame: 'Sesame',
-  Soybeans: 'Soya',
-  SulphurDioxideAndSulphites: 'Sulphur dioxide and sulphites',
-  TreeNuts: 'Tree nuts',
-};
+/**
+ * Aonik's value → the name a customer reads: Aonik's own words (its derived
+ * text and its production-label feed), so the website and the label on the
+ * box never name a group differently.
+ */
+export const ALLERGEN_NAMES: ReadonlyMap<string, string> = new Map([
+  ['Celery', 'Celery'],
+  ['CerealsContainingGluten', 'Cereals containing gluten'],
+  ['Crustaceans', 'Crustaceans'],
+  ['Eggs', 'Eggs'],
+  ['Fish', 'Fish'],
+  ['Lupin', 'Lupin'],
+  ['Milk', 'Milk'],
+  ['Molluscs', 'Molluscs'],
+  ['Mustard', 'Mustard'],
+  ['Peanuts', 'Peanuts'],
+  ['Sesame', 'Sesame'],
+  ['Soybeans', 'Soybeans'],
+  ['SulphurDioxideAndSulphites', 'Sulphur dioxide and sulphites'],
+  ['TreeNuts', 'Tree nuts'],
+]);
 
 /** What a reviewed list with none of the 14 says — never "None", never "allergen-free". */
 export const NONE_DECLARED = 'None of the 14 regulated allergens declared';
@@ -41,7 +45,8 @@ export function declaredAllergens(values: unknown): string[] | null {
   if (!Array.isArray(values)) return null;
   const names: string[] = [];
   for (const value of values) {
-    const name = typeof value === 'string' ? ALLERGEN_NAMES[value] : undefined;
+    // A Map, not an object: "constructor" or "toString" is not an allergen.
+    const name = typeof value === 'string' ? ALLERGEN_NAMES.get(value) : undefined;
     if (!name) return null;
     if (!names.includes(name)) names.push(name);
   }

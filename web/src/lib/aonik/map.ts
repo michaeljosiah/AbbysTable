@@ -166,8 +166,14 @@ export function mapResolvedContent(dto: ResolvedContentDto): {
   // The controlled list (aonik#351) wherever Aonik sends one; a value we do
   // not know makes it unreadable, and an unreadable declaration is withheld
   // WHOLE — ingredients too — exactly as Aonik withholds a half-published one.
-  const controlled = Array.isArray(dto.allergensPresent);
+  // A source that sends the member speaks for it: null there is unreviewed,
+  // never a cue to read the text. Only a source WITHOUT the member (an older
+  // Aonik) is read from its text.
+  const controlled = 'allergensPresent' in dto;
   const declared = controlled ? declaredAllergens(dto.allergensPresent) : undefined;
+  if (controlled && !dto.declarationsWithheld && declared === null) {
+    console.warn('[aonik] an allergen declaration names a group this storefront does not know; it is withheld');
+  }
   const withheld = dto.declarationsWithheld || declared === null;
   const allergenNames = withheld
     ? undefined
@@ -178,11 +184,9 @@ export function mapResolvedContent(dto: ResolvedContentDto): {
   return {
     nutrition: mapNutrition(dto.nutrition),
     ingredients: withheld ? undefined : (dto.ingredients ?? undefined),
-    allergens: withheld
-      ? undefined
-      : controlled
-        ? allergenLine(declared ?? [])
-        : (dto.allergens ?? undefined),
+    // Built from the names either way, so an older Aonik's "None" reads as the
+    // reviewed-and-none wording too, never as an allergen-free claim.
+    allergens: withheld || allergenNames === undefined ? undefined : allergenLine(allergenNames),
     allergenNames,
     precautionaryStatement: withheld ? undefined : dto.precautionaryStatement?.trim() || undefined,
     // Heating is never null on the wire — an empty list when withheld.

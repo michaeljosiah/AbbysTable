@@ -90,7 +90,13 @@ export function ExampleDishPanel({ dish, className }: { dish: Dish; className?: 
         <p className={styles.allergens}>
           <span className={styles.allergensLabel}>Allergens</span>{' '}
           {facts.allergens ? (
-            <span className={styles.allergensValue}>{facts.allergens}</span>
+            <span className={styles.allergensValue}>
+              {facts.allergens}
+              {/* The kitchen's own statement, as authored (aonik#351). */}
+              {facts.precautionaryStatement ? (
+                <span className={styles.precaution}>{facts.precautionaryStatement}</span>
+              ) : null}
+            </span>
           ) : (
             // Never guessed: an absent declaration is stated as absent.
             <span className={styles.allergensValue}>Not yet published for this dish</span>

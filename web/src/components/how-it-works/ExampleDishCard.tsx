@@ -92,6 +92,10 @@ export function ExampleDishCard({ dish }: { dish: Dish }) {
         <p className={styles.allergens}>
           <span className={styles.allergensLabel}>Allergens</span>{' '}
           {facts.allergens !== null ? facts.allergens : 'Not yet published'}
+          {/* The kitchen's own statement, as authored (aonik#351). */}
+          {facts.precautionaryStatement !== null ? (
+            <span className={styles.precaution}>{facts.precautionaryStatement}</span>
+          ) : null}
         </p>
         <p className={styles.ingredients}>
           {facts.ingredientsPublished

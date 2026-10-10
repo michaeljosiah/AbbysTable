@@ -31,6 +31,8 @@ export interface ExampleDishFacts {
   figuresNote: string | null;
   /** The allergen declaration, verbatim; null when not published. */
   allergens: string | null;
+  /** The kitchen's precautionary statement, as authored; null without a declaration. */
+  precautionaryStatement: string | null;
   ingredientsPublished: boolean;
 }
 
@@ -83,6 +85,9 @@ export function exampleDishFacts(dish: Dish): ExampleDishFacts {
     figures,
     figuresNote,
     allergens: withheld ? null : published(dish.allergens),
+    // A statement goes with its declaration and never without one.
+    precautionaryStatement:
+      withheld || published(dish.allergens) === null ? null : published(dish.precautionaryStatement),
     ingredientsPublished: !withheld && published(dish.ingredients) !== null,
   };
 }

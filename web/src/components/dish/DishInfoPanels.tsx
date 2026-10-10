@@ -248,12 +248,7 @@ export function DishInfoPanels({ dish, heating, compact, onBackToTop }: DishInfo
             <span>
               <strong>Allergens:</strong> {allergens}
               {/* The kitchen's own statement, as authored (aonik#351). */}
-              {precaution ? (
-                <>
-                  <br />
-                  {precaution}
-                </>
-              ) : null}
+              {precaution ? <span className={styles.precaution}>{precaution}</span> : null}
             </span>
           </div>
         ) : (

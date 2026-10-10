@@ -1214,10 +1214,7 @@ export function ExtrasStep({
                     <span>
                       <strong>Allergens:</strong> {allergenLine(modalExtra.allergens)}
                       {modalExtra.precautionaryStatement ? (
-                        <>
-                          <br />
-                          {modalExtra.precautionaryStatement}
-                        </>
+                        <span className={styles.precaution}>{modalExtra.precautionaryStatement}</span>
                       ) : null}
                     </span>
                   ) : (

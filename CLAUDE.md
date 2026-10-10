@@ -35,8 +35,11 @@ Conventions inside `web/` that are easy to get wrong:
   allergen line comes from the CONTROLLED list (`allergensPresent`, aonik#351; names in
   `src/lib/allergens.ts`): `[]` is a reviewed list with none of the 14 declared and reads "None of
   the 14 regulated allergens declared" — never "None" or "free from"; a value we do not know
-  withholds the whole declaration (ingredients too) rather than drop one; the
-  `precautionaryStatement` shows beside it as authored and is withheld with it.
+  withholds the whole declaration (ingredients too, logged) rather than drop one, and a present
+  `allergensPresent: null` is unreviewed, never read from the text; names are Aonik's own (its
+  label feed), e.g. "Soybeans", "Tree nuts". The `precautionaryStatement` shows beside the
+  declaration — dish panels, extras modal, the Our Standards and How it works examples — as
+  authored (line breaks kept), and never without it.
 - **Server Components by default.** Client components are `Header`, `MobileDrawer`, `Footer`, the
   homepage `Menu` rail and How it works clip (`HowItWorksClip`: lazy source, pause control,
   reduced motion), the dish card's `SignatureInfo` (the Signature "i" and its note, outside the
