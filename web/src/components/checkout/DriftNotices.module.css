@@ -84,3 +84,17 @@
   background: var(--surface-card);
   color: var(--text-heading);
 }
+
+/* "Try again" inside a notice: a link-weight action, 44px to hit. */
+.retry {
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: var(--weight-semibold);
+  color: var(--text-heading);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}

@@ -8,10 +8,10 @@ import { useCart } from '@/lib/cart/CartProvider';
 /**
  * A step's forward CTA, which refuses to move while the box is unresolvable.
  *
- * Aonik flags an unavailable line rather than removing it, because deleting
- * someone's dish without asking is worse than stopping. Continue and checkout
- * therefore stay blocked until the customer removes or swaps it — resolution
- * is always their action, never ours.
+ * Aonik flags an unavailable line rather than removing it, and Continue and
+ * checkout stay blocked while one is in the box. An unavailable DISH is taken
+ * out on Step 2 (`ReplacementNotice`, which says how many to choose instead);
+ * an unavailable add-on is the customer's to remove on Extras.
  *
  * Rendered as an anchor with `aria-disabled` rather than swapped for a button,
  * so the audited markup and styling stay exactly as the templates set them.

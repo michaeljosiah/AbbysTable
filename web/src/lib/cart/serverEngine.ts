@@ -72,6 +72,12 @@ export interface ServerCartEngine {
   pending: boolean;
   /** The last failure, for inline messages. Cleared on the next success. */
   error: CartRequestError | null;
+  /**
+   * The box could not be READ (the hydrating read failed): the tab knows nothing
+   * about it. Not a failed change — those set `error` — and not a box that is
+   * gone. Cleared by the next successful read.
+   */
+  readFailed: boolean;
   display: Record<string, LineDisplay>;
   rememberDisplay: (productId: string, display: LineDisplay) => void;
   request: (
@@ -121,6 +127,7 @@ export function useServerCart(enabled: boolean, identity: unknown = null): Serve
   const [hydrated, setHydrated] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<CartRequestError | null>(null);
+  const [readFailed, setReadFailed] = useState(false);
   const [display, setDisplay] = useState<Record<string, LineDisplay>>({});
 
   /** Retains activation order for admitted requests, including after rejection. */
@@ -261,10 +268,15 @@ export function useServerCart(enabled: boolean, identity: unknown = null): Serve
     // rather than queueing it; read once that change has settled, or the tab
     // would keep the version from before the identity changed.
     const read = (): Promise<unknown> =>
-      request('').catch((failure: unknown) =>
-        (failure as { code?: string } | null)?.code === CART_REQUEST_IN_FLIGHT_CODE
-          ? queue.current.catch(() => undefined).then(read)
-          : undefined,
+      request('').then(
+        () => setReadFailed(false),
+        (failure: unknown) => {
+          const code = (failure as { code?: string } | null)?.code;
+          if (code === CART_REQUEST_IN_FLIGHT_CODE) return queue.current.catch(() => undefined).then(read);
+          // An answer that the box is gone is not a failed read; anything else is.
+          setReadFailed(code !== 'cart.missing' && code !== CART_ORDERED_CODE);
+          return undefined;
+        },
       );
     void read().finally(() => setHydrated(true));
   }, [enabled, request, identity]);
@@ -278,7 +290,7 @@ export function useServerCart(enabled: boolean, identity: unknown = null): Serve
     });
   }, []);
 
-  return { cart, hydrated, pending, error, display, rememberDisplay, request, checkoutRequest };
+  return { cart, hydrated, pending, error, readFailed, display, rememberDisplay, request, checkoutRequest };
 }
 
 export type { PersonalisationSelection };

@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 import { useCart } from '@/lib/cart/CartProvider';
-import { CART_ORDERED_CODE } from '@/lib/cart/cartMissing';
 import { guardRedirect, type BoxStep } from '@/lib/shopping-state';
 
 /**
@@ -18,7 +17,8 @@ import { guardRedirect, type BoxStep } from '@/lib/shopping-state';
  * Once the step is allowed it is remembered, so VIEW BOX resumes here.
  *
  * A box the cart could not READ is not a box that is gone: only an answer moves
- * the page (a failed read leaves the customer where they are).
+ * the page (a failed read leaves the customer where they are). A failed CHANGE
+ * is not a failed read: the box it answered with is the box.
  *
  * Returns `blocked` while the customer is being sent back, so the page can say
  * so rather than flash a step they cannot use. Nothing is decided before the
@@ -26,8 +26,7 @@ import { guardRedirect, type BoxStep } from '@/lib/shopping-state';
  */
 export function useStepGuard(step: BoxStep): { blocked: boolean } {
   const router = useRouter();
-  const { hydrated, shopping, rememberStep, error } = useCart();
-  const readFailed = error !== null && error.code !== 'cart.missing' && error.code !== CART_ORDERED_CODE;
+  const { hydrated, shopping, rememberStep, readFailed } = useCart();
   const redirect = hydrated && !shopping.ordered && !readFailed ? guardRedirect(step, shopping) : null;
 
   useEffect(() => {

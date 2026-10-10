@@ -133,6 +133,8 @@ interface CartContextValue extends CartState {
   pending: boolean;
   /** The last cart failure, for inline messages. */
   error: CartRequestError | null;
+  /** The box could not be read (live): nothing is known about it — never "gone". */
+  readFailed: boolean;
   /** True when this cart is server-backed, for surfaces that must know. */
   isServerCart: boolean;
   /**
@@ -562,7 +564,7 @@ export function CartProvider({
 
   // A box that is GONE (an answer said so) or became an order leaves no step to
   // resume at. A failed read says nothing about the box, and forgets nothing.
-  const readFailed = isServerCart && server.error !== null && server.error.code !== 'cart.missing';
+  const readFailed = isServerCart && server.readFailed;
   useEffect(() => {
     if (!(isServerCart ? server.hydrated : hydrated) || readFailed) return;
     if (!shopping.active || shopping.ordered) {
@@ -598,6 +600,7 @@ export function CartProvider({
       ordered: server.cart?.ordered ?? false,
       pending: server.pending,
       error: server.error,
+      readFailed: server.readFailed,
       isServerCart,
       orderingEnabled,
       revalidate,
@@ -612,6 +615,7 @@ export function CartProvider({
       server.hydrated,
       server.pending,
       server.error,
+      server.readFailed,
       setBoxSize,
       addLine,
       removeLine,

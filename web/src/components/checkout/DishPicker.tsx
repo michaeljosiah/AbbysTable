@@ -1073,7 +1073,7 @@ export function DishPicker({
   return (
     <div className={styles.picker}>
       <ReplacementNotice />
-      <DriftNotices />
+      <DriftNotices hideUnavailable />
       {/* The template keeps box progress in the summary column and the mobile
           bar — the main column goes straight from the intro to the filters. */}
 
