@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic';
  * costs the name ("Hello"), never the page. `hero` is the parallel `@hero`
  * route: the overview's Next delivery card, and nothing anywhere else.
  */
-export default async function AccountLayout({ children, hero }: { children: ReactNode; hero?: ReactNode }) {
+export default async function AccountLayout({ children, hero }: { children: ReactNode; hero: ReactNode }) {
   const session = await readSessionView();
   if (!session.isSignedIn) return children;
 

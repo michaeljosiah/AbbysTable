@@ -90,6 +90,8 @@ export const DESKTOP_STATIC_EXAMPLES: readonly string[] = [
   FORGOT_PASSWORD_HREF,
   '/account',
   '/account/orders',
+  '/account/addresses',
+  '/account/details',
   '/account/access',
   '/box',
 ];

@@ -132,7 +132,9 @@ test('the overview shows points, the default address and the latest orders', asy
   assert.match(read, /Delivering to 12 High Street Dartford DA1 1AA/);
   assert.match(read, /Recent orders Thursday 8 October AT-10517 · 6-dish box · Cooking £158/);
   assert.match(read, /Thursday 6 August AT-10482 · 6-dish box · Delivered £109/);
-  assert.doesNotMatch(read, /Order again|Manage addresses/, 'what is not built is not offered');
+  assert.match(read, /Manage addresses/);
+  assert.doesNotMatch(read, /Order again/, 'what is not built is not offered');
+  assert.match(html, /href="\/account\/addresses"/);
   assert.match(html, new RegExp(`href="/account/orders/${ID}"`), 'each row links to its own order');
 });
 

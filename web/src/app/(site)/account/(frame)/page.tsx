@@ -96,6 +96,10 @@ export default async function AccountOverviewPage() {
                   {addresses.value.addresses.length > 0 ? 'No default address set.' : 'No saved address yet.'}
                 </p>
               )}
+              <Link href="/account/addresses" className={styles.textLink}>
+                <span>Manage addresses</span>
+                <span aria-hidden="true">&rarr;</span>
+              </Link>
             </div>
           ) : null}
         </div>
