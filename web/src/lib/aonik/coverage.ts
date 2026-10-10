@@ -17,9 +17,12 @@
  *     its postcode provider has confirmed the postcode exists. It has no
  *     coordinates lookup, so live offers no "Use my current location".
  *
- * Rate limiting belongs to the endpoint (contract §3b): Aonik allows 30
- * checks a minute per address — per CUSTOMER only when it trusts this server
- * to name the address (`X-Forwarded-For`, `ForwardedHeaders:KnownProxies`).
+ * Rate limiting (contract §3b): Aonik allows 30 checks a minute per tenant and
+ * address, shared with checkout's own reads — and the address it sees is the
+ * storefront's, not the customer's (it reads only the hop its ingress
+ * appends), so the checker's action limits each customer itself
+ * (`@/lib/delivery/rateLimit`). The customer's address still goes as
+ * `X-Forwarded-For`, for a deployment where Aonik can trust it.
  *
  * SERVER-ONLY (the live lookup).
  */
@@ -164,8 +167,14 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
  */
 export function readCoverage(body: unknown, asked: string): CoverageAnswer {
   const dto = (body ?? {}) as CoverageDto;
-  const postcode =
-    (typeof dto.normalisedPostcode === 'string' && normalisePostcode(dto.normalisedPostcode)) || asked;
+  const answered = typeof dto.normalisedPostcode === 'string' ? normalisePostcode(dto.normalisedPostcode) : null;
+  // Aonik answers for the postcode asked ("never redirect the decision"). An
+  // answer about another one is no answer: never "we deliver to" a postcode
+  // the customer did not enter, handed on to the box builder.
+  if (answered && answered !== normalisePostcode(asked)) {
+    throw new Error('Coverage answered for a different postcode');
+  }
+  const postcode = answered || asked;
   if (dto.status === 'serves') {
     const earliest = typeof dto.earliestDate === 'string' && ISO_DATE.test(dto.earliestDate) ? dto.earliestDate : undefined;
     return earliest ? { status: 'serves', postcode, earliestDeliveryDate: earliest } : { status: 'serves', postcode };

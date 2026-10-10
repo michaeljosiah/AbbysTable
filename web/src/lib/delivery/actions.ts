@@ -25,6 +25,7 @@ import { isSignupRefused } from '@/lib/signup/server';
 
 import { upcomingDeliveryDate } from './checker';
 import { normalisePostcode, readPostcodeEntry } from './postcode';
+import { admitCoverageCheck } from './rateLimit';
 
 export type PostcodeCheck =
   | { status: 'serves'; postcode: string; earliestDeliveryDate: string | null }
@@ -44,13 +45,32 @@ const log = (message: string, error?: unknown) => {
   console.error(`[delivery] ${message}`, error ?? '');
 };
 
-/** The tenant-wide earliest delivery, when the lookup named none. Optional. */
+/** How long a served answer waits for the optional date line. */
+const WINDOW_WAIT_MS = 1500;
+
+/**
+ * The tenant-wide earliest delivery, when the lookup named none. Optional, so
+ * a slow read is cut off rather than holding up "we deliver".
+ */
 async function earliestFromWindow(client: AonikClient): Promise<string | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<null>((resolve) => {
+    timer = setTimeout(() => {
+      log('delivery window too slow; the result shows no date');
+      resolve(null);
+    }, WINDOW_WAIT_MS);
+  });
+  const read = client.getDeliveryWindow().then(
+    (window) => window?.earliestDeliveryDate ?? null,
+    (error: unknown) => {
+      log('delivery window unavailable; the result shows no date', error);
+      return null;
+    },
+  );
   try {
-    return (await client.getDeliveryWindow())?.earliestDeliveryDate ?? null;
-  } catch (error) {
-    log('delivery window unavailable; the result shows no date', error);
-    return null;
+    return await Promise.race([read, late]);
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -63,6 +83,11 @@ export async function checkPostcode(raw: unknown): Promise<PostcodeCheck> {
   try {
     const client = await getAonikClient();
     if (!client.coverage) return { status: 'unavailable' };
+    // Past this address's pace: could not check, with a retry (`./rateLimit`).
+    if (!(await admitCoverageCheck())) {
+      console.warn('[delivery] too many postcode checks from one address');
+      return { status: 'unavailable' };
+    }
 
     const answer = await client.coverage.check(entry.postcode);
     // Well formed, but the lookup found no such postcode: said as any invalid one.

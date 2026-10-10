@@ -109,7 +109,10 @@ export function PostcodeChecker({
       answer = { status: 'unavailable' };
     }
     if (answer.status === 'invalid') {
+      // No such postcode, which only the lookup can tell: corrected in place,
+      // as a malformed one is — the field takes focus with its text selected.
       dispatch({ type: 'correct', message: 'invalid', request });
+      if (request === counter.current) focusField(true);
       return;
     }
 
