@@ -5,6 +5,8 @@ import test, { mock } from 'node:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import { DishInfoPanels } from '../src/components/dish/DishInfoPanels';
+import { ExampleDishCard } from '../src/components/how-it-works/ExampleDishCard';
+import { ExampleDishPanel } from '../src/components/standards/ExampleDishPanel';
 import {
   ALLERGEN_NAMES,
   allergenLine,
@@ -48,6 +50,26 @@ function content(overrides: Partial<ResolvedContentDto> = {}): ResolvedContentDt
 
 test('the 14 groups, by the names a customer reads, in Aonik’s order', () => {
   assert.equal(ALLERGEN_NAMES.size, 14);
+  // Exactly Aonik's FormatAllergens words, in its enum order — the label on the box says the same.
+  assert.deepEqual(
+    [...ALLERGEN_NAMES.values()],
+    [
+      'Celery',
+      'Cereals containing gluten',
+      'Crustaceans',
+      'Eggs',
+      'Fish',
+      'Lupin',
+      'Milk',
+      'Molluscs',
+      'Mustard',
+      'Peanuts',
+      'Sesame',
+      'Soybeans',
+      'Sulphur dioxide and sulphites',
+      'Tree nuts',
+    ],
+  );
   // Aonik's own words, so the website and the box's label agree.
   assert.deepEqual(declaredAllergens(['CerealsContainingGluten', 'Milk', 'TreeNuts', 'Soybeans']), [
     'Cereals containing gluten',
@@ -77,6 +99,8 @@ test('a reviewed list with none of the 14 is never "None" or "free from"', () =>
   assert.deepEqual(splitAllergenText(NONE_DECLARED), []);
   assert.deepEqual(splitAllergenText('Milk, Fish; Sesame'), ['Milk', 'Fish', 'Sesame']);
   assert.equal(splitAllergenText(undefined), undefined);
+  // Blank text declares nothing: never "none declared".
+  for (const blank of ['', '  ', ',', ' ; ']) assert.equal(splitAllergenText(blank), undefined, JSON.stringify(blank));
 });
 
 test('the dish line comes from the controlled list, with the kitchen’s statement as authored', () => {
@@ -108,14 +132,16 @@ test('withheld, or a list that cannot be read whole: no allergens, no ingredient
   assert.equal(withheld.state.declarationsWithheld, true);
 
   // A source that sends the member speaks for it: null is unreviewed, never a cue to read the text.
+  const warn = mock.method(console, 'warn', () => undefined);
   const unreviewed = mapResolvedContent(content({ allergensPresent: null, allergens: 'Sesame' }));
   assert.equal(unreviewed.allergens, undefined);
   assert.equal(unreviewed.ingredients, undefined);
+  assert.match(String(warn.mock.calls[0]?.arguments[0]), /not reviewed/);
 
   // …and one we cannot read whole is withheld here, ingredients and all (and logged).
-  const warn = mock.method(console, 'warn', () => undefined);
   const unknown = mapResolvedContent(content({ allergensPresent: ['Sesame', 'Kiwi'], allergens: 'Sesame, Kiwi' }));
-  assert.equal(warn.mock.callCount(), 1);
+  assert.equal(warn.mock.callCount(), 2);
+  assert.match(String(warn.mock.calls[1]?.arguments[0]), /does not know/);
   warn.mock.restore();
   assert.equal(unknown.allergens, undefined);
   assert.equal(unknown.allergenNames, undefined);
@@ -128,12 +154,21 @@ test('an older Aonik without the controlled list: its text, as before', () => {
   delete legacy.allergensPresent;
   delete legacy.precautionaryStatement;
   const mapped = mapResolvedContent(legacy);
-  assert.equal(mapped.allergens, 'Milk, Fish');
+  assert.equal(mapped.allergens, 'Milk; Fish', 'its text, exactly as written');
   assert.deepEqual(mapped.allergenNames, ['Milk', 'Fish']);
+  const bracketed = content({ allergens: 'Milk (cow; goat), Fish' });
+  delete bracketed.allergensPresent;
+  assert.equal(mapResolvedContent(bracketed).allergens, 'Milk (cow; goat), Fish');
   // Its "None" reads as the reviewed-and-none wording too — never "None".
   const none = content({ allergens: 'None' });
   delete none.allergensPresent;
   assert.equal(mapResolvedContent(none).allergens, NONE_DECLARED);
+  // Blank text is nothing declared: "not yet published", never "none declared".
+  for (const blank of ['', '  ', ',']) {
+    const empty = content({ allergens: blank });
+    delete empty.allergensPresent;
+    assert.equal(mapResolvedContent(empty).allergens, undefined, JSON.stringify(blank));
+  }
 });
 
 function extraRow(contentDto: ResolvedContentDto | null): ExtraRowDto {
@@ -203,7 +238,16 @@ test('the dish page shows the declaration and the statement — or says plainly 
     html,
     /<strong>Allergens:<\/strong> None of the 14 regulated allergens declared<span class="precaution">Made in a kitchen that also handles peanuts\.<\/span>/,
   );
-  assert.doesNotMatch(html, /Allergens:<\/strong> None</);
+
+  // An older Aonik's "None" never reaches the page as "None" either.
+  const legacy = content({ allergens: 'None' });
+  delete legacy.allergensPresent;
+  const legacyNone = mapResolvedContent(legacy);
+  const legacyHtml = renderToStaticMarkup(
+    <DishInfoPanels dish={{ ...DISH, allergens: legacyNone.allergens, contentState: legacyNone.state }} heating={[]} />,
+  );
+  assert.match(legacyHtml, /<strong>Allergens:<\/strong> None of the 14 regulated allergens declared/);
+  assert.doesNotMatch(legacyHtml, /Allergens:<\/strong> None</);
 
   const withheld = mapResolvedContent(content({ declarationsWithheld: true, allergensPresent: null, allergens: null }));
   const quiet = renderToStaticMarkup(
@@ -239,4 +283,20 @@ test('the example dishes (Our Standards, How it works) carry the statement with 
   const bare = { ...example, allergens: undefined, contentState: undefined };
   assert.equal(standardsFacts(bare).precautionaryStatement, undefined);
   assert.equal(howItWorksFacts(bare).precautionaryStatement, null);
+});
+
+test('the example dishes print the statement beside the declaration', () => {
+  const resolved = mapResolvedContent(
+    content({ allergensPresent: ['Milk'], allergens: 'Milk', precautionaryStatement: 'Made in a kitchen that also handles sesame.' }),
+  );
+  const example: Dish = {
+    ...DISH,
+    ingredients: resolved.ingredients,
+    allergens: resolved.allergens,
+    precautionaryStatement: resolved.precautionaryStatement,
+    contentState: resolved.state,
+  };
+  for (const html of [renderToStaticMarkup(<ExampleDishPanel dish={example} />), renderToStaticMarkup(<ExampleDishCard dish={example} />)]) {
+    assert.match(html, /Allergens<\/span> (?:<span class="allergensValue">)?Milk(?:<\/span>)?<span class="precaution">Made in a kitchen that also handles sesame\.<\/span>/);
+  }
 });

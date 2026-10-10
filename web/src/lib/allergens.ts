@@ -1,7 +1,7 @@
 /**
  * The 14 regulated food allergen groups as Aonik declares them
  * (michaeljosiah/aonik#351, `allergensPresent`) and as the storefront names
- * them. React-free; `tests/allergens.test.ts`.
+ * them. React-free; `tests/allergens.test.tsx`.
  *
  * A declaration is the CONTROLLED list an operator reviewed: `[]` records a
  * reviewed list with none of the 14 declared, and is NOT an allergen-free
@@ -58,17 +58,24 @@ export function allergenLine(names: readonly string[]): string {
   return names.length > 0 ? names.join(', ') : NONE_DECLARED;
 }
 
+/** "None", or Aonik's own reviewed-and-none wording: a declaration of none. */
+export function declaresNone(text: string): boolean {
+  const trimmed = text.trim();
+  return /^none$/i.test(trimmed) || trimmed.toLowerCase() === NONE_DECLARED.toLowerCase();
+}
+
 /**
  * A free-text declaration from a source without the controlled list — an
- * older Aonik — as names: undefined when absent, `[]` for a declaration of
- * none ("None", or Aonik's own reviewed-and-none wording).
+ * older Aonik — as names: `[]` only for a declaration of none
+ * (`declaresNone`), and undefined when absent OR blank — a blank string
+ * declares nothing, and must never read as "none declared".
  */
 export function splitAllergenText(declaration: string | undefined): string[] | undefined {
   if (declaration === undefined) return undefined;
-  const text = declaration.trim();
-  if (/^none$/i.test(text) || text.toLowerCase() === NONE_DECLARED.toLowerCase()) return [];
-  return text
+  if (declaresNone(declaration)) return [];
+  const parts = declaration
     .split(/[,;]/)
     .map((part) => part.trim())
     .filter(Boolean);
+  return parts.length > 0 ? parts : undefined;
 }
