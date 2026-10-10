@@ -1,7 +1,8 @@
 /**
  * `GET /api/newsletter` — the footer newsletter's consent, read fresh from
  * Aonik's published sign-up lists (michaeljosiah/aonik#357): `{ consent }`
- * while the tenant has published its `newsletter` list, 404 otherwise.
+ * while the tenant has published its `newsletter` list, `{ consent: null }`
+ * otherwise — an ordinary answer, never an error in the console.
  *
  * The footer asks for it from the browser because it cannot be asked on the
  * server: the site chrome renders into every document — the root 404
@@ -21,8 +22,5 @@ const NO_STORE = { 'Cache-Control': 'no-store' };
 
 export async function GET() {
   const list = await publishedSignupList('newsletter');
-  if (!list) {
-    return NextResponse.json({ error: 'No newsletter sign-up.' }, { status: 404, headers: NO_STORE });
-  }
-  return NextResponse.json({ consent: consentOf(list) }, { headers: NO_STORE });
+  return NextResponse.json({ consent: list ? consentOf(list) : null }, { headers: NO_STORE });
 }

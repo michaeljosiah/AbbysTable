@@ -23,7 +23,8 @@ export type NewsletterSignupAction = (
 
 /**
  * Where the footer reads the published list's consent (`GET`): `{ consent }`
- * while the tenant has published its newsletter list, 404 otherwise.
+ * while the tenant has published its newsletter list, `{ consent: null }`
+ * otherwise.
  */
 export const NEWSLETTER_CONSENT_PATH = '/api/newsletter';
 

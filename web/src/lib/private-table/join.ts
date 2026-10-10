@@ -10,9 +10,10 @@
  * `error`, and the form confirms `joined` alone (contract in `./waitlist`).
  *
  * The post carries the consent version the form showed; Aonik refuses (422) a
- * version that has since changed, which is `changed` here. Where there is no
- * list — demo, or a post with no version — it answers `unavailable` without
- * storing.
+ * version that has since changed, which is `changed` here — as is a post with
+ * no version at all. Where there is no list (demo) it answers `unavailable`
+ * without storing. Each address may join a few times in a few minutes
+ * (`@/lib/signup/rateLimit`), then `limited`.
  *
  * Takes the client as a parameter so the outcomes are unit-tested with a
  * stand-in list (tests/private-table.test.tsx). SERVER-ONLY.
@@ -20,6 +21,7 @@
 
 import { getAonikClient, type AonikClient } from '@/lib/aonik/client';
 import { readConsentVersion } from '@/lib/aonik/signupLists';
+import { admitSignup } from '@/lib/signup/rateLimit';
 import { isSignupRefused } from '@/lib/signup/server';
 
 import {
@@ -56,7 +58,8 @@ export async function joinWaitlist(
 
   // The wording the customer saw. Without it nothing can say what they agreed to.
   const consentVersion = readConsentVersion(form.get(WAITLIST_FORM_FIELDS.consentVersion));
-  if (!consentVersion) return { status: 'unavailable', values };
+  if (!consentVersion) return { status: 'changed', values };
+  if (!(await admitSignup('private-table'))) return { status: 'limited', values };
 
   try {
     const { signupLists } = await client();

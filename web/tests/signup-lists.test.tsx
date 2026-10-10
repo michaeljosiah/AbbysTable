@@ -6,18 +6,29 @@ import type { ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import { GET as newsletterConsent } from '../src/app/api/newsletter/route';
-import { Footer, NewsletterSignup } from '../src/components/layout/Footer';
+import { Footer, NewsletterSignup, readConsent } from '../src/components/layout/Footer';
 import { SiteChrome } from '../src/components/layout/SiteChrome';
 import { HttpAonikClient, MockAonikClient } from '../src/lib/aonik/client';
 import { AonikError } from '../src/lib/aonik/errors';
-import { publishedList, readConsentVersion, readPublishedLists, type SignupLists } from '../src/lib/aonik/signupLists';
+import {
+  clearPublishedListsCache,
+  HttpSignupLists,
+  PUBLISHED_CACHE_MS,
+  publishedList,
+  readConsentVersion,
+  readPublishedLists,
+  type SignupLists,
+} from '../src/lib/aonik/signupLists';
+import { toAonikError } from '../src/lib/aonik/errors';
 import { isEmailAddress } from '../src/lib/email';
 import { subscribeNewsletterAction } from '../src/lib/newsletter/actions';
 import { NEWSLETTER_MESSAGES, subscribeNewsletter } from '../src/lib/newsletter/subscribe';
-import { SIGNUP_FORM_CHANGED } from '../src/lib/signup/consent';
+import { SIGNUP_FORM_CHANGED, SIGNUP_TOO_MANY } from '../src/lib/signup/consent';
+import { clearSignupAttempts, SIGNUP_ATTEMPTS } from '../src/lib/signup/rateLimit';
+import { isSignupRefused } from '../src/lib/signup/server';
 
 import { AONIK_BASE, TENANT_ID, aonikRequests, configureAonik, useAonik } from './support/aonik';
-import { resetCookies } from './support/next-headers';
+import { resetCookies, setRequestHeaders } from './support/next-headers';
 
 /*
  * Aonik's sign-up lists (michaeljosiah/aonik#357): what the storefront reads
@@ -37,7 +48,11 @@ const NEWSLETTER = {
 const textOf = (html: string) =>
   html.replace(/<[^>]+>/g, ' ').replace(/&#x27;|&#39;/g, "'").replace(/\s+/g, ' ').trim();
 
-beforeEach(() => resetCookies());
+beforeEach(() => {
+  resetCookies();
+  clearPublishedListsCache();
+  clearSignupAttempts();
+});
 
 /* ---- What counts as published --------------------------------------------------- */
 
@@ -175,8 +190,9 @@ async function readConsentRoute() {
   return { status: response.status, cache: response.headers.get('cache-control'), json: await response.json() };
 }
 
-test('GET /api/newsletter: the published wording and version, fresh — or 404', async () => {
+test('GET /api/newsletter: the published wording and version — or, as plainly, none', async () => {
   configureAonik({ AONIK_DATA_MODE: 'live' });
+  const none = { status: 200, cache: 'no-store', json: { consent: null } };
   try {
     useAonik(() => ({ status: 200, body: { lists: [NEWSLETTER] } }));
     assert.deepEqual(await readConsentRoute(), {
@@ -186,35 +202,133 @@ test('GET /api/newsletter: the published wording and version, fresh — or 404',
     });
     assert.equal(aonikRequests[0].path, '/v1/signup-lists');
 
+    clearPublishedListsCache();
     useAonik(() => ({ status: 200, body: { lists: [{ ...NEWSLETTER, listType: 'delivery-availability' }] } }));
-    assert.equal((await readConsentRoute()).status, 404, 'only the newsletter list');
+    assert.deepEqual(await readConsentRoute(), none, 'only the newsletter list');
 
+    clearPublishedListsCache();
     const logged = mock.method(console, 'error', () => undefined);
     try {
       useAonik(() => ({ status: 503, body: { error: 'down' } }));
-      const failed = await readConsentRoute();
-      assert.equal(failed.status, 404, 'a failed read holds the form back');
-      assert.equal(failed.cache, 'no-store');
+      assert.deepEqual(await readConsentRoute(), none, 'a failed read holds the form back');
     } finally {
       logged.mock.restore();
     }
 
     env.AONIK_DATA_MODE = 'demo';
-    assert.equal((await readConsentRoute()).status, 404, 'demo never pretends a write');
+    assert.deepEqual(await readConsentRoute(), none, 'demo never pretends a write');
   } finally {
     delete env.AONIK_DATA_MODE;
   }
 });
 
+test('the footer reads only a well-formed answer', () => {
+  assert.deepEqual(readConsent({ consent: { text: 'Words.', version: 'v1' } }), { text: 'Words.', version: 'v1' });
+  for (const body of [null, {}, { consent: null }, { consent: { text: '', version: 'v1' } }, { consent: { text: 'Words.' } }, 'nope', { error: 'down' }]) {
+    assert.equal(readConsent(body), null, JSON.stringify(body));
+  }
+});
+
+/* ---- Sparing Aonik ---------------------------------------------------------------- */
+
+test('the published lists are reused for a few seconds, then read again', async () => {
+  const lists = new HttpSignupLists({ baseUrl: AONIK_BASE, tenantId: TENANT_ID });
+  useAonik(() => ({ status: 200, body: { lists: [NEWSLETTER] } }));
+  const t0 = 1_800_000_000_000;
+
+  await lists.published(t0);
+  await lists.published(t0 + PUBLISHED_CACHE_MS - 1);
+  assert.equal(aonikRequests.length, 1, 'reused inside the window');
+  await lists.published(t0 + PUBLISHED_CACHE_MS);
+  assert.equal(aonikRequests.length, 2, 'read again after it');
+  // Another tenant never shares them.
+  await new HttpSignupLists({ baseUrl: AONIK_BASE, tenantId: 'tenant-other' }).published(t0 + PUBLISHED_CACHE_MS);
+  assert.equal(aonikRequests.length, 3);
+});
+
+test('a slow Aonik never holds a page open: the read gives up, and the forms stay closed', async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = ((_input: unknown, init?: RequestInit) =>
+    new Promise((_resolve, reject) => {
+      init?.signal?.addEventListener('abort', () => reject(init.signal?.reason));
+    })) as typeof fetch;
+  const started = Date.now();
+  // AbortSignal.timeout's timer does not keep Node alive; this does, for the test.
+  const keepAlive = setInterval(() => undefined, 100);
+  try {
+    await assert.rejects(new HttpSignupLists({ baseUrl: AONIK_BASE, tenantId: TENANT_ID }).published());
+  } finally {
+    clearInterval(keepAlive);
+    globalThis.fetch = original;
+  }
+  assert.ok(Date.now() - started < 4000, 'gave up within seconds');
+});
+
+test('one address may sign up a few times in a few minutes, then is asked to wait', async () => {
+  const client = async () => ({
+    signupLists: { published: async () => [], join: async () => undefined } satisfies SignupLists,
+  });
+  setRequestHeaders({ 'x-forwarded-for': '203.0.113.9, 10.0.0.1' });
+  for (let attempt = 1; attempt <= SIGNUP_ATTEMPTS; attempt += 1) {
+    assert.equal((await subscribeNewsletter(newsletterForm(`ada${attempt}@example.com`), client)).status, 'joined', String(attempt));
+  }
+  assert.deepEqual(await subscribeNewsletter(newsletterForm('ada9@example.com'), client), {
+    status: 'error',
+    message: SIGNUP_TOO_MANY,
+  });
+  // A typo costs nothing: refused before it counts.
+  assert.equal((await subscribeNewsletter(newsletterForm('not-an-email'), client)).message, NEWSLETTER_MESSAGES.email);
+
+  // Another address is its own count.
+  setRequestHeaders({ 'x-forwarded-for': '198.51.100.4' });
+  assert.equal((await subscribeNewsletter(newsletterForm('bola@example.com'), client)).status, 'joined');
+  // With no address to key on there is no shared bucket to block everyone.
+  setRequestHeaders({});
+  for (let attempt = 0; attempt < SIGNUP_ATTEMPTS + 2; attempt += 1) {
+    assert.equal((await subscribeNewsletter(newsletterForm('chi@example.com'), client)).status, 'joined');
+  }
+});
+
+/* ---- Telling Aonik's two 422s apart --------------------------------------------- */
+
+test('"reload" only for a changed or withdrawn list — never for a field Aonik refused', () => {
+  const stale = toAonikError(422, '/v1/signup-lists/newsletter', {
+    error: 'This sign-up form is unavailable or has changed. Reload it before submitting.',
+  });
+  assert.equal(stale.fieldErrors, undefined);
+  assert.equal(isSignupRefused(stale), true);
+
+  // FastEndpoints' request validator answers 422 with field errors.
+  const fields = toAonikError(422, '/v1/signup-lists/newsletter', {
+    statusCode: 422,
+    message: 'One or more errors occurred!',
+    errors: { email: ['Email is not a valid email address.'], ignored: 'not a list' },
+  });
+  assert.deepEqual(fields.fieldErrors, { email: ['Email is not a valid email address.'] });
+  const logged = mock.method(console, 'error', () => undefined);
+  try {
+    assert.equal(isSignupRefused(fields), false);
+    assert.match(String(logged.mock.calls[0]?.arguments[0]), /email/);
+  } finally {
+    logged.mock.restore();
+  }
+  assert.equal(isSignupRefused(toAonikError(503, '/x', { error: 'down' })), false);
+});
+
 /* ---- The footer ---------------------------------------------------------------- */
 
-test('the chrome gives the footer the action, and awaits nothing for it', async () => {
+test('the chrome gives the footer the action in live mode only, and awaits nothing for it', async () => {
+  const footerAction = async () => {
+    const chrome = await SiteChrome({ children: null });
+    return (chrome.props.children as ReactElement<{ subscribeAction?: unknown }>[]).find((part) => part.type === Footer)
+      ?.props.subscribeAction;
+  };
   configureAonik({ AONIK_DATA_MODE: 'live' });
   useAonik(() => undefined);
   try {
-    const chrome = await SiteChrome({ children: null });
-    const footer = (chrome.props.children as ReactElement<{ subscribeAction?: unknown }>[]).find((part) => part.type === Footer);
-    assert.equal(footer?.props.subscribeAction, subscribeNewsletterAction);
+    assert.equal(await footerAction(), subscribeNewsletterAction);
+    env.AONIK_DATA_MODE = 'demo';
+    assert.equal(await footerAction(), undefined, 'demo has no lists, so it does not even ask');
     assert.equal(aonikRequests.length, 0);
   } finally {
     delete env.AONIK_DATA_MODE;

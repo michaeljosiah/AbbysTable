@@ -37,11 +37,23 @@ export function consentOf(list: SignupList): SignupConsent {
 }
 
 /**
- * Aonik's 422 on a sign-up. The action has already run the same field rules
- * Aonik does, so what is left is the list itself: withdrawn, or its consent
- * wording (and version) changed since the page was rendered. Answered with
- * `SIGNUP_FORM_CHANGED`, never "try again" — the same post would fail again.
+ * Aonik's 422 for the LIST itself — withdrawn, or its consent wording (and
+ * version) changed since the page was rendered: `{ error }` with no field
+ * errors. Answered with `SIGNUP_FORM_CHANGED`, never "try again" — the same
+ * post would fail again.
+ *
+ * A 422 that names fields is a request validator's: the action has already
+ * run the same field rules, so it means the two have drifted apart — a fault
+ * for us, logged by field name, and answered as a plain failure, never as
+ * "reload" (which could not help).
  */
 export function isSignupRefused(error: unknown): boolean {
-  return error instanceof AonikError && error.status === 422;
+  if (!(error instanceof AonikError) || error.status !== 422) return false;
+  if (error.fieldErrors) {
+    console.error(
+      `[signup-lists] Aonik refused fields our rules accepted: ${Object.keys(error.fieldErrors).join(', ')}`,
+    );
+    return false;
+  }
+  return true;
 }

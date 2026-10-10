@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 
+import { resolveDataMode } from '@/lib/aonik/dataMode';
 import { readSessionView } from '@/lib/auth/session';
 import { subscribeNewsletterAction } from '@/lib/newsletter/actions';
 
@@ -29,6 +30,9 @@ export async function SiteChrome({ children }: { children: ReactNode }) {
   // httpOnly and the header is a Client Component. A cookie read only — it
   // cannot block or fail.
   const session = await readSessionView();
+  // Configuration and (in development) a cookie — never a request. Demo has no
+  // sign-up lists, so its footer does not even ask for one.
+  const { mode } = await resolveDataMode();
 
   return (
     <>
@@ -36,7 +40,7 @@ export async function SiteChrome({ children }: { children: ReactNode }) {
       <main>{children}</main>
       {/* The newsletter's published list is read by the footer itself, from
           the browser — never awaited here. */}
-      <Footer subscribeAction={subscribeNewsletterAction} />
+      <Footer subscribeAction={mode === 'live' ? subscribeNewsletterAction : undefined} />
     </>
   );
 }

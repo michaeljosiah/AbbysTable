@@ -63,6 +63,32 @@ export interface SignupLists {
 
 export const SIGNUP_LISTS_PATH = '/v1/signup-lists';
 
+/**
+ * How long a page waits for the published lists. A slow Aonik must never hold
+ * a page open (Contact is where customers go when something is wrong): past
+ * this the forms simply stay closed for that render.
+ */
+export const PUBLISHED_TIMEOUT_MS = 1500;
+
+/** How long a sign-up waits. Safe to try again after: Aonik de-duplicates by email. */
+export const JOIN_TIMEOUT_MS = 8000;
+
+/**
+ * How long the published lists are reused in this server process. Aonik
+ * answers no-store, but the footer asks on every page load: a few seconds of
+ * reuse spares Aonik, and a list reworded or withdrawn inside that window is
+ * still caught — the sign-up carries the version it showed, and Aonik refuses
+ * a stale one (422 → "reload").
+ */
+export const PUBLISHED_CACHE_MS = 30_000;
+
+let publishedCache: { key: string; at: number; lists: SignupList[] } | null = null;
+
+/** Forgets the reused lists (tests, and nothing else). */
+export function clearPublishedListsCache(): void {
+  publishedCache = null;
+}
+
 /** Aonik's own bound on a published value: non-blank, trimmed, within `max`. */
 const isString = (value: unknown, max: number): value is string =>
   typeof value === 'string' && value.trim().length > 0 && value.length <= max && value === value.trim();
@@ -131,15 +157,22 @@ export function readConsentVersion(value: unknown): string | null {
 export class HttpSignupLists implements SignupLists {
   constructor(private readonly config: AonikConfig) {}
 
-  async published(): Promise<SignupList[]> {
+  async published(now = Date.now()): Promise<SignupList[]> {
+    const key = `${this.config.baseUrl}|${this.config.tenantId}`;
+    if (publishedCache?.key === key && now - publishedCache.at < PUBLISHED_CACHE_MS) {
+      return publishedCache.lists;
+    }
     const body = await aonikFetch<unknown>(SIGNUP_LISTS_PATH, {
       baseUrl: this.config.baseUrl,
       tenantId: this.config.tenantId,
-      // Aonik answers no-store: a list unpublished a moment ago must not keep
-      // offering a form from a cache.
+      // Never Next's data cache: only the short reuse above, which a stale
+      // version's 422 backs up.
       policy: 'volatile',
+      signal: AbortSignal.timeout(PUBLISHED_TIMEOUT_MS),
     });
-    return readPublishedLists(body);
+    const lists = readPublishedLists(body);
+    publishedCache = { key, at: now, lists };
+    return lists;
   }
 
   async join(listType: SignupListType, body: Record<string, string>): Promise<void> {
@@ -152,6 +185,7 @@ export class HttpSignupLists implements SignupLists {
       // The empty 202 is the whole answer. Never retried: Aonik de-duplicates
       // by email, but there is nothing a retry could add.
       ignoreBody: true,
+      signal: AbortSignal.timeout(JOIN_TIMEOUT_MS),
     });
   }
 }

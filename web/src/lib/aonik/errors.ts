@@ -34,6 +34,8 @@ export interface AonikErrorBody {
   box?: unknown;
   quote?: unknown;
   changes?: unknown;
+  errors?: unknown;
+  fieldErrors?: unknown;
 }
 
 export class AonikError extends Error {
@@ -49,6 +51,12 @@ export class AonikError extends Error {
    * unmapped. `server-box-cart` maps and re-renders it.
    */
   readonly drift?: { box: unknown; quote: unknown; changes: unknown };
+  /**
+   * Per-field validation failures, keyed by Aonik's field name: FastEndpoints'
+   * `errors` (a request validator's 422) or a service's own `fieldErrors`.
+   * Absent when the refusal was not about a field.
+   */
+  readonly fieldErrors?: Readonly<Record<string, readonly string[]>>;
 
   constructor(init: {
     status: number;
@@ -57,6 +65,7 @@ export class AonikError extends Error {
     code?: string;
     rule?: string;
     drift?: { box: unknown; quote: unknown; changes: unknown };
+    fieldErrors?: Readonly<Record<string, readonly string[]>>;
   }) {
     super(init.message);
     this.name = 'AonikError';
@@ -65,6 +74,7 @@ export class AonikError extends Error {
     this.code = init.code;
     this.rule = init.rule;
     this.drift = init.drift;
+    this.fieldErrors = init.fieldErrors;
   }
 
   /** Catalogue drift at continue/checkout — Spec 068's A18 stop. */
@@ -88,6 +98,17 @@ export class AonikError extends Error {
 
 function asString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+/** `{ field: ["message", …] }`, keeping only well-formed entries; undefined when there are none. */
+function asFieldErrors(value: unknown): Record<string, string[]> | undefined {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined;
+  const fields: Record<string, string[]> = {};
+  for (const [field, messages] of Object.entries(value)) {
+    const list = Array.isArray(messages) ? messages.filter((m): m is string => typeof m === 'string') : [];
+    if (list.length > 0) fields[field] = list;
+  }
+  return Object.keys(fields).length > 0 ? fields : undefined;
 }
 
 /** Builds an `AonikError` from a non-2xx response body (which may be empty). */
@@ -122,5 +143,6 @@ export function toAonikError(status: number, path: string, body: unknown): Aonik
     code,
     rule: asString(envelope.rule),
     drift,
+    fieldErrors: asFieldErrors(envelope.fieldErrors) ?? asFieldErrors(envelope.errors),
   });
 }

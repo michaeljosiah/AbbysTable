@@ -580,16 +580,17 @@ SHALL carry that wording's `consentVersion`. The server action SHALL re-run ever
 arrived — every field capped (name 200, email 254, telephone 32, country 100 characters), the
 email shape checked in linear time (`isEmailAddress`), the country resolved against the fixed list
 and stored as its ISO code, the service one of the three — and answer `joined` only after Aonik's 202;
-otherwise `invalid`, `changed` (Aonik's 422: the wording moved on — "This form has changed since you
-opened it, so you haven't been added. Please reload the page and try again."), `unavailable` (no
-list, or no version posted) or `error`, keeping everything entered ("We couldn't add you to the
+otherwise `invalid`, `changed` (Aonik's 422 with no field errors: the wording moved on — or no
+version was posted — "This form has changed since you opened it, so you haven't been added. Please
+reload the page and try again."), `limited` (5 sign-ups from one client address in 10 minutes),
+`unavailable` (no list) or `error`, keeping everything entered ("We couldn't add you to the
 waitlist just now. Everything you've entered is still here, so please try again."). The entry is
 Aonik's body (`email`, `consentVersion`, `name`, `country` ISO code, `service`, `phone?`), never
 retried, and is a list of its own — not the newsletter, not notify-me.
 
 #### Scenario: Nothing to store to
-- **WHEN** a valid entry is posted in demo, or without the consent version the form shows
-- **THEN** it answers `unavailable`
+- **WHEN** a valid entry is posted in demo
+- **THEN** it answers `unavailable`, and a post without the form's consent version `changed`
 - **AND** no request leaves the server
 
 #### Scenario: The wording moved on

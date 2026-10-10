@@ -16,7 +16,7 @@ import {
 import { PRIVACY_ITEM } from '@/lib/content/navigation';
 import { JOIN_WAITLIST_LABEL, WAITLIST_SERVICES } from '@/lib/content/privateTable';
 import { revealUnderHeader } from '@/lib/dom/reveal';
-import { SIGNUP_FORM_CHANGED, type SignupConsent } from '@/lib/signup/consent';
+import { SIGNUP_FORM_CHANGED, SIGNUP_TOO_MANY, type SignupConsent } from '@/lib/signup/consent';
 import {
   firstInvalidField,
   validateWaitlist,
@@ -186,7 +186,10 @@ export function WaitlistForm({ action, consent }: { action: WaitlistAction; cons
   const failed =
     current &&
     !isPending &&
-    (state.status === 'error' || state.status === 'changed' || state.status === 'unavailable');
+    (state.status === 'error' ||
+      state.status === 'changed' ||
+      state.status === 'limited' ||
+      state.status === 'unavailable');
 
   // Stable, so a re-render never takes focus back: it runs once, as the
   // confirmation mounts — announced, and where a keyboard user continues.
@@ -415,7 +418,9 @@ export function WaitlistForm({ action, consent }: { action: WaitlistAction; cons
                 ? 'The waitlist can’t take sign-ups from this page yet, so you haven’t been added.'
                 : state.status === 'changed'
                   ? SIGNUP_FORM_CHANGED
-                  : 'We couldn’t add you to the waitlist just now. Everything you’ve entered is still here, so please try again.'}
+                  : state.status === 'limited'
+                    ? SIGNUP_TOO_MANY
+                    : 'We couldn’t add you to the waitlist just now. Everything you’ve entered is still here, so please try again.'}
             </span>
           </p>
         ) : null}

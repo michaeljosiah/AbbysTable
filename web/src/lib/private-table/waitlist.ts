@@ -199,12 +199,14 @@ export function toWaitlistEntry(
  * - `invalid`     the fields failed the shared rules (`errors`)
  * - `joined`      stored
  * - `error`       the waitlist failed; everything entered stays in the form
- * - `changed`     Aonik refused the consent version the form showed: the list
- *                 was withdrawn or its wording changed since the page loaded
+ * - `changed`     Aonik refused the consent version the form showed (or none
+ *                 came): the list was withdrawn or its wording changed since
+ *                 the page loaded
+ * - `limited`     this address made several sign-ups in a few minutes
  * - `unavailable` this deployment cannot store an entry at all (no list)
  */
 export interface WaitlistState {
-  status: 'idle' | 'invalid' | 'joined' | 'error' | 'changed' | 'unavailable';
+  status: 'idle' | 'invalid' | 'joined' | 'error' | 'changed' | 'limited' | 'unavailable';
   errors?: WaitlistErrors;
   /**
    * What was posted, on every answer but `joined` — so a submit made without

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useActionState, useEffect, useId, useState } from 'react';
+import { useActionState, useEffect, useId, useRef, useState, type RefObject } from 'react';
 
 import { Logo } from '@/components/brand/Logo';
 import { SocialIcons } from '@/components/brand/SocialIcons';
@@ -51,11 +51,14 @@ const COPYRIGHT_YEAR = 2026;
  * The published list is read from the BROWSER, once the footer mounts
  * (`useNewsletterConsent`): the chrome renders into every document — the root
  * 404 included — and must never await Aonik (tests/not-found-chrome.test.ts).
- * So the block appears after load and, without JavaScript, not at all.
+ * It asks only as the footer nears the viewport, so most page views never ask
+ * at all, and the block is in place before the customer scrolls to it.
+ * Without JavaScript it does not appear.
  */
 export function Footer({ subscribeAction }: { subscribeAction?: NewsletterSignupAction }) {
   const pathname = usePathname();
-  const consent = useNewsletterConsent(Boolean(subscribeAction));
+  const footerRef = useRef<HTMLElement>(null);
+  const consent = useNewsletterConsent(Boolean(subscribeAction), footerRef);
   const signup = subscribeAction && consent ? { action: subscribeAction, consent } : null;
   const desktop = useMediaQuery(DESKTOP_QUERY);
   const idBase = useId();
@@ -69,7 +72,7 @@ export function Footer({ subscribeAction }: { subscribeAction?: NewsletterSignup
     // right — the page has ended — so it always carries the stop marker
     // (lib/purchase-bar/visibility.ts). Inert on pages without a bar. No id:
     // Contact has its own page now (`CONTACT_HREF`), so nothing jumps here.
-    <footer className={styles.footer} data-purchase-bar-stop="">
+    <footer ref={footerRef} className={styles.footer} data-purchase-bar-stop="">
       <div className={styles.brassRule} aria-hidden="true" />
 
       <div className={styles.inner}>
@@ -195,37 +198,60 @@ export function Footer({ subscribeAction }: { subscribeAction?: NewsletterSignup
   );
 }
 
-/** The published newsletter consent, or null while there is none (or none yet). */
-function readConsent(body: unknown): SignupConsent | null {
+/** The published newsletter consent out of `/api/newsletter`'s answer, or null. */
+export function readConsent(body: unknown): SignupConsent | null {
   const consent = (body as { consent?: { text?: unknown; version?: unknown } } | null)?.consent;
   return typeof consent?.text === 'string' && consent.text && typeof consent.version === 'string' && consent.version
     ? { text: consent.text, version: consent.version }
     : null;
 }
 
+/** How far below the viewport the footer is when it asks for the list. */
+const ASK_WITHIN = '600px 0px';
+
 /**
- * Asks this server for the newsletter list's consent, once per mount — the
- * footer stays mounted across client navigations, so once per page load.
- * Anything but a well-formed answer leaves the block out.
+ * Asks this server for the newsletter list's consent once the footer comes
+ * within `ASK_WITHIN` of the viewport, once per mount — the footer stays
+ * mounted across client navigations, so at most once per page load. Anything
+ * but a well-formed answer leaves the block out.
  */
-function useNewsletterConsent(wanted: boolean): SignupConsent | null {
+function useNewsletterConsent(wanted: boolean, footer: RefObject<HTMLElement | null>): SignupConsent | null {
   const [consent, setConsent] = useState<SignupConsent | null>(null);
 
   useEffect(() => {
-    if (!wanted) return;
+    const element = footer.current;
+    if (!wanted || !element) return;
     const controller = new AbortController();
-    fetch(NEWSLETTER_CONSENT_PATH, { cache: 'no-store', signal: controller.signal })
-      // The body is read either way: one left unread holds the request open.
-      .then(async (response) => {
-        const body: unknown = await response.json().catch(() => null);
-        return response.ok ? body : null;
-      })
-      .then((body) => setConsent(readConsent(body)))
-      .catch(() => {
-        // Aborted, offline or unpublished: no block, which is the safe answer.
-      });
-    return () => controller.abort();
-  }, [wanted]);
+    const ask = () =>
+      fetch(NEWSLETTER_CONSENT_PATH, { cache: 'no-store', signal: controller.signal })
+        // The body is read either way: one left unread holds the request open.
+        .then(async (response) => {
+          const body: unknown = await response.json().catch(() => null);
+          return response.ok ? body : null;
+        })
+        .then((body) => setConsent(readConsent(body)))
+        .catch(() => {
+          // Aborted, offline or unpublished: no block, which is the safe answer.
+        });
+
+    if (typeof IntersectionObserver !== 'function') {
+      void ask();
+      return () => controller.abort();
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        observer.disconnect();
+        void ask();
+      },
+      { rootMargin: ASK_WITHIN },
+    );
+    observer.observe(element);
+    return () => {
+      observer.disconnect();
+      controller.abort();
+    };
+  }, [wanted, footer]);
 
   return consent;
 }

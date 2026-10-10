@@ -19,7 +19,8 @@ import { getAonikClient, type AonikClient } from '@/lib/aonik/client';
 import type { NotifyMeState } from '@/lib/aonik/notifyMe';
 import { readConsentVersion } from '@/lib/aonik/signupLists';
 import { isEmailAddress } from '@/lib/email';
-import { CONSENT_VERSION_FIELD, SIGNUP_FORM_CHANGED } from '@/lib/signup/consent';
+import { CONSENT_VERSION_FIELD, SIGNUP_FORM_CHANGED, SIGNUP_TOO_MANY } from '@/lib/signup/consent';
+import { admitSignup } from '@/lib/signup/rateLimit';
 import { isSignupRefused } from '@/lib/signup/server';
 
 import { upcomingDeliveryDate } from './checker';
@@ -121,6 +122,7 @@ export async function joinNotifyList(
   if (!postcode) return { status: 'error', message: 'Please check your postcode again first.' };
   const consentVersion = readConsentVersion(form.get(CONSENT_VERSION_FIELD));
   if (!consentVersion) return { status: 'error', message: SIGNUP_FORM_CHANGED };
+  if (!(await admitSignup('delivery-availability'))) return { status: 'error', message: SIGNUP_TOO_MANY };
 
   try {
     const client = await getAonikClient();

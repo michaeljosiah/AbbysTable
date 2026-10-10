@@ -11,7 +11,12 @@ import { PrivateTableView } from '../src/components/private-table/PrivateTableVi
 import { WaitlistForm } from '../src/components/private-table/WaitlistForm';
 import { HttpAonikClient, MockAonikClient } from '../src/lib/aonik/client';
 import { AonikError } from '../src/lib/aonik/errors';
-import { HttpSignupLists, type SignupList, type SignupLists } from '../src/lib/aonik/signupLists';
+import {
+  clearPublishedListsCache,
+  HttpSignupLists,
+  type SignupList,
+  type SignupLists,
+} from '../src/lib/aonik/signupLists';
 import { COUNTRIES, FEATURED_COUNTRY_CODES } from '../src/lib/content/countries';
 import {
   PRIVATE_TABLE_CREDENTIALS,
@@ -381,9 +386,9 @@ test('the action re-checks everything and never answers "joined" without a list'
       assert.equal((await joinWaitlistAction({ status: 'idle' }, formOf(values))).status, 'invalid', JSON.stringify(values).slice(0, 40));
     }
 
-    // No consent version: nothing can say what the customer agreed to.
+    // No consent version: nothing can say what the customer agreed to — reload.
     for (const consentVersion of [null, '', ' v1', 'x'.repeat(33), 'v\u00071']) {
-      assert.equal((await joinWaitlistAction({ status: 'idle' }, formOf({ consentVersion }))).status, 'unavailable', String(consentVersion));
+      assert.equal((await joinWaitlistAction({ status: 'idle' }, formOf({ consentVersion }))).status, 'changed', String(consentVersion));
     }
     env.AONIK_DATA_MODE = 'demo';
     assert.equal((await joinWaitlistAction({ status: 'idle' }, formOf())).status, 'unavailable', 'demo has no lists');
@@ -473,6 +478,7 @@ test('"joined" only once the list has stored the entry; "changed" when its wordi
 
 test('over the wire: Aonik’s published lists in, the sign-up out, its 202 the only acceptance', async () => {
   configureAonik();
+  clearPublishedListsCache();
   const lists = new HttpSignupLists({ baseUrl: AONIK_BASE, tenantId: TENANT_ID });
   let reply: { status: number; body?: unknown } = { status: 200, body: { lists: [PUBLISHED] } };
   useAonik(() => reply);
@@ -498,6 +504,7 @@ test('over the wire: Aonik’s published lists in, the sign-up out, its 202 the 
 
 test('with no published waitlist: the service, its credentials and prices — and nothing to join', async () => {
   resetCookies();
+  clearPublishedListsCache();
   configureAonik({ AONIK_DATA_MODE: 'live' });
   useAonik(() => ({ status: 200, body: { lists: [] } }));
   let html: string;
@@ -575,6 +582,7 @@ const joinStub: WaitlistAction = async () => ({ status: 'error' });
 
 test('live, with the tenant’s published waitlist: the form, showing its wording and posting its version', async () => {
   resetCookies();
+  clearPublishedListsCache();
   configureAonik({ AONIK_DATA_MODE: 'live' });
   const wording = 'Use my details only to contact me about Private Table.';
   useAonik(() => ({ status: 200, body: { lists: [{ ...PUBLISHED, consentText: wording, consentVersion: 'pt-2026-10' }] } }));

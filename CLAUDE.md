@@ -185,13 +185,20 @@ Conventions inside `web/` that are easy to get wrong:
   lists, each offered only while the tenant publishes it (`GET /v1/signup-lists`, no-store). A form
   shows the list's `consentText` EXACTLY (the design's surrounding words stay ours — "Confidential
   by design.", "See our Privacy Policy.") and posts back its `consentVersion` (`CONSENT_VERSION_FIELD`,
-  `src/lib/signup/consent.ts`); Aonik's 422 means the wording moved on → `SIGNUP_FORM_CHANGED`
-  ("reload"), never "try again". The tenant should publish the design's wording: newsletter "We use
+  `src/lib/signup/consent.ts`); Aonik's 422 WITHOUT field errors means the wording moved on →
+  `SIGNUP_FORM_CHANGED` ("reload"), never "try again" (a 422 naming fields is our rules drifting from
+  Aonik's: logged, answered as a failure). The tenant MUST change `consentVersion` whenever it
+  changes `consentText`, or new wording is recorded against sign-ups made under the old.
+  The published read times out at 1.5s and is reused for 30s per process
+  (`clearPublishedListsCache()` in tests); each action allows 5 sign-ups per list per client
+  address in 10 minutes (`src/lib/signup/rateLimit.ts`, best-effort, in-process — Aonik neither
+  limits nor confirms addresses). The tenant should publish the design's wording: newsletter "We use
   your email for kitchen notes and offers only. Unsubscribe any time.", notify-me "We’ll only use
   your email to tell you when we reach your area.", waitlist "We’ll only use your details to
   contact you about Private Table." The FOOTER newsletter is read from the BROWSER
-  (`GET /api/newsletter`, then `subscribeNewsletterAction`) because the chrome must never await
-  Aonik — so it appears after load and not at all without JavaScript.
+  (`GET /api/newsletter` → `{ consent }` or `{ consent: null }`, then `subscribeNewsletterAction`)
+  because the chrome must never await Aonik — only in live mode (SiteChrome passes the action only
+  then), only once the footer is within 600px of the viewport, and not at all without JavaScript.
 - **Internal links go through `next/link`.** `Button` and `NavLink` route on `href` automatically
   (`isExternalHref` in `src/lib/links.ts`); nav anchors are root-relative (`/#founder`) so they work
   from `/menu` as well as `/`.

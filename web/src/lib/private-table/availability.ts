@@ -22,6 +22,9 @@ import type { SignupList } from '@/lib/aonik/signupLists';
 import { WAITLIST_SERVICES } from '@/lib/content/privateTable';
 import { publishedSignupList } from '@/lib/signup/server';
 
+/** Each mismatch is logged once per process, not on every render. */
+const reported = new Set<string>();
+
 /** The published waitlist, or null while it cannot take a name. */
 export async function waitlistList(
   client: () => Promise<Pick<AonikClient, 'signupLists'>> = getAonikClient,
@@ -32,11 +35,15 @@ export async function waitlistList(
   const offered = new Set(list.services?.map((service) => service.id));
   const missing = WAITLIST_SERVICES.filter((service) => !offered.has(service.id));
   if (missing.length > 0) {
-    console.error(
-      `[private-table] the published waitlist does not offer ${missing.map((service) => service.id).join(', ')}; the waitlist is shown as not open`,
-    );
+    const ids = missing.map((service) => service.id).join(', ');
+    if (!reported.has(ids)) {
+      reported.add(ids);
+      console.error(`[private-table] the published waitlist does not offer ${ids}; the waitlist is shown as not open`);
+    }
     return null;
   }
+  // The form keeps its own labels and notes (the design's copy); the published
+  // labels are the tenant's records, read only for the ids.
   return list;
 }
 

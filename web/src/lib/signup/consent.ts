@@ -25,5 +25,8 @@ export const CONSENT_VERSION_FIELD = 'consentVersion';
  * changed (or the list was withdrawn) after this page was rendered. Nothing
  * was stored, and only a fresh page can show the current wording.
  */
+/** Not in the design: this address has made several sign-ups in a few minutes (`./rateLimit`). */
+export const SIGNUP_TOO_MANY = 'We’ve had several sign-ups from here in the last few minutes. Please try again later.';
+
 export const SIGNUP_FORM_CHANGED =
   'This form has changed since you opened it, so you haven’t been added. Please reload the page and try again.';

@@ -1,7 +1,7 @@
 import './support/runtime';
 
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import test, { mock } from 'node:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import ContactPage from '../src/app/(site)/contact/page';
@@ -48,8 +48,10 @@ import { OPENING_HOURS, SUPPORT_CONTACT, WHATSAPP_CONTACT } from '../src/lib/con
 import { PRIVATE_TABLE_HREF, PRIVATE_TABLE_WAITLIST_HREF } from '../src/lib/content/marketing';
 import { CONTACT_HREF, DELIVERY_FAQS_HREF, SOCIAL_LINKS } from '../src/lib/content/navigation';
 import { waitlistOpen } from '../src/lib/private-table/availability';
+import { clearPublishedListsCache } from '../src/lib/aonik/signupLists';
+import { WAITLIST_SERVICES } from '../src/lib/content/privateTable';
 
-import { AONIK_BASE, TENANT_ID, configureAonik } from './support/aonik';
+import { AONIK_BASE, TENANT_ID, configureAonik, useAonik } from './support/aonik';
 import { resetCookies } from './support/next-headers';
 
 /*
@@ -513,7 +515,7 @@ test('as configured today: every route marked "to be confirmed", no dead link, n
     assert.doesNotMatch(html, /data-faqs="none"/);
   }
   // …and no "Join the waitlist" while the waitlist cannot take a name: the
-  // page exists (#25), but nothing can store an entry until aonik#357.
+  // page exists (#25), but this deployment has no published waitlist (aonik#357).
   assert.equal(PRIVATE_TABLE_WAITLIST_HREF, `${PRIVATE_TABLE_HREF}#enquire`);
   assert.equal(await waitlistOpen(), false);
   assert.doesNotMatch(text, /Join the waitlist|Interested in Private Table/);
@@ -607,4 +609,30 @@ test('without a form, the Phone card stands alone and nothing jumps to a form', 
   assert.match(html, /class="method methodPhone methodWide"/);
   assert.doesNotMatch(html, /href="#send"/);
   assert.match(textOf(html), /Our message form isn’t available yet\. Please use one of the ways above to get in touch\./);
+});
+
+test('live: the Private Table panel shows while the waitlist is published with every service', async () => {
+  resetCookies();
+  clearPublishedListsCache();
+  configureAonik({ AONIK_DATA_MODE: 'live' });
+  const services = WAITLIST_SERVICES.map(({ id, label }) => ({ id, label }));
+  const waitlist = { listType: 'private-table', consentVersion: 'pt-1', consentText: 'Only about Private Table.', services };
+  const pageText = async () => textOf(renderToStaticMarkup(await ContactPage()));
+  try {
+    useAonik(() => ({ status: 200, body: { lists: [waitlist] } }));
+    assert.match(await pageText(), /Join the waitlist/);
+
+    // A service the form offers is missing from the list: Aonik would refuse it, so no panel.
+    clearPublishedListsCache();
+    useAonik(() => ({ status: 200, body: { lists: [{ ...waitlist, services: services.slice(1) }] } }));
+    const quiet = mock.method(console, 'error', () => undefined);
+    try {
+      assert.doesNotMatch(await pageText(), /Join the waitlist/);
+    } finally {
+      quiet.mock.restore();
+    }
+  } finally {
+    delete process.env.AONIK_DATA_MODE;
+    clearPublishedListsCache();
+  }
 });
