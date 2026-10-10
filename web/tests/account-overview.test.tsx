@@ -14,7 +14,7 @@ import { mapLoyaltyBalance } from '../src/lib/aonik/loyalty';
 import { SESSION_COOKIE } from '../src/lib/auth/session';
 
 import { aonikRequests, configureAonik, useAonik as installAonik, type AonikReply, type AonikRequest } from './support/aonik';
-import { renderMode, resetCookies } from './support/next-headers';
+import { cookieValue, renderMode, resetCookies } from './support/next-headers';
 
 /*
  * My Account, PR 2 (#35): the overview, the Next delivery card, and the data
@@ -133,7 +133,45 @@ test('the overview shows points, the default address and the latest orders', asy
   assert.match(read, /Recent orders Thursday 8 October AT-10517 · 6-dish box · Cooking £158/);
   assert.match(read, /Thursday 6 August AT-10482 · 6-dish box · Delivered £109/);
   assert.doesNotMatch(read, /Order again|Manage addresses/, 'what is not built is not offered');
-  assert.match(html, /href="\/account\/orders"/);
+  assert.match(html, new RegExp(`href="/account/orders/${ID}"`), 'each row links to its own order');
+});
+
+test('a 403 on an optional card is "may not read", not "session over": the cookie stays and the page carries on', async () => {
+  signedIn();
+  stubAonik({
+    ...ALL,
+    '/commerce/storefront/loyalty': { status: 403, body: { error: 'forbidden' } },
+    '/profiles/customers/me/addresses': { status: 403, body: { error: 'forbidden' } },
+  });
+
+  const read = text(renderToStaticMarkup(await AccountOverviewPage()));
+
+  assert.doesNotMatch(read, /points|Delivering to/);
+  assert.match(read, /Recent orders/);
+  assert.ok(cookieValue(SESSION_COOKIE), 'the session was not cleared');
+});
+
+test('a balance of zero draws no points card: Aonik answers zeros for "nothing earned" and for "no programme"', async () => {
+  signedIn();
+  stubAonik({ ...ALL, '/commerce/storefront/loyalty': { status: 200, body: { balancePoints: 0, reservedPoints: 0, availablePoints: 0, value: 0, highestFivePoundMarkSeen: 0 } } });
+
+  const read = text(renderToStaticMarkup(await AccountOverviewPage()));
+
+  assert.doesNotMatch(read, /points|Worth/);
+  assert.match(read, /Delivering to/);
+});
+
+test('addresses with none marked default say so, rather than "no saved address"', async () => {
+  signedIn();
+  stubAonik({
+    ...ALL,
+    '/profiles/customers/me/addresses': { status: 200, body: { version: 'v1', defaultAddressId: null, addresses: [{ id: 'a', type: 'Billing', line1: '1 A St', city: 'Leeds', postcode: 'LS1 1AA', country: 'GB', isDefault: false }] } },
+  });
+
+  const read = text(renderToStaticMarkup(await AccountOverviewPage()));
+
+  assert.match(read, /No default address set\./);
+  assert.doesNotMatch(read, /No saved address yet/);
 });
 
 test('a card that cannot be read is left out, never guessed: the page carries on', async () => {
@@ -201,6 +239,22 @@ test('the hero carries the Next delivery card for the soonest upcoming order', a
   assert.match(read, /Current: Cooking/);
   assert.match(html, new RegExp(`href="/account/orders/${ID}"`));
   assert.doesNotMatch(read, /Need to change this delivery|7am/);
+});
+
+test('the card skips an upcoming order with no step to show and takes the next that has one', async () => {
+  signedIn();
+  const [first, second] = ORDERS.body.items;
+  stubAonik({
+    ...ALL,
+    '/commerce/storefront/orders': {
+      status: 200,
+      body: { items: [{ ...first, orderId: 'odd', fulfilmentStatus: 'Mystery', deliveryDate: '2026-10-07' }, second.orderId === 'past-1' ? first : second], totalCount: 2, page: 1, pageSize: 20 },
+    },
+  });
+
+  const element = await NextDeliverySlot();
+  assert.ok(element);
+  assert.match(text(renderToStaticMarkup(element)), /We’re preparing your box/);
 });
 
 test('no upcoming order, no session or an unreadable list: no card', async () => {

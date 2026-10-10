@@ -4,6 +4,10 @@
  * 100 points = £1, never expire) are Aonik's, and `value` is its own figure in
  * pounds, never recomputed here.
  *
+ * Aonik answers 200 with zeros both for a customer who has earned nothing and
+ * when the programme is not switched on, so a balance of zero cannot be told
+ * from "no programme": the overview shows no card for it.
+ *
  * SERVER-ONLY — reads the session cookie.
  */
 
@@ -41,5 +45,5 @@ export function mapLoyaltyBalance(dto: LoyaltyBalanceDto): LoyaltyBalance {
 }
 
 export async function getMyLoyaltyBalance(): Promise<LoyaltyBalance> {
-  return mapLoyaltyBalance(await aonikAuthedFetch<LoyaltyBalanceDto>('/commerce/storefront/loyalty'));
+  return mapLoyaltyBalance(await aonikAuthedFetch<LoyaltyBalanceDto>('/commerce/storefront/loyalty', { forbiddenKeepsSession: true }));
 }

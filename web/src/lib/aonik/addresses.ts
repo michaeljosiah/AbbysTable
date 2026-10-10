@@ -68,5 +68,5 @@ export function mapAddressBook(dto: CustomerAddressBookDto): AddressBook {
 }
 
 export async function getMyAddressBook(): Promise<AddressBook> {
-  return mapAddressBook(await aonikAuthedFetch<CustomerAddressBookDto>('/profiles/customers/me/addresses'));
+  return mapAddressBook(await aonikAuthedFetch<CustomerAddressBookDto>('/profiles/customers/me/addresses', { forbiddenKeepsSession: true }));
 }

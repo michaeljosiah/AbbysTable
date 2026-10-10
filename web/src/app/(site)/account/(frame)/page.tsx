@@ -6,6 +6,7 @@ import { loadAccountOrders } from '@/lib/account/loadOrders';
 import { orderBoxLabel, orderHeading, orderStatusLabel } from '@/lib/account/orders';
 import { ACCOUNT_HOME_HREF } from '@/lib/account/sections';
 import { getMyAddressBook } from '@/lib/aonik/addresses';
+import { AonikError } from '@/lib/aonik/errors';
 import { getMyLoyaltyBalance } from '@/lib/aonik/loyalty';
 import { redirectToLogin, requireSignedIn } from '@/lib/auth/guard';
 import { SessionExpiredError } from '@/lib/auth/server';
@@ -28,7 +29,7 @@ async function optional<T>(read: Promise<T>): Promise<{ value?: T; ended: boolea
   } catch (error) {
     unstable_rethrow(error);
     if (error instanceof SessionExpiredError) return { ended: true };
-    console.error('[account] an overview card could not be read', error);
+    console.error('[account] an overview card could not be read', error instanceof AonikError ? error.status : error);
     return { ended: false };
   }
 }
@@ -61,9 +62,9 @@ export default async function AccountOverviewPage() {
         Overview
       </h2>
 
-      {points.value || addresses.value ? (
+      {(points.value && points.value.balancePoints > 0) || addresses.value ? (
         <div className={styles.ovwGrid}>
-          {points.value ? (
+          {points.value && points.value.balancePoints > 0 ? (
             <div className={styles.points}>
               <span className={styles.pointsIcon} aria-hidden="true">
                 <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor">
@@ -91,7 +92,9 @@ export default async function AccountOverviewPage() {
                   ))}
                 </p>
               ) : (
-                <p className={styles.p}>No saved address yet.</p>
+                <p className={styles.p}>
+                  {addresses.value.addresses.length > 0 ? 'No default address set.' : 'No saved address yet.'}
+                </p>
               )}
             </div>
           ) : null}
@@ -109,7 +112,7 @@ export default async function AccountOverviewPage() {
                 const status = orderStatusLabel(order);
                 return (
                   <div className={styles.row} key={order.orderId}>
-                    <Link href="/account/orders" className={styles.rowMain}>
+                    <Link href={`/account/orders/${encodeURIComponent(order.orderId)}`} className={styles.rowMain}>
                       <span className={styles.rowTitle}>{orderHeading(order)}</span>
                       <span className={styles.rowDetail}>
                         {[order.orderNumber, orderBoxLabel(order), status.label].filter(Boolean).join(' · ')}
