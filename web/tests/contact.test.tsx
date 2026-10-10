@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import test, { mock } from 'node:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 
+import { POST as postEnquiryRoute } from '../src/app/api/enquiries/route';
 import ContactPage from '../src/app/(site)/contact/page';
 import { ContactForm } from '../src/components/contact/ContactForm';
 import { ContactView, type ContactViewProps } from '../src/components/contact/ContactView';
@@ -29,6 +30,8 @@ import {
   isAcceptedImageType,
   MAX_ENQUIRY_IMAGE_BYTES,
   toEnquiry,
+  readEnquiryAnswer,
+  uploadName,
   validateEnquiry,
   type EnquiryAction,
   type EnquiryDraft,
@@ -48,11 +51,12 @@ import { OPENING_HOURS, SUPPORT_CONTACT, WHATSAPP_CONTACT } from '../src/lib/con
 import { PRIVATE_TABLE_HREF, PRIVATE_TABLE_WAITLIST_HREF } from '../src/lib/content/marketing';
 import { CONTACT_HREF, DELIVERY_FAQS_HREF, SOCIAL_LINKS } from '../src/lib/content/navigation';
 import { waitlistOpen } from '../src/lib/private-table/availability';
+import { isSubmissionId, newSubmissionId, referenceFor, submissionKey } from '../src/lib/contact/submission';
 import { clearPublishedListsCache } from '../src/lib/aonik/signupLists';
 import { WAITLIST_SERVICES } from '../src/lib/content/privateTable';
 
-import { AONIK_BASE, TENANT_ID, configureAonik, useAonik } from './support/aonik';
-import { resetCookies } from './support/next-headers';
+import { AONIK_BASE, TENANT_ID, aonikRequests, configureAonik, useAonik, useAonik as stubAonik } from './support/aonik';
+import { resetCookies, setRequestHeaders } from './support/next-headers';
 
 /*
  * Contact us (#24). Sources: design/Abby's Table - Contact Us.dc.html,
@@ -359,24 +363,29 @@ function formOf(values: Partial<EnquiryDraft>, images: File[] = []): FormData {
   return form;
 }
 
-test('there is no enquiry endpoint yet, so this deployment cannot send — in either mode', async () => {
-  assert.equal(ENQUIRY_PATH, null, 'aonik#356 has shipped? Wire it, then update this test and the spec');
+const VALID_ID = '3f2b8c1e-9a4d-4e7b-8c21-5d6e7f8a9b0c';
+
+test('enquiries go to Aonik in live mode only — demo never sends', async () => {
+  assert.equal(ENQUIRY_PATH, '/v1/contact-enquiries');
   resetCookies();
   configureAonik({ AONIK_DATA_MODE: 'live' });
-  assert.equal(await enquiriesAvailable(), false);
-  env.AONIK_DATA_MODE = 'demo';
-  assert.equal(await enquiriesAvailable(), false);
-  delete env.AONIK_DATA_MODE;
+  try {
+    assert.equal(await enquiriesAvailable(), true);
+    env.AONIK_DATA_MODE = 'demo';
+    assert.equal(await enquiriesAvailable(), false);
+  } finally {
+    delete env.AONIK_DATA_MODE;
+  }
 });
 
-test('the action re-checks every field and never answers "sent" without an endpoint', async () => {
+test('the action re-checks every field and never sends what the form would refuse', async () => {
   resetCookies();
-  configureAonik({ AONIK_DATA_MODE: 'live' });
+  configureAonik({ AONIK_DATA_MODE: 'demo' });
   const original = globalThis.fetch;
   let requests = 0;
   globalThis.fetch = (async () => {
     requests += 1;
-    return new Response(null, { status: 201 });
+    return new Response(null, { status: 202 });
   }) as typeof fetch;
   try {
     const empty = await sendEnquiryAction({ status: 'idle' }, new FormData());
@@ -399,10 +408,9 @@ test('the action re-checks every field and never answers "sent" without an endpo
     assert.equal(blank.status, 'invalid');
     assert.equal(blank.imageError, IMAGE_MESSAGES.empty('blank.jpg'));
     const noFile = await sendEnquiryAction({ status: 'idle' }, formOf({}, [new File([], '')]));
-    assert.equal(noFile.status, 'unavailable', 'the "no file" part is not an attachment');
+    assert.equal(noFile.status, 'unavailable', 'the "no file" part is not an attachment; demo cannot send');
 
-    const valid = await sendEnquiryAction({ status: 'idle' }, formOf({}));
-    assert.equal(valid.status, 'unavailable');
+    assert.equal((await sendEnquiryAction({ status: 'idle' }, formOf({}))).status, 'unavailable');
     assert.equal(requests, 0, 'nothing was sent anywhere');
   } finally {
     globalThis.fetch = original;
@@ -410,60 +418,178 @@ test('the action re-checks every field and never answers "sent" without an endpo
   }
 });
 
-test('the request: multipart, the contract’s field names, the tenant, images under one key', () => {
+test('what Aonik would refuse is cleaned or counted as it counts', () => {
+  // Control characters: a pasted tab in a name is a space; in a message only line breaks and tabs stay.
+  const cleaned = toEnquiry(draft({ name: 'Ada\tObi', message: 'Line one\r\nline\u0007 two\ttabbed.' }));
+  assert.ok('enquiry' in cleaned);
+  assert.equal(cleaned.enquiry.name, 'Ada Obi');
+  assert.equal(cleaned.enquiry.message, 'Line one\r\nline two\ttabbed.');
+  // Aonik counts UTF-16 units, as the browser's maxLength does: 2,501 emoji are 5,002.
+  assert.equal(validateEnquiry(draft({ message: '🍲'.repeat(2501) })).message, ENQUIRY_MESSAGES.messageLong);
+  assert.equal(validateEnquiry(draft({ message: '🍲'.repeat(2500) })).message, undefined);
+  assert.equal(validateEnquiry(draft({ name: '🍲'.repeat(101) })).name, ENQUIRY_MESSAGES.nameLong);
+});
+
+test('an image is sent under a name its type agrees with — Aonik refuses one that disagrees', () => {
+  assert.equal(uploadName('okra.jpg', 'image/jpeg'), 'okra.jpg');
+  assert.equal(uploadName('OKRA.JPEG', 'image/jpeg'), 'OKRA.JPEG');
+  assert.equal(uploadName('okra.jfif', 'image/jpeg'), 'okra.jpg');
+  assert.equal(uploadName('pasted', 'image/png'), 'pasted.png');
+  assert.equal(uploadName('photo.heif', 'image/heic'), 'photo.heif');
+  assert.equal(uploadName('photo.jpg', 'image/heic'), 'photo.heic');
+  assert.equal(uploadName('IMG_1.HEIC', ''), 'IMG_1.HEIC', 'a typeless HEIC keeps the name it was accepted by');
+  assert.equal(uploadName('.png', 'image/jpeg'), 'image.jpg');
+});
+
+test('the request: multipart, Aonik’s field names and reference, the tenant, images under one key', async () => {
   const result = toEnquiry(draft({ topic: 'order', orderNumber: 'AT-1042' }));
   assert.ok('enquiry' in result);
-  const photo = new File(['jpeg'], 'okra.jpg', { type: 'image/jpeg' });
-  const body = toEnquiryForm(result.enquiry, [photo]);
+  const photo = new File(['jpeg'], 'okra.jfif', { type: 'image/jpeg' });
+  const body = toEnquiryForm(result.enquiry, [photo], VALID_ID);
+  assert.equal(body.get('submission_id'), VALID_ID);
   assert.equal(body.get('name'), 'Ada');
   assert.equal(body.get('email'), 'ada@example.test');
   assert.equal(body.get('topic'), 'order');
   assert.equal(body.get('order_number'), 'AT-1042');
   assert.equal(body.get('message'), 'Does the egusi contain nuts?');
-  assert.equal(body.getAll('images').length, 1);
+  assert.equal((body.getAll('images')[0] as File).name, 'okra.jpg');
 
   const noOrder = toEnquiry(draft());
   assert.ok('enquiry' in noOrder);
-  assert.equal(toEnquiryForm(noOrder.enquiry, []).has('order_number'), false);
-});
+  assert.equal(toEnquiryForm(noOrder.enquiry, [], VALID_ID).has('order_number'), false);
 
-test('only a 2xx from the endpoint counts as accepted', async () => {
-  const result = toEnquiry(draft());
-  assert.ok('enquiry' in result);
   const original = globalThis.fetch;
   const seen: Array<{ url: string; init: RequestInit | undefined }> = [];
-  let status = 201;
   globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
     seen.push({ url: String(input), init });
-    return new Response(status === 201 ? '{}' : '{"error":"down"}', { status });
+    return new Response('{"id":"e-1","receivedAtUtc":"2026-10-10T09:00:00Z"}', { status: 202 });
   }) as typeof fetch;
-  const config = { baseUrl: AONIK_BASE, tenantId: TENANT_ID };
   try {
-    await postEnquiry('/commerce/enquiries', config, result.enquiry, []);
-    assert.equal(seen[0].url, `${AONIK_BASE}/commerce/enquiries`);
+    await postEnquiry({ baseUrl: AONIK_BASE, tenantId: TENANT_ID }, result.enquiry, [], VALID_ID);
+    assert.equal(seen[0].url, `${AONIK_BASE}/v1/contact-enquiries`);
     assert.equal(seen[0].init?.method, 'POST');
     assert.ok(seen[0].init?.body instanceof FormData, 'multipart, not JSON');
     const headers = new Headers(seen[0].init?.headers);
     assert.equal(headers.get('X-Tenant-Id'), TENANT_ID);
     // fetch sets the multipart boundary itself; a JSON content type would break it.
     assert.equal(headers.get('Content-Type'), null);
-
-    // An empty 200 or 201 is still the acceptance — not a parse failure that
-    // would tell the customer nothing was sent and invite a duplicate.
-    globalThis.fetch = (async () => new Response(null, { status: 200 })) as typeof fetch;
-    await postEnquiry('/commerce/enquiries', config, result.enquiry, []);
-    globalThis.fetch = (async () => new Response('', { status: 201 })) as typeof fetch;
-    await postEnquiry('/commerce/enquiries', config, result.enquiry, []);
-
-    globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
-      seen.push({ url: String(input), init });
-      return new Response('{"error":"down"}', { status: 503 });
-    }) as typeof fetch;
-    status = 503;
-    await assert.rejects(postEnquiry('/commerce/enquiries', config, result.enquiry, []));
   } finally {
     globalThis.fetch = original;
   }
+});
+
+/** Runs the action live against `reply`, returning its answer and what reached Aonik. */
+async function sendLive(
+  reply: { status: number; body?: unknown },
+  form: FormData = formOf({}),
+  requestHeaders: Record<string, string> = {},
+) {
+  resetCookies();
+  setRequestHeaders(requestHeaders);
+  configureAonik({ AONIK_DATA_MODE: 'live' });
+  stubAonik(() => reply);
+  const quiet = [mock.method(console, 'error', () => undefined), mock.method(console, 'warn', () => undefined)];
+  try {
+    return await sendEnquiryAction({ status: 'idle' }, form);
+  } finally {
+    for (const logged of quiet) logged.mock.restore();
+    delete env.AONIK_DATA_MODE;
+  }
+}
+
+test('"sent" only on Aonik’s 202, and with the reference the form kept', async () => {
+  const form = formOf({});
+  form.set('submissionId', VALID_ID);
+  assert.deepEqual(await sendLive({ status: 202, body: { id: 'e-1', receivedAtUtc: '2026-10-10T09:00:00Z' } }, form), {
+    status: 'sent',
+    email: 'ada@example.test',
+  });
+  const [request] = aonikRequests;
+  assert.equal(request.path, '/v1/contact-enquiries');
+
+  // The customer's address goes with it — Aonik's limit is per address — and
+  // only when it is one.
+  await sendLive({ status: 202 }, formOf({}), { 'x-forwarded-for': '203.0.113.9, 10.0.0.1' });
+  assert.equal(aonikRequests[0].headers['x-forwarded-for'], '203.0.113.9');
+  await sendLive({ status: 202 }, formOf({}), { 'x-forwarded-for': 'unknown; drop table' });
+  assert.equal(aonikRequests[0].headers['x-forwarded-for'], undefined);
+
+  // No reference posted (no JavaScript): the action makes one rather than refuse.
+  assert.equal((await sendLive({ status: 202 })).status, 'sent');
+  // A post with something that is not a UUID is given a fresh one too.
+  const odd = formOf({});
+  odd.set('submissionId', 'not-a-uuid');
+  assert.equal((await sendLive({ status: 202 }, odd)).status, 'sent');
+});
+
+test('Aonik’s refusals, in the form’s own words — never its text', async () => {
+  const fields = await sendLive({
+    status: 422,
+    body: {
+      code: 'contact.validation_failed',
+      error: 'Check the enquiry fields and images before submitting.',
+      fieldErrors: { email: ['Enter a valid email address of up to 254 characters.'], message: ['Enter a message of 10 to 5,000 characters.'] },
+      imageProblems: [],
+    },
+  });
+  assert.deepEqual(fields, {
+    status: 'invalid',
+    errors: { email: ENQUIRY_MESSAGES.emailInvalid, message: ENQUIRY_MESSAGES.messageRefused },
+    imageError: undefined,
+  });
+
+  const images = await sendLive({
+    status: 422,
+    body: {
+      code: 'contact.validation_failed',
+      error: 'Check the enquiry fields and images before submitting.',
+      fieldErrors: {},
+      imageProblems: [{ index: 0, fileName: 'okra.jpg', code: 'image_format', message: 'Choose a JPG, PNG or HEIC image.' }],
+    },
+  });
+  assert.deepEqual(images, { status: 'invalid', errors: undefined, imageError: IMAGE_MESSAGES.type('okra.jpg') });
+  for (const [code, expected] of [
+    ['image_dimensions', IMAGE_MESSAGES.tooDetailed('okra.jpg')],
+    ['image_invalid', IMAGE_MESSAGES.unreadable('okra.jpg')],
+    ['image_size', IMAGE_MESSAGES.size('okra.jpg')],
+    ['infected', IMAGE_MESSAGES.refused('okra.jpg')],
+  ] as const) {
+    const answer = await sendLive({
+      status: 422,
+      body: { code: 'contact.validation_failed', fieldErrors: {}, imageProblems: [{ index: 0, fileName: 'okra.jpg', code }] },
+    });
+    assert.equal(answer.imageError, expected, code);
+  }
+
+  // A refusal of nothing the customer can change is a failure to send.
+  assert.deepEqual(
+    await sendLive({ status: 422, body: { code: 'contact.validation_failed', fieldErrors: { submission_id: ['Supply a submission ID.'] } } }),
+    { status: 'error' },
+  );
+  assert.deepEqual(await sendLive({ status: 413 }), { status: 'invalid', imageError: IMAGE_MESSAGES.together });
+  // The reference belongs to other details: the next attempt takes a fresh one.
+  assert.deepEqual(await sendLive({ status: 409, body: { code: 'contact.submission_conflict', error: 'Used.' } }), {
+    status: 'error',
+    newSubmission: true,
+  });
+  // Not taking enquiries (routing not configured, or a dependency down).
+  assert.deepEqual(await sendLive({ status: 503, body: { code: 'contact.unavailable', error: 'Unavailable.' } }), {
+    status: 'unavailable',
+  });
+  assert.deepEqual(await sendLive({ status: 429 }), { status: 'error' });
+});
+
+test('a retry of the same content keeps its reference; any change takes a new one', () => {
+  const fields = { name: 'Ada', email: 'ada@example.test', topic: 'dish', orderNumber: '', message: 'Does the egusi contain nuts?' };
+  const photo = { name: 'okra.jpg', size: 10, lastModified: 1 };
+  const first = referenceFor(null, submissionKey(fields, [photo]));
+  assert.ok(isSubmissionId(first.id));
+  assert.equal(referenceFor(first, submissionKey({ ...fields }, [{ ...photo }])).id, first.id, 'unchanged: the same');
+  assert.notEqual(referenceFor(first, submissionKey({ ...fields, message: 'Does the egusi contain peanuts?' }, [photo])).id, first.id);
+  assert.notEqual(referenceFor(first, submissionKey(fields, [])).id, first.id, 'an image removed');
+  assert.notEqual(referenceFor(null, submissionKey(fields, [photo])).id, first.id, 'after Aonik asked for a new one');
+  assert.equal(isSubmissionId('00000000-0000-0000-0000-000000000000'), false, 'never the nil UUID');
+  for (let i = 0; i < 20; i += 1) assert.ok(isSubmissionId(newSubmissionId()));
 });
 
 /* ---- The page ------------------------------------------------------------------------ */
@@ -634,5 +760,107 @@ test('live: the Private Table panel shows while the waitlist is published with e
   } finally {
     delete process.env.AONIK_DATA_MODE;
     clearPublishedListsCache();
+  }
+});
+
+test('live: the page offers the form — there is somewhere real to send it', async () => {
+  resetCookies();
+  clearPublishedListsCache();
+  configureAonik({ AONIK_DATA_MODE: 'live' });
+  useAonik(() => ({ status: 200, body: { lists: [] } }));
+  try {
+    const html = renderToStaticMarkup(await ContactPage());
+    assert.match(html, /<form/);
+    assert.match(textOf(html), /Send message/);
+    assert.doesNotMatch(textOf(html), /Our message form isn’t available yet/);
+  } finally {
+    delete env.AONIK_DATA_MODE;
+    clearPublishedListsCache();
+  }
+});
+
+/* ---- /api/enquiries: the door photos fit through ------------------------------------------ */
+
+function enquiryRequest(form: FormData, headers: Record<string, string> = {}): Request {
+  const request = new Request('http://shop.test/api/enquiries', { method: 'POST', body: form, headers });
+  return request;
+}
+
+/** A request whose body has been measured, as a browser's fetch of a FormData is. */
+async function measured(form: FormData, extra: Record<string, string> = {}): Promise<Request> {
+  const probe = new Request('http://shop.test/api/enquiries', { method: 'POST', body: form });
+  const bytes = await probe.arrayBuffer();
+  return new Request('http://shop.test/api/enquiries', {
+    method: 'POST',
+    body: bytes,
+    headers: { 'content-type': probe.headers.get('content-type') ?? '', 'content-length': String(bytes.byteLength), ...extra },
+  });
+}
+
+test('the route answers what the action answers, as JSON — photos and all', async () => {
+  resetCookies();
+  configureAonik({ AONIK_DATA_MODE: 'live' });
+  useAonik(() => ({ status: 202, body: { id: 'e-1', receivedAtUtc: '2026-10-10T09:00:00Z' } }));
+  try {
+    const form = formOf({}, [new File(['jpeg'], 'okra.jpg', { type: 'image/jpeg' })]);
+    form.set('submissionId', VALID_ID);
+    const response = await postEnquiryRoute(await measured(form, { origin: 'http://shop.test', host: 'shop.test' }));
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    assert.deepEqual(await response.json(), { status: 'sent', email: 'ada@example.test' });
+    assert.equal(aonikRequests.length, 1);
+  } finally {
+    delete env.AONIK_DATA_MODE;
+  }
+});
+
+test('the route refuses what it must, before reading a byte', async () => {
+  resetCookies();
+  configureAonik({ AONIK_DATA_MODE: 'demo' });
+  try {
+    const crossSite = await postEnquiryRoute(await measured(formOf({}), { origin: 'https://elsewhere.example', host: 'shop.test' }));
+    assert.equal(crossSite.status, 403, 'no other site sends enquiries through a visitor');
+    // Behind a proxy the forwarded host is the site's own.
+    const proxied = await postEnquiryRoute(
+      await measured(formOf({}), { origin: 'https://abbystable.example', host: '10.0.0.4:3000', 'x-forwarded-host': 'abbystable.example' }),
+    );
+    assert.notEqual(proxied.status, 403);
+
+    const unmeasured = enquiryRequest(formOf({}));
+    assert.equal((await postEnquiryRoute(unmeasured)).status, 411);
+
+    const huge = new Request('http://shop.test/api/enquiries', {
+      method: 'POST',
+      body: 'x',
+      headers: { 'content-type': 'multipart/form-data; boundary=x', 'content-length': String(33 * 1024 * 1024) },
+    });
+    const tooBig = await postEnquiryRoute(huge);
+    assert.equal(tooBig.status, 413);
+    assert.deepEqual(await tooBig.json(), { status: 'invalid', imageError: IMAGE_MESSAGES.together });
+
+    const json = new Request('http://shop.test/api/enquiries', {
+      method: 'POST',
+      body: '{}',
+      headers: { 'content-type': 'application/json', 'content-length': '2' },
+    });
+    assert.equal((await postEnquiryRoute(json)).status, 415);
+
+    // Demo cannot send, and says so in the body the form reads.
+    assert.deepEqual(await (await postEnquiryRoute(await measured(formOf({})))).json(), { status: 'unavailable' });
+
+    env.MAINTENANCE_MODE = 'true';
+    const down = await postEnquiryRoute(await measured(formOf({})));
+    assert.equal(down.status, 503);
+    assert.equal(down.headers.get('retry-after'), '3600');
+  } finally {
+    delete env.MAINTENANCE_MODE;
+    delete env.AONIK_DATA_MODE;
+  }
+});
+
+test('the form reads only a real answer from the route', () => {
+  assert.deepEqual(readEnquiryAnswer({ status: 'sent', email: 'ada@example.test' }), { status: 'sent', email: 'ada@example.test' });
+  for (const body of [null, 'nope', {}, { status: 'joined' }, { error: 'down' }]) {
+    assert.deepEqual(readEnquiryAnswer(body), { status: 'error' }, JSON.stringify(body));
   }
 });

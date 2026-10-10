@@ -142,10 +142,20 @@ Conventions inside `web/` that are easy to get wrong:
 - **Contact (#24): `/contact`** (`ContactView`, one 12-column grid — the hours block is ONE cell
   that CSS moves from under the Phone card to the sidebar; never reparent it with script). The
   form NEVER fakes success: it renders only when the page gets a real send action, i.e.
-  `enquiriesAvailable()` — live data plus the Aonik enquiry endpoint, `ENQUIRY_PATH` in
-  `src/lib/aonik/enquiries.ts`, `null` until aonik#356 ships; demo mode never sends. Until then the
-  page says the form isn't available (#6's rule). `sendEnquiryAction` re-checks everything and
-  answers `sent` only after a 2xx. Phone, email, WhatsApp (+ QR) and the hours come from
+  `enquiriesAvailable()` — live data and a configured Aonik (`POST /v1/contact-enquiries`,
+  aonik#356); demo never sends and the page says the form isn't available (#6's rule). Scripted, the
+  form posts to `/api/enquiries` — the ONLY door photos fit through (a server action takes 1MB);
+  that route is excluded from the middleware matcher (middleware buffers 10MB) and answers
+  maintenance itself (`src/lib/status-pages/maintenance.ts`). The server action is the no-JS door
+  (text only). Both run `sendEnquiryForm` (`src/lib/contact/send.ts`): re-check everything, answer
+  `sent` only after Aonik's 202, map its 422 `fieldErrors`/`imageProblems` to OUR messages, 409 →
+  fresh submission reference, 503 → unavailable. Every send carries a `submission_id` kept while
+  the content is unchanged (`src/lib/contact/submission.ts`) so a retry can't send twice; images go
+  under names their type agrees with (`uploadName`) and the customer's address as
+  `X-Forwarded-For` (Aonik limits 10/min per address — per CUSTOMER only if Aonik trusts the
+  storefront in `ForwardedHeaders:KnownProxies` with a forward limit covering it; otherwise the
+  whole site shares one allowance). The thanks says "We'll send a confirmation to" — Aonik sends a
+  receipt, not a copy. Phone, email, WhatsApp (+ QR) and the hours come from
   `src/lib/content/contact.ts` (all `null` → "to be confirmed", never a mailto:/tel:/wa.me with no
   value; values from aonik#358 later). Never copy the design's number, email, hours, bank holidays
   or placeholder QR. "Open now / Closed" is computed in the BROWSER in Europe/London from

@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import {
-  startTransition,
   useActionState,
   useCallback,
   useEffect,
@@ -30,7 +29,10 @@ import {
   type EnquiryErrors,
   type EnquiryField,
   type EnquiryState,
+  ENQUIRY_ROUTE,
+  readEnquiryAnswer,
 } from '@/lib/contact/enquiry';
+import { referenceFor, submissionKey } from '@/lib/contact/submission';
 import { PRIVACY_ITEM } from '@/lib/content/navigation';
 import { revealUnderHeader } from '@/lib/dom/reveal';
 
@@ -83,9 +85,11 @@ function FieldError({ id, message }: { id: string; message?: string }) {
  * "Contact — what was settled"; behaviour guide §10).
  *
  * Rendered only when the page has a REAL send action to give it (the
- * newsletter's rule, #6): until Aonik can accept an enquiry (aonik#356) the
- * page holds it back. It thanks the customer only when the action answers
- * `sent`, which the action does only once the endpoint accepted the enquiry.
+ * newsletter's rule, #6): live data and Aonik's enquiry endpoint (aonik#356);
+ * in demo the page holds it back. It thanks the customer only when the action
+ * answers `sent`, which the action does only after Aonik's 202. Each send
+ * carries a submission reference, kept while the content is unchanged, so a
+ * retry after a lost answer cannot send the message twice.
  *
  * - Validation is ours (`noValidate`): inline, persistent, `aria-invalid` +
  *   `aria-describedby`, cleared as the field is corrected. A failed submit
@@ -101,13 +105,21 @@ function FieldError({ id, message }: { id: string; message?: string }) {
  *   focus, and echoes the address. A failed send says so and keeps every
  *   field and image as it was.
  *
- * Posts through `useActionState`; built by hand from state so the attached
- * images (picked and dropped over several turns) are what is sent.
+ * Two doors, one answer (`@/lib/contact/send`). Scripted, it posts a form
+ * built by hand from state — so the attached images (picked and dropped over
+ * several turns) are what is sent — to `/api/enquiries`, the only door photos
+ * fit through (a server action takes 1MB). Without JavaScript the page posts
+ * to the server action (`action`), text only, and comes back with its answer.
  */
 export function ContactForm({ action }: { action: EnquiryAction }) {
-  const [state, dispatch, isPending] = useActionState<EnquiryState, FormData>(action, {
+  const [actionState, dispatch, actionPending] = useActionState<EnquiryState, FormData>(action, {
     status: 'idle',
   });
+  /** The answer from `/api/enquiries`, once a scripted send has had one. */
+  const [routeState, setRouteState] = useState<EnquiryState | null>(null);
+  const [sending, setSending] = useState(false);
+  const state = routeState ?? actionState;
+  const isPending = actionPending || sending;
   const [draft, setDraft] = useState<EnquiryDraft>(EMPTY_ENQUIRY);
   const [errors, setErrors] = useState<EnquiryErrors>({});
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -140,6 +152,17 @@ export function ContactForm({ action }: { action: EnquiryAction }) {
   const removeRefs = useRef(new Map<number, HTMLButtonElement>());
   const nextKey = useRef(0);
   const focusFrame = useRef(0);
+  /**
+   * The submission reference and the content it was sent with. A retry of the
+   * same content reuses it — so a send whose answer was lost cannot become two
+   * messages — and any change takes a fresh one (`@/lib/contact/submission`).
+   */
+  const submission = useRef<{ key: string; id: string } | null>(null);
+
+  // Aonik refused the reference as belonging to other details: start afresh.
+  useEffect(() => {
+    if (state.newSubmission) submission.current = null;
+  }, [state]);
 
   // Preview URLs are revoked when the page goes, or every attach-and-leave
   // would hold the image for the rest of the session.
@@ -234,7 +257,16 @@ export function ContactForm({ action }: { action: EnquiryAction }) {
       focusField(first);
       return;
     }
+    const fields = {
+      name: draft.name,
+      email: draft.email,
+      topic: draft.topic,
+      orderNumber: asksForOrderNumber(draft.topic) ? draft.orderNumber : '',
+      message: draft.message,
+    };
+    submission.current = referenceFor(submission.current, submissionKey(fields, attachments.map((a) => a.file)));
     const form = new FormData();
+    form.set(ENQUIRY_FORM_FIELDS.submissionId, submission.current.id);
     form.set(ENQUIRY_FORM_FIELDS.name, draft.name);
     form.set(ENQUIRY_FORM_FIELDS.email, draft.email);
     form.set(ENQUIRY_FORM_FIELDS.topic, draft.topic);
@@ -243,7 +275,13 @@ export function ContactForm({ action }: { action: EnquiryAction }) {
     for (const attachment of attachments) {
       form.append(ENQUIRY_FORM_FIELDS.images, attachment.file, attachment.name);
     }
-    startTransition(() => dispatch(form));
+    setSending(true);
+    void fetch(ENQUIRY_ROUTE, { method: 'POST', body: form })
+      .then(async (response) => readEnquiryAnswer(await response.json().catch(() => null)))
+      // Offline, or the request never answered: not sent, and said so.
+      .catch((): EnquiryState => ({ status: 'error' }))
+      .then(setRouteState)
+      .finally(() => setSending(false));
   };
 
   /* ---- Images ---- */
@@ -312,6 +350,7 @@ export function ContactForm({ action }: { action: EnquiryAction }) {
     setDraft(EMPTY_ENQUIRY);
     setErrors({});
     setSettled(state);
+    submission.current = null;
     requestAnimationFrame(() => nameRef.current?.focus());
   };
 
@@ -329,8 +368,11 @@ export function ContactForm({ action }: { action: EnquiryAction }) {
           </svg>
         </span>
         <p className={styles.successTitle}>Thank you — your message has been sent.</p>
+        {/* Departure from the design ("We've sent a copy to …"): Aonik
+            acknowledges receipt with a reference, not a copy of the message,
+            and its 202 means that email is queued, not delivered. */}
         <p className={styles.successText}>
-          We usually reply within two working days. We&rsquo;ve sent a copy to{' '}
+          We usually reply within two working days. We&rsquo;ll send a confirmation to{' '}
           <strong className={styles.successEmail}>{state.email}</strong>.
         </p>
         <button type="button" className={styles.again} onClick={sendAnother}>

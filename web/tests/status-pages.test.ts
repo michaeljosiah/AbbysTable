@@ -190,6 +190,8 @@ test('the middleware matches every page and API path, but not /.swa or static fi
     '/favicon.ico',
     '/icon.svg',
     '/apple-icon.png',
+    // Its photos are larger than middleware buffers; it answers maintenance itself.
+    '/api/enquiries',
   ]) {
     assert.ok(!matches(pathname), pathname);
   }

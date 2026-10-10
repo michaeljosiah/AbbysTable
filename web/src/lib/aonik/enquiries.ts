@@ -1,41 +1,41 @@
 /**
- * Customer enquiries — the Contact form's submission to Aonik (contract §3e).
+ * Customer enquiries — the Contact form's submission to Aonik (contract §3e;
+ * michaeljosiah/aonik#356, `POST /v1/contact-enquiries`).
  *
- * THE ENDPOINT DOES NOT EXIST YET (michaeljosiah/aonik#356). Until it does,
- * `ENQUIRY_PATH` is `null`, `enquiriesAvailable()` is false and the Contact
- * page holds its form back — the newsletter's precedent (#6): a form that
- * says "your message has been sent" while sending nothing is a live-looking
- * control that does nothing, and here a customer would be waiting two working
- * days for a reply that can never come.
+ * Multipart, in Aonik's field names: `submission_id` (a UUID kept across
+ * unchanged retries, `@/lib/contact/submission`), `name`, `email`, `topic`
+ * (the six ids), `order_number` (only for an existing order), `message` and up
+ * to three `images`. Aonik answers 202 once the enquiry and its two emails
+ * (the staff notification, routed by topic, and the customer's
+ * acknowledgement with a receipt reference) are SAVED — a receipt, not a
+ * promise that email has arrived, and the page words its thanks that way.
  *
- * Demo mode never sends either. There is nowhere to send to, and a
- * production deployment with no Aonik configured also runs on demo data, so a
- * demo "sent" would reach real customers — the same reason demo mode never
- * offers ordering and has no accounts.
+ * Images are checked by Aonik for real: content sniffed and matched to the
+ * name, virus-scanned, re-encoded without metadata (EXIF/GPS stripped), stored
+ * privately. Its refusals — 422 `contact.validation_failed` with `fieldErrors`
+ * and `imageProblems`, 409 `contact.submission_conflict`, 413, 429 and 503
+ * `contact.unavailable` (routing not configured, or a dependency down) — are
+ * mapped by the action (`@/lib/contact/actions`).
  *
- * When aonik#356 ships:
- *  1. set `ENQUIRY_PATH` to its path;
- *  2. reconcile `toEnquiryForm` with its real field names — the ones here are
- *     the contract's list (`name`, `email`, `topic`, `order_number?`,
- *     `message`, `images[]`), NOT a shipped DTO;
- *  3. confirm it does what the page promises and the contract requires: an
- *     acknowledgement email ("We've sent a copy to …"), routing by subject,
- *     spam protection with no visible puzzle, and server-side type, size,
- *     count and content checks, virus scanning and EXIF stripping on images.
+ * Demo mode never sends: there is nowhere to send to, and a production
+ * deployment with no Aonik configured also runs on demo data, so a demo
+ * "sent" would reach real customers — the same reason demo mode never offers
+ * ordering and has no accounts.
  *
  * SERVER-ONLY.
  */
 
-import type { Enquiry } from '@/lib/contact/enquiry';
+import { uploadName, type Enquiry } from '@/lib/contact/enquiry';
+import { clientAddress } from '@/lib/request/clientAddress';
 
 import { readAonikConfig, resolveDataMode, type AonikConfig } from './dataMode';
 import { aonikFetch } from './http';
 
-/**
- * The Aonik path that accepts an enquiry, or `null` while there is none
- * (aonik#356). The ONE switch: set it and the form appears in live mode.
- */
-export const ENQUIRY_PATH: string | null = null;
+/** Aonik's enquiry endpoint. */
+export const ENQUIRY_PATH = '/v1/contact-enquiries';
+
+/** How long a send may take, images and scanning included. */
+export const ENQUIRY_TIMEOUT_MS = 60_000;
 
 /** Raised when this deployment cannot send an enquiry at all. */
 export class EnquiriesUnavailableError extends Error {
@@ -46,12 +46,12 @@ export class EnquiriesUnavailableError extends Error {
 }
 
 /**
- * Whether an enquiry sent from this deployment would really reach Abby's
- * Table: an endpoint exists, the data is live, and Aonik is configured. Never
- * throws.
+ * Whether an enquiry sent from this deployment would reach Aonik: the data is
+ * live and Aonik is configured. Whether the TENANT takes enquiries (routing
+ * set up) only Aonik knows; it answers 503 `contact.unavailable` when not,
+ * which the form reports as "can't be sent from this page". Never throws.
  */
 export async function enquiriesAvailable(): Promise<boolean> {
-  if (ENQUIRY_PATH === null) return false;
   try {
     const { mode } = await resolveDataMode();
     return mode === 'live' && readAonikConfig() !== null;
@@ -61,52 +61,63 @@ export async function enquiriesAvailable(): Promise<boolean> {
 }
 
 /**
- * The multipart body, in the contract's field names (§3e). The order number
- * is sent only when there is one, and images under one repeated key.
+ * The multipart body, in Aonik's field names. The order number goes only when
+ * there is one, and images under one repeated key, each named to match its
+ * type (`uploadName`).
  */
-export function toEnquiryForm(enquiry: Enquiry, images: readonly File[]): FormData {
+export function toEnquiryForm(enquiry: Enquiry, images: readonly File[], submissionId: string): FormData {
   const form = new FormData();
+  form.append('submission_id', submissionId);
   form.append('name', enquiry.name);
   form.append('email', enquiry.email);
   form.append('topic', enquiry.topic);
   if (enquiry.orderNumber) form.append('order_number', enquiry.orderNumber);
   form.append('message', enquiry.message);
-  for (const image of images) form.append('images', image, image.name);
+  for (const image of images) form.append('images', image, uploadName(image.name, image.type));
   return form;
 }
 
 /**
- * Sends one enquiry to `path`. Resolves only when Aonik answered 2xx — that
- * answer is the acceptance the page's "sent" rests on; anything else throws
- * (`AonikError`, or the network's own error). Never cached, never retried:
- * a retry could send the message twice.
+ * Sends one enquiry. Resolves only when Aonik answered 2xx — that answer is
+ * the acceptance the page's "sent" rests on; anything else throws
+ * (`AonikError`, or the network's own error). Never cached, and never retried
+ * here: a retry is the customer's, under the same reference, so it cannot
+ * send the message twice.
  */
 export async function postEnquiry(
-  path: string,
   config: AonikConfig,
   enquiry: Enquiry,
   images: readonly File[],
+  submissionId: string,
+  forwardedFor?: string,
 ): Promise<void> {
-  await aonikFetch<void>(path, {
+  await aonikFetch<void>(ENQUIRY_PATH, {
     baseUrl: config.baseUrl,
     tenantId: config.tenantId,
     policy: 'volatile',
     method: 'POST',
-    body: toEnquiryForm(enquiry, images),
-    // The 2xx is the acceptance; an empty 200/201 must not read as a failure
-    // and invite a second, duplicate send.
+    body: toEnquiryForm(enquiry, images, submissionId),
+    // The 202 is the acceptance; its receipt body is not needed here.
     ignoreBody: true,
+    signal: AbortSignal.timeout(ENQUIRY_TIMEOUT_MS),
+    // Aonik limits enquiries per tenant and address (10 a minute by default).
+    // From here every enquiry comes from this server, so without the
+    // customer's address — and Aonik trusting this server to give it — the
+    // whole site shares one allowance.
+    forwardedFor,
   });
 }
 
 /** Sends an enquiry from this deployment, or throws `EnquiriesUnavailableError`. */
-export async function submitEnquiry(enquiry: Enquiry, images: readonly File[]): Promise<void> {
-  if (!(await enquiriesAvailable()) || ENQUIRY_PATH === null) {
-    throw new EnquiriesUnavailableError(
-      'Enquiries need the Aonik enquiry endpoint (michaeljosiah/aonik#356) and live data.',
-    );
+export async function submitEnquiry(
+  enquiry: Enquiry,
+  images: readonly File[],
+  submissionId: string,
+): Promise<void> {
+  if (!(await enquiriesAvailable())) {
+    throw new EnquiriesUnavailableError('Enquiries need live data and a configured Aonik.');
   }
   const config = readAonikConfig();
   if (!config) throw new EnquiriesUnavailableError('Aonik is not configured.');
-  await postEnquiry(ENQUIRY_PATH, config, enquiry, images);
+  await postEnquiry(config, enquiry, images, submissionId, (await clientAddress()) ?? undefined);
 }

@@ -18,7 +18,7 @@
  * SERVER-ONLY.
  */
 
-import { headers } from 'next/headers';
+import { clientAddress } from '@/lib/request/clientAddress';
 
 /** Sign-ups to one list from one address… */
 export const SIGNUP_ATTEMPTS = 5;
@@ -32,17 +32,6 @@ const attempts = new Map<string, number[]>();
 /** Forgets every attempt (tests, and nothing else). */
 export function clearSignupAttempts(): void {
   attempts.clear();
-}
-
-/** The client address the platform reports, or null when there is none. */
-async function clientAddress(): Promise<string | null> {
-  try {
-    const list = await headers();
-    const forwarded = list.get('x-forwarded-for')?.split(',')[0]?.trim();
-    return forwarded || list.get('x-real-ip')?.trim() || null;
-  } catch {
-    return null;
-  }
 }
 
 /**

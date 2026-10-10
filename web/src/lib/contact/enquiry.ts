@@ -7,8 +7,10 @@
  * Sources: design/Abby's Table - Contact Us.dc.html (copy, verbatim),
  * build-handoff "Contact — what was settled", behaviour guide §10, contract
  * §3e. The browser's checks are a courtesy; the server action checks again,
- * and the enquiry endpoint (michaeljosiah/aonik#356) must enforce type, size
- * and count once more, with real content sniffing.
+ * and Aonik's enquiry endpoint (michaeljosiah/aonik#356) enforces type, size
+ * and count once more, with real content sniffing — the rules here match its
+ * limits (counted in UTF-16 units as it counts them) and clean what it would
+ * refuse, so a valid form is a valid enquiry.
  */
 
 import { isEmailAddress, MAX_EMAIL_LENGTH } from '@/lib/email';
@@ -114,7 +116,33 @@ export const ENQUIRY_MESSAGES = {
   messageShort: 'Please add a little more detail so we can help.',
   nameLong: `Please shorten your name to ${ENQUIRY_LIMITS.name} characters or fewer.`,
   messageLong: `Please shorten your message to ${ENQUIRY_LIMITS.message.toLocaleString('en-GB')} characters or fewer.`,
+  /** Not in the design: Aonik refused a name our rules accepted. */
+  nameRefused: 'Please check your name.',
+  /** Not in the design: Aonik refused a message our rules accepted. */
+  messageRefused: 'Please check your message.',
 } as const;
+
+/**
+ * Text as Aonik will take it: it refuses control characters — anywhere in a
+ * name or an order number, and in a message all but line breaks and tabs. A
+ * pasted one is a space (or, in a message, nothing), never a refusal the
+ * customer cannot see the cause of.
+ */
+function cleanLine(text: string): string {
+  return text.replace(/\p{Cc}+/gu, ' ').trim();
+}
+function cleanMessage(text: string): string {
+  return text.replace(/[^\P{Cc}\t\n\r]/gu, '').trim();
+}
+
+/**
+ * Over a limit as the customer sees it (characters) OR as the browser's
+ * `maxLength` and Aonik count it (UTF-16 units — an emoji is two): Aonik
+ * refuses past its count, so ours never lets through what it would refuse.
+ */
+function overLimit(text: string, limit: number): boolean {
+  return text.length > limit || charactersUpTo(text, limit + 1) > limit;
+}
 
 /**
  * Characters, not UTF-16 units — an emoji is one character to the customer —
@@ -130,22 +158,22 @@ function charactersUpTo(text: string, stopAt: number): number {
 /** Every problem with the draft, keyed by field. Empty when it can be sent. */
 export function validateEnquiry(draft: EnquiryDraft): EnquiryErrors {
   const errors: EnquiryErrors = {};
-  const name = draft.name.trim();
+  const name = cleanLine(draft.name);
   const email = draft.email.trim();
-  const message = draft.message.trim();
+  const message = cleanMessage(draft.message);
 
   if (!name) errors.name = ENQUIRY_MESSAGES.name;
-  else if (charactersUpTo(name, ENQUIRY_LIMITS.name + 1) > ENQUIRY_LIMITS.name) {
-    errors.name = ENQUIRY_MESSAGES.nameLong;
-  }
+  else if (overLimit(name, ENQUIRY_LIMITS.name)) errors.name = ENQUIRY_MESSAGES.nameLong;
   if (!email) errors.email = ENQUIRY_MESSAGES.emailMissing;
   else if (!isEnquiryEmail(email)) errors.email = ENQUIRY_MESSAGES.emailInvalid;
   if (!isEnquiryTopic(draft.topic)) errors.topic = ENQUIRY_MESSAGES.topic;
   if (!message) errors.message = ENQUIRY_MESSAGES.messageMissing;
   else {
-    const length = charactersUpTo(message, ENQUIRY_LIMITS.message + 1);
-    if (length < MESSAGE_MIN_CHARACTERS) errors.message = ENQUIRY_MESSAGES.messageShort;
-    else if (length > ENQUIRY_LIMITS.message) errors.message = ENQUIRY_MESSAGES.messageLong;
+    if (charactersUpTo(message, MESSAGE_MIN_CHARACTERS) < MESSAGE_MIN_CHARACTERS) {
+      errors.message = ENQUIRY_MESSAGES.messageShort;
+    } else if (overLimit(message, ENQUIRY_LIMITS.message)) {
+      errors.message = ENQUIRY_MESSAGES.messageLong;
+    }
   }
 
   return errors;
@@ -170,18 +198,16 @@ export interface Enquiry {
 export function toEnquiry(draft: EnquiryDraft): { enquiry: Enquiry } | { errors: EnquiryErrors } {
   const errors = validateEnquiry(draft);
   if (firstInvalidField(errors) || !isEnquiryTopic(draft.topic)) return { errors };
-  const orderNumber = asksForOrderNumber(draft.topic) ? draft.orderNumber.trim() : '';
+  const orderNumber = asksForOrderNumber(draft.topic) ? cleanLine(draft.orderNumber) : '';
   // The field's maxLength stops this in the browser; only a crafted post gets here.
-  if (charactersUpTo(orderNumber, ENQUIRY_LIMITS.orderNumber + 1) > ENQUIRY_LIMITS.orderNumber) {
-    return { errors };
-  }
+  if (overLimit(orderNumber, ENQUIRY_LIMITS.orderNumber)) return { errors };
   return {
     enquiry: {
-      name: draft.name.trim(),
+      name: cleanLine(draft.name),
       email: draft.email.trim(),
       topic: draft.topic,
       orderNumber: orderNumber || null,
-      message: draft.message.trim(),
+      message: cleanMessage(draft.message),
     },
   };
 }
@@ -203,6 +229,30 @@ export const ENQUIRY_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'im
  */
 export const ENQUIRY_IMAGE_ACCEPT = [...ENQUIRY_IMAGE_TYPES, '.heic', '.heif'].join(',');
 
+/** The extensions Aonik accepts for each type, the first being the one to give. */
+const UPLOAD_EXTENSIONS: Readonly<Record<string, readonly string[]>> = {
+  'image/jpeg': ['.jpg', '.jpeg'],
+  'image/png': ['.png'],
+  'image/heic': ['.heic', '.heif'],
+  'image/heif': ['.heif', '.heic'],
+};
+
+/**
+ * The name an image is sent under. Aonik checks a file's bytes AND that its
+ * name's extension matches them (an extension proves nothing alone, but one
+ * that disagrees is refused) — so a JPEG saved as "photo.jfif", or pasted with
+ * no name at all, is sent as "photo.jpg". The bytes are never touched, and a
+ * typeless HEIC keeps the name it was accepted by.
+ */
+export function uploadName(name: string, type: string): string {
+  const allowed = UPLOAD_EXTENSIONS[type];
+  if (!allowed) return name;
+  const lower = name.toLowerCase();
+  if (allowed.some((extension) => lower.endsWith(extension))) return name;
+  const base = name.replace(/\.[^./\\]*$/, '').trim() || 'image';
+  return `${base}${allowed[0]}`;
+}
+
 /** The parts of a `File` the rules read, so they are testable without one. */
 export interface ImageCandidate {
   name: string;
@@ -217,6 +267,11 @@ export const IMAGE_MESSAGES = {
   size: (name: string) => `${name} is larger than 10MB.`,
   empty: (name: string) => `${name} is empty.`,
   count: `You can attach up to ${MAX_ENQUIRY_IMAGES} images.`,
+  /* Not in the design: what Aonik found on receiving them (its `imageProblems`). */
+  unreadable: (name: string) => `${name} couldn’t be read. Please choose a JPG, PNG or HEIC.`,
+  tooDetailed: (name: string) => `${name} is too large to process. Please choose a smaller image.`,
+  refused: (name: string) => `${name} couldn’t be attached. Please choose another image.`,
+  together: 'Your images are too large to send together. Please remove one and try again.',
 } as const;
 
 const HEIC_NAME = /\.hei[cf]$/i;
@@ -299,16 +354,36 @@ export function imagesProblem(files: readonly ImageCandidate[]): string | null {
  * - `invalid`     the fields failed the shared rules (`errors`, `imageError`)
  * - `sent`        accepted by the endpoint; `email` is echoed on screen
  * - `error`       the endpoint failed; everything typed stays in the form
- * - `unavailable` this deployment cannot send at all (no endpoint yet)
+ * - `unavailable` this deployment cannot send (demo, or Aonik is not taking
+ *                 enquiries for this tenant)
+ *
+ * `newSubmission` asks the form to send its next attempt under a fresh
+ * submission reference: Aonik refused the one used, as belonging to different
+ * details (`./submission`).
  */
 export interface EnquiryState {
   status: 'idle' | 'invalid' | 'sent' | 'error' | 'unavailable';
   errors?: EnquiryErrors;
   imageError?: string;
   email?: string;
+  newSubmission?: true;
 }
 
 export type EnquiryAction = (previous: EnquiryState, formData: FormData) => Promise<EnquiryState>;
+
+/** Where the form posts when JavaScript runs (`app/api/enquiries/route.ts`). */
+export const ENQUIRY_ROUTE = '/api/enquiries';
+
+const STATUSES: ReadonlyArray<EnquiryState['status']> = ['idle', 'invalid', 'sent', 'error', 'unavailable'];
+
+/** An answer from `ENQUIRY_ROUTE` as the form may use it, or an `error` when it is not one. */
+export function readEnquiryAnswer(body: unknown): EnquiryState {
+  const answer = body as Partial<EnquiryState> | null;
+  if (typeof answer !== 'object' || answer === null || !STATUSES.includes(answer.status as EnquiryState['status'])) {
+    return { status: 'error' };
+  }
+  return answer as EnquiryState;
+}
 
 /** The form's field names, shared by the form and the action. */
 export const ENQUIRY_FORM_FIELDS = {
@@ -318,6 +393,8 @@ export const ENQUIRY_FORM_FIELDS = {
   orderNumber: 'orderNumber',
   message: 'message',
   images: 'images',
+  /** The submission reference (`./submission`). */
+  submissionId: 'submissionId',
 } as const;
 
 /** Reads a posted form back into a draft. Missing or non-text values are empty. */
@@ -333,4 +410,61 @@ export function draftFromForm(form: FormData): EnquiryDraft {
     orderNumber: text(ENQUIRY_FORM_FIELDS.orderNumber),
     message: text(ENQUIRY_FORM_FIELDS.message),
   };
+}
+
+/* ---- Aonik's refusal, in our words -------------------------------------------------- */
+
+/** One entry of Aonik's `imageProblems`. */
+interface ImageProblem {
+  fileName: string;
+  code: string;
+}
+
+function imageProblemsOf(body: unknown): ImageProblem[] {
+  const list = (body as { imageProblems?: unknown } | null)?.imageProblems;
+  if (!Array.isArray(list)) return [];
+  return list.flatMap((entry) => {
+    const problem = entry as { fileName?: unknown; code?: unknown } | null;
+    return typeof problem?.code === 'string'
+      ? [{ fileName: typeof problem.fileName === 'string' && problem.fileName ? problem.fileName : 'An image', code: problem.code }]
+      : [];
+  });
+}
+
+function imageMessage(problem: ImageProblem): string {
+  switch (problem.code) {
+    case 'image_format':
+      return IMAGE_MESSAGES.type(problem.fileName);
+    case 'image_size':
+      return IMAGE_MESSAGES.size(problem.fileName);
+    case 'image_dimensions':
+      return IMAGE_MESSAGES.tooDetailed(problem.fileName);
+    case 'image_invalid':
+      return IMAGE_MESSAGES.unreadable(problem.fileName);
+    default:
+      return IMAGE_MESSAGES.refused(problem.fileName);
+  }
+}
+
+/**
+ * Aonik's 422 (`contact.validation_failed`) as the form's own errors: its
+ * `fieldErrors` keyed by OUR fields with OUR messages — never its text, which
+ * names its field names — and the first of its `imageProblems` by file. Null
+ * when it named nothing the customer can change (the submission reference, or
+ * the request itself), which is a failure to send, said as one.
+ */
+export function enquiryRefusal(
+  fieldErrors: Readonly<Record<string, readonly string[]>> | undefined,
+  body: unknown,
+): { errors: EnquiryErrors; imageError?: string } | null {
+  const errors: EnquiryErrors = {};
+  const fields = fieldErrors ?? {};
+  if (fields.name) errors.name = ENQUIRY_MESSAGES.nameRefused;
+  if (fields.email) errors.email = ENQUIRY_MESSAGES.emailInvalid;
+  if (fields.topic) errors.topic = ENQUIRY_MESSAGES.topic;
+  if (fields.message) errors.message = ENQUIRY_MESSAGES.messageRefused;
+  const problems = imageProblemsOf(body);
+  const imageError = problems.length > 0 ? imageMessage(problems[0]) : fields.images ? IMAGE_MESSAGES.count : undefined;
+  if (!firstInvalidField(errors) && !imageError) return null;
+  return imageError ? { errors, imageError } : { errors };
 }

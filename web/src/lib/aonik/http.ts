@@ -52,6 +52,11 @@ export interface AonikFetchOptions {
    */
   ignoreBody?: boolean;
   signal?: AbortSignal;
+  /**
+   * The customer's address, sent as `X-Forwarded-For` where Aonik limits per
+   * customer (enquiries). Aonik honours it only from a proxy it trusts.
+   */
+  forwardedFor?: string;
 }
 
 function buildUrl(
@@ -102,6 +107,7 @@ export async function aonikFetch<T>(path: string, options: AonikFetchOptions): P
     query,
     signal,
     ignoreBody = false,
+    forwardedFor,
   } = options;
 
   const url = buildUrl(baseUrl, path, query);
@@ -120,6 +126,7 @@ export async function aonikFetch<T>(path: string, options: AonikFetchOptions): P
   if (cartToken) headers['X-Cart-Token'] = cartToken;
   if (cartVersion) headers['X-Cart-Version'] = cartVersion;
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  if (forwardedFor) headers['X-Forwarded-For'] = forwardedFor;
 
   const response = await fetch(url, {
     method,
