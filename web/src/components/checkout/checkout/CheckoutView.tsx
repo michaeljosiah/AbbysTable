@@ -16,7 +16,7 @@ import type { BoxCart } from '@/lib/aonik/map';
 import type { BoxPricing, DeliveryCalendar, Extra } from '@/lib/aonik/types';
 import { useCart } from '@/lib/cart/CartProvider';
 import { CART_ORDERED_CODE } from '@/lib/cart/cartMissing';
-import { ORDERING_DISABLED_MESSAGE } from '@/lib/cart/ordering';
+import { ORDERING_DISABLED_CODE, ORDERING_DISABLED_MESSAGE } from '@/lib/cart/ordering';
 import { useCartQuote } from '@/lib/cart/quote';
 import { CART_CONFLICT_CODE, CART_LOCKED_CODE, CART_RELOAD_CODE } from '@/lib/cart/transport';
 import { addDays, addMonths, monthOf, monthRange, readDayStatus, type DayStatus } from '@/lib/checkout/calendar';
@@ -47,6 +47,7 @@ import {
   type CheckoutDatesAnswer,
   type CheckoutDraftAnswer,
   type CheckoutHoldAnswer,
+  type CheckoutPayAnswer,
   type CheckoutRefusal,
   type CheckoutReservationAnswer,
   type CheckoutSyncAnswer,
@@ -71,6 +72,10 @@ const DATE_FAILED = 'We couldn’t save that date just now. Please try again.';
 const DATE_CHANGED = 'Your checkout changed in another window. Please choose your date again.';
 const DATE_UNKNOWN = 'We can’t confirm delivery availability right now. Please try again.';
 const SYNCED = 'Your checkout was updated in another window, so we’ve brought it up to date here.';
+/* Not designed: Aonik's refusals at payment start, said plainly. Nothing was charged. */
+const TOTAL_CHANGED = 'Your total has changed. Please check your order summary, then continue to payment again.';
+const BOX_CHANGED = 'Your box has changed. Please check your order summary, then continue to payment again.';
+const TERMS_CHANGED = 'Our Terms of Sale have been updated. Please read them, then continue to payment again.';
 const SAVE_FAILED = 'We couldn’t save your details just now. They’re still here, and we’ll try again as you go.';
 const CONTINUE_UNSAVED = 'We couldn’t save your details just now. Please try again.';
 
@@ -741,20 +746,105 @@ export function CheckoutView({
       setMessage('Ordering is turned off on demo data. Switch to live mode to place a real order.');
       return;
     }
+    if (!cart.orderingEnabled) {
+      // Closed until a Stripe sandbox run has passed end to end: nothing is started.
+      setMessage(ORDERING_DISABLED_MESSAGE);
+      return;
+    }
+    if (!quote) return;
     setContinuing(true);
     const stored = await save();
     if (!mounted.current) return;
-    setContinuing(false);
     // Nothing goes to payment that Aonik has not stored. A merge has said so
     // itself, and the customer sees the merged form before pressing again.
-    if (stored === 'merged') return;
-    if (stored === 'failed') {
-      setMessage(CONTINUE_UNSAVED);
+    if (stored !== 'saved') {
+      setContinuing(false);
+      if (stored === 'failed') setMessage(CONTINUE_UNSAVED);
       return;
     }
-    // The Stripe hand-off arrives with the payment pages (#32). Until then, nothing is ordered.
-    setMessage(ORDERING_DISABLED_MESSAGE);
+    await pay(quote.totalPence, false);
   };
+
+  /**
+   * Starts payment with the total on screen — the customer's acknowledgement:
+   * Aonik refuses it if anything moved. A network failure is asked again once
+   * (Aonik resumes the same attempt), then left to the payment page, which
+   * reads what really happened.
+   */
+  const pay = async (expectedTotalPence: number, retried: boolean): Promise<void> => {
+    const result = await checkoutRequest<CheckoutPayAnswer>('/pay', () => ({
+      method: 'POST',
+      body: { expectedTotalPence },
+      version: basis.current,
+    }));
+    if (!mounted.current) return;
+    if (result.ok) {
+      const answer = result.payload;
+      if (answer.kind === 'redirect' && answer.checkoutUrl.startsWith('https://')) {
+        // Off to Stripe: "Taking you to secure payment…" stays until the page goes.
+        window.location.assign(answer.checkoutUrl);
+        return;
+      }
+      window.location.assign(answer.kind === 'paid' ? '/box/confirmation' : '/box/payment');
+      return;
+    }
+    if (result.status === 0) {
+      if (!retried) return pay(expectedTotalPence, true);
+      window.location.assign('/box/payment');
+      return;
+    }
+    setContinuing(false);
+    const refusal = result.payload as CheckoutRefusal;
+    // Starting may have recorded the terms first — a write — and a refusal's
+    // box moved the engine on: the page's own version follows, by a check.
+    const checked = refusal.code === CART_CONFLICT_CODE || refusal.code === CART_LOCKED_CODE ? null : check();
+    switch (refusal.code) {
+      case ORDERING_DISABLED_CODE:
+        setMessage(ORDERING_DISABLED_MESSAGE);
+        return;
+      case CHECKOUT_CODES.totalChanged:
+        setMessage(TOTAL_CHANGED);
+        return;
+      case CHECKOUT_CODES.boxChanged:
+        if (refusal.cart?.lines.some((line) => line.isUnavailable)) router.push('/box/dishes');
+        else setMessage(BOX_CHANGED);
+        return;
+      case CHECKOUT_CODES.dateFull:
+        setDateError(DATE_FULL);
+        focusLater('ck-date');
+        return;
+      case CHECKOUT_CODES.reservationEnded:
+      case CHECKOUT_CODES.reservationConflict:
+        await checked;
+        focusLater('ck-hold-new');
+        return;
+      case CHECKOUT_CODES.availabilityUnknown:
+        setEarliest(null);
+        setMessage(DATE_UNKNOWN);
+        return;
+      case CHECKOUT_CODES.notServed: {
+        const postcode = normalisePostcode(latest.current.postcode);
+        if (postcode) setCoverage({ status: 'not-served', postcode });
+        focusLater(FIELD_IDS.postcode);
+        return;
+      }
+      case CHECKOUT_CODES.coverageUnavailable:
+        setMessage('We couldn’t check your postcode just now. Please try again in a moment.');
+        return;
+      case CHECKOUT_CODES.invalid:
+        setMessage(/^AcceptedTermsVersion/i.test(refusal.error) ? TERMS_CHANGED : `${refusal.error}`);
+        return;
+      default:
+        if (!reconcile(refusal)) setMessage('We couldn’t start your payment just now. Please try again.');
+    }
+  };
+
+  const focusLater = (id: string) =>
+    requestAnimationFrame(() => {
+      const element = document.getElementById(id);
+      element?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      element?.focus({ preventScroll: true });
+    });
 
   /* ---- Render -------------------------------------------------------------------------- */
 
@@ -1022,7 +1112,7 @@ export function CheckoutView({
         <OrderSummary
           quote={quote}
           deliveryDate={hold === 'held' || !live ? date : null}
-          controls={{ onContinue: () => void onContinue(), busy: continuing, need, message }}
+          controls={{ onContinue: () => void onContinue(), busy: continuing, need, message, paying: continuing }}
           sheetOpen={sheetOpen}
           onSheet={setSheetOpen}
         />

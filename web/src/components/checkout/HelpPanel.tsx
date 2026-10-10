@@ -13,9 +13,11 @@ import styles from './HelpPanel.module.css';
 interface HelpPanelProps {
   open: boolean;
   onClose: () => void;
+  /** The page's own questions (the payment pages'); the box steps' by default. */
+  faqs?: readonly Faq[];
 }
 
-interface Faq {
+export interface Faq {
   id: string;
   question: string;
   answer: string;
@@ -86,7 +88,7 @@ const EMAIL_PATTERN = /.+@.+\..+/;
 
 const EMPTY_MESSAGE = { name: '', email: '', question: '' };
 
-export function HelpPanel({ open, onClose }: HelpPanelProps) {
+export function HelpPanel({ open, onClose, faqs = FAQS }: HelpPanelProps) {
   const titleId = useId();
   const fieldId = useId();
 
@@ -119,7 +121,7 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
   if (!open) return null;
 
   const term = query.trim().toLowerCase();
-  const matches = FAQS.filter(
+  const matches = faqs.filter(
     (faq) => !term || `${faq.question} ${faq.answer}`.toLowerCase().includes(term),
   );
   const shown = !term && !expanded ? matches.slice(0, POPULAR_COUNT) : matches;

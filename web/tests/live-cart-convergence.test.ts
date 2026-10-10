@@ -21,7 +21,7 @@ import {
   postExtra,
   type CartMutationRequest,
 } from '../src/lib/cart/mutations';
-import { ORDER_COOKIE } from '../src/lib/cart/orderCookie';
+import { PAYMENT_COOKIE } from '../src/lib/checkout/paymentCookie';
 import {
   admitCartRequest,
   adoptCartResponse,
@@ -37,7 +37,7 @@ const repaired = { cartId: 'cart-repaired' } as BoxCart;
 test('server cookie names are valid HTTP tokens', () => {
   const token = /^[!#$%&'*+\-.^_`|~A-Za-z0-9]+$/;
 
-  for (const name of [CART_COOKIE, ORDER_COOKIE, SESSION_COOKIE, DATA_MODE_COOKIE]) {
+  for (const name of [CART_COOKIE, PAYMENT_COOKIE, SESSION_COOKIE, DATA_MODE_COOKIE]) {
     assert.match(name, token);
   }
 });

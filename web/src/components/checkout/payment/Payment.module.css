@@ -1,0 +1,561 @@
+/*
+ * The payment-status pages (design: Payment Processing / Payment Not Completed
+ * / Payment Cancelled) and their chrome. Mobile first; min-width only, on the
+ * system 640 / 1024 steps.
+ */
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--cream);
+  font-family: var(--font-sans);
+  color: var(--brown);
+}
+
+.shell *,
+.shell *::before,
+.shell *::after {
+  box-sizing: border-box;
+}
+
+/* ---- Header: wordmark + "Questions?" only, never an ordering CTA ------------------- */
+
+.header {
+  border-bottom: 1px solid var(--sand);
+  background: var(--cream);
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  max-width: 1280px;
+  min-height: 70px;
+  margin: 0 auto;
+  padding: 13px 22px;
+}
+
+.mark {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  min-width: 0;
+  color: var(--green-forest);
+  text-decoration: none;
+}
+
+.mark svg,
+.mark img {
+  display: block;
+  width: clamp(108px, 36vw, 168px);
+  height: auto;
+}
+
+.questions {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  color: var(--green-forest);
+  transition: color 0.16s ease;
+}
+
+.questions > span {
+  border-bottom: 1px solid var(--brass);
+  padding-bottom: 1px;
+}
+
+/* ---- Body ---------------------------------------------------------------------------- */
+
+.main {
+  flex: 1 0 auto;
+}
+
+.section {
+  padding: 34px 0 48px;
+}
+
+.inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 22px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 28px;
+}
+
+.h1 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: clamp(34px, 9.6vw, 56px);
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+  color: var(--green-forest);
+  text-wrap: balance;
+}
+
+.h1:focus {
+  outline: none;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin {
+  flex: 0 0 auto;
+  display: inline-block;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2.5px solid color-mix(in oklab, var(--brass) 28%, transparent);
+  border-top-color: var(--brass);
+  animation: spin 1.1s linear infinite;
+}
+
+.lede {
+  margin: 14px 0 0;
+  max-width: 560px;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--brown);
+  text-wrap: pretty;
+}
+
+.lede strong {
+  font-weight: 600;
+  color: var(--green-forest);
+}
+
+.panel {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  margin-top: 26px;
+  padding: 16px 18px 18px;
+  border-radius: 16px;
+  background: color-mix(in oklab, var(--blush) 45%, var(--cream));
+}
+
+.panel[data-tone='alert'] {
+  background: color-mix(in oklab, var(--blush) 55%, var(--cream));
+  border: 1px solid var(--terracotta-ink);
+}
+
+.panel[data-tone='neutral'] {
+  background: color-mix(in oklab, var(--sand) 55%, var(--cream));
+}
+
+.panelIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--blush) 80%, var(--white));
+}
+
+.panel[data-tone='alert'] .panelIcon,
+.panel[data-tone='neutral'] .panelIcon {
+  background: var(--white);
+}
+
+.panelH {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 19px;
+  line-height: 1.25;
+  color: var(--green-forest);
+}
+
+.panel[data-tone='alert'] .panelH {
+  color: var(--terracotta-ink);
+}
+
+.panelP {
+  margin: 4px 0 0;
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--brown);
+  text-wrap: pretty;
+}
+
+.actions {
+  display: grid;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.cta,
+.cta2 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 24px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.35;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: center;
+  text-wrap: balance;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+
+.cta {
+  background: var(--green-forest);
+  color: var(--cream);
+  border: 1px solid var(--green-forest);
+}
+
+.cta2 {
+  background: transparent;
+  color: var(--green-forest);
+  border: 1px solid var(--green-forest);
+}
+
+.cta[aria-disabled='true'],
+.cta2[aria-disabled='true'] {
+  cursor: progress;
+}
+
+.busy {
+  margin: 12px 0 0;
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--green-forest);
+}
+
+.busy:empty {
+  display: none;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 14px;
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--green-forest);
+  text-decoration: none;
+  transition: color 0.16s ease;
+}
+
+.back > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1.5px solid var(--brass);
+  padding-bottom: 3px;
+  transition: border-color 0.16s ease;
+}
+
+.figure {
+  margin: 0;
+  overflow: hidden;
+  border-radius: 24px;
+  background: var(--green-deep);
+  aspect-ratio: 762 / 796;
+}
+
+.figure img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ---- Footer: the simplified checkout footer ---------------------------------------- */
+
+.footer {
+  margin-top: 46px;
+  border-top: 2px solid var(--brass);
+  background: var(--green-deep);
+}
+
+.footInner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 30px 22px 34px;
+  text-align: center;
+}
+
+.footTop {
+  display: grid;
+  justify-items: center;
+}
+
+.footLogo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  color: var(--blush);
+}
+
+.footLogo svg,
+.footLogo img {
+  display: block;
+  width: 156px;
+  height: auto;
+}
+
+.footNav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  justify-items: center;
+  column-gap: 18px;
+  margin-top: 10px;
+}
+
+.footNav a:last-child {
+  grid-column: 1 / -1;
+}
+
+.footLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  font-size: 16px;
+  color: var(--blush);
+  text-decoration: none;
+  transition: color 0.16s ease;
+}
+
+.footBase {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  margin-top: 18px;
+}
+
+.footLegal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 16px;
+  margin: 0;
+  font-size: 14px;
+  color: var(--sand-2);
+}
+
+.footLegal .footLink {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.footSign {
+  margin: 2px 0 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 20px;
+  color: var(--terracotta);
+}
+
+.footer a:focus-visible {
+  outline: 2px solid var(--cream);
+  outline-offset: 0;
+  box-shadow: 0 0 0 3px var(--gold);
+}
+
+/* ---- Interaction -------------------------------------------------------------------- */
+
+.cta:active,
+.cta2:active,
+.questions:active {
+  filter: brightness(0.94);
+}
+
+@media (hover: hover) {
+  .questions:hover,
+  .back:hover {
+    color: var(--terracotta-deep);
+  }
+
+  .questions:hover > span,
+  .back:hover > span {
+    border-bottom-color: var(--terracotta-deep);
+  }
+
+  .cta:hover {
+    background: var(--green-deep);
+    border-color: var(--green-deep);
+    color: var(--cream);
+  }
+
+  .cta2:hover {
+    background: var(--sand);
+    color: var(--green-forest);
+  }
+
+  .footLink:hover {
+    color: var(--brass);
+  }
+}
+
+@media (min-width: 640px) {
+  .headerRow {
+    padding: 15px 34px;
+  }
+
+  .inner {
+    padding: 0 34px;
+  }
+
+  .panel {
+    max-width: 560px;
+  }
+
+  .figure {
+    max-width: 460px;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .cta,
+  .cta2 {
+    width: auto;
+    padding: 0 28px;
+  }
+
+  .footInner {
+    padding: 32px 34px 36px;
+    text-align: left;
+  }
+
+  .footTop {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  .footNav {
+    display: flex;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px 26px;
+    margin-top: 0;
+  }
+
+  .footNav a:last-child {
+    grid-column: auto;
+  }
+
+  .footBase {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    justify-items: start;
+    gap: 10px 20px;
+  }
+
+  .footLegal {
+    justify-content: flex-start;
+  }
+
+  .footSign {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+    margin: 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .headerRow {
+    padding: 17px 48px;
+  }
+
+  .inner {
+    padding: 0 48px;
+  }
+
+  .section {
+    padding: 64px 0 80px;
+  }
+
+  .grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 440px);
+    gap: 64px;
+    align-items: center;
+  }
+
+  .spin {
+    width: 44px;
+    height: 44px;
+    border-width: 3px;
+  }
+
+  .lede {
+    font-size: 18px;
+  }
+
+  .panel {
+    margin-top: 32px;
+    padding: 20px 22px 22px;
+  }
+
+  .panelH {
+    font-size: 20px;
+  }
+
+  .figure {
+    max-width: none;
+  }
+
+  .footInner {
+    padding: 36px 48px 40px;
+  }
+}
+
+/* The spinner is the loading indicator: slowed, not stopped. */
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation-duration: 3s;
+  }
+
+  .questions,
+  .cta,
+  .cta2,
+  .back,
+  .footLink {
+    transition: none !important;
+  }
+}

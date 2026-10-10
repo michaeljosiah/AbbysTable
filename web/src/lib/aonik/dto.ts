@@ -518,4 +518,55 @@ export interface CheckoutResultDto {
   currency: string;
   clientSecret: string | null;
   checkoutUrl: string | null;
+  /** A guest's read capability for this order (`X-Order-Token`); null for a party-owned cart. */
+  guestOrderToken?: string | null;
+}
+
+/** `GET /commerce/carts/{id}/payment` — the recorded attempt, read without side effects. */
+export interface CartPaymentStateDto {
+  orderId: string | null;
+  paymentIntentId: string | null;
+  /** `processing`, `requires_action`, `failed`, `cancelled` or `succeeded`. */
+  status: string;
+  /** Recovery proved the attempt closed unpaid: the box may change and pay again. */
+  canEdit: boolean;
+  cartVersion: string;
+  /** Present only while the attempt can still take payment, before its deadline. */
+  checkoutUrl?: string | null;
+}
+
+export interface OrderLoyaltyDto {
+  redeemedPoints: number;
+  appliedValue: number;
+  earnedPoints: number | null;
+  /** `Earned`, `AccountSetupRequired` or `AccountNotLinked`. */
+  earningStatus: string;
+}
+
+/** `GET /commerce/storefront/guest-orders/{id}` (X-Order-Token) or `/commerce/storefront/orders/{id}`. */
+export interface StorefrontOrderDetailDto {
+  orderId: string;
+  placedAtUtc: string;
+  status: string;
+  currency: string;
+  subtotal: number;
+  discountTotal: number;
+  taxTotal: number;
+  total: number;
+  boxSize: number | null;
+  items: Array<{ itemType: string; quantity: number | null; unitPrice: number | null; amountIn: number; sku: string | null; name?: string | null; itemIndex?: number }>;
+  selections: Array<{ productVariantId: string; quantity: number; sku: string; personalisationSummary: string | null; orderItemIndex?: number; name?: string | null; isSignature?: boolean | null }>;
+  paymentStatus: string;
+  delivery?: {
+    purchaser: CheckoutContactDto;
+    address: DeliveryAddressDto;
+    deliveryDate: string;
+    timezone: string;
+    recipient: DeliveryRecipientDto;
+    notes?: string | null;
+  } | null;
+  orderNumber?: string | null;
+  discountCode?: string | null;
+  fulfilmentStatus?: string | null;
+  loyalty?: OrderLoyaltyDto | null;
 }

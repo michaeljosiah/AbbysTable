@@ -21,14 +21,11 @@ import type { BoxCartDto } from '@/lib/aonik/dto';
 import { AONIK_CODES, AonikError } from '@/lib/aonik/errors';
 import { mapBoxCart, type BoxCart, type PersonalisationSelection } from '@/lib/aonik/map';
 import { CartMissingError, mapCartMissingError } from '@/lib/cart/cartMissing';
-import { ORDERING_DISABLED_CODE } from '@/lib/cart/ordering';
 import { CART_CONFLICT_CODE, CART_LOCKED_CODE, CART_RELOAD_CODE, CART_VERSION_HEADER } from '@/lib/cart/transport';
 import {
   CartUnavailableError,
-  OrderingDisabledError,
   addBoxExtra,
   addBoxLine,
-  checkoutBoxCart,
   continueBoxCart,
   createBoxCart,
   getBoxCart,
@@ -52,7 +49,6 @@ interface Body {
   personalisation?: PersonalisationSelection;
   applyToUnits?: number;
   lineId?: string;
-  discountCode?: string;
   firstLine?: {
     productVariantId: string;
     quantity: number;
@@ -93,12 +89,6 @@ async function errorResponse(error: unknown) {
   // than logging it as a fault.
   if (error instanceof CartUnavailableError) {
     return NextResponse.json({ error: error.message, code: 'cart.unavailable' }, { status: 503 });
-  }
-
-  // Ordering is switched off. Nothing was sent to Aonik and the box is
-  // untouched, so the response carries no cart and the provider keeps its own.
-  if (error instanceof OrderingDisabledError) {
-    return NextResponse.json({ error: error.message, code: ORDERING_DISABLED_CODE }, { status: 403 });
   }
 
   /*
@@ -245,22 +235,6 @@ export async function POST(request: Request, context: { params: Promise<{ action
 
       case 'continue':
         return cartResponse(await continueBoxCart(version));
-
-      // Not idempotent and the only call that creates durable state, so it is
-      // never retried. A 409 drift falls to `errorResponse`, which forwards the
-      // refreshed box for the review page to re-render from.
-      case 'checkout': {
-        const result = await checkoutBoxCart({ discountCode: body.discountCode }, version);
-        /*
-         * `cart: null` is not decoration — checkout has just deleted the cart
-         * cookie, so it is the literal truth, and it is what resets the
-         * provider. Returning only the order left `payload.cart` undefined,
-         * which the engine reads as "this response carried no box, leave the
-         * current one alone" — so the client went on holding the box it had
-         * just bought until something else happened to refresh it.
-         */
-        return NextResponse.json({ order: result, cart: null });
-      }
 
       default:
         return NextResponse.json({ error: 'Unknown cart action' }, { status: 404 });

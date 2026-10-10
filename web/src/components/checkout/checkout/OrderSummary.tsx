@@ -60,6 +60,8 @@ export interface PaymentControls {
   need: string | null;
   /** What happened when CONTINUE could not go on (ordering closed, demo data). */
   message: string | null;
+  /** The hand-off to Stripe is in flight. */
+  paying: boolean;
 }
 
 function Cta({ id, controls, ctaRef }: { id?: string; controls: PaymentControls; ctaRef?: RefObject<HTMLButtonElement | null> }) {
@@ -98,6 +100,9 @@ function Cta({ id, controls, ctaRef }: { id?: string; controls: PaymentControls;
           </span>
         </span>
       </button>
+      <p className={styles.paying} role="status">
+        {controls.paying ? 'Taking you to secure payment…' : ''}
+      </p>
       <p className={styles.message} role="status">
         {controls.message}
       </p>

@@ -188,10 +188,10 @@ const IN_PAGE_LINKS: Array<{ file: string; contact: number; faqs: number; why: s
   },
   { file: 'app/(checkout)/layout.tsx', contact: 1, faqs: 0, why: '"Questions about your order? Contact us"' },
   {
-    file: 'app/(checkout)/box/confirmation/page.tsx',
-    contact: 2,
+    file: 'app/(site)/box/confirmation/page.tsx',
+    contact: 1,
     faqs: 0,
-    why: '"Contact us" and "Questions about your order?"',
+    why: 'no order to show: "Contact us"',
   },
   { file: 'app/(site)/account/orders/[orderId]/page.tsx', contact: 1, faqs: 0, why: '"Questions about this order?"' },
   {

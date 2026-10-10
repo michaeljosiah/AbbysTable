@@ -8,22 +8,20 @@
  * SERVER-ONLY.
  */
 
-import type { BoxCartDto, BoxPlanDto, CheckoutResultDto, ProductDto } from '@/lib/aonik/dto';
+import type { BoxCartDto, BoxPlanDto, ProductDto } from '@/lib/aonik/dto';
 import { AONIK_CODES, AonikError } from '@/lib/aonik/errors';
 import { aonikFetch, type AonikFetchOptions } from '@/lib/aonik/http';
 import {
   encodeSelection,
   mapBoxCart,
-  mapCheckoutResult,
   mapOptionGroups,
   toMajor,
   type BoxCart,
-  type CheckoutResult,
   type MappedOptionGroup,
   type PersonalisationSelection,
   type StorefrontConfigDto,
 } from '@/lib/aonik/map';
-import { liveOrderingEnabled, readAonikConfig } from '@/lib/aonik/dataMode';
+import { readAonikConfig } from '@/lib/aonik/dataMode';
 
 import { currentSession } from '@/lib/auth/server';
 import { isExpired, readSession } from '@/lib/auth/session';
@@ -32,13 +30,7 @@ import { clearCartCookie, readCartCookie, writeCartCookie } from './cartCookie';
 import { CartMissingError, cartOrderedError } from './cartMissing';
 import { cartExistsAfterProbe } from './convergence';
 import { ORDERING_DISABLED_MESSAGE } from './ordering';
-import {
-  clearPlacedOrder,
-  readPlacedOrder,
-  writePlacedOrder,
-  type PlacedOrder,
-  type PlacedOrderLine,
-} from './orderCookie';
+import { clearPaymentCookie } from '@/lib/checkout/paymentCookie';
 
 /**
  * Raised when a cart route is called without a configured Aonik.
@@ -58,7 +50,8 @@ export class CartUnavailableError extends Error {
 }
 
 /**
- * Raised by `checkoutBoxCart` while live ordering is switched off.
+ * Raised by the payment start (`@/lib/checkout/payment`) while live ordering is
+ * switched off.
  *
  * Checked on the server, not only in the button: the switch exists because an
  * order placed today is unpaid and undeliverable, so a request that skips the
@@ -123,21 +116,19 @@ export async function createBoxCart(input: {
   await writeCartCookie({ cartId: dto.box.cartId, cartToken: dto.cartToken });
 
   /*
-   * A new box ends the last one's receipt.
+   * A new box ends the last one's confirmation.
    *
-   * The order snapshot is what `/box/confirmation` renders, and it has to
-   * outlive the redirect so a refresh or a back-navigation still shows the
-   * order. But it was only expiring on its own two-hour clock, so a customer
-   * who ordered and then started building again could open the confirmation
-   * mid-build and be shown the PREVIOUS order — reference, dish list, total —
-   * as though it were the box they were working on.
+   * The payment cookie names the order `/box/confirmation` reads back, and it
+   * has to outlive the redirect from Stripe so a refresh still shows it. But a
+   * customer who ordered and then started building again could otherwise open
+   * the confirmation mid-build and be shown the PREVIOUS order as though it
+   * were the box they were working on.
    *
    * Starting a box is the unambiguous moment that stops being true, so it is
-   * cleared here rather than on read: clearing on read would lose the receipt
-   * to a refresh, which is the one thing customers reliably do on a
-   * confirmation page.
+   * cleared here rather than on read: clearing on read would lose the
+   * confirmation to a refresh, which customers reliably do on that page.
    */
-  await clearPlacedOrder();
+  await clearPaymentCookie();
 
   return { cart: mapBoxCart(dto) };
 }
@@ -544,180 +535,6 @@ export async function continueBoxCart(version?: CartVersion): Promise<BoxCart> {
     version,
   );
   return mapBoxCart(dto);
-}
-
-/**
- * The tenant's payment labels.
- *
- * Aonik validates only that these are non-empty — the vocabulary belongs to the
- * tenant's payment configuration, so they are configuration here too. The
- * defaults match the gateway the platform ships with (`ProviderCode => "Stripe"`).
- */
-function paymentLabels(): { provider: string; paymentMethodType: string } {
-  return {
-    provider: process.env.AONIK_PAYMENT_PROVIDER?.trim() || 'Stripe',
-    paymentMethodType: process.env.AONIK_PAYMENT_METHOD_TYPE?.trim() || 'card',
-  };
-}
-
-/**
- * Places the order.
- *
- * Three things about this call shape the code around it:
- *
- *  1. It is NOT idempotent, and it is the one call in the journey that creates
- *     durable state (order, invoice, payment intent, stock reservation). It is
- *     therefore never retried automatically anywhere in this codebase.
- *  2. Drift throws 409 `commerce.box_drift` carrying the refreshed box, and
- *     Aonik persists the repair before throwing — so the resubmit is against
- *     saved state. The error propagates unchanged; the caller re-renders from
- *     `error.drift` and the customer confirms the change. That stop is the
- *     point (Spec 068 A18) and swallowing it would place an order the customer
- *     never agreed to.
- *  3. On success the cart is checked out and Aonik rejects further edits on it,
- *     so the cookie is cleared here — leaving it would strand the customer on a
- *     dead cart with no way back to an empty box.
- */
-export async function checkoutBoxCart(
-  input?: {
-    returnUrl?: string;
-    cancelUrl?: string;
-    customerAccountId?: string;
-    discountCode?: string;
-  },
-  version?: CartVersion,
-): Promise<CheckoutResult> {
-  // Before anything else, including the read below: while ordering is closed
-  // this call must not touch the cart or Aonik at all.
-  if (!liveOrderingEnabled()) throw new OrderingDisabledError();
-
-  // The box is read BEFORE placing, because the checkout response carries only
-  // totals — no lines. Once the cart is checked out this is the last chance to
-  // see what was in it, and the confirmation page has no other source: Aonik's
-  // order routes are authenticated and party-scoped, so an anonymous customer
-  // can never read the order back. A drift 409 throws before the snapshot is
-  // written, which is correct — nothing was placed.
-  //
-  // Read as it is, finished or not: a box that already became an order — a
-  // checkout whose answer never arrived, or one placed from another tab — is
-  // REPLAYED by Aonik (before any version check), and that replay is how the
-  // customer reaches the confirmation rather than a false "nothing ordered"
-  // (SHOPPING-STATE §42, §53).
-  const snapshot = await fetchBoxCart();
-  if (!snapshot) {
-    // No box, but a receipt from this browser: another tab placed the order
-    // and took the box with it (SHOPPING-STATE §53).
-    if (await readPlacedOrder()) throw cartOrderedError();
-    throw new CartMissingError('There is no box to check out.');
-  }
-  const placed = mapBoxCart(snapshot);
-  const ordered = Boolean(snapshot.orderId) || snapshot.status === 'CheckedOut';
-  if (isFinished(snapshot.status) && !ordered) {
-    // Expired, and never ordered: nothing to place or replay.
-    await clearCartCookie();
-    throw new CartMissingError('There is no box to check out.');
-  }
-
-  // That read is itself a chance for the box to move: Aonik saves a catalogue
-  // repair on a read and reports it once, in `changes`. Sending the checkout
-  // after it would be refused on the tab's older version as a conflict, and the
-  // list of what changed would be lost — so nothing is placed, and the tab gets
-  // the box with its changes to confirm again (Spec 068 A18). Any other move
-  // (another tab's edit) Aonik refuses itself, on the version sent below.
-  //
-  // A REPAIR (any reason but `unavailable`, which Aonik recomputes on every
-  // read) stops it whatever `orderId` says: a payment-failed (Retryable) box
-  // keeps its order id yet is editable, and Aonik checks its version. On a box
-  // with no order, an unavailable line stops it too — the checkout would only
-  // be refused for it.
-  const repaired = snapshot.changes.some((change) => change.reason !== 'unavailable');
-  if (snapshot.status !== 'CheckedOut' && (repaired || (!ordered && snapshot.changes.length > 0))) {
-    throw changedBeforeCheckout(snapshot);
-  }
-
-  const dto = await withRequiredCart(
-    (cartId, auth) =>
-      cartFetch<CheckoutResultDto>(`/commerce/carts/${cartId}/checkout`, {
-        ...auth,
-        method: 'POST',
-        body: { ...paymentLabels(), ...input },
-      }),
-    version,
-  );
-
-  const order = mapCheckoutResult(dto);
-  // A replay's promise was made at the first placement, and is not known here:
-  // better no date on the confirmation than today's, presented as that one.
-  const promised = ordered ? undefined : await earliestDeliveryDate();
-  await writePlacedOrder(snapshotOrder(order, placed, promised));
-  await clearCartCookie();
-  return order;
-}
-
-/**
- * Checkout stopped before it was sent: the read before placing reported
- * changes. Shaped as Aonik's own drift, with the box riding along, so the tab
- * adopts it — changes and new version — exactly as it adopts any drift.
- */
-function changedBeforeCheckout(snapshot: BoxCartDto): AonikError {
-  return new AonikError({
-    status: 409,
-    path: `/commerce/carts/${snapshot.box.cartId}/checkout`,
-    code: AONIK_CODES.boxDrift,
-    message: 'The box changed before checkout.',
-    drift: {
-      box: snapshot.box,
-      quote: snapshot.quote,
-      changes: snapshot.changes,
-      ...(snapshot.cartVersion ? { cartVersion: snapshot.cartVersion } : {}),
-    },
-  });
-}
-
-/**
- * The promise as it stood at placement, or undefined.
- *
- * Never re-resolved afterwards: the confirmation must keep saying what the
- * customer was told when they paid, even after the calendar has moved on.
- */
-async function earliestDeliveryDate(): Promise<string | undefined> {
-  try {
-    const { getAonikClient } = await import('@/lib/aonik/client');
-    const window = await (await getAonikClient()).getDeliveryWindow();
-    return window?.earliestDeliveryDate;
-  } catch {
-    // A confirmation without a date is fine; a failed order because the
-    // delivery config blipped is not.
-    return undefined;
-  }
-}
-
-/** Reduces the placed cart to the display-only fields the confirmation needs. */
-function snapshotOrder(
-  order: CheckoutResult,
-  placed: BoxCart | null,
-  deliveryDate: string | undefined,
-): PlacedOrder {
-  const toLine = (line: BoxCart['lines'][number]): PlacedOrderLine => ({
-    name: line.name,
-    quantity: line.quantity,
-    detail: line.isDefaultPersonalisation ? undefined : line.personalisationSummary || undefined,
-    pricePence: line.unitPricePence,
-  });
-
-  return {
-    orderId: order.orderId,
-    paymentStatus: order.paymentStatus,
-    subtotalPence: order.subtotalPence,
-    discountTotalPence: order.discountTotalPence,
-    taxTotalPence: order.taxTotalPence,
-    totalPence: order.totalPence,
-    currency: order.currency,
-    earliestDeliveryDate: deliveryDate,
-    boxSize: placed?.size,
-    dishes: (placed?.lines ?? []).filter((line) => line.kind !== 'AddOn').map(toLine),
-    addOns: (placed?.lines ?? []).filter((line) => line.kind === 'AddOn').map(toLine),
-  };
 }
 
 /**

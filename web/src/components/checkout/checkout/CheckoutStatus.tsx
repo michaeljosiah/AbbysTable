@@ -5,16 +5,11 @@ import { CART_ORDERED_MESSAGE } from '@/lib/cart/cartMissing';
 import styles from './Checkout.module.css';
 
 /**
- * Checkout for a box that can no longer be checked out. Not designed as a
- * page (SHOPPING-STATE §53, §42): said in place of the form, with the
- * heading where reading starts.
- *
- * - `completed`: it became an order — in this tab or another.
- * - `payment`: a payment attempt holds it. Nothing about the box can change
- *   until the payment provider's answer is known, and paying again is not
- *   offered while it may still go through.
+ * Checkout for a box that became an order — here or in another tab (not
+ * designed as a page; SHOPPING-STATE §53): said in place of the form, with
+ * VIEW ORDER. A box a payment attempt holds goes to the payment page instead.
  */
-export function CheckoutStatus({ kind }: { kind: 'completed' | 'payment' }) {
+export function CheckoutStatus({ kind }: { kind: 'completed' }) {
   return (
     <div className={styles.page}>
       <div className={styles.shell}>
@@ -27,12 +22,7 @@ export function CheckoutStatus({ kind }: { kind: 'completed' | 'payment' }) {
                 View order
               </Link>
             </div>
-          ) : (
-            <div className={styles.locked} role="status">
-              <h2 className={styles.lockedH}>We’re checking your payment.</h2>
-              <p className={styles.lockedP}>Please don’t pay again yet.</p>
-            </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

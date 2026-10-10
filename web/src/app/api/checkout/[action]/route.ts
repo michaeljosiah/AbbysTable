@@ -8,6 +8,9 @@
  *   PUT    discount     { code }     applies a code (Aonik checks it at once)
  *   DELETE discount                  removes it
  *   GET    dates?from=&days=         the bookable calendar — no box needed
+ *   POST   pay          { expectedTotalPence }  starts payment: Stripe's page, or why not
+ *   GET    payment                   the payment's state, for the processing page's poll
+ *   POST   retry                     back to Stripe for the same order (the payment pages)
  *
  * Like `/api/cart`, only this server sees the cart cookie, and every write
  * forwards the tab's `X-Cart-Version`. A write Aonik refuses because the box
@@ -26,11 +29,13 @@ import { NextResponse } from 'next/server';
 import { getAonikClient } from '@/lib/aonik/client';
 import { AONIK_CODES, AonikError } from '@/lib/aonik/errors';
 import { CartMissingError, mapCartMissingError } from '@/lib/cart/cartMissing';
-import { CartUnavailableError } from '@/lib/cart/server';
+import { ORDERING_DISABLED_CODE } from '@/lib/cart/ordering';
+import { CartUnavailableError, getBoxCart, OrderingDisabledError } from '@/lib/cart/server';
 import { CART_CONFLICT_CODE, CART_LOCKED_CODE, CART_RELOAD_CODE, CART_VERSION_HEADER } from '@/lib/cart/transport';
 import { isIsoDate } from '@/lib/checkout/calendar';
 import { CODE_MAX_LENGTH, codeRefusal, isCodeRefusal, normaliseCode } from '@/lib/checkout/codes';
 import { DETAIL_FIELDS, FIELD_LIMITS, type CheckoutDetails } from '@/lib/checkout/form';
+import { PaymentOriginError, readPaymentState, retryPayment, startPayment } from '@/lib/checkout/payment';
 import {
   applyDiscountCode,
   CheckoutReloadError,
@@ -44,6 +49,8 @@ import {
   CHECKOUT_CODES,
   type CheckoutCodeAnswer,
   type CheckoutDatesAnswer,
+  type CheckoutPayAnswer,
+  type CheckoutPaymentAnswer,
   type CheckoutDraftAnswer,
   type CheckoutHoldAnswer,
   type CheckoutRefusal,
@@ -79,6 +86,17 @@ function readDetails(body: unknown): CheckoutDetails | null {
 }
 
 /** Aonik's delivery refusals, as the page names them. */
+/** Aonik's refusals at payment start, beyond the date ones. */
+const PAYMENT_REFUSALS: Record<string, string> = {
+  'commerce.discount_price_changed': CHECKOUT_CODES.totalChanged,
+  'commerce.box_drift': CHECKOUT_CODES.boxChanged,
+  'commerce.delivery_not_served': CHECKOUT_CODES.notServed,
+  'commerce.invalid_postcode': CHECKOUT_CODES.notServed,
+  'commerce.unsupported_delivery_country': CHECKOUT_CODES.notServed,
+  'commerce.delivery_unavailable': CHECKOUT_CODES.coverageUnavailable,
+  'commerce.storefront_validation': CHECKOUT_CODES.invalid,
+};
+
 const DATE_REFUSALS: Record<string, string> = {
   'commerce.delivery_date_full': CHECKOUT_CODES.dateFull,
   'commerce.no_delivery': CHECKOUT_CODES.dateFull,
@@ -91,6 +109,12 @@ async function failure(error: unknown) {
   if (error instanceof CartMissingError) {
     const mapped = mapCartMissingError(error);
     return refuse(mapped.status, { error: mapped.payload.error, code: mapped.payload.code, cart: null });
+  }
+  if (error instanceof PaymentOriginError) {
+    return refuse(503, { error: 'We can’t start your payment just now. Please try again in a little while.', code: CHECKOUT_CODES.unavailable });
+  }
+  if (error instanceof OrderingDisabledError) {
+    return refuse(403, { error: error.message, code: ORDERING_DISABLED_CODE });
   }
   if (error instanceof CartUnavailableError) {
     return refuse(503, { error: 'Checkout needs a live box; this build is on demo data.', code: 'cart.unavailable' });
@@ -123,6 +147,14 @@ async function failure(error: unknown) {
     const date = error.code ? DATE_REFUSALS[error.code] : undefined;
     if (date) return refuse(error.status, { error: error.message, code: date });
     if (error.status === 429) return refuse(429, { error: 'Too many requests.', code: CHECKOUT_CODES.busy });
+    // Before the code refusals: at payment start a moved total is the total, not the code.
+    const payment = error.code ? PAYMENT_REFUSALS[error.code] : undefined;
+    if (payment === CHECKOUT_CODES.totalChanged || payment === CHECKOUT_CODES.boxChanged) {
+      // Nothing was started: the box as it is now, so the summary shows the new total.
+      const cart = await getBoxCart().catch(() => undefined);
+      return refuse(error.status, { error: error.message, code: payment, ...(cart !== undefined ? { cart } : {}) });
+    }
+    if (payment) return refuse(error.status, { error: error.message, code: payment });
     if (isCodeRefusal(error.code)) return refuse(error.status, { error: codeRefusal(error.code), code: error.code! });
     if (error.status === 400 || error.status === 422) {
       // Aonik refused what was sent (a control character, a field too long).
@@ -152,6 +184,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ acti
       // A payment attempt holds the box: the page shows that, not a form.
       if (locked) return refuse(409, { error: 'A payment is in progress for this box.', code: CART_LOCKED_CODE });
       const answer: CheckoutSyncAnswer = current;
+      return json(answer);
+    }
+    if (action === 'payment') {
+      const state = await readPaymentState();
+      // The poll learns only what the page needs: never the Stripe URL.
+      const answer: CheckoutPaymentAnswer = state ? { status: state.status, canEdit: state.canEdit } : { status: null, canEdit: false };
       return json(answer);
     }
     if (action === 'dates') {
@@ -194,6 +232,29 @@ export async function PUT(request: Request, { params }: { params: Promise<{ acti
         return refuse(400, { error: codeRefusal('commerce.discount_invalid'), code: 'commerce.discount_invalid' });
       }
       const answer: CheckoutCodeAnswer = { cart: await applyDiscountCode(code, version) };
+      return json(answer);
+    }
+    return refuse(404, { error: 'Unknown checkout action', code: CHECKOUT_CODES.invalid });
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function POST(request: Request, { params }: { params: Promise<{ action: string }> }) {
+  const { action } = await params;
+  const body: unknown = await request.json().catch(() => null);
+  const origin = new URL(request.url).origin;
+  try {
+    if (action === 'pay') {
+      const total = (body as { expectedTotalPence?: unknown } | null)?.expectedTotalPence;
+      if (typeof total !== 'number' || !Number.isInteger(total) || total <= 0) {
+        return refuse(400, { error: 'The total you agreed to is required.', code: CHECKOUT_CODES.invalid });
+      }
+      const answer: CheckoutPayAnswer = await startPayment({ version: versionOf(request), expectedTotalPence: total, origin });
+      return json(answer);
+    }
+    if (action === 'retry') {
+      const answer: CheckoutPayAnswer = await retryPayment(origin);
       return json(answer);
     }
     return refuse(404, { error: 'Unknown checkout action', code: CHECKOUT_CODES.invalid });

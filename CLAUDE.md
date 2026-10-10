@@ -275,9 +275,19 @@ Conventions inside `web/` that are easy to get wrong:
     reason.
   - **Not built yet:** delivery windows (Aonik rejects any) and address lookup (aonik#352).
     Log in, account opt-in and points come with #34/#36; gifts with #26.
-  - **Until the Stripe hand-off lands (#32), CONTINUE validates and then says online ordering
-    is not open**: nothing is ordered or charged. `PlaceOrderButton` is gone, and Review's CTA
-    links here.
+  - **Payment (#32): CONTINUE hands off to Aonik's hosted Stripe Checkout**
+    (`src/lib/checkout/payment.ts`; `tests/payment.test.tsx`), only while
+    `LIVE_ORDERING_ENABLED` is on. Turn that on only after a Stripe sandbox run end to end, with
+    `STOREFRONT_ORIGIN` matching the Stripe connector's `returnOrigin`. The attempt's
+    references live in the httpOnly `abbys-table-payment` cookie, never in a URL. A return URL
+    is navigation, never proof: `/box/payment` and the confirmation say only what Aonik
+    reports, and "No charges have been made" only after recovery proves the attempt closed.
+    Retry reuses the same Stripe session, or recovers a closed one and re-reserves the saved
+    date for a new attempt on the same order. A paid attempt is found even once the box's cookie
+    is cleared (the payment cookie names the order). `STOREFRONT_ORIGIN` must be HTTPS or
+    payment is refused before anything is claimed. The confirmation (`/box/confirmation`, site chrome) renders only a
+    `Captured` order. Review's CTA links to checkout; `PlaceOrderButton`, the order snapshot
+    cookie and the cart route's `checkout` action are gone.
 - **Dish → Our Standards → dish (#17)** is specified in `src/lib/dish-return.ts`, also React-free.
   "Back to dish" needs BOTH a real dish in `?from=dish&dish=<slug>` (checked on the server against
   the catalogue) AND a live `at-dish-return-v1` sessionStorage record written by the dish page's
