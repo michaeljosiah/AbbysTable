@@ -23,12 +23,7 @@ import type {
   PublicCollectionDto,
   ExtrasListDto,
 } from './dto';
-import {
-  BUSINESS_PROFILE_PATH,
-  BUSINESS_PROFILE_TIMEOUT_MS,
-  readBusinessProfile,
-  type BusinessProfile,
-} from './businessProfile';
+import { fetchBusinessProfile, type BusinessProfile } from './businessProfile';
 import { DemoCoverageLookup, HttpCoverageLookup, type CoverageLookup } from './coverage';
 import { AONIK_CODES, AonikError } from './errors';
 import { EXTRA_FIXTURES } from './extras';
@@ -332,24 +327,11 @@ export class HttpAonikClient implements AonikClient {
 
   /**
    * Aonik's business profile (#358): 404 until an administrator publishes it,
-   * which is a state, not an error. A fact that does not read cleanly is left
-   * out and logged (`./businessProfile`), never guessed. Cached like the
-   * catalogue, as Aonik caches it for five minutes; bounded, because the legal
-   * pages and Contact wait for it.
+   * which is a state, not an error. Read and reused by `./businessProfile`,
+   * never through Next's data cache.
    */
-  async getBusinessProfile(): Promise<BusinessProfile | null> {
-    try {
-      const body = await aonikFetch<unknown>(BUSINESS_PROFILE_PATH, {
-        baseUrl: this.options.baseUrl,
-        tenantId: this.options.tenantId,
-        policy: 'catalog',
-        signal: AbortSignal.timeout(BUSINESS_PROFILE_TIMEOUT_MS),
-      });
-      return readBusinessProfile(body, (message) => console.warn(`[aonik] business profile: ${message}`));
-    } catch (error) {
-      if (error instanceof AonikError && error.isNotFound) return null;
-      throw error;
-    }
+  getBusinessProfile(): Promise<BusinessProfile | null> {
+    return fetchBusinessProfile(this.options);
   }
 
   async getStorefrontConfig(): Promise<StorefrontConfig> {

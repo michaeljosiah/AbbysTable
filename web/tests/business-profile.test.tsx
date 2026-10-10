@@ -7,7 +7,15 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import ContactPage from '../src/app/(site)/contact/page';
 import PrivacyPolicyPage from '../src/app/(site)/privacy/page';
 import TermsOfSalePage from '../src/app/(site)/terms-of-sale/page';
-import { BUSINESS_PROFILE_PATH, readBusinessProfile, toE164 } from '../src/lib/aonik/businessProfile';
+import {
+  BUSINESS_PROFILE_MEMO_MS,
+  BUSINESS_PROFILE_PATH,
+  BUSINESS_PROFILE_STALE_MS,
+  clearBusinessProfileMemo,
+  fetchBusinessProfile,
+  readBusinessProfile,
+  toE164,
+} from '../src/lib/aonik/businessProfile';
 import { HttpAonikClient, MockAonikClient } from '../src/lib/aonik/client';
 import { isOpenAt, ukDayStart, wholeDayClosure } from '../src/lib/contact/hours';
 import { mergeBusinessDetails, resolveBusinessDetails } from '../src/lib/content/business';
@@ -75,6 +83,13 @@ test('telephone numbers become E.164 for the link and keep their written form', 
   assert.equal(toE164('1632 960000'), null, 'no country, no trunk prefix: not guessed');
   assert.equal(toE164('call us'), null);
   assert.equal(toE164('+44 12'), null, 'too short');
+  // The trunk 0 kept after the country code is not dialled.
+  assert.equal(toE164('+44 01632 960000'), '+441632960000');
+  assert.equal(toE164('0044 01632 960000'), '+441632960000');
+  assert.equal(toE164('44 07700 900123'), '+447700900123');
+  // A UK number has 9 or 10 digits after 44: a mistyped one is no link.
+  assert.equal(toE164('01632 960000 12'), null);
+  assert.equal(toE164('01632 9600'), null);
 
   const profile = readBusinessProfile(PROFILE);
   assert.deepEqual(profile?.contact, {
@@ -94,6 +109,17 @@ test('a contact detail that does not read cleanly is left out and logged — nev
   assert.equal(logged.length, 2, 'the email and the phone; an empty WhatsApp is simply unset');
   assert.equal(readBusinessProfile({ contact: { email: 'a@b@example.test' } })?.contact.email, null);
   assert.equal(readBusinessProfile({ contact: { email: 'hello@example.test\r\nBcc: x@example.test' } })?.contact.email, null);
+  // Nothing that would add to a mailto: link, and no scheme.
+  for (const email of ['hello@example.test?subject=Hi', 'hello@example.test#x', 'a&b@example.test', 'mailto:hello@example.test', 'hello@example']) {
+    assert.equal(readBusinessProfile({ contact: { email } })?.contact.email, null, email);
+  }
+  // The page says "UK number" under the phone, so it must be one; WhatsApp need not be.
+  const abroad = readBusinessProfile({ contact: { phone: '+1 202 555 0100', whatsApp: '+1 202 555 0100' } });
+  assert.equal(abroad?.contact.phone, null);
+  assert.equal(abroad?.contact.whatsApp, '+12025550100');
+  // What was published but could not be read is marked, not merely missing.
+  assert.deepEqual([...(abroad?.rejected ?? [])], ['phone']);
+  assert.deepEqual([...(readBusinessProfile({ contact: { email: '' } })?.rejected ?? [])], [], 'blank is unpublished');
   assert.equal(readBusinessProfile(null), null);
   assert.equal(readBusinessProfile('profile'), null);
 });
@@ -108,6 +134,10 @@ test('the legal facts: the registered office one line per entry, on lines or aft
   const office = (registeredOffice: unknown) =>
     readBusinessProfile({ legal: { registeredOffice } })?.legal.registeredOffice;
   assert.deepEqual(office('1 Test Street, Testville, TE1 1ST'), ['1 Test Street', 'Testville', 'TE1 1ST']);
+  assert.deepEqual(office('1, Test Street, Testville'), ['1, Test Street', 'Testville'], 'a house number stays with its street');
+  const long = readBusinessProfile({ legal: { companyNumber: '0'.repeat(21), companyName: 'x'.repeat(201) } });
+  assert.equal(long?.legal.companyNumber, null);
+  assert.deepEqual([...(long?.rejected ?? [])].sort(), ['companyName', 'companyNumber']);
   assert.deepEqual(office('1 Test Street\r\n\r\nTestville'), ['1 Test Street', 'Testville']);
   assert.equal(office('1 Test Street\u0000'), null, 'no other control characters');
   assert.equal(office('  '), null);
@@ -118,6 +148,7 @@ test('the legal facts: the registered office one line per entry, on lines or aft
     companyNumber: null,
     registeredOffice: null,
   });
+  assert.equal(readBusinessProfile({ displayName: 'x' })?.rejected.size, 0);
 });
 
 test('opening hours: ISO weekdays become ours, touching periods join, closures stay what they are', () => {
@@ -149,10 +180,21 @@ test('opening hours: ISO weekdays become ours, touching periods join, closures s
   assert.deepEqual(closed?.weekly, [null, null, null, null, null, null, null]);
   // Null is unconfigured: no table, no "Open now".
   assert.equal(readBusinessProfile({ openingHours: null })?.openingHours, null);
+
+  // "Until midnight" is the last moment of the day — Aonik never sends a 00:00 close.
+  const late = readBusinessProfile({
+    openingHours: { ...PROFILE.openingHours, weeklyHours: [{ dayOfWeek: 5, opensAt: '18:00:00', closesAt: '23:59:59.9999999' }] },
+  })?.openingHours;
+  assert.deepEqual(late?.weekly[5], { opens: '18:00', closes: '23:59' });
 });
 
 test('hours the page cannot show truthfully are not shown at all', () => {
-  const hoursOf = (openingHours: unknown) => quietly(() => readBusinessProfile({ openingHours })?.openingHours);
+  const hoursOf = (openingHours: unknown) => {
+    const profile = quietly(() => readBusinessProfile({ openingHours }));
+    // Published but unreadable: marked, so the pages never show configured hours instead.
+    if (profile?.openingHours === null) assert.ok(profile.rejected.has('openingHours'));
+    return profile?.openingHours;
+  };
   const base = PROFILE.openingHours;
   // A lunch break: the design's table has one window a day.
   assert.equal(
@@ -169,6 +211,7 @@ test('hours the page cannot show truthfully are not shown at all', () => {
   assert.equal(hoursOf({ ...base, timezone: 'Europe/Dublin' }), null);
   // Seconds the table cannot print, a missing list, a bad weekday, a bad date.
   assert.equal(hoursOf({ ...base, weeklyHours: [{ dayOfWeek: 1, opensAt: '09:00:30', closesAt: '17:00:00' }] }), null);
+  assert.equal(hoursOf({ ...base, weeklyHours: [{ dayOfWeek: 1, opensAt: '09:00:00.5', closesAt: '17:00:00' }] }), null);
   assert.equal(hoursOf({ timezone: 'Europe/London', weeklyHours: [] }), null);
   assert.equal(hoursOf({ ...base, weeklyHours: [{ dayOfWeek: 0, opensAt: '09:00:00', closesAt: '17:00:00' }] }), null);
   assert.equal(hoursOf({ ...base, weeklyHours: [{ dayOfWeek: 1, opensAt: '17:00:00', closesAt: '09:00:00' }] }), null);
@@ -231,6 +274,16 @@ test('the profile fills each fact it publishes; the rest stay the configuration'
   assert.equal(partial.email, 'hello@example.test');
   assert.equal(partial.phone, COMPANY.phone);
   assert.equal(partial.company.legalName, COMPANY.legalName);
+
+  // A fact published but unreadable is "to be confirmed" — never configuration
+  // standing in for it (an old number, hours no longer kept).
+  const rejected = mergeBusinessDetails({
+    ...readBusinessProfile({})!,
+    rejected: new Set(['phone', 'openingHours'] as const),
+  });
+  assert.equal(rejected.phone, null);
+  assert.equal(rejected.hours, null);
+  assert.equal(rejected.company.phone, null);
 });
 
 /* ---- Reading it from Aonik --------------------------------------------------------- */
@@ -239,6 +292,7 @@ test('live: one GET to the profile; 404 (not published) is no profile, not an er
   assert.equal(BUSINESS_PROFILE_PATH, '/v1/business-profile');
   const client = new HttpAonikClient({ baseUrl: AONIK_BASE, tenantId: TENANT_ID });
 
+  clearBusinessProfileMemo();
   useAonik(() => ({ status: 200, body: PROFILE }));
   const profile = await client.getBusinessProfile();
   assert.equal(profile?.legal.companyName, 'Example Kitchen Ltd');
@@ -247,9 +301,11 @@ test('live: one GET to the profile; 404 (not published) is no profile, not an er
   assert.equal(aonikRequests[0].path, '/v1/business-profile');
   assert.equal(aonikRequests[0].headers['x-tenant-id'], TENANT_ID);
 
+  clearBusinessProfileMemo();
   useAonik(() => ({ status: 404, body: { error: 'Not found' } }));
   assert.equal(await client.getBusinessProfile(), null);
 
+  clearBusinessProfileMemo();
   useAonik(() => ({ status: 500 }));
   await assert.rejects(client.getBusinessProfile());
 
@@ -257,8 +313,37 @@ test('live: one GET to the profile; 404 (not published) is no profile, not an er
   assert.equal(await new MockAonikClient().getBusinessProfile(), null);
 });
 
+test('a withdrawal shows within a minute; an outage keeps the last good read a while; a 404 is believed at once', async () => {
+  const config = { baseUrl: AONIK_BASE, tenantId: TENANT_ID };
+  const start = Date.parse('2026-10-10T09:00:00Z');
+  clearBusinessProfileMemo();
+  useAonik(() => ({ status: 200, body: PROFILE }));
+  assert.equal((await fetchBusinessProfile(config, start))?.legal.companyName, 'Example Kitchen Ltd');
+  // Reused for a minute: not asked again.
+  useAonik(() => ({ status: 404, body: {} }));
+  assert.equal((await fetchBusinessProfile(config, start + BUSINESS_PROFILE_MEMO_MS - 1))?.legal.companyName, 'Example Kitchen Ltd');
+  assert.equal(aonikRequests.length, 0);
+  // Withdrawn: the next read after the minute says so.
+  assert.equal(await fetchBusinessProfile(config, start + BUSINESS_PROFILE_MEMO_MS), null);
+
+  // Aonik down: the last good read stands in for a while, then no longer.
+  clearBusinessProfileMemo();
+  useAonik(() => ({ status: 200, body: PROFILE }));
+  await fetchBusinessProfile(config, start);
+  useAonik(() => ({ status: 503 }));
+  const warn = mock.method(console, 'warn', () => undefined);
+  try {
+    assert.equal((await fetchBusinessProfile(config, start + BUSINESS_PROFILE_MEMO_MS))?.legal.companyName, 'Example Kitchen Ltd');
+    await assert.rejects(fetchBusinessProfile(config, start + BUSINESS_PROFILE_STALE_MS));
+  } finally {
+    warn.mock.restore();
+    clearBusinessProfileMemo();
+  }
+});
+
 test('a failed read falls back to the configuration rather than failing the page', async () => {
   resetCookies();
+  clearBusinessProfileMemo();
   configureAonik({ AONIK_DATA_MODE: 'live' });
   useAonik(() => ({ status: 503 }));
   const error = mock.method(console, 'error', () => undefined);
@@ -276,6 +361,7 @@ test('a failed read falls back to the configuration rather than failing the page
 /** Answers the profile, and no published sign-up lists (so no waitlist panel). */
 function stubPublishedProfile() {
   clearPublishedListsCache();
+  clearBusinessProfileMemo();
   stubAonik((request) => {
     if (request.path === BUSINESS_PROFILE_PATH) return { status: 200, body: PROFILE };
     if (request.path === '/v1/signup-lists') return { status: 200, body: { lists: [] } };

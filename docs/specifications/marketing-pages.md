@@ -439,12 +439,16 @@ Aonik's `private-table` sign-up list; the panel links `PRIVATE_TABLE_WAITLIST_HR
 WhatsApp (with its QR), email, phone and the opening hours SHALL be what the tenant publishes in
 Aonik's business profile (aonik#358), fact by fact over `src/lib/content/contact.ts`
 (`WHATSAPP_CONTACT`, `SUPPORT_CONTACT`, `OPENING_HOURS`), each `null` until the owner confirms it.
-A published fact that does not read cleanly SHALL be left out (logged), never guessed: a telephone
-number becomes E.164 for the link only from a leading `0`, `44`, `+44`, `00` or `+`; hours in
+A published fact that does not read cleanly SHALL be left out (logged), never guessed, and shown
+"to be confirmed" rather than replaced by the configuration's value: a telephone number becomes
+E.164 for the link only from a leading `0`, `44`, `+44`, `00` or `+` (a UK number with 9 or 10
+digits after 44; the phone must be a UK one); an email only as an address a `mailto:` carries as it
+is; hours in
 another zone than Europe/London, or with a break inside a day (the table has one window a day),
 SHALL NOT be shown; touching periods join; ISO weekdays map to ours; bank holidays stay bank
-holidays and each exceptional closure closes its whole London day. The QR SHALL show only with the
-configured number it encodes. A `null` detail SHALL show
+holidays and each exceptional closure closes its whole London day; "until midnight" (23:59:59) is
+23:59. The QR SHALL show only with the configured number it encodes. A withdrawn profile SHALL stop
+showing within a minute: the read never goes through Next's data cache. A `null` detail SHALL show
 the "to be confirmed" mark and SHALL NOT be a link: no `mailto:`, `tel:` or `wa.me` without a
 value. The design's phone, email, WhatsApp number, hours, bank holidays and placeholder QR SHALL
 NOT be copied into `web/`; the QR shows from 1024 only, unre-encoded, once a real tested code is

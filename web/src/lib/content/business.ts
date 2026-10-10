@@ -1,4 +1,4 @@
-import type { BusinessProfile } from '@/lib/aonik/businessProfile';
+import type { BusinessProfile, ProfileFact } from '@/lib/aonik/businessProfile';
 import { getAonikClient } from '@/lib/aonik/client';
 import type { OpeningHours } from '@/lib/contact/hours';
 
@@ -26,12 +26,19 @@ export interface BusinessDetails {
 
 const digits = (e164: string) => e164.replace(/\D/g, '');
 
-/** The profile's facts over the configuration's. */
+/**
+ * The profile's facts over the configuration's. A fact the profile published
+ * but could not read (`rejected`) is null — "to be confirmed" — and never the
+ * configuration's: that could be an old number, or hours no longer kept.
+ */
 export function mergeBusinessDetails(profile: BusinessProfile | null): BusinessDetails {
-  const email = profile?.contact.email ?? COMPANY.email;
-  const phone = profile?.contact.phone ?? COMPANY.phone;
+  const pick = <T,>(fact: ProfileFact, published: T | null | undefined, configured: T | null): T | null =>
+    profile?.rejected.has(fact) ? null : (published ?? configured);
 
-  const whatsAppNumber = profile?.contact.whatsApp ?? WHATSAPP_CONTACT?.e164 ?? null;
+  const email = pick('email', profile?.contact.email, COMPANY.email);
+  const phone = pick('phone', profile?.contact.phone, COMPANY.phone);
+
+  const whatsAppNumber = pick('whatsApp', profile?.contact.whatsApp, WHATSAPP_CONTACT?.e164 ?? null);
   // The QR code encodes a number: it goes with the configured number it was
   // made for, never with a different one the profile publishes.
   const qrSrc =
@@ -43,11 +50,11 @@ export function mergeBusinessDetails(profile: BusinessProfile | null): BusinessD
     email,
     phone,
     whatsapp: whatsAppNumber ? { e164: whatsAppNumber, qrSrc } : null,
-    hours: profile?.openingHours ?? OPENING_HOURS,
+    hours: pick('openingHours', profile?.openingHours, OPENING_HOURS),
     company: {
-      legalName: profile?.legal.companyName ?? COMPANY.legalName,
-      registeredOffice: profile?.legal.registeredOffice ?? COMPANY.registeredOffice,
-      companyNumber: profile?.legal.companyNumber ?? COMPANY.companyNumber,
+      legalName: pick('companyName', profile?.legal.companyName, COMPANY.legalName),
+      registeredOffice: pick('registeredOffice', profile?.legal.registeredOffice, COMPANY.registeredOffice),
+      companyNumber: pick('companyNumber', profile?.legal.companyNumber, COMPANY.companyNumber),
       // Aonik publishes no payment processor: it stays configuration.
       paymentProvider: COMPANY.paymentProvider,
       email,

@@ -171,10 +171,14 @@ Conventions inside `web/` that are easy to get wrong:
   WhatsApp and the hours are the tenant's published business profile (aonik#358,
   `src/lib/aonik/businessProfile.ts`) over `src/lib/content/contact.ts`, fact by fact (all `null`
   → "to be confirmed", never a mailto:/tel:/wa.me with no value). A profile fact that does not read
-  cleanly is left out and logged; hours with a break in a day or outside Europe/London are not
-  shown; exceptional closures close a whole London day without being called bank holidays; the QR
-  shows only with the configured number it encodes. 404 (unpublished), demo or a failed read →
-  configuration; never a failed page. The 500 and maintenance pages stay on `SUPPORT_CONTACT` (they
+  cleanly is `rejected` (logged) and shows "to be confirmed" — never the configuration's value in
+  its place; hours with a break in a day or outside Europe/London are not shown; exceptional
+  closures close a whole London day without being called bank holidays; the phone must be a UK
+  number; the QR shows only with the configured number it encodes. 404 (unpublished), demo or a
+  failed read → configuration; never a failed page. The read is NEVER Next's data cache (it keeps a
+  200 past a later 404, so a withdrawn profile would stay up): `fetchBusinessProfile` reuses it for
+  a minute in-process, believes a 404 at once, and lets the last good read stand in for up to 15
+  minutes while Aonik cannot answer. The 500 and maintenance pages stay on `SUPPORT_CONTACT` (they
   must work with Aonik down). Never copy the design's number, email, hours, bank holidays or
   placeholder QR. "Open now / Closed" is computed in the BROWSER in Europe/London from
   configured hours only — no hours, no status. Topics, validation, images and the hours rules are
