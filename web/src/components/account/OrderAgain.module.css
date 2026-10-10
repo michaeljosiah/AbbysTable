@@ -1,0 +1,242 @@
+.roWrap {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+}
+.roScrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(21, 41, 31, 0.5);
+  animation: at-fade-in 0.2s ease;
+}
+.ro {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 90dvh;
+  background: var(--cream);
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -12px 36px rgba(21, 41, 31, 0.22);
+}
+.roHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px 4px;
+}
+.roH {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 28px;
+  line-height: 1.15;
+  color: var(--green-forest);
+}
+.roH:focus {
+  outline: none;
+}
+.roX {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-right: -10px;
+  border: none;
+  background: transparent;
+  color: var(--green-forest);
+  cursor: pointer;
+}
+.roX:hover {
+  color: var(--terracotta-deep);
+}
+.roBody {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 0 20px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.roWip {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--sage);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--green-forest);
+}
+.roList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--sand);
+}
+.roRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--sand);
+}
+.roPick {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  min-height: 44px;
+  padding: 4px 0;
+  cursor: pointer;
+}
+.roPick input {
+  width: 22px;
+  height: 22px;
+  margin: 2px 0 0;
+  accent-color: var(--green-forest);
+  cursor: pointer;
+}
+.roPick input:disabled {
+  cursor: not-allowed;
+}
+.roName {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.35;
+  color: var(--green-forest);
+  font-weight: 600;
+}
+.roMeta {
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--brown);
+}
+.roRow[data-off='true'] .roName {
+  color: var(--brown);
+  font-weight: 500;
+}
+.roRow[data-na='true'] .roPick {
+  cursor: default;
+}
+.roStep {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.roStep button {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1.5px solid var(--brass);
+  background: transparent;
+  color: var(--brass-ink);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease;
+}
+.roStep button::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+}
+.roStep button:hover:not(:disabled) {
+  background: var(--brass);
+  color: var(--white);
+}
+.roStep button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.roQ {
+  min-width: 26px;
+  text-align: center;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--green-forest);
+}
+.roFoot {
+  flex: 0 0 auto;
+  display: grid;
+  gap: 6px;
+  padding: 14px 20px calc(16px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--sand-2);
+  background: var(--cream-2);
+}
+.roSum {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--green-forest);
+  text-wrap: pretty;
+}
+.roSum:focus {
+  outline: none;
+}
+.roSum[data-err='true'] {
+  color: var(--chilli);
+}
+.roFoot > button:first-of-type {
+  margin-top: 6px;
+}
+.roCancel {
+  justify-self: center;
+}
+@media (min-width: 640px) {
+  .ro {
+    left: 50%;
+    right: auto;
+    top: 50%;
+    bottom: auto;
+    transform: translate(-50%, -50%);
+    width: min(560px, calc(100% - 48px));
+    max-height: min(720px, calc(100dvh - 64px));
+    border-radius: 18px;
+    box-shadow: 0 24px 60px rgba(21, 41, 31, 0.28);
+  }
+  .roHead {
+    padding: 22px 28px 6px;
+  }
+  .roBody {
+    padding: 0 28px 8px;
+  }
+  .roFoot {
+    padding: 16px 28px 20px;
+    border-radius: 0 0 18px 18px;
+  }
+  .roFoot > button:first-of-type {
+    width: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .roScrim {
+    animation: none;
+  }
+  .roStep button {
+    transition: none !important;
+  }
+}

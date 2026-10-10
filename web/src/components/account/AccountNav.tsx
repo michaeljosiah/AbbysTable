@@ -21,7 +21,8 @@ const CHEVRON = (
  * form posting to a server action: the session cookie is httpOnly, and it
  * works before (and without) hydration.
  */
-export function AccountNav() {
+export type AccountMenuMeta = Partial<Record<(typeof ACCOUNT_SECTIONS)[number]['key'], string>>;
+export function AccountNav({ meta = {} }: { meta?: AccountMenuMeta }) {
   const here = currentSection(usePathname());
 
   return (
@@ -37,6 +38,7 @@ export function AccountNav() {
                 aria-current={here?.key === section.key ? 'page' : undefined}
               >
                 <span className={styles.navText}>{section.label}</span>
+                <span className={styles.navMeta}>{meta[section.key]}</span>
                 <span className={styles.navChevron}>{CHEVRON}</span>
               </Link>
             </li>

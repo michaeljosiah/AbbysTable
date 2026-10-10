@@ -13,7 +13,13 @@
  */
 
 // Relative, not `@/`: tests reach this module without the alias hook.
-import { allergenLine, declaredAllergens, declaresNone, NONE_DECLARED, splitAllergenText } from '../allergens';
+import {
+  allergenLine,
+  declaredAllergens,
+  declaresNone,
+  NONE_DECLARED,
+  splitAllergenText,
+} from '../allergens';
 
 import type {
   BoxCartDto,
@@ -81,7 +87,9 @@ export function toMajor(pence: number): number {
 }
 
 /** Optional amounts keep their absence — a null price is "not set", not zero. */
-export function toPenceOrUndefined(amount: number | null | undefined): number | undefined {
+export function toPenceOrUndefined(
+  amount: number | null | undefined,
+): number | undefined {
   return amount === null || amount === undefined ? undefined : toPence(amount);
 }
 
@@ -95,11 +103,15 @@ export function toPenceOrUndefined(amount: number | null | undefined): number | 
  * than failing the read, and so do we: one badly-authored product must not take
  * the menu down.
  */
-function parseJsonObject(raw: string | null | undefined): Record<string, unknown> {
+function parseJsonObject(
+  raw: string | null | undefined,
+): Record<string, unknown> {
   if (!raw) return {};
   try {
     const parsed: unknown = JSON.parse(raw);
-    return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
+    return typeof parsed === 'object' &&
+      parsed !== null &&
+      !Array.isArray(parsed)
       ? (parsed as Record<string, unknown>)
       : {};
   } catch {
@@ -111,7 +123,9 @@ function parseJsonStringArray(raw: string | null | undefined): string[] {
   if (!raw) return [];
   try {
     const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((v): v is string => typeof v === 'string')
+      : [];
   } catch {
     return [];
   }
@@ -171,7 +185,9 @@ export function mapResolvedContent(dto: ResolvedContentDto): {
   // never a cue to read the text. Only a source WITHOUT the member (an older
   // Aonik) is read from its text.
   const controlled = 'allergensPresent' in dto;
-  const declared = controlled ? declaredAllergens(dto.allergensPresent) : undefined;
+  const declared = controlled
+    ? declaredAllergens(dto.allergensPresent)
+    : undefined;
   if (controlled && !dto.declarationsWithheld && declared === null) {
     console.warn(
       Array.isArray(dto.allergensPresent)
@@ -201,16 +217,22 @@ export function mapResolvedContent(dto: ResolvedContentDto): {
             ? NONE_DECLARED
             : dto.allergens?.trim(),
     allergenNames,
-    precautionaryStatement: withheld ? undefined : dto.precautionaryStatement?.trim() || undefined,
+    precautionaryStatement: withheld
+      ? undefined
+      : dto.precautionaryStatement?.trim() || undefined,
     // Heating is never null on the wire — an empty list when withheld.
-    heating: dto.heatingWithheld ? [] : dto.heating.map((step) => ({ ...step })),
+    heating: dto.heatingWithheld
+      ? []
+      : dto.heating.map((step) => ({ ...step })),
     state: {
       servingLabel: dto.servingLabel,
       declarationsWithheld: withheld,
       figuresAreStandardPreparation: dto.isStandardPreparation,
       figuresAreStale: dto.isStale,
       heatingWithheld: dto.heatingWithheld,
-      heating: dto.heatingWithheld ? [] : dto.heating.map((step) => ({ ...step })),
+      heating: dto.heatingWithheld
+        ? []
+        : dto.heating.map((step) => ({ ...step })),
       contentVersion: dto.contentVersion,
     },
   };
@@ -254,9 +276,12 @@ export interface MappedOptionGroup {
   choices: DishOption[];
 }
 
-export function mapOptionGroup(dto: EffectiveOptionGroupDto): MappedOptionGroup {
+export function mapOptionGroup(
+  dto: EffectiveOptionGroupDto,
+): MappedOptionGroup {
   const basePrice =
-    dto.choices.find((choice) => choice.key === dto.defaultChoiceKey)?.price ?? 0;
+    dto.choices.find((choice) => choice.key === dto.defaultChoiceKey)?.price ??
+    0;
 
   const choices = [...dto.choices]
     .sort((a, b) => a.sortOrder - b.sortOrder)
@@ -270,7 +295,9 @@ export function mapOptionGroup(dto: EffectiveOptionGroupDto): MappedOptionGroup 
   return {
     key: dto.key,
     currency: dto.currency,
-    valid: dto.choices.some((choice) => choice.key === dto.defaultChoiceKey) && dto.choices.every((choice) => Number.isFinite(choice.price)),
+    valid:
+      dto.choices.some((choice) => choice.key === dto.defaultChoiceKey) &&
+      dto.choices.every((choice) => Number.isFinite(choice.price)),
     label: dto.label,
     helpText: dto.helpText ?? undefined,
     selectionMode: dto.selectionMode,
@@ -280,8 +307,12 @@ export function mapOptionGroup(dto: EffectiveOptionGroupDto): MappedOptionGroup 
 }
 
 /** An empty list means "not personalisable" — hide the panel, never render an empty one. */
-export function mapOptionGroups(dtos: EffectiveOptionGroupDto[]): MappedOptionGroup[] {
-  return [...dtos].sort((a, b) => a.sortOrder - b.sortOrder).map(mapOptionGroup);
+export function mapOptionGroups(
+  dtos: EffectiveOptionGroupDto[],
+): MappedOptionGroup[] {
+  return [...dtos]
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map(mapOptionGroup);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -319,7 +350,9 @@ export interface StorefrontBoxPresetDto {
   saving: number | null;
 }
 
-export function mapStorefrontConfig(dto: StorefrontConfigDto): StorefrontConfig {
+export function mapStorefrontConfig(
+  dto: StorefrontConfigDto,
+): StorefrontConfig {
   return {
     currency: dto.currency,
     recommendedChoiceLabel: dto.recommendedChoiceLabel,
@@ -332,7 +365,11 @@ export function mapStorefrontConfig(dto: StorefrontConfigDto): StorefrontConfig 
     defaultBoxSlug: dto.defaultBoxSlug ?? undefined,
     extrasCollectionSlug: dto.extrasCollectionSlug ?? undefined,
     box: dto.box ? mapEmbeddedBoxPlan(dto.box) : undefined,
-    ...(dto.saleTerms?.version ? { saleTerms: { version: dto.saleTerms.version, url: dto.saleTerms.url } } : {}),
+    ...(dto.saleTerms?.version
+      ? {
+          saleTerms: { version: dto.saleTerms.version, url: dto.saleTerms.url },
+        }
+      : {}),
   };
 }
 
@@ -347,7 +384,9 @@ export function mapStorefrontConfig(dto: StorefrontConfigDto): StorefrontConfig 
  * Note what is NOT here: any list price for a custom size. Only presets may
  * carry a `saving`, and it is authored — never computed.
  */
-export function mapEmbeddedBoxPlan(dto: StorefrontBoxPlanDto): StorefrontBoxPlan {
+export function mapEmbeddedBoxPlan(
+  dto: StorefrontBoxPlanDto,
+): StorefrontBoxPlan {
   return {
     minSize: dto.minSize,
     maxSize: dto.maxSize,
@@ -447,7 +486,10 @@ export function mapFacetGroups(dtos: FacetGroupDto[]): MappedFacetGroup[] {
     .map((group) => ({
       key: group.key,
       label: group.label,
-      options: group.options.map((option) => ({ value: option.value, label: option.label })),
+      options: group.options.map((option) => ({
+        value: option.value,
+        label: option.label,
+      })),
     }));
 }
 
@@ -490,10 +532,13 @@ interface DishAttributes {
 
 function readAttributes(attributesJson: string): DishAttributes {
   const raw = parseJsonObject(attributesJson);
-  const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : undefined);
+  const num = (v: unknown) =>
+    typeof v === 'number' && Number.isFinite(v) ? v : undefined;
   const str = (v: unknown) => (typeof v === 'string' && v ? v : undefined);
   const strArray = (v: unknown) =>
-    Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : undefined;
+    Array.isArray(v)
+      ? v.filter((x): x is string => typeof x === 'string')
+      : undefined;
 
   return {
     heatStep: num(raw.heatStep),
@@ -529,7 +574,8 @@ const figure = (value: number | null | undefined): number | undefined =>
   typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 
 /** Authored text, trimmed, or undefined. */
-const authored = (value: string | null | undefined): string | undefined => value?.trim() || undefined;
+const authored = (value: string | null | undefined): string | undefined =>
+  value?.trim() || undefined;
 
 /**
  * The heat level: Aonik's typed `heat` (0–3, aonik#359) wherever the record
@@ -537,8 +583,13 @@ const authored = (value: string | null | undefined): string | undefined => value
  * contradict what Aonik's own heat facet matches on — else the legacy
  * `heatStep` attribute.
  */
-function typedHeat(dto: { heat?: number | null }, attributes: DishAttributes): HeatLevel | undefined {
-  return 'heat' in dto ? heatFromStep(figure(dto.heat)) : heatFromStep(attributes.heatStep);
+function typedHeat(
+  dto: { heat?: number | null },
+  attributes: DishAttributes,
+): HeatLevel | undefined {
+  return 'heat' in dto
+    ? heatFromStep(figure(dto.heat))
+    : heatFromStep(attributes.heatStep);
 }
 
 /**
@@ -547,8 +598,13 @@ function typedHeat(dto: { heat?: number | null }, attributes: DishAttributes): H
  * the legacy `protein` attribute. A category that is not a protein source
  * ("Soups") is not read as one.
  */
-function proteinSource(categoryName: string | null | undefined, attributes: DishAttributes): Dish['proteinType'] {
-  const category = PROTEIN_TYPES.find((type) => type.toLowerCase() === categoryName?.trim().toLowerCase());
+function proteinSource(
+  categoryName: string | null | undefined,
+  attributes: DishAttributes,
+): Dish['proteinType'] {
+  const category = PROTEIN_TYPES.find(
+    (type) => type.toLowerCase() === categoryName?.trim().toLowerCase(),
+  );
   return category ?? (attributes.protein as Dish['proteinType']);
 }
 
@@ -567,7 +623,8 @@ export function mapSummaryToDish(dto: ProductSummaryDto): Dish {
   const attributes = readAttributes(dto.attributesJson);
   // Typed figures where Aonik sends them — a stale or unknown one arrives as
   // null and stays unknown; the attributes only for a source without them.
-  const typedNutrition = 'kcal' in dto || 'proteinGrams' in dto || 'fibreGrams' in dto;
+  const typedNutrition =
+    'kcal' in dto || 'proteinGrams' in dto || 'fibreGrams' in dto;
 
   return {
     id: dto.id,
@@ -582,7 +639,11 @@ export function mapSummaryToDish(dto: ProductSummaryDto): Dish {
     isSignature: dto.unitSurcharge !== null,
     upgradePence: toPenceOrUndefined(dto.unitSurcharge),
     nutrition: typedNutrition
-      ? { proteinGrams: figure(dto.proteinGrams), fibreGrams: figure(dto.fibreGrams), calories: figure(dto.kcal) }
+      ? {
+          proteinGrams: figure(dto.proteinGrams),
+          fibreGrams: figure(dto.fibreGrams),
+          calories: figure(dto.kcal),
+        }
       : {
           proteinGrams: attributes.proteinGrams,
           fibreGrams: attributes.fibreGrams,
@@ -612,7 +673,9 @@ export function mapProductToDish(dto: ProductDto): Dish {
   const content = dto.content ? mapResolvedContent(dto.content) : null;
   const tags = parseJsonStringArray(dto.tagsJson);
   // The first IMAGE, as Aonik picks a row's hero: a menu PDF is never the photograph.
-  const hero = [...dto.media].filter((media) => media.kind === 'image').sort((a, b) => a.sortOrder - b.sortOrder)[0];
+  const hero = [...dto.media]
+    .filter((media) => media.kind === 'image')
+    .sort((a, b) => a.sortOrder - b.sortOrder)[0];
   // A typed record (aonik#359) publishes its figures through content only: no
   // attribute figures stand in where its content has none.
   const typed = 'heat' in dto;
@@ -689,6 +752,10 @@ export interface BoxQuoteComponent {
 }
 
 export interface BoxQuote {
+  giftTender?: { maskedCode?: string; giftAmountPence: number; cardAmountPence: number; reasonCode?: string };
+  loyalty?: Omit<import('./dto').LoyaltyQuoteDto, 'appliedValue'> & {
+    appliedValuePence: number;
+  };
   /** Ordered and additive. Render by iterating; never sum these to show a total. */
   components: BoxQuoteComponent[];
   deliveryListPence: number;
@@ -719,6 +786,7 @@ export interface BoxChange {
 }
 
 export interface BoxCart {
+  createAccount?: boolean;
   giftCard?: import('./dto').CheckoutDraftDto['giftCardDraft'];
   gift?: CartGiftDraftDto | null;
   cartId: string;
@@ -760,7 +828,22 @@ export function mapBoxLine(dto: BoxLineDto): BoxLine {
 }
 
 export function mapBoxQuote(dto: BoxQuoteDto): BoxQuote {
+  const { appliedValue, ...loyalty } = dto.loyalty ?? { appliedValue: 0 };
   return {
+    ...(dto.loyalty
+      ? {
+          loyalty: {
+            ...loyalty,
+            appliedValuePence: toPence(appliedValue),
+          } as NonNullable<BoxQuote['loyalty']>,
+        }
+      : {}),
+    ...(dto.giftCard ? { giftTender: {
+      maskedCode: dto.giftCard.maskedCode ?? undefined,
+      giftAmountPence: toPence(dto.giftCard.giftAmount),
+      cardAmountPence: toPence(dto.giftCard.cardAmount),
+      reasonCode: dto.giftCard.reasonCode ?? undefined,
+    } } : {}),
     // Order is Aonik's and meaningful; do not sort.
     components: dto.components.map((component) => ({
       key: component.key,
@@ -778,7 +861,9 @@ export function mapBoxQuote(dto: BoxQuoteDto): BoxQuote {
           discount: {
             code: dto.discount.code,
             amountPence: toPence(dto.discount.amount),
-            ...(dto.discount.reasonCode ? { reasonCode: dto.discount.reasonCode } : {}),
+            ...(dto.discount.reasonCode
+              ? { reasonCode: dto.discount.reasonCode }
+              : {}),
           },
         }
       : {}),
@@ -800,7 +885,10 @@ export function mapBoxChange(dto: BoxChangeDto): BoxChange {
 /** Every mutation returns the whole box; the provider replaces state wholesale. */
 export function mapBoxCart(dto: BoxCartDto): BoxCart {
   return {
-    ...(dto.checkoutDraft?.giftCardDraft ? { giftCard: dto.checkoutDraft.giftCardDraft } : {}),
+    createAccount: dto.checkoutDraft?.createAccount ?? false,
+    ...(dto.checkoutDraft?.giftCardDraft
+      ? { giftCard: dto.checkoutDraft.giftCardDraft }
+      : {}),
     ...(dto.checkoutDraft?.gift ? { gift: dto.checkoutDraft.gift } : {}),
     cartId: dto.box.cartId,
     bundleProductId: dto.box.bundleProductId,
@@ -848,13 +936,16 @@ export function encodeSelection(
 
   for (const group of groups) {
     const raw = chosen[group.key];
-    let values = (Array.isArray(raw) ? raw : raw === undefined ? [] : [raw]).filter(Boolean);
+    let values = (
+      Array.isArray(raw) ? raw : raw === undefined ? [] : [raw]
+    ).filter(Boolean);
     if (values.length === 0 && !omitDefaults && group.defaultChoiceKey) {
       values = [group.defaultChoiceKey];
     }
     if (values.length === 0) continue;
 
-    const isDefault = values.length === 1 && values[0] === group.defaultChoiceKey;
+    const isDefault =
+      values.length === 1 && values[0] === group.defaultChoiceKey;
     if (!isDefault) differsFromDefault = true;
 
     selection[group.key] = group.selectionMode === 'Multi' ? values : values[0];
@@ -937,7 +1028,9 @@ function parseExtraAttributes(json: string | null): ExtraAttributes {
   if (!json) return {};
   try {
     const parsed: unknown = JSON.parse(json);
-    return typeof parsed === 'object' && parsed !== null ? (parsed as ExtraAttributes) : {};
+    return typeof parsed === 'object' && parsed !== null
+      ? (parsed as ExtraAttributes)
+      : {};
   } catch {
     return {};
   }
@@ -948,7 +1041,9 @@ function extraCategory(value: string | undefined): ExtraCategory {
 }
 
 function extraServeStyle(value: string | undefined): ExtraServeStyle {
-  return value === 'hot' || value === 'chilled' || value === 'ambient' ? value : 'ambient';
+  return value === 'hot' || value === 'chilled' || value === 'ambient'
+    ? value
+    : 'ambient';
 }
 
 /**
@@ -982,6 +1077,8 @@ export function mapExtraRow(dto: ExtraRowDto): Extra {
     allergens: content?.allergenNames,
     precautionaryStatement: content?.precautionaryStatement,
     serveStyle: extraServeStyle(attributes.serveStyle),
-    heating: content?.heating.map((step) => step.body).join(' ') || (attributes.heating ?? ''),
+    heating:
+      content?.heating.map((step) => step.body).join(' ') ||
+      (attributes.heating ?? ''),
   };
 }

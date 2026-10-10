@@ -1,0 +1,89 @@
+.pts {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 14px;
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: color-mix(in oklab, var(--blush) 38%, var(--cream-2));
+}
+.ptsIc {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+}
+.ptsH {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  min-height: 44px;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 19px;
+  line-height: 1.2;
+  color: var(--green-forest);
+}
+.i {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -12px -12px -12px -8px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  color: var(--brass-ink);
+}
+.pts > div {
+  position: relative;
+}
+.adpop.rptspop {
+  position: relative;
+  top: auto;
+  left: auto;
+  grid-column: 1 / -1;
+  width: auto;
+  margin-top: 12px;
+  padding: 18px 18px 18px;
+  box-shadow: none;
+}
+.rptspop .adH {
+  font-size: 20px;
+}
+
+.check {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 12px;
+  font: 16px/1.4 var(--font-sans);
+  color: var(--brown);
+}
+.check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--green-forest);
+  flex: 0 0 auto;
+  margin-top: 3px;
+}
+.check small {
+  display: block;
+  margin-top: 4px;
+  font-size: 14px;
+}
+.redeem {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0;
+}
+.heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

@@ -13,7 +13,7 @@ export function AccountHelp() {
   return (
     <div className={styles.help}>
       <h2 className={styles.cardTitle}>Need help with an order?</h2>
-      <p className={styles.p}>Get in touch and we’ll sort it out.</p>
+      <p className={styles.p}>Contact us.</p>
       <Link href={CONTACT_HREF} className={styles.submit}>
         Contact us
       </Link>

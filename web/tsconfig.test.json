@@ -48,6 +48,7 @@
     "tests/account-overview.test.tsx",
     "tests/account-details.test.tsx",
     "tests/account-reorder.test.tsx",
+    "tests/account-benefits.test.tsx",
     "tests/choose-box.test.tsx",
     "tests/shopping-state.test.tsx",
     "tests/email.test.ts",

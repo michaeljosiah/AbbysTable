@@ -33,6 +33,7 @@ export interface LoyaltyBalance {
   availablePoints: number;
   /** What `balancePoints` are worth, in pence. */
   valuePence: number;
+  highestFivePoundMarkSeen?: number;
 }
 
 export function mapLoyaltyBalance(dto: LoyaltyBalanceDto): LoyaltyBalance {
@@ -41,9 +42,43 @@ export function mapLoyaltyBalance(dto: LoyaltyBalanceDto): LoyaltyBalance {
     reservedPoints: dto.reservedPoints,
     availablePoints: dto.availablePoints,
     valuePence: toPence(dto.value),
+    highestFivePoundMarkSeen: dto.highestFivePoundMarkSeen,
   };
 }
 
 export async function getMyLoyaltyBalance(): Promise<LoyaltyBalance> {
-  return mapLoyaltyBalance(await aonikAuthedFetch<LoyaltyBalanceDto>('/commerce/storefront/loyalty', { forbiddenKeepsSession: true }));
+  return mapLoyaltyBalance(
+    await aonikAuthedFetch<LoyaltyBalanceDto>('/commerce/storefront/loyalty', {
+      forbiddenKeepsSession: true,
+    }),
+  );
+}
+
+export interface LoyaltyActivity {
+  id: string;
+  kind: string;
+  occurredAtUtc: string;
+  points: number;
+  runningBalancePoints: number;
+  orderId: string | null;
+  reason: string | null;
+}
+export interface LoyaltyHistory {
+  items: LoyaltyActivity[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+export function getMyLoyaltyHistory(page = 1): Promise<LoyaltyHistory> {
+  return aonikAuthedFetch(
+    `/commerce/storefront/loyalty/history?page=${page}&pageSize=20`,
+    { forbiddenKeepsSession: true },
+  );
+}
+export async function markLoyaltySeen(mark: number): Promise<void> {
+  await aonikAuthedFetch('/commerce/storefront/loyalty/seen', {
+    method: 'POST',
+    body: { mark },
+    forbiddenKeepsSession: true,
+  });
 }

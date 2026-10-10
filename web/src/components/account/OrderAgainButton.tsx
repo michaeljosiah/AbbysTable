@@ -10,6 +10,8 @@ import { BOX_BUILDER_PATH } from '@/lib/how-it-works/boxSizes';
 import { resumeHrefFor } from '@/lib/purchase-bar/activeBox';
 
 import styles from './Account.module.css';
+import { OrderAgainSheet } from './OrderAgainSheet';
+import type { ReorderDishChoice } from '@/lib/cart/reorder';
 
 type Said = { kind: 'problem' | 'active'; text: string } | null;
 
@@ -35,19 +37,20 @@ export function OrderAgainButton({
   returnTo: string;
 }) {
   const cart = useCart();
+  const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState<Said>(null);
   /** A ref, not state: two taps before a render must not both send. */
   const inFlight = useRef(false);
   const hintId = `${orderId}-reorder-hint`;
 
-  const go = async () => {
+  const go = async (selections: ReorderDishChoice[]) => {
     if (inFlight.current) return;
     inFlight.current = true;
     setBusy(true);
     setSaid(null);
     try {
-      const result = await reorderAction(orderId);
+      const result = await reorderAction(orderId, selections);
       switch (result.status) {
         case 'started':
           // A full load, not a client navigation: the cart this tab holds is the old one.
@@ -77,10 +80,26 @@ export function OrderAgainButton({
 
   return (
     <div className={styles.reorder}>
+      {open ? (
+        <OrderAgainSheet
+          orderId={orderId}
+          label={label}
+          upcoming={upcoming}
+          returnTo={returnTo}
+          busy={busy}
+          message={said?.text ?? null}
+          onClose={() => setOpen(false)}
+          onGo={go}
+        />
+      ) : null}
       <button
         type="button"
         className={`${styles.pill} ${styles.pillOutline}`}
-        onClick={go}
+        onClick={() => {
+          setSaid(null);
+          setOpen(true);
+        }}
+        aria-haspopup="dialog"
         aria-disabled={busy || undefined}
         aria-label={busy ? 'Starting your box' : label}
         aria-describedby={upcoming ? hintId : undefined}

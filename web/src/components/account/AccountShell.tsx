@@ -4,7 +4,7 @@ import type { PurchaseBarData } from '@/lib/purchase-bar/data';
 
 import { AccountBoxStrip } from './AccountBoxStrip';
 import { AccountHelp } from './AccountHelp';
-import { AccountNav } from './AccountNav';
+import { type AccountMenuMeta, AccountNav } from './AccountNav';
 import { AccountView } from './AccountView';
 import styles from './Account.module.css';
 
@@ -17,11 +17,13 @@ import styles from './Account.module.css';
  */
 export function AccountShell({
   firstName,
+  menuMeta,
   purchaseBar,
   heroAside,
   children,
 }: {
   firstName?: string;
+  menuMeta?: AccountMenuMeta;
   purchaseBar: PurchaseBarData;
   /** The overview's Next delivery card (a parallel route: empty in every section). */
   heroAside?: ReactNode;
@@ -44,7 +46,7 @@ export function AccountShell({
 
       <section className={styles.body}>
         <div className={styles.inner}>
-          <AccountView nav={<AccountNav />} help={<AccountHelp />}>
+          <AccountView nav={<AccountNav meta={menuMeta} />} help={<AccountHelp />}>
             {children}
           </AccountView>
         </div>

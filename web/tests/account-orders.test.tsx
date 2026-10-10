@@ -394,9 +394,9 @@ test('the frame greets by first name, carries the menu with Sign out, the sectio
   assert.match(html, /<h1[^>]*>Hello, Ada<\/h1>/);
   assert.match(read, /Your orders, points and saved details, all in one place\./);
   assert.match(html, /<nav[^>]*aria-label="Account"/);
-  assert.match(read, /Your account Overview Orders Addresses Details & preferences Sign out/);
+  assert.match(read, /Your account Overview Orders Points Gift cards Addresses 0 saved addresses Details & preferences ada@example.com Sign out/);
   assert.match(read, /THE SECTION/);
-  assert.match(read, /Need help with an order\? Get in touch and we’ll sort it out\. Contact us/);
+  assert.match(read, /Need help with an order\? Contact us\. Contact us/);
   assert.doesNotMatch(read, /You have a box in progress/, 'no box, no strip');
 });
 
@@ -419,7 +419,7 @@ test('a signed-out request gets no frame: the page inside redirects it', async (
 });
 
 test('the menu lists only sections that are built, each a real route', () => {
-  assert.deepEqual(ACCOUNT_SECTIONS.map((section) => section.href), ['/account', '/account/orders', '/account/addresses', '/account/details']);
+  assert.deepEqual(ACCOUNT_SECTIONS.map((section) => section.href), ['/account', '/account/orders', '/account/points', '/account/gifts', '/account/addresses', '/account/details']);
   assert.equal(currentSection('/account/orders')?.key, 'orders');
   assert.equal(currentSection('/account/orders/0b6c1e2a-1111-4222-8333-444455556666')?.key, 'orders');
   assert.equal(currentSection('/account')?.key, 'overview');

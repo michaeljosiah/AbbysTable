@@ -191,8 +191,11 @@
   color: var(--green-forest);
 }
 
+.navMeta { grid-column: 1; font-family: var(--font-sans); font-size: 14px; line-height: 1.35; color: var(--brown); }
+
 .navChevron {
   grid-column: 2;
+  grid-row: 1 / span 2;
   color: var(--brass);
 }
 
@@ -592,7 +595,7 @@
     color: var(--green-forest);
   }
 
-  .navChevron {
+  .navMeta, .navChevron {
     display: none;
   }
 }
@@ -1325,3 +1328,5 @@
     display: flex;
   }
 }
+
+.smallP { margin: 0; font-family: var(--font-sans); font-size: 14px; line-height: 1.45; color: var(--brown); }

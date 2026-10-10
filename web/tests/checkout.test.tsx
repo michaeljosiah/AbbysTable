@@ -496,7 +496,7 @@ test('a code: Aonik’s own races are said plainly; a change that took but canno
   const unseen = await call('PUT', 'discount', { code: 'save10' });
   quiet.mock.restore();
   assert.equal(unseen.status, 503);
-  assert.deepEqual(await unseen.json(), { error: 'SAVE10 has been applied. Reload the page to see your total.', code: 'cart.reload' });
+  assert.deepEqual(await unseen.json(), { error: 'Your code has been applied. Reload the page to see your total.', code: 'cart.reload' });
 });
 
 test('reading the hold reports the box’s version without handing it over; a sync hands over the box, draft and hold together', async () => {
@@ -638,4 +638,43 @@ test('checkout help offers real contact navigation without simulated messaging s
   assert.match(html, /href="\/contact"/);
   assert.doesNotMatch(html, /Live chat|Send email|Your message is on its way|within a few hours/);
   assert.doesNotMatch(html, /<form/);
+});
+
+
+test('benefits save preserves every other draft section and uses the displayed version', async () => {
+  configureAonik({ AONIK_DATA_MODE: 'live' }); resetCookies(CART_COOKIE);
+  const draft = { ...SAVED_DRAFT.draft!, gift: { giftIntent: true, hidePrices: true, includeGreetingCard: false, greetingCardMessage: '' }, deliveryNotes: 'Side entrance', requestedPoints: 200 };
+  useAonik(r => {
+    if (r.path.endsWith('/checkout-draft')) return { status: 200, body: { ...SAVED_DRAFT, draft: r.method === 'GET' ? draft : r.body } };
+    if (r.path === '/commerce/carts/c1') return { status: 200, body: box({checkoutDraft: {...draft, createAccount: false}}) };
+    return undefined;
+  });
+  const response = await call('PUT', 'benefits', { createAccount: false });
+  assert.equal(response.status, 200);
+  const write = aonikRequests.find(r => r.method === 'PUT')!;
+  assert.deepEqual(write.body, {...draft, createAccount: false});
+  assert.equal(write.headers['x-cart-version'], 'v1');
+  assert.equal((await call('PUT', 'benefits', {requestedPoints: -1})).status, 400);
+});
+
+test('gift tender forwards only a body code, keeps the order total and exposes the quoted funding split', async () => {
+  configureAonik({ AONIK_DATA_MODE: 'live' }); resetCookies(CART_COOKIE);
+  let applied = false;
+  const code = '0123456789ABCDEF0123456789ABCDEF';
+  useAonik(r => {
+    if (r.path === '/commerce/carts/c1') return {status:200, body: box({quote: {...box().quote, ...(applied ? {giftCard: {requestedAmount:158,maxRedeemableAmount:50,giftAmount:50,cardAmount:108,maskedCode:'••••CDEF'}} : {})}})};
+    if (r.path.endsWith('/gift-card-tender')) { applied = r.method === 'PUT'; return {status:200,body:{cartVersion:'v3'}}; }
+    return undefined;
+  });
+  const response = await call('PUT', 'gift-tender', {code});
+  assert.equal(response.status, 200);
+  const payload = await response.json();
+  assert.equal(payload.cart.quote.totalPence, 15800);
+  assert.deepEqual(payload.cart.quote.giftTender, {giftAmountPence:5000,cardAmountPence:10800,maskedCode:'••••CDEF'});
+  assert.ok(!JSON.stringify(payload).includes(code));
+  const write = aonikRequests.find(r => r.method === 'PUT')!;
+  assert.deepEqual(write.body, {code,requestedAmount:158});
+  assert.equal(write.headers['x-cart-version'],'v1');
+  assert.ok(aonikRequests.every(r => !r.path.includes(code)));
+  assert.equal((await call('DELETE','gift-tender')).status,200);
 });
