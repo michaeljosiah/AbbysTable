@@ -21,6 +21,11 @@ export interface CustomerProfile {
   email: string;
   firstName?: string;
   lastName?: string;
+  /** Aonik's own, kept so a name or phone change does not clear them. */
+  title?: string;
+  countryCode?: string;
+  /** E.164, as Aonik stores it. */
+  phone?: string;
 }
 
 export function mapProfile(dto: CustomerProfileDto): CustomerProfile {
@@ -28,6 +33,9 @@ export function mapProfile(dto: CustomerProfileDto): CustomerProfile {
     email: dto.email,
     firstName: dto.firstName?.trim() || undefined,
     lastName: dto.lastName?.trim() || undefined,
+    title: dto.title?.trim() || undefined,
+    countryCode: dto.countryCode?.trim() || undefined,
+    phone: dto.phone?.trim() || undefined,
   };
 }
 
@@ -39,3 +47,26 @@ export function mapProfile(dto: CustomerProfileDto): CustomerProfile {
 export const getMyProfile = cache(async (): Promise<CustomerProfile> =>
   mapProfile(await aonikAuthedFetch<CustomerProfileDto>('/profiles/customers/me')),
 );
+
+/**
+ * Saves the name and phone. Aonik's `PUT /profiles/customers/me` REPLACES the
+ * profile's editable fields, so the title and country the customer already has
+ * are sent back unchanged. Returns the profile as it now is.
+ */
+export async function updateMyProfile(
+  current: CustomerProfile,
+  change: { firstName: string; lastName: string; phone: string | null },
+): Promise<CustomerProfile> {
+  return mapProfile(
+    await aonikAuthedFetch<CustomerProfileDto>('/profiles/customers/me', {
+      method: 'PUT',
+      body: {
+        firstName: change.firstName,
+        lastName: change.lastName || null,
+        title: current.title ?? null,
+        phone: change.phone,
+        countryCode: current.countryCode ?? null,
+      },
+    }),
+  );
+}

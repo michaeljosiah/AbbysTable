@@ -37,7 +37,7 @@ import { renderMode, resetCookies } from './support/next-headers';
 
 configureAonik({ AONIK_AUTH_CLIENT_ID: 'storefront' });
 
-const text = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+const text = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ');
 
 function summaryDto(overrides: Partial<StorefrontOrderSummaryDto> = {}): StorefrontOrderSummaryDto {
   return {
@@ -127,7 +127,9 @@ test('a detail carries delivery, loyalty and refund in pence, and names', () => 
 });
 
 test('a profile reads its first name, trimmed, or none', () => {
-  assert.deepEqual(mapProfile({ email: 'a@b.co', firstName: ' Ada ', lastName: null }), { email: 'a@b.co', firstName: 'Ada', lastName: undefined });
+  assert.deepEqual(mapProfile({ email: 'a@b.co', firstName: ' Ada ', lastName: null }), {
+    email: 'a@b.co', firstName: 'Ada', lastName: undefined, title: undefined, countryCode: undefined, phone: undefined,
+  });
   assert.equal(mapProfile({ email: 'a@b.co', firstName: '  ' }).firstName, undefined);
 });
 
@@ -376,7 +378,7 @@ test('the order page names its dishes as purchased, with Signature, and splits g
 async function layoutHtml(profile: AonikReply) {
   signedIn();
   stubAonik({ '/profiles/customers/me': profile });
-  const frame = await AccountLayout({ children: <p>THE SECTION</p> });
+  const frame = await AccountLayout({ children: <p>THE SECTION</p>, hero: null });
   return renderToStaticMarkup(<CartProvider mode="demo">{frame}</CartProvider>);
 }
 
@@ -387,7 +389,7 @@ test('the frame greets by first name, carries the menu with Sign out, the sectio
   assert.match(html, /<h1[^>]*>Hello, Ada<\/h1>/);
   assert.match(read, /Your orders, points and saved details, all in one place\./);
   assert.match(html, /<nav[^>]*aria-label="Account"/);
-  assert.match(read, /Your account Overview Orders Sign out/);
+  assert.match(read, /Your account Overview Orders Addresses Details & preferences Sign out/);
   assert.match(read, /THE SECTION/);
   assert.match(read, /Need help with an order\? Get in touch and we’ll sort it out\. Contact us/);
   assert.doesNotMatch(read, /You have a box in progress/, 'no box, no strip');
@@ -405,14 +407,14 @@ test('a signed-out request gets no frame: the page inside redirects it', async (
   renderMode();
   stubAonik();
 
-  const frame = await AccountLayout({ children: <p>THE SECTION</p> });
+  const frame = await AccountLayout({ children: <p>THE SECTION</p>, hero: null });
 
   assert.equal(renderToStaticMarkup(frame), '<p>THE SECTION</p>');
   assert.equal(aonikRequests.length, 0);
 });
 
 test('the menu lists only sections that are built, each a real route', () => {
-  assert.deepEqual(ACCOUNT_SECTIONS.map((section) => section.href), ['/account', '/account/orders']);
+  assert.deepEqual(ACCOUNT_SECTIONS.map((section) => section.href), ['/account', '/account/orders', '/account/addresses', '/account/details']);
   assert.equal(currentSection('/account/orders')?.key, 'orders');
   assert.equal(currentSection('/account/orders/0b6c1e2a-1111-4222-8333-444455556666')?.key, 'orders');
   assert.equal(currentSection('/account')?.key, 'overview');

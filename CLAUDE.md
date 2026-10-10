@@ -422,7 +422,25 @@ Conventions inside `web/` that are easy to get wrong:
   delivery window. `AccountView` (client) makes the menu the overview on a phone — shown on
   `/account`, replaced inside a section by "← Back to My Account" — and a sidebar from 1024. The
   menu rows carry no live summaries (they'd need every section's data on every page): the overview
-  panel shows at every width instead. Not built until PR 3/4: Manage addresses, Order again.
+  panel shows at every width instead. Not built until PR 4: Order again.
+  **Addresses and Details (PR 3): `/account/addresses`, `/account/details`.** Aonik's address is
+  street, optional line 2, town, postcode, country and a free `type` word — NO name, phone or
+  delivery notes, so the design's form asks only those (the design's Label is Aonik's `type`;
+  empty = "Home"; country is always GB). EVERY write names the address-book `version` the page
+  was showing: a stale tab is refused (409 `concurrency_conflict`) and the answer carries the
+  current book, which replaces the page's (`lib/account/addressActions.ts`, outcomes as values).
+  A new address made default is a SECOND write (set default) using the version just returned. The
+  form's rules (`addressForm.ts`, `detailsForm.ts`, `phone.ts`) are React-free and run in the
+  browser AND the action. Details: name and phone only — Aonik's `PUT /profiles/customers/me`
+  REPLACES the editable fields, so the stored title and country are sent back; the phone must be
+  E.164 and a UK number as dialled ("07700 900123") is read as +44. The EMAIL IS READ-ONLY: a
+  change needs a recent identity-provider proof the storefront can't supply (Aonik answers 202 and
+  silently does nothing without it), so it goes through Contact. Password: no password is handled
+  here; "Send reset link" is Forgot password's Aonik call for the address Aonik holds for the
+  session, under the same limits. Left out on purpose: the newsletter toggle (the monthly note is
+  the footer's sign-up list, not an account setting), the Private Table waitlist card (no backing
+  yet) and the "Saved addresses are offered at checkout" line — checkout does not read the address
+  book yet.
   The optional reads pass `forbiddenKeepsSession`: a 403 there is "may not read this", not "session
   over" (`aonikAuthedFetch` otherwise clears the session on 401 and 403). `/account/<anything else>`
   is a 404 with the site chrome, signed in or out (checked by hand: the `@hero` catch-all registers

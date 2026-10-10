@@ -43,6 +43,7 @@
     "tests/account-access.test.tsx",
     "tests/account-orders.test.tsx",
     "tests/account-overview.test.tsx",
+    "tests/account-details.test.tsx",
     "tests/choose-box.test.tsx",
     "tests/shopping-state.test.tsx",
     "tests/email.test.ts",

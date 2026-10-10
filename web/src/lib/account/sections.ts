@@ -5,7 +5,7 @@
  */
 
 export interface AccountSection {
-  key: 'overview' | 'orders';
+  key: 'overview' | 'orders' | 'addresses' | 'details';
   label: string;
   href: string;
   /**
@@ -20,6 +20,8 @@ export const ACCOUNT_HOME_HREF = '/account';
 export const ACCOUNT_SECTIONS: readonly AccountSection[] = [
   { key: 'overview', label: 'Overview', href: ACCOUNT_HOME_HREF, desktopOnly: true },
   { key: 'orders', label: 'Orders', href: '/account/orders' },
+  { key: 'addresses', label: 'Addresses', href: '/account/addresses' },
+  { key: 'details', label: 'Details & preferences', href: '/account/details' },
 ];
 
 /** The section a path is in (an order's own page is in Orders), if any. */
