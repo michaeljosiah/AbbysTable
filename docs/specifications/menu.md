@@ -11,12 +11,12 @@ updated: 2026-10-07
 
 # Menu
 
-> **Status (2026-10-07): approved, partly implemented.** `/menu` is rebuilt to Menu Landing v3
-> (#21): title and lede, the delivery strip, the filter card with its four groups and Sort, the
-> grid on the v2 dish card, "Where the flavour comes from", the purchase bar and ↑ Top. Three
-> things wait on Aonik and are held back rather than faked: typed heat, protein source, nutrition
-> on browse rows, a low-sugar flag and sorting by protein and calories
-> (michaeljosiah/aonik#359), and the next cooking run WITH CAPACITY (michaeljosiah/aonik#346).
+> **Status (2026-10-10): approved, implemented but for one item.** `/menu` is rebuilt to Menu
+> Landing v3 (#21): title and lede, the delivery strip, the filter card with its four groups and
+> Sort, the grid on the v2 dish card, "Where the flavour comes from", the purchase bar and ↑ Top.
+> Aonik's typed dish facts and its protein and calorie sorts (michaeljosiah/aonik#359) are live.
+> One thing still waits on Aonik and is held back rather than faked: the next cooking run WITH
+> CAPACITY (michaeljosiah/aonik#346).
 > Sources: `design/Abby's Table - Menu Landing v3.dc.html`, `design/build-handoff.md` §3w,
 > `design/CLAUDE.md` (menu page, ↑ Top, delivery strip, cards, dropdowns),
 > `design/frontend-backend-contract.md` §4, §4b, §4d. Where the issue and the design disagree,
@@ -127,8 +127,10 @@ drawing the card's pips), Dietary & other (Gluten-free, Dairy-free, High in fibr
 "All". Keys are `protein`, `wellness`, `heat`, `dietary`; live groups are whatever the tenant's
 facets read advertises. The seeders author demo's groups with demo's tokens, matched on each
 product's `attributesJson.facets.<key>` (`tenantFacetGroups`, `dishFacetTokens`), so
-`?facet.protein=lamb` means the same in both modes; the display attributes keep the record's words. "Low sugar" SHALL NOT appear until a dish record carries a real flag
-(aonik#359): the prototype's stand-in (carbohydrate ≤ 20g) would be a nutrition claim. "DASH" stays
+`?facet.protein=lamb` means the same in both modes; the display attributes keep the record's words. "Low sugar" SHALL come only from a real
+flag: live, a tenant facet on Aonik's typed `lowSugar` (aonik#359), matched by Aonik; demo's dishes
+carry no such flag, so demo has no chip — the prototype's stand-in (carbohydrate ≤ 20g) would be a
+nutrition claim. "DASH" stays
 in the data with no chip (contract §4d). Calories and Category are no longer groups.
 
 #### Scenario: OR within, AND across
@@ -144,22 +146,37 @@ in the data with no chip (contract §4d). Calories and Category are no longer gr
 `capability: catalog-browse` · `delta: MODIFIED (feat/menu-landing-v3)`
 
 A dish SHALL match a facet value only through a field its record carries; a dish without the field
-matches nothing. A browse row whose `heatStep` is absent or not an integer 0–3 SHALL have no heat
-(it used to read "Medium"), and every surface (card, dish page, Standards and How It Works
-examples, Add Dishes, Review) SHALL leave the heat out rather than draw a level.
+matches nothing. A record's heat is Aonik's typed `heat` (0–3, aonik#359) wherever the record
+carries that member — null is unknown, never refilled from the legacy `heatStep` attribute, which
+counts only for a source without the typed member; anything absent or not an integer 0–3 SHALL be
+no heat (it used to read "Medium"), and every surface (card, dish page, Standards and How It Works
+examples, Add Dishes, Review) SHALL leave the heat out rather than draw a level. The same holds for
+the card's figures: Aonik's typed kcal, protein and fibre (null when unknown or withheld as stale)
+over the attributes (the homepage rail takes them from the row too, never the detail read), and the
+protein source is the product's category where it names one. Copy — the description and the
+components line — falls back to the legacy attribute only while the typed value is blank. A seeded
+tenant authors typed heat and its heat facet as one-step Range bands on it, so the filter and the
+pips read one field.
 
 #### Scenario: No heat published
-- **WHEN** a live row has no `heatStep`
+- **WHEN** a live row's typed `heat` is null (or, from an older Aonik, it has no `heatStep`)
 - **THEN** its card has no pips and no heat word, and it matches none of None/Mild/Medium/Hot
+
+#### Scenario: Figures under review
+- **WHEN** a dish's default content block is stale, so Aonik withholds its figures from rows
+- **THEN** neither its menu card nor its homepage rail card shows protein, fibre or "Under 500
+  kcal", and it sorts after every dish with the figure
 
 ### Requirement: FR-07 Sort, at the source
 `capability: catalog-browse` · `delta: ADDED (feat/menu-landing-v3)`
 
 Sort SHALL offer Recommended (the source's own order), Highest protein and Lowest calories — only
 the orders the source can apply across the whole match set before paging
-(`AonikClient.menuSorts`). Demo applies all three; live offers Recommended only (Aonik sorts by
-`name | newest | rank`, aonik#359), so live draws no Sort control and sends no sort. A dish without
-the figure SHALL follow every dish with it, never be read as 0; ties keep the recommended order.
+(`AonikClient.menuSorts`). Demo applies all three; live does too, at Aonik (aonik#359):
+Recommended sends no sort (the `menu` collection's rank is Aonik's default inside a collection),
+Highest protein `sort=protein-desc`, Lowest calories `sort=calories-asc`. A dish without the figure
+SHALL follow every dish with it, never be read as 0; ties keep the recommended order in demo and
+go by name in live (Aonik's tie-break).
 The order is `?sort=protein|calories` (absent for Recommended); an order the source cannot apply
 is Recommended. Sort is a view control (menu styling, brass icons, tick) and a listbox: arrows,
 Home, End; Enter or Space commits; Escape closes the list only; Tab closes and moves on; a press
@@ -245,7 +262,7 @@ on Delivery & FAQs: the page offers what the source can do.
 
 1. **"mainland UK"** for the design's "across the UK" in the lede (marketing-pages FR-01; CLAUDE.md
    — non-mainland exclusions are open).
-2. **No "Low sugar" chip** (FR-05) and **no Sort in live** (FR-07) until aonik#359.
+2. **No "Low sugar" chip in demo** (FR-05): its dishes carry no real flag; live shows the tenant's.
 3. **Filters and Sort wrap** where they cannot share a row (FR-03); the prototype's `1fr 1fr`
    overflowed the page by 4px at 320.
 4. **The demo's goat dish has no protein source**: the design files "Wild Rice, Goat Efo" under
@@ -265,8 +282,8 @@ on Delivery & FAQs: the page offers what the source can do.
    correct the record?
 2. **Low sugar** — publish a real per-dish flag (and its basis) or take the chip off the design.
 3. **DASH** — publish a definition and a chip, or remove it from the data (contract §4d).
-4. **Recommended in live** — browse the `menu` collection by `rank`, so the curated order is the
-   recommended one (today the browse sends no sort).
+4. ~~**Recommended in live**~~ — answered by Aonik: with no sort, a collection browse is in `rank`
+   order, so Recommended is already the `menu` collection's curated order.
 5. **`pageSize`** — 6 per page and per Load more, the design's default; a product decision before
    launch (contract §4b).
 6. **Live facet keys** — the UI gives the eating-style note and the heat pips to `wellness` and
@@ -283,8 +300,9 @@ on Delivery & FAQs: the page offers what the source can do.
 - [x] `T3` No guessed heat: `heatFromStep`, optional `Dish.heat` on every surface (FR-06)
 - [x] `T4` v2 card: tag stack, derived kcal tag, Signature button (FR-08–FR-10; marketing T13)
 - [x] `T5` ↑ Top and the flavour band (FR-11, FR-12)
-- [ ] `T6` aonik#359: typed heat, protein source and nutrition on browse rows, a low-sugar flag,
-  sort by protein and calories — then `HttpAonikClient.menuSorts` lists them and the chip returns
+- [x] `T6` aonik#359: typed heat, protein source and nutrition on browse rows, a low-sugar flag,
+  sort by protein and calories — `HttpAonikClient.menuSorts` lists all three; "Low sugar" is the
+  tenant's facet on the typed flag
 - [ ] `T7` aonik#346: the next cooking run with capacity as the strip's date
 - [ ] `T8` Owner questions 1–6
 

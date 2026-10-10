@@ -40,6 +40,25 @@ export interface ProductSummaryDto {
   /** Raw JSON string — tenant-authored, no Aonik-enforced schema. */
   attributesJson: string;
   unitSurcharge: number | null;
+  /*
+   * Typed dish facts (michaeljosiah/aonik#359). Optional here because an
+   * older Aonik does not send them; where a member is present it is
+   * authoritative over `attributesJson`, and null means unknown — never a
+   * cue to fall back to an attribute (Aonik withholds a stale figure as null).
+   */
+  description?: string;
+  categoryName?: string | null;
+  categorySlug?: string | null;
+  /** 0–3: none, mild, medium, hot. */
+  heat?: number | null;
+  componentsLine?: string | null;
+  lowSugar?: boolean | null;
+  isPlaceholder?: boolean;
+  heroImageAltText?: string | null;
+  kcal?: number | null;
+  proteinGrams?: number | null;
+  fibreGrams?: number | null;
+  servingLabel?: string | null;
 }
 
 export interface ProductMediaDto {
@@ -47,6 +66,8 @@ export interface ProductMediaDto {
   url: string;
   kind: string;
   sortOrder: number;
+  /** Authored alt text (aonik#359); null for older URL-authored media. */
+  altText?: string | null;
 }
 
 export interface ProductVariantDto {
@@ -79,6 +100,15 @@ export interface ProductDto {
   content: ResolvedContentDto | null;
   /** The cache key to pass back as `v`. Null whenever `content` is null. */
   contentVersion: number | null;
+  /* Typed dish facts (aonik#359) — as on `ProductSummaryDto`. */
+  heat?: number | null;
+  componentsLine?: string | null;
+  lowSugar?: boolean | null;
+  freezable?: boolean | null;
+  shelfLife?: string | null;
+  relatedCollectionSlug?: string | null;
+  isPlaceholder?: boolean;
+  categoryName?: string | null;
 }
 
 /* ---- Option groups (Spec 066) ---------------------------------------------- */

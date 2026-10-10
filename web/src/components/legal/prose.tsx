@@ -2,9 +2,19 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { CONSENT_PANEL_ID } from '@/lib/consent/consent';
-import { COMPANY } from '@/lib/content/company';
 
 import styles from './LegalDocument.module.css';
+
+export { Tbc } from './Tbc';
+export {
+  CompanyEmail,
+  CompanyName,
+  CompanyNumber,
+  CompanyPhone,
+  PaymentProvider,
+  RegisteredAddress,
+  RegisteredOffice,
+} from './company';
 
 /*
  * The building blocks of a legal document's copy. Server components: the
@@ -14,30 +24,11 @@ import styles from './LegalDocument.module.css';
  *
  * Plain <p>, <ul>, <ol>, <li> and <strong> need no component: a section styles
  * them itself (`.docSection`).
- */
-
-/**
- * A value the owner still has to supply, marked rather than hidden so it
- * cannot ship unnoticed: dotted-underline italic, worded as a real state.
  *
- * `data-tbc` records where the value will come from, so the test suite can
- * count them: `copy` for a value written into the document when it is
- * confirmed (the design's marks), `config` for one read from
- * `@/lib/content/company`, which disappears on its own once that is set.
+ * The company details are the exception (`./company`): client components, as
+ * the bodies are module-level markup that cannot take the request's details
+ * as props, so they read them from `CompanyProvider`.
  */
-export function Tbc({
-  children = 'to be confirmed',
-  source = 'copy',
-}: {
-  children?: ReactNode;
-  source?: 'copy' | 'config';
-}) {
-  return (
-    <span className={styles.tbc} data-tbc={source}>
-      {children}
-    </span>
-  );
-}
 
 /** Terms: a 13px caps label heading a sub-part of a clause. */
 export function LabelHeading({ children }: { children: ReactNode }) {
@@ -238,115 +229,4 @@ export function Row({ term, children }: { term: ReactNode; children: ReactNode }
       <dd>{children}</dd>
     </div>
   );
-}
-
-/* ---- Company details, from `@/lib/content/company` --------------------------
- * Each renders the configured value, or the "to be confirmed" mark while it is
- * `null`. The mark names WHAT is missing wherever the surrounding copy does not
- * (a label beside it already does in the info panels).
- */
-
-/** The registered company name: emphasised in running copy, as the design sets it. */
-export function CompanyName({ plain = false }: { plain?: boolean }) {
-  const name = COMPANY.legalName;
-  if (!name) return <Tbc source="config">company name to be confirmed</Tbc>;
-  return plain ? <>{name}</> : <strong>{name}</strong>;
-}
-
-/** The registered office: one line per entry, or joined with commas inline. */
-export function RegisteredOffice({ inline = false }: { inline?: boolean }) {
-  const lines = COMPANY.registeredOffice;
-  if (!lines || lines.length === 0) return <Tbc source="config" />;
-  if (inline) return <>{lines.join(', ')}</>;
-  return (
-    <>
-      {lines.map((line, index) => (
-        <span key={line}>
-          {index > 0 ? <br /> : null}
-          {line}
-        </span>
-      ))}
-    </>
-  );
-}
-
-/** Terms clause 56: the company name over its registered office, for written enquiries. */
-export function RegisteredAddress() {
-  return (
-    <div className={styles.addressPanel}>
-      <p className={styles.infoLabel}>
-        <CompanyName plain />
-      </p>
-      <p className={styles.infoValue}>
-        <RegisteredOffice />
-      </p>
-    </div>
-  );
-}
-
-export function CompanyNumber() {
-  return COMPANY.companyNumber ? <>{COMPANY.companyNumber}</> : <Tbc source="config" />;
-}
-
-/**
- * The contact email as a mailto: link. The address breaks only after the "@"
- * (a zero-width space there, the domain kept whole), so it wraps rather than
- * shrinking or splitting mid-domain (design/CLAUDE.md, "Long unbreakable values").
- */
-export function CompanyEmail({ pending = 'to be confirmed' }: { pending?: string }) {
-  const email = COMPANY.contact?.email;
-  if (!email) return <Tbc source="config">{pending}</Tbc>;
-  const at = email.indexOf('@');
-  return (
-    <a href={`mailto:${email}`} className={styles.link}>
-      {at === -1 ? (
-        email
-      ) : (
-        <>
-          {email.slice(0, at + 1)}
-          {'​'}
-          <span className={styles.nowrap}>{email.slice(at + 1)}</span>
-        </>
-      )}
-    </a>
-  );
-}
-
-/** The contact telephone number, as a tel: link when `link` is set. */
-export function CompanyPhone({
-  link = false,
-  pending = 'to be confirmed',
-}: {
-  link?: boolean;
-  pending?: string;
-}) {
-  const phone = COMPANY.contact?.phone;
-  if (!phone) return <Tbc source="config">{pending}</Tbc>;
-  if (!link) return <>{phone.display}</>;
-  return (
-    <a href={`tel:${phone.e164}`} className={styles.link}>
-      {phone.display}
-    </a>
-  );
-}
-
-/**
- * The card-payment processor (Terms clause 12, Privacy section 5). Unset, it is
- * a mark: plain "to be confirmed" where the copy already names what is
- * missing, or `pending` — set in brackets, as the design brackets a mark inside
- * a sentence — where the sentence would otherwise read "such as to be
- * confirmed".
- */
-export function PaymentProvider({ strong = false, pending }: { strong?: boolean; pending?: string }) {
-  const name = COMPANY.paymentProvider;
-  if (!name) {
-    return pending ? (
-      <>
-        (<Tbc source="config">{pending}</Tbc>)
-      </>
-    ) : (
-      <Tbc source="config" />
-    );
-  }
-  return strong ? <strong>{name}</strong> : <>{name}</>;
 }

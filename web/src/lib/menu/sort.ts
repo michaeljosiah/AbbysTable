@@ -7,11 +7,10 @@
  *
  * Sorting happens BEFORE paging, wherever the whole match set is — so it is a
  * capability of the data source, not of the page (`AonikClient.menuSorts`).
- * Demo sorts its fixtures with `sortDishes`. Aonik's browse sorts only by
- * `name | newest | rank` today, so live offers Recommended alone and the Sort
- * control is not drawn until Aonik can sort by protein and calories
- * (michaeljosiah/aonik#359). Sorting one page of results in the browser would
- * quietly give a wrong order across pages.
+ * Demo sorts its fixtures with `sortDishes`; live, Aonik sorts the whole match
+ * set (`protein-desc`, `calories-asc`, and Recommended as the `menu`
+ * collection's rank — michaeljosiah/aonik#359). Sorting one page of results in
+ * the browser would quietly give a wrong order across pages.
  *
  * NEVER A ZERO. A dish that has not published the figure being sorted on is
  * not treated as 0 — that would put an unknown at the top of "Lowest

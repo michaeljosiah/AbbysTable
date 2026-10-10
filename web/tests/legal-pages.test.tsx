@@ -3,7 +3,7 @@ import './support/runtime';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import test from 'node:test';
+import test, { before } from 'node:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import PrivacyPolicyPage from '../src/app/(site)/privacy/page';
@@ -19,8 +19,12 @@ import { TERMS_OF_SALE } from '../src/lib/legal/terms';
  * JavaScript, a printer, browser Find and a search engine all get.
  */
 
-const terms = renderToStaticMarkup(<TermsOfSalePage />);
-const privacy = renderToStaticMarkup(<PrivacyPolicyPage />);
+let terms = '';
+let privacy = '';
+before(async () => {
+  terms = renderToStaticMarkup(await TermsOfSalePage());
+  privacy = renderToStaticMarkup(await PrivacyPolicyPage());
+});
 
 const count = (html: string, pattern: RegExp) => html.match(pattern)?.length ?? 0;
 

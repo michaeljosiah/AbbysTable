@@ -40,8 +40,9 @@ import { OpenNow } from './OpenNow';
  *   once the waitlist can take a name (#25; aonik#357).
  */
 export interface ContactViewProps {
-  /** Email and phone — `SUPPORT_CONTACT`. */
-  support: SupportContact | null;
+  /** The business's email and phone (`resolveBusinessDetails`), each or neither. */
+  email: string | null;
+  phone: SupportContact['phone'] | null;
   whatsapp: WhatsAppContact | null;
   hours: OpeningHours | null;
   /**
@@ -156,7 +157,8 @@ function EmailValue({ email }: { email: string }) {
 /* ---- The page ---------------------------------------------------------------------- */
 
 export function ContactView({
-  support,
+  email,
+  phone,
   whatsapp,
   hours,
   faqsHref,
@@ -164,7 +166,7 @@ export function ContactView({
   sendAction,
 }: ContactViewProps) {
   const onward = Boolean(faqsHref || waitlistHref);
-  const anyDirectRoute = Boolean(whatsapp || support);
+  const anyDirectRoute = Boolean(whatsapp || email || phone);
 
   const whatsappBody = (
     <>
@@ -237,10 +239,10 @@ export function ContactView({
                 <div className={`${styles.method} ${styles.methodWa}`}>{whatsappBody}</div>
               )}
 
-              {support ? (
-                <a className={`${styles.method} ${styles.methodEmail}`} href={`mailto:${support.email}`}>
+              {email ? (
+                <a className={`${styles.method} ${styles.methodEmail}`} href={`mailto:${email}`}>
                   <Eyebrow icon="email">Email</Eyebrow>
-                  <EmailValue email={support.email} />
+                  <EmailValue email={email} />
                   <span className={styles.note}>Send us an email</span>
                 </a>
               ) : (
@@ -274,9 +276,9 @@ export function ContactView({
                 className={`${styles.method} ${styles.methodPhone}${sendAction ? '' : ` ${styles.methodWide}`}`}
               >
                 <Eyebrow icon="phone">Phone</Eyebrow>
-                {support ? (
-                  <a className={styles.phoneLink} href={`tel:${support.phone.e164}`}>
-                    <span className={styles.phoneNumber}>{support.phone.display}</span>
+                {phone ? (
+                  <a className={styles.phoneLink} href={`tel:${phone.e164}`}>
+                    <span className={styles.phoneNumber}>{phone.display}</span>
                     <Arrow />
                   </a>
                 ) : (

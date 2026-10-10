@@ -4,12 +4,13 @@ import { SUPPORT_CONTACT, type SupportContact } from './contact';
  * The legal entity behind Abby's Table, as the Terms of Sale and the Privacy
  * Policy state it — in ONE place, so the two documents cannot disagree.
  *
- * Every value is `null` until the owner confirms it. Production values are to
- * come from configuration (michaeljosiah/aonik#358, not available yet); until
- * then this module is that configuration. While a value is `null` the legal
- * pages print the design's dotted-underline italic "to be confirmed" mark in
- * its place, so a missing detail is visible and cannot ship unnoticed
- * (#38, "Company name, number, registered office, phone and email").
+ * The tenant publishes these in Aonik's business profile (michaeljosiah/aonik
+ * #358); the legal pages read it fact by fact over this configuration
+ * (`resolveBusinessDetails` in `./business`). Every value here is `null` until
+ * the owner confirms it. While a value is `null` in both, the legal pages
+ * print the design's dotted-underline italic "to be confirmed" mark in its
+ * place, so a missing detail is visible and cannot ship unnoticed (#38,
+ * "Company name, number, registered office, phone and email").
  *
  * Do NOT copy the designs' values in here. Every one of them is a placeholder
  * recorded as such (design/build-handoff.md, open items): "Abby's Table Foods
@@ -36,7 +37,8 @@ export interface CompanyDetails {
    * details the 500 and maintenance pages print, so setting
    * `SUPPORT_CONTACT` fills both documents and those pages at once.
    */
-  contact: SupportContact | null;
+  email: string | null;
+  phone: SupportContact['phone'] | null;
 }
 
 export const COMPANY: CompanyDetails = {
@@ -44,5 +46,6 @@ export const COMPANY: CompanyDetails = {
   registeredOffice: null,
   companyNumber: null,
   paymentProvider: null,
-  contact: SUPPORT_CONTACT,
+  email: SUPPORT_CONTACT?.email ?? null,
+  phone: SUPPORT_CONTACT?.phone ?? null,
 };

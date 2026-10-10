@@ -133,9 +133,13 @@ Conventions inside `web/` that are easy to get wrong:
 - **Legal pages (#20): `/terms-of-sale` and `/privacy`.** Section slugs are a PUBLIC CONTRACT
   (`src/lib/legal/terms.ts`, `privacy.ts`; pinned by `tests/legal-documents.test.ts`) — never
   rename one; `#cookies` is committed. Legacy `#sN`/`#N` resolve to slugs. Clause copy is verbatim
-  from the design and awaits legal review (#38): do not reword it. Company details render from
-  `src/lib/content/company.ts` (all `null`, shown as "to be confirmed") — never copy the designs'
-  placeholder name, number, address, phone or email into it. The print stylesheet that drops the
+  from the design and awaits legal review (#38): do not reword it. Company details are what the
+  tenant publishes in Aonik's business profile (`GET /v1/business-profile`, aonik#358) over
+  `src/lib/content/company.ts` (all `null`, shown as "to be confirmed"), fact by fact
+  (`resolveBusinessDetails`, `src/lib/content/business.ts`); the page provides them to the clause
+  components through `CompanyProvider` (`src/components/legal/company.tsx` — client components only
+  because the clause bodies are module-level markup). Never copy the designs' placeholder name,
+  number, address, phone or email into either. The print stylesheet that drops the
   site chrome is a `<style media="print">` rendered by `LegalDocument`, so it exists only on these
   two pages. Privacy's "Cookie preferences" button relies on `html[data-consent-ready]`, which the
   consent manager sets once its trigger listener is bound.
@@ -171,10 +175,20 @@ Conventions inside `web/` that are easy to get wrong:
   raise it when a CDN goes in front: too low puts every customer in one bucket. The route reads no
   body in demo, over 3×10MB, without a `Content-Length`, while 4 others or this address's own are
   in flight (busy: no attempt spent), or past the limit, and abandons a body that stalls 15s. The
-  thanks says "We'll send a confirmation to" — Aonik sends a receipt, not a copy. Phone, email, WhatsApp (+ QR) and the hours come from
-  `src/lib/content/contact.ts` (all `null` → "to be confirmed", never a mailto:/tel:/wa.me with no
-  value; values from aonik#358 later). Never copy the design's number, email, hours, bank holidays
-  or placeholder QR. "Open now / Closed" is computed in the BROWSER in Europe/London from
+  thanks says "We'll send a confirmation to" — Aonik sends a receipt, not a copy. Phone, email,
+  WhatsApp and the hours are the tenant's published business profile (aonik#358,
+  `src/lib/aonik/businessProfile.ts`) over `src/lib/content/contact.ts`, fact by fact (all `null`
+  → "to be confirmed", never a mailto:/tel:/wa.me with no value). A profile fact that does not read
+  cleanly is `rejected` (logged) and shows "to be confirmed" — never the configuration's value in
+  its place; hours with a break in a day or outside Europe/London are not shown; exceptional
+  closures close a whole London day without being called bank holidays; the phone must be a UK
+  number; the QR shows only with the configured number it encodes. 404 (unpublished), demo or a
+  failed read → configuration; never a failed page. The read is NEVER Next's data cache (it keeps a
+  200 past a later 404, so a withdrawn profile would stay up): `fetchBusinessProfile` reuses it for
+  a minute in-process, believes a 404 at once, and lets the last good read stand in for up to 15
+  minutes while Aonik cannot answer. The 500 and maintenance pages stay on `SUPPORT_CONTACT` (they
+  must work with Aonik down). Never copy the design's number, email, hours, bank holidays or
+  placeholder QR. "Open now / Closed" is computed in the BROWSER in Europe/London from
   configured hours only — no hours, no status. Topics, validation, images and the hours rules are
   React-free in `src/lib/contact/` (`tests/contact.test.tsx`); Private Table is never a topic, and
   its panel ("Join the waitlist") shows only while that waitlist is open (`waitlistOpen`).
@@ -195,10 +209,18 @@ Conventions inside `web/` that are easy to get wrong:
   (`topControl.ts`); `tests/menu.test.tsx`. Change rules there, not in components. Filtering and
   sorting happen at the source before paging, never on one page in the browser: live, Aonik
   applies the facets its facets read advertises (a URL facet it did not advertise is dropped
-  before the browse — it would 400) and sorts only by Recommended, so live draws no Sort control
-  until aonik#359; demo mirrors Aonik in `MockAonikClient`. A dish matches only through a field it
-  carries — no heat published, no heat row and no heat chip (`heatFromStep` never defaults to
-  "Medium"); "Low sugar" has no field, so it has no chip. "Next deliveries from" is Aonik's
+  before the browse — it would 400) and sorts by all three (Recommended = the `menu` collection's
+  rank, `protein-desc`, `calories-asc`; aonik#359); demo mirrors Aonik in `MockAonikClient`.
+  Aonik's rows carry typed facts (description, heat 0–3, components line, category, hero alt,
+  kcal/protein/fibre): a typed FACT that is present (heat, the figures) wins over `attributesJson`,
+  and null there is unknown (a stale figure is withheld as null) — never refilled from an attribute
+  (`map.ts`); copy (description, components line) and the protein source fall back to the attribute
+  only while the typed value is blank. The homepage rail takes a typed row's figures, never the
+  detail read's, so a stale block makes no card claim; the dish hero is the first `image` media.
+  The seed authors typed heat and the heat facet as Range bands on it (`tenantFacetGroups`). A
+  dish matches only through a field it carries — no heat published, no heat row and no heat chip
+  (`heatFromStep` never defaults to "Medium"); "Low sugar" is a live tenant facet on Aonik's typed
+  `lowSugar` and has no chip in demo, whose dishes carry no such flag. "Next deliveries from" is Aonik's
   delivery window via `formatDeliveryDateShort`, left out with none or a past date
   (`upcomingDeliveryDate`); the cooking run "with capacity" waits on aonik#346. The lede says
   "mainland UK", not the design's "across the UK".

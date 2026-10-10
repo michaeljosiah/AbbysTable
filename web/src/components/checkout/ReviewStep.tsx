@@ -918,7 +918,7 @@ export function ReviewStep({
                   <div className={dmStyles.dmHero}>
                     <Image
                       src={editor.dish.imageUrl}
-                      alt={editor.dish.title}
+                      alt={editor.dish.imageAlt ?? editor.dish.title}
                       width={860}
                       height={688}
                       className={dmStyles.dmHeroImage}
@@ -1031,7 +1031,9 @@ export function ReviewStep({
                           editor.dish.nutrition.calories !== undefined
                             ? { label: 'kcal', value: String(editor.dish.nutrition.calories) }
                             : null,
-                          { label: 'Protein', value: `${editor.dish.nutrition.proteinGrams}g` },
+                          editor.dish.nutrition.proteinGrams !== undefined
+                            ? { label: 'Protein', value: `${editor.dish.nutrition.proteinGrams}g` }
+                            : null,
                           editor.dish.nutrition.carbsGrams !== undefined
                             ? { label: 'Carbs', value: `${editor.dish.nutrition.carbsGrams}g` }
                             : null,
