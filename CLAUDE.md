@@ -257,14 +257,20 @@ Conventions inside `web/` that are easy to get wrong:
     merged three ways (`mergeDetails`), never overwritten or replayed.
   - **The date is written only through the reservation route**, which holds capacity (#346).
     The page only counts the hold down, from Aonik's `expiresAtUtc − serverNowUtc`, and
-    re-reads it at zero and when the tab becomes visible. Showing the suggested date reserves
-    nothing.
+    re-reads it on arrival, at zero and when the tab is shown again. Showing the suggested date
+    reserves nothing.
   - **Payment is blocked by one function, `checkoutBlockers`**, which the rail, the sheet, the
     bar and CONTINUE all read. Eligibility comes only from the coverage lookup, and anything
     but `serves` blocks payment.
   - **Every checkout call goes through the cart engine's `checkoutRequest`**: queued, and it
-    adopts the returned box or version, so Review and the box steps never hold a stale
-    version.
+    adopts the box or version a WRITE returns, so Review and the box steps never hold a stale
+    version. A READ never hands over a bare version: the hold read reports Aonik's as
+    `boxVersion`, and a page that finds the box moved on (another tab, a Back/Forward restore
+    from the router cache) re-reads box, draft and hold together through `GET sync`. Checkout's
+    writes carry the version its own form was read with (`basis`), and build their body when
+    their turn in the queue comes, so a queued save sends the form as it is after a merge.
+  - **A signed-in session that needs renewing is renewed by a route handler**
+    (`CheckoutSessionGate`), never during the page's render, which cannot keep the new cookie.
   - **One discount code per cart, applied by Aonik at once.** Each refusal states its real
     reason.
   - **Not built yet:** delivery windows (Aonik rejects any) and address lookup (aonik#352).

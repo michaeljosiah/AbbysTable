@@ -19,6 +19,8 @@
 
 import { cookies } from 'next/headers';
 
+import { isReadOnlyCookieStore } from '../auth/session';
+
 export const CART_COOKIE = 'abbys-table-cart';
 
 export interface CartCookie {
@@ -73,9 +75,10 @@ export async function clearCartCookie(): Promise<void> {
       path: '/',
       maxAge: 0,
     });
-  } catch {
+  } catch (error) {
     // A page render (`/box/checkout`'s entry gate) may read the box but cannot
     // set cookies. The box is still treated as gone there; the next cart
-    // route clears the cookie.
+    // route clears the cookie. Wherever cookies ARE writable, a failure is real.
+    if (!isReadOnlyCookieStore(error)) throw error;
   }
 }

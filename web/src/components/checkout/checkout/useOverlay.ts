@@ -35,13 +35,18 @@ export function useOverlay({
   opener: RefObject<HTMLElement | null>;
 }): void {
   const close = useRef(onClose);
+  // Which control opens it can change while it is open (the date's hold
+  // ending swaps the button that opened the calendar): the one that opened it
+  // is taken as it opens, and the overlay is not set up again for the swap.
+  const openerRef = useRef(opener);
   useEffect(() => {
     close.current = onClose;
+    openerRef.current = opener;
   });
 
   useEffect(() => {
     if (!open) return;
-    const returnTo = opener.current;
+    const returnTo = openerRef.current.current;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.stopPropagation();
@@ -52,7 +57,7 @@ export function useOverlay({
     };
     const onPress = (event: PointerEvent) => {
       const target = event.target as Node | null;
-      if (!target || panel.current?.contains(target) || opener.current?.contains(target)) return;
+      if (!target || panel.current?.contains(target) || openerRef.current.current?.contains(target)) return;
       close.current();
     };
     document.addEventListener('keydown', onKey);
@@ -79,5 +84,5 @@ export function useOverlay({
         returnTo.focus({ preventScroll: false });
       }
     };
-  }, [open, modal, panel, scrim, opener]);
+  }, [open, modal, panel, scrim]);
 }

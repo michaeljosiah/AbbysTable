@@ -32,8 +32,26 @@ export interface CheckoutDraftAnswer {
   details: CheckoutDetails;
 }
 
+/** A date chosen: the hold, and the box's new version (the write moved it). */
 export interface CheckoutReservationAnswer {
   version: string;
+  reservation: ReservationView | null;
+}
+
+/**
+ * The hold as it stands, and the box's version as Aonik has it — named
+ * `boxVersion` so the cart engine never adopts it: a tab that finds the box
+ * has moved on asks for the whole of it (`CheckoutSyncAnswer`).
+ */
+export interface CheckoutHoldAnswer {
+  boxVersion: string;
+  reservation: ReservationView | null;
+}
+
+/** The box, its draft and its hold as they are now: the tab adopts all three together. */
+export interface CheckoutSyncAnswer {
+  cart: BoxCart;
+  details: CheckoutDetails;
   reservation: ReservationView | null;
 }
 

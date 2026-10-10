@@ -131,7 +131,11 @@ count down locally. A UTC time sent without its `Z` is still read as UTC.
 The panel has three phases: saved (more than 3 minutes left), still reserved (3 minutes or less)
 and ended. The ended phase shows CHOOSE A NEW DATE and blocks payment.
 
-The hold is re-read when the countdown reaches 0 and when the tab becomes visible again. The
+The hold is re-read on arrival, when the countdown reaches 0 and when the tab is shown again.
+That read also reports the box's version as Aonik has it (`boxVersion`, never adopted). When it
+differs from the version the page's form was read with, the page re-reads the box, draft and
+hold together (`GET /api/checkout/sync`) and merges, as after a refused write. This is what
+brings a page restored by Back or Forward, or one another tab changed, up to date. The
 following all count as ended:
 - `Released`;
 - a lapsed `Held`;
@@ -246,10 +250,12 @@ The checkout form is client state over a server-held draft. Every write goes thr
 `/api/checkout/*`, the only code beyond `/api/cart` that sees the cart cookie, and through the
 cart engine's queue (`checkoutRequest`). As a result:
 - draft saves, date holds and code changes run one at a time;
-- each carries the same box version as every box step;
-- each adopts the box or version it gets back.
+- each carries the version the page's form, hold and code were read with, and is built when its
+  turn comes, so a save queued behind a merge sends the merged form;
+- each adopts the box or version it gets back; a read never hands over a bare version.
 
-A checkout write therefore never leaves Review or the box steps holding a stale version.
+A checkout write therefore never leaves Review or the box steps holding a stale version, and a
+version is only ever adopted together with the box, draft and hold it belongs to.
 
 ### Target architecture
 
@@ -263,7 +269,7 @@ A checkout write therefore never leaves Review or the box steps holding a stale 
   - `transport.ts`: the route's answers;
   - `server.ts`: SERVER-ONLY. The entry gate and Aonik's draft, reservation and discount
     calls.
-- `src/app/api/checkout/[action]/route.ts`: `PUT draft`, `GET|PUT reservation`,
+- `src/app/api/checkout/[action]/route.ts`: `GET sync`, `PUT draft`, `GET|PUT reservation`,
   `PUT|DELETE discount` and `GET dates`.
 - `AonikClient.getDeliveryCalendar(fromDate, days)`:
   - **Live:** `/commerce/config/delivery` and `/commerce/config/delivery/dates`, both uncached.

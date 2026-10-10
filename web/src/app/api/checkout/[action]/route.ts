@@ -1,8 +1,9 @@
 /**
  * The `/api/checkout/*` seam (`/box/checkout`, #31).
  *
+ *   GET    sync                      the box, its draft and its hold as they are now
  *   PUT    draft        { details }  saves the form's own sections of the draft
- *   GET    reservation               the delivery-date hold as it stands
+ *   GET    reservation               the delivery-date hold as it stands, and the box's version
  *   PUT    reservation  { date }     chooses a date and starts its 15-minute hold
  *   PUT    discount     { code }     applies a code (Aonik checks it at once)
  *   DELETE discount                  removes it
@@ -14,8 +15,10 @@
  * box, the draft and the hold as they are now, for the tab to adopt before
  * anything is retried — never retried here.
  *
- * Every answer carries the box's new `version` (or the whole `cart`), so the
- * tab's next write — here or on any box step — is based on the box it saw.
+ * Every WRITE answers with the box's new `version` (or the whole `cart`), so
+ * the tab's next write — here or on any box step — is based on the box it
+ * saw. A read never hands the tab a bare version: the hold read reports
+ * Aonik's as `boxVersion`, and a tab that finds it moved on asks for `sync`.
  */
 
 import { NextResponse } from 'next/server';
@@ -24,12 +27,13 @@ import { getAonikClient } from '@/lib/aonik/client';
 import { AONIK_CODES, AonikError } from '@/lib/aonik/errors';
 import { CartMissingError, mapCartMissingError } from '@/lib/cart/cartMissing';
 import { CartUnavailableError } from '@/lib/cart/server';
-import { CART_CONFLICT_CODE, CART_LOCKED_CODE, CART_VERSION_HEADER } from '@/lib/cart/transport';
+import { CART_CONFLICT_CODE, CART_LOCKED_CODE, CART_RELOAD_CODE, CART_VERSION_HEADER } from '@/lib/cart/transport';
 import { isIsoDate } from '@/lib/checkout/calendar';
 import { CODE_MAX_LENGTH, codeRefusal, isCodeRefusal, normaliseCode } from '@/lib/checkout/codes';
 import { DETAIL_FIELDS, FIELD_LIMITS, type CheckoutDetails } from '@/lib/checkout/form';
 import {
   applyDiscountCode,
+  CheckoutReloadError,
   readCheckoutReservation,
   readCheckoutSync,
   removeDiscountCode,
@@ -41,8 +45,10 @@ import {
   type CheckoutCodeAnswer,
   type CheckoutDatesAnswer,
   type CheckoutDraftAnswer,
+  type CheckoutHoldAnswer,
   type CheckoutRefusal,
   type CheckoutReservationAnswer,
+  type CheckoutSyncAnswer,
 } from '@/lib/checkout/transport';
 
 export const dynamic = 'force-dynamic';
@@ -89,6 +95,7 @@ async function failure(error: unknown) {
   if (error instanceof CartUnavailableError) {
     return refuse(503, { error: 'Checkout needs a live box; this build is on demo data.', code: 'cart.unavailable' });
   }
+  if (error instanceof CheckoutReloadError) return refuse(503, { error: error.message, code: CART_RELOAD_CODE });
 
   /*
    * Another tab changed the box, or a payment attempt holds it. Nothing was
@@ -96,17 +103,18 @@ async function failure(error: unknown) {
    * adopt and reconcile. A box that cannot be re-read keeps the tab as it is.
    */
   if (error instanceof AonikError && error.isCartWriteRefused) {
-    const code = error.code === AONIK_CODES.cartLocked ? CART_LOCKED_CODE : CART_CONFLICT_CODE;
     try {
       const sync = await readCheckoutSync();
       if (!sync) {
         const missing = new CartMissingError();
         return refuse(409, { error: missing.message, code: missing.code, cart: null });
       }
-      return refuse(409, { error: 'Your checkout changed in another window.', code, ...sync });
+      const { locked, ...current } = sync;
+      const code = locked || error.code === AONIK_CODES.cartLocked ? CART_LOCKED_CODE : CART_CONFLICT_CODE;
+      return refuse(409, { error: 'Your checkout changed in another window.', code, ...current });
     } catch (readFailure) {
       console.error('[api/checkout] could not re-read the box after a refused write', readFailure);
-      return refuse(409, { error: 'Your checkout changed in another window. Reload the page to see it.', code: 'cart.reload' });
+      return refuse(409, { error: 'Your checkout changed in another window. Reload the page to see it.', code: CART_RELOAD_CODE });
     }
   }
 
@@ -130,7 +138,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ acti
   const { action } = await params;
   try {
     if (action === 'reservation') {
-      const answer: CheckoutReservationAnswer = await readCheckoutReservation();
+      const answer: CheckoutHoldAnswer = await readCheckoutReservation();
+      return json(answer);
+    }
+    if (action === 'sync') {
+      const sync = await readCheckoutSync();
+      if (!sync) {
+        const missing = new CartMissingError();
+        return refuse(404, { error: missing.message, code: missing.code, cart: null });
+      }
+      const { locked, ...current } = sync;
+      // A payment attempt holds the box: the page shows that, not a form.
+      if (locked) return refuse(409, { error: 'A payment is in progress for this box.', code: CART_LOCKED_CODE });
+      const answer: CheckoutSyncAnswer = current;
       return json(answer);
     }
     if (action === 'dates') {

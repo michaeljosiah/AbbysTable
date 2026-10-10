@@ -193,7 +193,7 @@ export function OrderSummary({
         </div>
       </aside>
 
-      <div className={styles.bar} data-hidden={barHidden || sheetOpen || undefined} data-consent-yield>
+      <div className={styles.bar} data-hidden={barHidden || sheetOpen || undefined} inert={barHidden || sheetOpen} data-consent-yield>
         <button
           ref={opener}
           type="button"

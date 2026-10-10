@@ -15,14 +15,16 @@ import {
 import type { BoxCart } from '@/lib/aonik/map';
 import type { BoxPricing, DeliveryCalendar, Extra } from '@/lib/aonik/types';
 import { useCart } from '@/lib/cart/CartProvider';
+import { CART_ORDERED_CODE } from '@/lib/cart/cartMissing';
 import { ORDERING_DISABLED_MESSAGE } from '@/lib/cart/ordering';
 import { useCartQuote } from '@/lib/cart/quote';
-import { CART_CONFLICT_CODE, CART_LOCKED_CODE } from '@/lib/cart/transport';
+import { CART_CONFLICT_CODE, CART_LOCKED_CODE, CART_RELOAD_CODE } from '@/lib/cart/transport';
 import { addDays, addMonths, monthOf, monthRange, readDayStatus, type DayStatus } from '@/lib/checkout/calendar';
 import { appliedLine, CODE_MAX_LENGTH, lapsedLine, normaliseCode } from '@/lib/checkout/codes';
 import {
   blockerTarget,
   checkoutBlockers,
+  cleanInput,
   coverageFor,
   DETAIL_FIELDS,
   FIELD_IDS,
@@ -38,17 +40,20 @@ import {
   type DetailField,
   type HoldState,
 } from '@/lib/checkout/form';
-import { holdAnnouncement, holdPhase, type HoldPhase, type ReservationView } from '@/lib/checkout/reservation';
+import { holdAnnouncement, holdPhase, HOLD_MINUTES, type HoldPhase, type ReservationView } from '@/lib/checkout/reservation';
 import {
   CHECKOUT_CODES,
   type CheckoutCodeAnswer,
   type CheckoutDatesAnswer,
   type CheckoutDraftAnswer,
+  type CheckoutHoldAnswer,
   type CheckoutRefusal,
   type CheckoutReservationAnswer,
+  type CheckoutSyncAnswer,
 } from '@/lib/checkout/transport';
 import { PRIVACY_ITEM, TERMS_ITEM } from '@/lib/content/navigation';
 import { checkPostcode } from '@/lib/delivery/actions';
+import { formatDeliveryDateLong } from '@/lib/format';
 import { normalisePostcode } from '@/lib/delivery/postcode';
 import { checkoutLegalHref, CHECKOUT_LEGAL_LINK, NEW_TAB_NOTE } from '@/lib/legal/checkoutReturn';
 
@@ -64,7 +69,23 @@ const SAVE_SETTLE_MS = 400;
 const DATE_FULL = 'That date has just filled. Please choose another available date.';
 const DATE_FAILED = 'We couldn’t save that date just now. Please try again.';
 const DATE_CHANGED = 'Your checkout changed in another window. Please choose your date again.';
+const DATE_UNKNOWN = 'We can’t confirm delivery availability right now. Please try again.';
 const SYNCED = 'Your checkout was updated in another window, so we’ve brought it up to date here.';
+const SAVE_FAILED = 'We couldn’t save your details just now. They’re still here, and we’ll try again as you go.';
+const CONTINUE_UNSAVED = 'We couldn’t save your details just now. Please try again.';
+
+/** The fields' names, for the one live line that reads out a field's error as it is left. */
+const FIELD_NAMES: Record<DetailField, string> = {
+  email: 'Email',
+  firstName: 'First name',
+  lastName: 'Last name',
+  line1: 'Address line 1',
+  line2: 'Address line 2',
+  city: 'Town or city',
+  postcode: 'Postcode',
+  phone: 'Phone number',
+  notes: 'Delivery notes',
+};
 
 export interface CheckoutViewProps {
   /** Live (Aonik's box and draft) or demo (the box held in this browser; nothing is reserved). */
@@ -143,15 +164,33 @@ export function CheckoutView({
 
   /* ---- The form --------------------------------------------------------------- */
 
+  const { checkoutRequest } = cart;
   const [details, setDetails] = useState<CheckoutDetails>(initialDetails);
   const [touched, setTouched] = useState<ReadonlySet<DetailField>>(() => new Set());
   const [attempted, setAttempted] = useState(false);
   const [syncNote, setSyncNote] = useState<string | null>(null);
+  const [saveNote, setSaveNote] = useState<string | null>(null);
+  /**
+   * A field's error, read out once as the field is left. The fields' own error
+   * lines are not live: CONTINUE marks every gap at once, and a screen reader
+   * would read them all.
+   */
+  const [fieldLive, setFieldLive] = useState('');
   const latest = useRef(details);
   latest.current = details;
   /** What Aonik holds: the base for a three-way merge after another tab's save. */
   const saved = useRef(initialDetails);
+  /**
+   * The box version the form, the hold and the code on screen were read with.
+   * Every write from here is based on it — not on the cart engine's, which a
+   * read elsewhere may have moved — so a tab showing an older draft is refused
+   * and re-synced, never allowed to save over a newer one.
+   */
+  const basis = useRef(initialCart?.version);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const mounted = useRef(true);
+  /** The control to focus once the change that puts it on screen has rendered. */
+  const focusNext = useRef<string | null>(null);
 
   /* ---- Eligibility --------------------------------------------------------------- */
 
@@ -165,6 +204,8 @@ export function CheckoutView({
     view: initialReservation,
     at: Date.now(),
   }));
+  const reservationRef = useRef(reservation);
+  reservationRef.current = reservation;
   const [now, setNow] = useState(() => reservation.at);
   const [demoDate, setDemoDate] = useState<string | null>(null);
   const [dateBusy, setDateBusy] = useState(false);
@@ -210,13 +251,17 @@ export function CheckoutView({
   useEffect(() => {
     if (!cart.hydrated) return;
     if (live) {
-      // The box went (another tab ordered it, or it expired): nothing to check out.
+      // A box the engine could not read is not a box that went: only an answer moves the page.
+      const code = cart.error?.code;
+      if (cart.error && code !== 'cart.missing' && code !== CART_ORDERED_CODE) return;
+      // The box went (another tab ordered it, or it expired), or another tab made it incomplete.
       if (!cart.quote) router.replace('/box');
+      else if (!cart.quote.isFull || cart.hasUnavailableLine) router.replace('/box/dishes');
       return;
     }
     if (cart.boxSize === null && cart.lines.length === 0) router.replace('/box');
     else if (cart.boxSize === null || cart.dishCount < cart.boxSize) router.replace('/box/dishes');
-  }, [cart.hydrated, cart.quote, cart.boxSize, cart.lines.length, cart.dishCount, live, router]);
+  }, [cart.hydrated, cart.error, cart.quote, cart.hasUnavailableLine, cart.boxSize, cart.lines.length, cart.dishCount, live, router]);
 
   // The sticky header's height, for "20px under the sticky header" and the rail's offset.
   const pageRef = useRef<HTMLDivElement>(null);
@@ -229,12 +274,48 @@ export function CheckoutView({
     return () => observer.disconnect();
   }, []);
 
+  // A control that a change has just put on screen (the date button after a
+  // choice, Remove after a code) takes focus once it is there, so focus never
+  // falls to the page when the control that was used goes.
+  useEffect(() => {
+    if (!focusNext.current) return;
+    const target = document.getElementById(focusNext.current);
+    if (target) {
+      focusNext.current = null;
+      target.focus();
+    }
+  });
+
   /* ---- Another tab's change -------------------------------------------------------- */
 
-  /** Adopts the draft and hold a refusal carried; the box itself the engine already took. */
+  /**
+   * Adopts the box's draft and hold as Aonik has them now (the cart engine has
+   * taken the box itself): what this tab typed and has not saved is kept, a
+   * field only the other tab changed is taken, and the next write is based on
+   * the box as it is now.
+   */
+  const adopt = useCallback((sync: CheckoutSyncAnswer, announce: 'always' | 'if-changed') => {
+    const before = reservationRef.current.view;
+    const changed =
+      !sameDetails(saved.current, sync.details) ||
+      before?.date !== sync.reservation?.date ||
+      before?.status !== sync.reservation?.status;
+    const merged = mergeDetails(saved.current, latest.current, sync.details);
+    saved.current = sync.details;
+    latest.current = merged;
+    basis.current = sync.cart.version;
+    setDetails(merged);
+    setReservation({ view: sync.reservation, at: Date.now() });
+    setNow(Date.now());
+    if (announce === 'always' || changed) setSyncNote(SYNCED);
+  }, []);
+
+  /** Adopts what a refusal carried. True when it was handled (the caller says nothing more). */
   const reconcile = useCallback(
     (refusal: CheckoutRefusal): boolean => {
-      if (refusal.code === CART_LOCKED_CODE || refusal.code === CHECKOUT_CODES.reservationConflict) {
+      // Left behind (the customer moved on while it was in flight): nothing to show it on.
+      if (!mounted.current) return true;
+      if (refusal.code === CART_LOCKED_CODE) {
         // A payment attempt holds the box: the page shows that instead.
         router.refresh();
         return true;
@@ -243,49 +324,126 @@ export function CheckoutView({
         router.replace('/box');
         return true;
       }
-      if (refusal.code === CART_CONFLICT_CODE && refusal.details) {
-        const merged = mergeDetails(saved.current, latest.current, refusal.details);
-        saved.current = refusal.details;
-        setDetails(merged);
-        setReservation({ view: refusal.reservation ?? null, at: Date.now() });
-        setNow(Date.now());
-        setSyncNote(SYNCED);
+      if (refusal.code === CART_CONFLICT_CODE && refusal.cart && refusal.details) {
+        adopt({ cart: refusal.cart, details: refusal.details, reservation: refusal.reservation ?? null }, 'always');
         return true;
       }
-      if (refusal.code === 'cart.reload') {
-        setSyncNote('Your checkout changed in another window. Reload the page to see it.');
+      if (refusal.code === CART_RELOAD_CODE) {
+        setSyncNote(refusal.error);
         return true;
       }
       return false;
     },
-    [router],
+    [router, adopt],
   );
+
+  /** Re-reads the box, its draft and its hold, and adopts them. */
+  const resync = useCallback(async () => {
+    const result = await checkoutRequest<CheckoutSyncAnswer>('/sync');
+    if (!mounted.current) return;
+    if (result.ok) adopt(result.payload, 'if-changed');
+    else reconcile(result.payload as CheckoutRefusal);
+  }, [checkoutRequest, adopt, reconcile]);
+
+  /**
+   * Asks Aonik how the hold stands — and whether the box has moved on since
+   * this page read it (another tab's save, a restored page). Moved on: the
+   * whole of it is read again, never just its number.
+   */
+  const check = useCallback(async () => {
+    if (!live) return;
+    const result = await checkoutRequest<CheckoutHoldAnswer>('/reservation');
+    if (!mounted.current) return;
+    if (!result.ok) {
+      reconcile(result.payload as CheckoutRefusal);
+      return;
+    }
+    if (result.payload.boxVersion && result.payload.boxVersion !== basis.current) {
+      await resync();
+      return;
+    }
+    setReservation((current) => ({
+      // None at all after one was shown: it lapsed and went — ended, not vanished.
+      view: result.payload.reservation ?? (current.view ? { ...current.view, status: 'ended', remainingMs: 0 } : null),
+      at: Date.now(),
+    }));
+    setNow(Date.now());
+  }, [live, checkoutRequest, reconcile, resync]);
+
+  // On arrival — including Back/Forward, which restores this page from the
+  // router's cache with the form and hold it was first rendered with — and
+  // whenever the page is shown again, the box is checked against Aonik.
+  const checkRef = useRef(check);
+  checkRef.current = check;
+  useEffect(() => {
+    void checkRef.current();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void checkRef.current();
+    };
+    const onShow = (event: PageTransitionEvent) => {
+      if (event.persisted) void checkRef.current();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('pageshow', onShow);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('pageshow', onShow);
+    };
+  }, []);
 
   /* ---- Saving the draft ---------------------------------------------------------------- */
 
-  const save = useCallback(async (): Promise<boolean> => {
-    clearTimeout(saveTimer.current);
-    if (!live) return true;
-    const snapshot = latest.current;
-    if (sameDetails(snapshot, saved.current)) return true;
-    const result = await cart.checkoutRequest<CheckoutDraftAnswer>('/draft', { method: 'PUT', body: { details: snapshot } });
-    if (result.ok) {
-      saved.current = result.payload.details;
-      return true;
-    }
-    if (!reconcile(result.payload as CheckoutRefusal)) {
-      // Kept here as typed; the next field left (or CONTINUE) tries again.
-      console.warn('[checkout] the draft was not saved', result.payload.code);
-    }
-    return false;
-  }, [live, cart, reconcile]);
+  /**
+   * Saves the form if it differs from what Aonik holds. The form and the
+   * version are read when the save's turn comes, not when it was asked for:
+   * one queued behind another (or behind a merge) sends what is current then.
+   */
+  const save = useCallback(
+    async (options?: { keepalive?: boolean }): Promise<'saved' | 'merged' | 'failed'> => {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = undefined;
+      if (!live) return 'saved';
+      const result = await checkoutRequest<CheckoutDraftAnswer>('/draft', () => {
+        const snapshot = latest.current;
+        if (sameDetails(snapshot, saved.current)) return null;
+        return { method: 'PUT', body: { details: snapshot }, version: basis.current, keepalive: options?.keepalive };
+      });
+      if (result.skipped) return 'saved';
+      if (result.ok) {
+        saved.current = result.payload.details;
+        basis.current = result.payload.version;
+        if (mounted.current) setSaveNote(null);
+        return 'saved';
+      }
+      // Kept here as typed either way; the next field left (or CONTINUE) tries again.
+      if (reconcile(result.payload as CheckoutRefusal)) return 'merged';
+      setSaveNote(SAVE_FAILED);
+      return 'failed';
+    },
+    [live, checkoutRequest, reconcile],
+  );
 
   const scheduleSave = useCallback(() => {
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => void save(), SAVE_SETTLE_MS);
   }, [save]);
 
-  useEffect(() => () => clearTimeout(saveTimer.current), []);
+  // A save still waiting is sent, not dropped, when the page is left — by a
+  // link (the cart engine outlives the page) or by closing the tab.
+  const saveRef = useRef(save);
+  saveRef.current = save;
+  useEffect(() => {
+    mounted.current = true;
+    const flush = () => {
+      if (saveTimer.current !== undefined) void saveRef.current({ keepalive: true });
+    };
+    window.addEventListener('pagehide', flush);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      mounted.current = false;
+      flush();
+    };
+  }, []);
 
   /* ---- Eligibility ------------------------------------------------------------------------ */
 
@@ -309,7 +467,8 @@ export function CheckoutView({
   /* ---- Field events --------------------------------------------------------------------- */
 
   const change = (field: DetailField, raw: string) => {
-    const value = field === 'postcode' ? formatPostcodeInput(raw) : raw;
+    const clean = cleanInput(field, raw);
+    const value = field === 'postcode' ? formatPostcodeInput(clean) : clean;
     setDetails((current) => ({ ...current, [field]: value.slice(0, FIELD_LIMITS[field]) }));
     setSyncNote(null);
   };
@@ -318,6 +477,9 @@ export function CheckoutView({
     setTouched((current) => (current.has(field) ? current : new Set(current).add(field)));
     scheduleSave();
     if (field === 'postcode') void checkCoverage();
+    // A postcode we deliver to or not is said by its own eligibility line.
+    const error = field === 'postcode' ? postcodeError(details, coverageRef.current) : fieldError(field, details[field]);
+    setFieldLive(error ? `${FIELD_NAMES[field]}: ${error}` : '');
   };
 
   const errorOf = (field: DetailField): string | null => {
@@ -326,21 +488,6 @@ export function CheckoutView({
   };
 
   /* ---- The hold's clock ------------------------------------------------------------------- */
-
-  const readHold = useCallback(async () => {
-    if (!live) return;
-    const result = await cart.checkoutRequest<CheckoutReservationAnswer>('/reservation');
-    if (result.ok) {
-      setReservation((current) => ({
-        // None at all after one was shown: it lapsed and went — ended, not vanished.
-        view: result.payload.reservation ?? (current.view ? { ...current.view, status: 'ended', remainingMs: 0 } : null),
-        at: Date.now(),
-      }));
-      setNow(Date.now());
-    } else {
-      reconcile(result.payload as CheckoutRefusal);
-    }
-  }, [live, cart, reconcile]);
 
   useEffect(() => {
     if (hold !== 'held') return;
@@ -353,19 +500,10 @@ export function CheckoutView({
   useEffect(() => {
     if (view?.status === 'held' && remainingMs <= 0 && !askedAtZero.current) {
       askedAtZero.current = true;
-      void readHold();
+      void check();
     }
     if (remainingMs > 0) askedAtZero.current = false;
-  }, [view, remainingMs, readHold]);
-
-  // Background tabs throttle timers: catch up when the tab is back.
-  useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState === 'visible' && reservation.view) void readHold();
-    };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [reservation.view, readHold]);
+  }, [view, remainingMs, check]);
 
   const lastPhase = useRef<HoldPhase | null>(phase);
   useEffect(() => {
@@ -404,6 +542,20 @@ export function CheckoutView({
     [today],
   );
 
+  /** Reads a month again: availability moved (a date filled, or a hold that kept a place ended). */
+  const reloadMonth = useCallback(
+    (month: string) => {
+      requested.current.delete(month);
+      setLoadedMonths((current) => {
+        const next = new Set(current);
+        next.delete(month);
+        return next;
+      });
+      loadMonth(month);
+    },
+    [loadMonth],
+  );
+
   const retryAvailability = useCallback(async () => {
     const response = await fetch(`/api/checkout/dates?from=${today}&days=62`).catch(() => null);
     const calendar = response?.ok ? ((await response.json()) as CheckoutDatesAnswer).calendar : null;
@@ -415,6 +567,17 @@ export function CheckoutView({
     setEarliest(calendar.earliestDeliveryDate);
   }, [today]);
 
+  const initialMonth = monthOf(date ?? earliest ?? today);
+  const openCalendar = useCallback(
+    (open: boolean) => {
+      // A hold that ended gave its place back — perhaps the last one on its
+      // date — so what the calendar shows is read again, not remembered.
+      if (open && live && hold === 'ended') reloadMonth(initialMonth);
+      setCalendarOpen(open);
+    },
+    [live, hold, initialMonth, reloadMonth],
+  );
+
   /** A date chosen: Aonik reserves it (live), or it is simply noted (demo — nothing is held). */
   const choose = useCallback(
     async (chosen: string) => {
@@ -422,40 +585,49 @@ export function CheckoutView({
       if (!live) {
         setDemoDate(chosen);
         setCalendarOpen(false);
+        focusNext.current = 'ck-date';
         return;
       }
       if (dateBusy) return;
       setDateBusy(true);
-      const result = await cart.checkoutRequest<CheckoutReservationAnswer>('/reservation', {
+      const result = await checkoutRequest<CheckoutReservationAnswer>('/reservation', () => ({
         method: 'PUT',
         body: { date: chosen },
-      });
+        version: basis.current,
+      }));
+      if (!mounted.current) return;
       setDateBusy(false);
       setCalendarOpen(false);
       if (result.ok) {
+        basis.current = result.payload.version;
         setReservation({ view: result.payload.reservation, at: Date.now() });
         setNow(Date.now());
+        focusNext.current = 'ck-date';
+        if (result.payload.reservation?.status === 'held') {
+          setHoldLive(`${formatDeliveryDateLong(chosen) ?? chosen} is saved for you for ${HOLD_MINUTES} minutes.`);
+        }
         return;
       }
       const refusal = result.payload as CheckoutRefusal;
       switch (refusal.code) {
-        case CHECKOUT_CODES.dateFull: {
+        case CHECKOUT_CODES.dateFull:
           setDateError(DATE_FULL);
           // Refresh what is available; the previous hold stands.
-          requested.current.delete(monthOf(chosen));
-          setLoadedMonths((current) => {
-            const next = new Set(current);
-            next.delete(monthOf(chosen));
-            return next;
-          });
-          loadMonth(monthOf(chosen));
+          reloadMonth(monthOf(chosen));
           return;
-        }
         case CHECKOUT_CODES.availabilityUnknown:
+          setDateError(DATE_UNKNOWN);
           setEarliest(null);
           return;
         case CHECKOUT_CODES.reservationEnded:
-          void readHold();
+          void check();
+          return;
+        case CHECKOUT_CODES.reservationConflict:
+          // Availability moved under the write, or a payment attempt now holds
+          // the date: said, the month read again, and the box checked.
+          setDateError(DATE_FAILED);
+          reloadMonth(monthOf(chosen));
+          void check();
           return;
         default:
           if (reconcile(refusal)) {
@@ -465,7 +637,7 @@ export function CheckoutView({
           setDateError(DATE_FAILED);
       }
     },
-    [live, dateBusy, cart, loadMonth, readHold, reconcile],
+    [live, dateBusy, checkoutRequest, reloadMonth, check, reconcile],
   );
 
   /* ---- The code ---------------------------------------------------------------------------- */
@@ -480,12 +652,20 @@ export function CheckoutView({
       setCodeMessage({ text: 'Codes can’t be applied on demo data.', bad: true });
       return;
     }
+    if (codeBusy) return;
     setCodeBusy(true);
-    const result = await cart.checkoutRequest<CheckoutCodeAnswer>('/discount', { method: 'PUT', body: { code } });
+    const result = await checkoutRequest<CheckoutCodeAnswer>('/discount', () => ({
+      method: 'PUT',
+      body: { code },
+      version: basis.current,
+    }));
+    if (!mounted.current) return;
     setCodeBusy(false);
     if (result.ok) {
+      basis.current = result.payload.cart.version;
       setCodeInput('');
       setCodeMessage({ text: appliedLine(code), bad: false });
+      focusNext.current = 'ck-code-remove';
       return;
     }
     const refusal = result.payload as CheckoutRefusal;
@@ -493,12 +673,15 @@ export function CheckoutView({
   };
 
   const removeCode = async () => {
-    if (!appliedCode) return;
+    if (!appliedCode || codeBusy) return;
     setCodeBusy(true);
-    const result = await cart.checkoutRequest<CheckoutCodeAnswer>('/discount', { method: 'DELETE' });
+    const result = await checkoutRequest<CheckoutCodeAnswer>('/discount', () => ({ method: 'DELETE', version: basis.current }));
+    if (!mounted.current) return;
     setCodeBusy(false);
     if (result.ok) {
+      basis.current = result.payload.cart.version;
       setCodeMessage({ text: `${appliedCode.code} has been removed.`, bad: false });
+      focusNext.current = 'ck-code';
       return;
     }
     const refusal = result.payload as CheckoutRefusal;
@@ -532,8 +715,16 @@ export function CheckoutView({
       return;
     }
     setContinuing(true);
-    await save();
+    const stored = await save();
+    if (!mounted.current) return;
     setContinuing(false);
+    // Nothing goes to payment that Aonik has not stored. A merge has said so
+    // itself, and the customer sees the merged form before pressing again.
+    if (stored === 'merged') return;
+    if (stored === 'failed') {
+      setMessage(CONTINUE_UNSAVED);
+      return;
+    }
     // The Stripe hand-off arrives with the payment pages (#32). Until then, nothing is ordered.
     setMessage(ORDERING_DISABLED_MESSAGE);
   };
@@ -567,9 +758,7 @@ export function CheckoutView({
           aria-invalid={Boolean(error) || refused || undefined}
           aria-describedby={error ? errorId : refused ? 'ck-elig' : undefined}
         />
-        <p className={styles.status} role="status">
-          {error ? <ErrorLine id={errorId}>{error}</ErrorLine> : null}
-        </p>
+        <p className={styles.status}>{error ? <ErrorLine id={errorId}>{error}</ErrorLine> : null}</p>
       </div>
     );
   };
@@ -589,7 +778,10 @@ export function CheckoutView({
         <div className={styles.main}>
           <h1 className={styles.h1}>Checkout</h1>
           <p className={styles.status} role="status">
-            {syncNote ? <span className={styles.message}>{syncNote}</span> : null}
+            {syncNote ?? saveNote ? <span className={styles.message}>{syncNote ?? saveNote}</span> : null}
+          </p>
+          <p className="visuallyHidden" role="status">
+            {fieldLive}
           </p>
 
           <div className={styles.form}>
@@ -687,12 +879,12 @@ export function CheckoutView({
             <DeliveryDate
               state={{ date, phase, remainingMs, earliest, busy: dateBusy, error: dateError }}
               calendarOpen={calendarOpen}
-              onCalendar={setCalendarOpen}
+              onCalendar={openCalendar}
               onUse={() => earliest && void choose(earliest)}
               onPick={(chosen) => void choose(chosen)}
               onRetry={() => void retryAvailability()}
               calendar={{
-                initialMonth: monthOf(date ?? earliest ?? today),
+                initialMonth,
                 minMonth,
                 maxMonth,
                 statusOf: (day) => statuses.get(day),

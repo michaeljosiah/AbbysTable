@@ -22,6 +22,9 @@ const REASONS: Record<string, string> = {
   'commerce.discount_not_eligible': 'This code doesn’t apply to the items in your box.',
   'commerce.discount_inactive': 'This code isn’t active yet.',
   'commerce.discount_currency_mismatch': 'This code can’t be used with this order.',
+  // Aonik's own races: the code changed as it was applied, or the total moved under it.
+  'commerce.discount_conflict': 'We couldn’t apply that code just now. Please try again.',
+  'commerce.discount_price_changed': 'Your total has changed. Check your order summary, then try again.',
 };
 
 /** Why a code was not applied, in the customer's words. */

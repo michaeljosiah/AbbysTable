@@ -87,17 +87,35 @@ export interface ServerCartEngine {
   /**
    * One `/api/checkout` call (`/box/checkout`), QUEUED behind any other box
    * request rather than turned away — a draft save may follow a date choice —
-   * and sent with the version this tab holds. Whatever box or version comes
-   * back is adopted, refusals included: a conflict carries the box as it is.
-   * Never throws: a network failure is a `checkout.unavailable` answer.
+   * and sent with the version this tab holds (or the caller's own `version`:
+   * checkout writes are based on the box its form was read with). Whatever box
+   * or version comes back is adopted, refusals included: a conflict carries the
+   * box as it is. Never throws: a network failure is a `checkout.unavailable`
+   * answer.
+   *
+   * `init` may be a function, called when the request's turn comes — so a
+   * write queued behind another sends what is current THEN (the form after a
+   * merge, the version the previous write moved the box to). Returning null
+   * sends nothing: the answer is `skipped`.
    */
-  checkoutRequest: <T>(path: string, init?: { method?: string; body?: unknown }) => Promise<CheckoutCall<T>>;
+  checkoutRequest: <T>(path: string, init?: CheckoutInit | (() => CheckoutInit | null)) => Promise<CheckoutCall<T>>;
+}
+
+export interface CheckoutInit {
+  method?: string;
+  body?: unknown;
+  /** The box version the write is based on; the engine's own when absent. */
+  version?: string;
+  /** Outlives the page (a save flushed as it is left). */
+  keepalive?: boolean;
 }
 
 export interface CheckoutCall<T> {
   ok: boolean;
   status: number;
   payload: T & CartResponse;
+  /** Nothing was sent: the caller found, at its turn, that there was nothing to send. */
+  skipped?: boolean;
 }
 
 /**
@@ -207,16 +225,20 @@ export function useServerCart(enabled: boolean, identity: unknown = null): Serve
   );
 
   const checkoutRequest = useCallback(
-    <T,>(path: string, init?: { method?: string; body?: unknown }): Promise<CheckoutCall<T>> =>
+    <T,>(path: string, prepare?: CheckoutInit | (() => CheckoutInit | null)): Promise<CheckoutCall<T>> =>
       enqueueCartRequest(queue, async () => {
+        const init = typeof prepare === 'function' ? prepare() : prepare;
+        if (init === null) return { ok: true, status: 204, payload: {} as T & CartResponse, skipped: true };
         try {
           const headers: Record<string, string> = {};
           if (init?.body !== undefined) headers['Content-Type'] = 'application/json';
-          if (version.current) headers[CART_VERSION_HEADER] = version.current;
+          const based = init?.version ?? version.current;
+          if (based) headers[CART_VERSION_HEADER] = based;
           const response = await fetch(`/api/checkout${path}`, {
             method: init?.method ?? 'GET',
             headers,
             body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
+            keepalive: init?.keepalive,
           });
           const payload = (await response.json().catch(() => ({}))) as T & CartResponse;
           version.current = adoptCartVersion(version.current, payload);

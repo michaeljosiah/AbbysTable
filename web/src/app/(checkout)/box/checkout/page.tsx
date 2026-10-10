@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
+import { CheckoutSessionGate } from '@/components/checkout/checkout/CheckoutSessionGate';
 import { CheckoutStatus } from '@/components/checkout/checkout/CheckoutStatus';
 import { CheckoutView } from '@/components/checkout/checkout/CheckoutView';
 import { getAonikClient } from '@/lib/aonik/client';
@@ -28,8 +29,10 @@ const FIRST_READ_DAYS = 62;
  * The entry gate is decided here, on the server, from Aonik's box (live): no
  * box goes back to the start; a box that is not full, or holds a dish that is
  * no longer available, goes back to the dishes; a box already ordered, or one a
- * payment attempt holds, shows that instead of a form it could not use. Demo
- * keeps the box in the browser, so its gate runs there (`CheckoutView`).
+ * payment attempt holds, shows that instead of a form it could not use. A
+ * signed-in session that needs renewing is renewed by a route handler first
+ * (`CheckoutSessionGate`): a render cannot keep the renewed cookie. Demo keeps
+ * the box in the browser, so its gate runs there (`CheckoutView`).
  */
 export default async function BoxCheckoutPage() {
   const { mode } = await resolveDataMode();
@@ -37,6 +40,7 @@ export default async function BoxCheckoutPage() {
   const today = londonToday();
 
   const entry = mode === 'live' ? await loadCheckout() : null;
+  if (entry?.kind === 'session') return <CheckoutSessionGate />;
   if (entry?.kind === 'none') redirect('/box');
   if (entry?.kind === 'incomplete') redirect('/box/dishes');
   if (entry?.kind === 'completed' || entry?.kind === 'payment') return <CheckoutStatus kind={entry.kind} />;

@@ -150,6 +150,23 @@ export function formatPostcodeInput(raw: string): string {
   return normalisePostcode(upper) ?? upper;
 }
 
+/** .NET's `char.IsControl`: C0, DEL and C1. */
+const isControl = (code: number) => code <= 0x1f || (code >= 0x7f && code <= 0x9f);
+
+/**
+ * A field as typed or pasted, minus what Aonik would refuse the whole save
+ * for: a control character becomes a space (a pasted tab, a stray escape).
+ * Line breaks stay in the delivery notes, the one field that allows them.
+ */
+export function cleanInput(field: DetailField, raw: string): string {
+  let out = '';
+  for (const char of raw) {
+    const keep = !isControl(char.charCodeAt(0)) || (field === 'notes' && (char === '\n' || char === '\r'));
+    out += keep ? char : ' ';
+  }
+  return out;
+}
+
 /* ---- Eligibility ------------------------------------------------------------ */
 
 /**

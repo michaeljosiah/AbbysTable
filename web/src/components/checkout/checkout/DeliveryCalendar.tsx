@@ -19,6 +19,9 @@ import styles from './Checkout.module.css';
 import { CloseGlyph, DeliveryDatesCopy } from './InfoNote';
 import { useOverlay } from './useOverlay';
 
+/** Monday first, as the grid is laid out; each column's header names its day in full. */
+const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as const;
+
 /**
  * The delivery calendar (design: Checkout v2, `gc-cal`): our own, never the
  * native date input. A bottom sheet headed "Choose a delivery date" on a
@@ -209,17 +212,16 @@ export function DeliveryCalendar({
           </div>
 
           <div className={styles.calGrid} onKeyDown={onKeyDown}>
-            <div className={styles.weekdays} aria-hidden="true">
-              <span>M</span>
-              <span>T</span>
-              <span>W</span>
-              <span>T</span>
-              <span>F</span>
-              <span>S</span>
-              <span>S</span>
-            </div>
             {loaded(month) ? (
               <div ref={grid} role="grid" aria-label={title}>
+                <div className={styles.weekdays} role="row">
+                  {WEEKDAYS.map((weekday) => (
+                    <span key={weekday} role="columnheader">
+                      <span aria-hidden="true">{weekday[0]}</span>
+                      <span className="visuallyHidden">{weekday}</span>
+                    </span>
+                  ))}
+                </div>
                 {weeks.map((week, index) => (
                   <div key={index} className={styles.week} role="row">
                     {week.map((cell, column) =>
@@ -247,9 +249,16 @@ export function DeliveryCalendar({
                 ))}
               </div>
             ) : (
-              <p className={styles.calLoading} role="status">
-                Loading dates…
-              </p>
+              <>
+                <div className={styles.weekdays} aria-hidden="true">
+                  {WEEKDAYS.map((weekday) => (
+                    <span key={weekday}>{weekday[0]}</span>
+                  ))}
+                </div>
+                <p className={styles.calLoading} role="status">
+                  Loading dates…
+                </p>
+              </>
             )}
           </div>
 

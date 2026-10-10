@@ -21,6 +21,7 @@ import { appliedLine, codeRefusal, lapsedLine } from '../src/lib/checkout/codes'
 import {
   blockerTarget,
   checkoutBlockers,
+  cleanInput,
   detailsFromDraft,
   draftSections,
   EMPTY_DETAILS,
@@ -154,6 +155,12 @@ test('the form owns its sections of the draft; another tab’s save is merged, n
     city: 'Bristol', // the other tab changed it: theirs
     notes: 'Leave at the door',
   });
+});
+
+test('a pasted control character becomes a space; line breaks stay in the notes alone', () => {
+  assert.equal(cleanInput('line1', '1\tExample\u0085Road\n'), '1 Example Road ');
+  assert.equal(cleanInput('notes', 'Ring twice\r\nthen wait\u0007'), 'Ring twice\r\nthen wait ');
+  assert.equal(cleanInput('email', 'pat@example.com'), 'pat@example.com');
 });
 
 /* ---- The calendar ------------------------------------------------------------- */
@@ -416,7 +423,7 @@ test('a date: held on success; refusals named so the page can say why', async ()
   assert.equal((await call('PUT', 'reservation', { date: '2026-02-30' })).status, 400, 'not a real date');
 });
 
-test('a code: Aonik’s refusal reason is passed on; an applied one re-reads the box', async () => {
+test('a code: Aonik’s refusal reason is passed on; an applied one re-reads the box, on the write’s version', async () => {
   configureAonik({ AONIK_DATA_MODE: 'live' });
   resetCookies(CART_COOKIE);
   useAonik((request) => {
@@ -444,7 +451,8 @@ test('a code: Aonik’s refusal reason is passed on; an applied one re-reads the
 
   const applied = await call('PUT', 'discount', { code: 'save10' });
   const { cart } = await applied.json();
-  assert.equal(cart.version, 'v5');
+  // The re-read may already carry another tab's change; the tab's next write is based on its own.
+  assert.equal(cart.version, 'v4');
   assert.equal(cart.quote.totalPence, 14220);
   assert.deepEqual(cart.quote.discount, { code: 'SAVE10', amountPence: 1580 });
   assert.deepEqual(aonikRequests.find((request) => request.method === 'PUT' && (request.body as { code: string }).code === 'SAVE10')?.body, { code: 'SAVE10' });
@@ -452,11 +460,70 @@ test('a code: Aonik’s refusal reason is passed on; an applied one re-reads the
   assert.equal((await call('DELETE', 'discount')).status, 200);
 });
 
-test('the calendar read: uncached, both of Aonik’s delivery reads, validated input', async () => {
+test('a code: Aonik’s own races are said plainly; a change that took but cannot be shown asks for a reload', async () => {
+  configureAonik({ AONIK_DATA_MODE: 'live' });
+  resetCookies(CART_COOKIE);
+  let readable = true;
+  useAonik((request) => {
+    if (request.path === '/commerce/carts/c1/discount' && request.method === 'PUT') {
+      return (request.body as { code: string }).code === 'RACE'
+        ? { status: 409, body: { error: 'Conflict', code: 'commerce.discount_conflict' } }
+        : { status: 200, body: { cartId: 'c1', cartVersion: 'v4', currency: 'GBP', subtotal: 158, discountTotal: 15.8, taxTotal: 0, deliveryTotal: 0, total: 142.2 } };
+    }
+    if (request.path === '/commerce/carts/c1') return readable ? { status: 200, body: box() } : { status: 503, body: {} };
+    return undefined;
+  });
+
+  const race = await call('PUT', 'discount', { code: 'race' });
+  assert.equal(race.status, 409);
+  assert.deepEqual(await race.json(), { error: 'We couldn’t apply that code just now. Please try again.', code: 'commerce.discount_conflict' });
+
+  readable = false;
+  const quiet = mock.method(console, 'error', () => undefined);
+  const unseen = await call('PUT', 'discount', { code: 'save10' });
+  quiet.mock.restore();
+  assert.equal(unseen.status, 503);
+  assert.deepEqual(await unseen.json(), { error: 'SAVE10 has been applied. Reload the page to see your total.', code: 'cart.reload' });
+});
+
+test('reading the hold reports the box’s version without handing it over; a sync hands over the box, draft and hold together', async () => {
+  configureAonik({ AONIK_DATA_MODE: 'live' });
+  resetCookies(CART_COOKIE);
+  let cart: BoxCartDto | null = box({ cartVersion: 'v8' });
+  useAonik((request) => {
+    if (request.path === '/commerce/carts/c1/delivery-reservation') return { status: 200, body: reservationDto() };
+    if (request.path === '/commerce/carts/c1') return cart ? { status: 200, body: cart } : { status: 404, body: {} };
+    return undefined;
+  });
+
+  const hold = await (await call('GET', 'reservation')).json();
+  assert.equal(hold.boxVersion, 'v9');
+  assert.equal('version' in hold || 'cart' in hold, false, 'nothing the cart engine would adopt');
+  assert.equal(hold.reservation.status, 'held');
+
+  const synced = await call('GET', 'sync');
+  assert.equal(synced.status, 200);
+  const sync = await synced.json();
+  assert.equal(sync.cart.version, 'v8');
+  assert.equal(sync.details.email, 'old@example.com');
+  assert.equal(sync.reservation.status, 'held');
+  assert.equal('locked' in sync, false);
+
+  cart = box({ orderId: 'o1' });
+  const locked = await call('GET', 'sync');
+  assert.equal(locked.status, 409);
+  assert.equal((await locked.json()).code, 'cart.locked');
+
+  cart = null;
+  const gone = await call('GET', 'sync');
+  assert.equal(gone.status, 404);
+  assert.equal((await gone.json()).cart, null);
+});
+
+test('the calendar read: one uncached Aonik read, its earliest date the suggestion, validated input', async () => {
   configureAonik({ AONIK_DATA_MODE: 'live' });
   resetCookies();
   useAonik((request) => {
-    if (request.path === '/commerce/config/delivery') return { status: 200, body: { earliestDeliveryDate: '2026-10-20', timezone: 'Europe/London' } };
     if (request.path.startsWith('/commerce/config/delivery/dates')) {
       return {
         status: 200,
@@ -491,7 +558,7 @@ test('the calendar read: uncached, both of Aonik’s delivery reads, validated i
     },
   });
   assert.equal(aonikRequests.every((request) => request.cache === 'no-store'), true, 'holds change availability');
-  assert.equal(aonikRequests.find((request) => request.path.startsWith('/commerce/config/delivery/dates'))?.path, '/commerce/config/delivery/dates?fromDate=2026-10-19&days=3');
+  assert.deepEqual(aonikRequests.map((request) => request.path), ['/commerce/config/delivery/dates?fromDate=2026-10-19&days=3']);
 
   assert.equal((await call('GET', 'dates', undefined, '', '?from=2026-10-19&days=63')).status, 400);
   assert.equal((await call('GET', 'dates', undefined, '', '?from=soon&days=3')).status, 400);
@@ -530,4 +597,14 @@ test('the entry gate: no box, an incomplete box, an order, a payment in progress
 
   resetCookies();
   assert.equal((await loadCheckout()).kind, 'none');
+
+  // A signed-in session to renew: nothing is read (a render could not keep the renewed cookie).
+  resetCookies({
+    ...CART_COOKIE,
+    'abbys-table-session': JSON.stringify({ accessToken: 'old', expiresAt: Date.now() - 60_000, refreshToken: 'r1' }),
+  });
+  renderMode();
+  aonikRequests.length = 0;
+  assert.equal((await loadCheckout()).kind, 'session');
+  assert.equal(aonikRequests.length, 0);
 });

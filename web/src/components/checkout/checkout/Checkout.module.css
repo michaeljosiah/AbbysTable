@@ -811,7 +811,7 @@
   grid-template-columns: repeat(7, 1fr);
 }
 
-.weekdays span {
+.weekdays > span {
   padding: 6px 0;
   text-align: center;
   font-weight: 600;
@@ -1245,12 +1245,19 @@
   padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
   background: var(--cream-2);
   border-top: 1px solid var(--sand);
-  transition: transform 0.22s ease;
+  transition:
+    transform 0.22s ease,
+    visibility 0s;
 }
 
+/* Off-screen is out of reach too: `inert` on the element, and hidden once the slide ends. */
 .bar[data-hidden='true'] {
   transform: translateY(110%);
   pointer-events: none;
+  visibility: hidden;
+  transition:
+    transform 0.22s ease,
+    visibility 0s linear 0.22s;
 }
 
 .barSummary {

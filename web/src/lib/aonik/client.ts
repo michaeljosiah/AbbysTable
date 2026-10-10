@@ -620,28 +620,22 @@ export class HttpAonikClient implements AonikClient {
   }
 
   /**
-   * Both of Aonik's delivery reads, uncached (#346 serves them `no-store`):
-   * the suggestion from `/commerce/config/delivery` — the first date with
-   * KNOWN capacity, 404 when none can truthfully be given — and the range's
-   * availability. A calendar that is not configured (404) is null; a 404 on
-   * the suggestion alone is no suggestion, and the page says it cannot
-   * confirm availability.
+   * The range's availability, uncached (#346 serves it `no-store`). Its
+   * `earliestDeliveryDate` is the suggestion — the first date with KNOWN
+   * capacity, the same answer `/commerce/config/delivery` gives, so one read
+   * is enough. A calendar that is not configured (404) is null; no earliest
+   * date is no suggestion, and the page says it cannot confirm availability.
    */
   async getDeliveryCalendar(fromDate: string, days: number): Promise<DeliveryCalendar | null> {
-    const fresh = <T,>(path: string, query?: Record<string, string | number>) =>
-      aonikFetch<T>(path, {
-        baseUrl: this.options.baseUrl,
-        tenantId: this.options.tenantId,
-        policy: 'volatile',
-        query,
-      }).catch((error: unknown) => {
-        if (error instanceof AonikError && error.isNotFound) return null;
-        throw error;
-      });
-    const [window, dates] = await Promise.all([
-      fresh<DeliveryWindow>('/commerce/config/delivery'),
-      fresh<DeliveryDatesDto>('/commerce/config/delivery/dates', { fromDate, days }),
-    ]);
+    const dates = await aonikFetch<DeliveryDatesDto>('/commerce/config/delivery/dates', {
+      baseUrl: this.options.baseUrl,
+      tenantId: this.options.tenantId,
+      policy: 'volatile',
+      query: { fromDate, days },
+    }).catch((error: unknown) => {
+      if (error instanceof AonikError && error.isNotFound) return null;
+      throw error;
+    });
     if (!dates) return null;
     const statuses = new Map((dates.availability ?? []).map((entry) => [entry.deliveryDate, readDayStatus(entry.status)]));
     // An Aonik from before capacity (#346) lists available dates only.
@@ -649,7 +643,7 @@ export class HttpAonikClient implements AonikClient {
     const range: string[] = [];
     for (let date = dates.fromDate; date <= dates.toDate; date = addDays(date, 1)) range.push(date);
     return {
-      earliestDeliveryDate: isIsoDate(window?.earliestDeliveryDate) ? window!.earliestDeliveryDate : null,
+      earliestDeliveryDate: isIsoDate(dates.earliestDeliveryDate) ? dates.earliestDeliveryDate : null,
       fromDate: dates.fromDate,
       toDate: dates.toDate,
       days: range.map((date) => ({ date, status: statuses.get(date) ?? 'no_delivery' })),

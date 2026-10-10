@@ -110,7 +110,7 @@ export async function writeSession(session: CustomerSession): Promise<void> {
  * Next seals the cookie store during a Server Component render, and `set` throws
  * this. Matched on the message because Next exports no class or name for it.
  */
-function isReadOnlyCookieStore(error: unknown): boolean {
+export function isReadOnlyCookieStore(error: unknown): boolean {
   return error instanceof Error && error.message.startsWith('Cookies can only be modified');
 }
 

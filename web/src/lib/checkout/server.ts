@@ -26,6 +26,7 @@ import type {
   CheckoutDraftResponseDto,
 } from '@/lib/aonik/dto';
 import { mapBoxCart, type BoxCart } from '@/lib/aonik/map';
+import { sessionNeedsRefresh } from '@/lib/auth/server';
 import { CartMissingError } from '@/lib/cart/cartMissing';
 import { cartCall, getBoxCart, readStoredBoxCart, type CartVersion } from '@/lib/cart/server';
 
@@ -34,6 +35,11 @@ import { readReservation, type ReservationView } from './reservation';
 
 /** Where `/box/checkout` stands for the stored box. */
 export type CheckoutEntry =
+  /**
+   * The signed-in session must be renewed before the box can be read, and a
+   * render cannot write the renewed cookie: the page has a route handler do it.
+   */
+  | { kind: 'session' }
   /** No box at all — or one Aonik expired: back to the start. */
   | { kind: 'none' }
   /** It became an order (here, or in another tab): SHOPPING-STATE §53. */
@@ -51,6 +57,14 @@ export interface CheckoutSync {
   reservation: ReservationView | null;
 }
 
+/** A write took, but the box could not be read back after it: the page must reload to show it. */
+export class CheckoutReloadError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'CheckoutReloadError';
+  }
+}
+
 async function reservationOf(dto: BoxCartDto): Promise<ReservationView | null> {
   const draftDate = dto.checkoutDraft?.deliveryDate ?? null;
   try {
@@ -64,6 +78,8 @@ async function reservationOf(dto: BoxCartDto): Promise<ReservationView | null> {
 
 /** The entry gate: what the page should show for the box in this browser. */
 export async function loadCheckout(): Promise<CheckoutEntry> {
+  // Before any cart read: reading would try the refresh this render cannot keep.
+  if (await sessionNeedsRefresh()) return { kind: 'session' };
   const dto = await readStoredBoxCart().catch((error: unknown) => {
     if (error instanceof CartMissingError) return null;
     throw error;
@@ -82,14 +98,19 @@ export async function loadCheckout(): Promise<CheckoutEntry> {
   };
 }
 
-/** The box, its draft and its hold as they are now — after a refused write. */
-export async function readCheckoutSync(): Promise<CheckoutSync | null> {
+/**
+ * The box, its draft and its hold as they are now — after a refused write, or
+ * when the tab finds the box has moved on. Null when there is no open box;
+ * `locked` when a payment attempt holds it.
+ */
+export async function readCheckoutSync(): Promise<(CheckoutSync & { locked: boolean }) | null> {
   const dto = await readStoredBoxCart();
   if (!dto || (dto.status && dto.status !== 'Open')) return null;
   return {
     cart: mapBoxCart(dto),
     details: detailsFromDraft(dto.checkoutDraft),
     reservation: await reservationOf(dto),
+    locked: Boolean(dto.orderId),
   };
 }
 
@@ -118,10 +139,15 @@ export async function saveCheckoutDetails(
   return { version: response.cartVersion, details: detailsFromDraft(response.draft) };
 }
 
-/** The hold as it stands; reading it never extends it. */
-export async function readCheckoutReservation(): Promise<{ version: string; reservation: ReservationView | null }> {
+/**
+ * The hold as it stands; reading it never extends it. With it, the box's
+ * version as Aonik has it now — reported, never adopted: a version belongs to
+ * the box, draft and hold a tab is showing, so a tab that finds it moved on
+ * re-syncs all three (`readCheckoutSync`) instead of taking the number alone.
+ */
+export async function readCheckoutReservation(): Promise<{ boxVersion: string; reservation: ReservationView | null }> {
   const dto = await cartCall<CartDeliveryReservationDto>('/delivery-reservation');
-  return { version: dto.cartVersion, reservation: readReservation(dto) };
+  return { boxVersion: dto.cartVersion, reservation: readReservation(dto) };
 }
 
 /** Chooses (or atomically replaces) the date, starting a fresh 15-minute hold. */
@@ -137,19 +163,33 @@ export async function reserveDeliveryDate(
   return { version: dto.cartVersion, reservation: readReservation(dto) };
 }
 
-/** The box after a code change, re-read for Aonik's own components. */
-async function boxAfter(write: Promise<CartDiscountQuoteDto>): Promise<BoxCart> {
-  await write;
-  const cart = await getBoxCart();
+/**
+ * The box after a code change, re-read for Aonik's own components — with the
+ * WRITE's version, not the read's: a change another tab made in between is
+ * then refused at the next write and re-synced, rather than taken without its
+ * draft. A write that took but cannot be read back is said as such.
+ */
+async function boxAfter(write: Promise<CartDiscountQuoteDto>, saved: string): Promise<BoxCart> {
+  const written = await write;
+  let cart: BoxCart | null;
+  try {
+    cart = await getBoxCart();
+  } catch (error) {
+    console.error('[checkout] the box could not be read back after a code change', error);
+    throw new CheckoutReloadError(`${saved} Reload the page to see your total.`);
+  }
   if (!cart) throw new CartMissingError();
-  return cart;
+  return { ...cart, version: written.cartVersion || cart.version };
 }
 
 /** Applies a code: Aonik checks it at once, and a refusal keeps the previous one. */
 export function applyDiscountCode(code: string, version: CartVersion): Promise<BoxCart> {
-  return boxAfter(cartCall<CartDiscountQuoteDto>('/discount', { method: 'PUT', body: { code } }, version));
+  return boxAfter(
+    cartCall<CartDiscountQuoteDto>('/discount', { method: 'PUT', body: { code } }, version),
+    `${code} has been applied.`,
+  );
 }
 
 export function removeDiscountCode(version: CartVersion): Promise<BoxCart> {
-  return boxAfter(cartCall<CartDiscountQuoteDto>('/discount', { method: 'DELETE' }, version));
+  return boxAfter(cartCall<CartDiscountQuoteDto>('/discount', { method: 'DELETE' }, version), 'Your code has been removed.');
 }
