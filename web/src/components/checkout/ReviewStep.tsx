@@ -1073,6 +1073,9 @@ export function ReviewStep({
                   <DishInfoPanels
                     dish={editor.dish}
                     heating={heating}
+                    // The customer's own choices: the panels describe THOSE,
+                    // never the standard recipe's declaration.
+                    selection={encodeSelection(editorOptions, editor.draft, true)}
                     compact
                     onBackToTop={() =>
                       document

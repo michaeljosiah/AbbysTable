@@ -39,7 +39,11 @@ Conventions inside `web/` that are easy to get wrong:
   `allergensPresent: null` is unreviewed, never read from the text; names are Aonik's own (its
   label feed), e.g. "Soybeans", "Tree nuts". The `precautionaryStatement` shows beside the
   declaration — dish panels, extras modal, the Our Standards and How it works examples — as
-  authored (line breaks kept), and never without it.
+  authored (line breaks kept), and never without it. A declaration is for ONE preparation: when
+  the personaliser's choice is not the standard one (dish page, Add Dishes, Review), the panels
+  ask Aonik for THAT selection (`/api/dish-content/[slug]`, `src/lib/dish/selectionContent.ts`) and
+  show what it resolves — until then, and whenever it cannot, the declaration is withheld; the
+  standard recipe's is never shown for other choices.
 - **Server Components by default.** Client components are `Header`, `MobileDrawer`, `Footer`, the
   homepage `Menu` rail and How it works clip (`HowItWorksClip`: lazy source, pause control,
   reduced motion), the dish card's `SignatureInfo` (the Signature "i" and its note, outside the

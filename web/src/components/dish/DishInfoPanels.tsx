@@ -3,10 +3,13 @@
 import Link from 'next/link';
 import { useState, type CSSProperties, type ReactNode } from 'react';
 
+import type { PersonalisationSelection } from '@/lib/aonik/map';
 import type { Dish, HeatingInstruction } from '@/lib/aonik/types';
 import { CONTACT_HREF } from '@/lib/content/navigation';
 
 import styles from './DishInfoPanels.module.css';
+import { useOptionalDishOrder } from './DishOrderProvider';
+import { useSelectionContent } from './useSelectionContent';
 
 /**
  * The three expandable panels beneath the CTA: full nutrition, ingredients and
@@ -22,6 +25,13 @@ interface DishInfoPanelsProps {
   compact?: boolean;
   /** Where "Back to top" should scroll — the modal passes its own scroller. */
   onBackToTop?: () => void;
+  /**
+   * The customer's choices when they are not the standard preparation
+   * (Add Dishes, Review); on the dish page, read from its order state. The
+   * panels then describe THOSE choices (`useSelectionContent`), never the
+   * standard recipe's declaration.
+   */
+  selection?: PersonalisationSelection;
 }
 
 type PanelId = 'nutrition' | 'ingredients' | 'heating';
@@ -148,7 +158,10 @@ function Panel({
   );
 }
 
-export function DishInfoPanels({ dish, heating, compact, onBackToTop }: DishInfoPanelsProps) {
+export function DishInfoPanels({ dish: standard, heating: standardHeating, compact, onBackToTop, selection }: DishInfoPanelsProps) {
+  const order = useOptionalDishOrder();
+  const chosen = selection ?? order?.choice.personalisation;
+  const { dish, heating, forSelection, pending } = useSelectionContent(standard, standardHeating, chosen);
   const [open, setOpen] = useState<Record<PanelId, boolean>>({
     nutrition: true,
     ingredients: true,
@@ -236,9 +249,15 @@ export function DishInfoPanels({ dish, heating, compact, onBackToTop }: DishInfo
       >
         {ingredients ? (
           <p className={styles.ingredients}>{ingredients}</p>
+        ) : pending ? (
+          <p className={styles.ingredients} role="status">
+            Checking the ingredients and allergens for your choices…
+          </p>
         ) : (
           <p className={styles.ingredients}>
-            The ingredient list for this dish has not been published yet.
+            {forSelection
+              ? 'The ingredient list for the choices you’ve made has not been published yet.'
+              : 'The ingredient list for this dish has not been published yet.'}
           </p>
         )}
 
@@ -258,7 +277,12 @@ export function DishInfoPanels({ dish, heating, compact, onBackToTop }: DishInfo
           <div className={styles.allergens} role="note">
             <AllergenIcon />
             <span>
-              <strong>Allergen information is not yet published for this dish.</strong> If you have
+              <strong>
+                {forSelection
+                  ? 'Allergen information for the choices you’ve made is not yet published.'
+                  : 'Allergen information is not yet published for this dish.'}
+              </strong>{' '}
+              If you have
               an allergy or intolerance, please{' '}
               <Link href={CONTACT_HREF} className={styles.allergensLink}>
                 contact us
@@ -289,7 +313,9 @@ export function DishInfoPanels({ dish, heating, compact, onBackToTop }: DishInfo
             dish-specific instructions the kitchen actually authored. */}
         {isGenericHeating ? (
           <p className={styles.heatingNote}>
-            General guidance — specific instructions for this dish have not been published yet.
+            {forSelection
+              ? 'General guidance — specific instructions for your choices have not been published yet.'
+              : 'General guidance — specific instructions for this dish have not been published yet.'}
           </p>
         ) : null}
       </Panel>

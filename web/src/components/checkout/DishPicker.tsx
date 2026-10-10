@@ -1844,6 +1844,9 @@ export function DishPicker({
                   <DishInfoPanels
                     dish={editor.dish}
                     heating={heating}
+                    // The customer's own choices: the panels describe THOSE,
+                    // never the standard recipe's declaration.
+                    selection={isCustom && draft ? encodeSelection(dishOptions, draft, true) : undefined}
                     compact
                     onBackToTop={() =>
                       document
