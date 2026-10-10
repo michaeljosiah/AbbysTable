@@ -127,8 +127,10 @@
   color: var(--green-forest);
 }
 
+/* Stays a block even when empty (a display change can drop a first announcement);
+   the panel's flex gap is taken back instead. */
 .live:empty {
-  display: contents;
+  margin-top: -10px;
 }
 
 .message {

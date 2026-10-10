@@ -67,6 +67,9 @@ test('what is lit: a choice below the box’s floor is raised to its tier or to 
   assert.deepEqual(deriveSelection({ chosen: preset(6), chosenQty: 6, floor: 11, presets }), { selection: { source: 'custom' }, customQty: 11, raised: true });
   // A typed 8 over a floor of 11.
   assert.deepEqual(deriveSelection({ chosen: { source: 'custom' }, chosenQty: 8, floor: 11, presets }), { selection: { source: 'custom' }, customQty: 11, raised: true });
+  // Set-your-own is reachable when the box holds exactly a tier's dishes (it was lost to the tier once).
+  assert.deepEqual(deriveSelection({ chosen: { source: 'custom' }, chosenQty: 6, floor: 12, presets }), { selection: { source: 'custom' }, customQty: 12, raised: true });
+  assert.deepEqual(deriveSelection({ chosen: { source: 'custom' }, chosenQty: 20, floor: 12, presets }), { selection: { source: 'custom' }, customQty: 20, raised: false });
 
   // A live box reports a plain size: a tier lights its card, anything else opens set-your-own at it.
   assert.deepEqual(selectionForSize(12, presets), { selection: preset(12), customQty: null });

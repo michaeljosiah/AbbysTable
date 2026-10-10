@@ -64,9 +64,10 @@ export type Selection = { source: 'preset'; size: number } | { source: 'custom' 
 
 /**
  * What is lit and what the custom quantity reads, from what was CHOSEN and the
- * smallest box this one can be. A choice below the floor is raised to it — to
- * its own tier when the floor lands on one, set-your-own otherwise — and
- * `raised` says so (the rail's held-size line is for exactly that).
+ * smallest box this one can be. A tier chosen below the floor is raised to it —
+ * to its own tier when the floor lands on one, set-your-own otherwise — and a
+ * set-your-own quantity below it is lifted to it; `raised` says so (the rail's
+ * held-size line is for exactly that).
  */
 export function deriveSelection(input: {
   chosen: Selection;
@@ -74,8 +75,16 @@ export function deriveSelection(input: {
   floor: number;
   presets: readonly Pick<BoxOffer, 'dishCount'>[];
 }): { selection: Selection; customQty: number; raised: boolean } {
-  const chosenSize = input.chosen.source === 'custom' ? input.chosenQty : input.chosen.size;
-  if (chosenSize >= input.floor) return { selection: input.chosen, customQty: input.chosenQty, raised: false };
+  // Set-your-own stays set-your-own: its quantity is lifted to the floor, so a
+  // customer holding exactly a tier's dishes can still open it and grow the box.
+  if (input.chosen.source === 'custom') {
+    return {
+      selection: input.chosen,
+      customQty: Math.max(input.chosenQty, input.floor),
+      raised: input.chosenQty < input.floor,
+    };
+  }
+  if (input.chosen.size >= input.floor) return { selection: input.chosen, customQty: input.chosenQty, raised: false };
   const onTier = input.presets.some((preset) => preset.dishCount === input.floor);
   return {
     selection: onTier ? { source: 'preset', size: input.floor } : { source: 'custom' },

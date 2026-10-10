@@ -1630,6 +1630,10 @@
   border-bottom-color: var(--terracotta-ink);
 }
 
+.typedError[data-empty] {
+  display: none;
+}
+
 .typedError {
   flex-basis: 100%;
   margin: 8px 0 0;

@@ -203,10 +203,16 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
         ? 'Price unavailable'
         : formatPrice(totals.totalPence);
 
-  const selectCustom = () => setSelection({ source: 'custom' });
+  const selectCustom = () => {
+    setTypedError(null);
+    setSelection({ source: 'custom' });
+  };
 
-  const selectPreset = (preset: BoxOffer) => () =>
+  const selectPreset = (preset: BoxOffer) => () => {
+    setTyped(null);
+    setTypedError(null);
     setSelection({ source: 'preset', size: preset.dishCount });
+  };
 
   const stepCustom = (delta: number) => (event: MouseEvent<HTMLButtonElement>) => {
     // The stepper sits inside a card that is itself a button.
@@ -269,12 +275,12 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSiz
   );
 
   // One id per layout: both are in the markup, one hidden by CSS.
-  const typedErrorLine = (errorId: string) =>
-    typedError ? (
-      <p className={styles.typedError} id={errorId} role="status">
-        {typedError}
-      </p>
-    ) : null;
+  // The status region stays mounted and is filled, so it is announced.
+  const typedErrorLine = (errorId: string) => (
+    <p className={styles.typedError} id={errorId} role="status" data-empty={typedError ? undefined : true}>
+      {typedError}
+    </p>
+  );
 
   const onCardKeyDown = (event: KeyboardEvent<HTMLDivElement>, select: () => void) => {
     // Ignore keys that belong to the stepper buttons inside the card.
