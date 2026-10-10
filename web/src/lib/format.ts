@@ -172,6 +172,23 @@ export function formatOrderDate(placedAtUtc: string | null | undefined): string 
   return date ? PLACED_AT.format(date) : null;
 }
 
+/**
+ * `placedAtUtc` as a day alone: "21 July 2026" (Europe/London), or null. Its own
+ * formatter rather than `formatOrderDate` with the time cut off, which would
+ * depend on how the platform's ICU joins date and time.
+ */
+export function formatOrderDay(placedAtUtc: string | null | undefined): string | null {
+  const date = parseInstant(placedAtUtc);
+  return date ? PLACED_DAY.format(date) : null;
+}
+
+const PLACED_DAY = new Intl.DateTimeFormat('en-GB', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+  timeZone: 'Europe/London',
+});
+
 const PLACED_AT = new Intl.DateTimeFormat('en-GB', {
   day: 'numeric',
   month: 'long',

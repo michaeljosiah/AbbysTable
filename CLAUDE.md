@@ -414,8 +414,11 @@ Conventions inside `web/` that are easy to get wrong:
   address, so the detail is read only for upcoming and gift orders (`loadAccountOrders`, at most 8).
   Deliberately NOT built: Order again (PR 4), the delivery window (Aonik rejects windows), "Need to
   change this delivery? Contact us" (confirmed orders are read-only, decided 5 Oct 2026).
-  `/account/orders/[orderId]` is not in the design; it stays as the price breakdown, linked from
-  each card. Pure rules: `lib/account/orders.ts`; pinned by `tests/account-orders.test.tsx`. Client
+  The frame is a route group (`account/(frame)/`) so `/account/access` — the emailed secure link —
+  is NOT wrapped in it. An order that was never PAID (`paymentStatus` other than `Captured`) is in
+  neither list: Aonik files an abandoned checkout under Past as "Cancelled". `/account/orders/
+  [orderId]` is not in the design; it stays as the price breakdown (what was charged, what was paid,
+  gift card vs card, refunds), linked from each card; a non-GUID id is a 404 and never reaches Aonik. Pure rules: `lib/account/orders.ts`; pinned by `tests/account-orders.test.tsx`. Client
   components must not import `lib/aonik/orders` for values (it pulls `next/headers`): `formatOrderDate`
   lives in `lib/format.ts`.
 - **Internal links go through `next/link`.** `Button` and `NavLink` route on `href` automatically

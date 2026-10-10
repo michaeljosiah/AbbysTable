@@ -142,6 +142,8 @@ export interface OrderSummary {
   isGift: boolean;
   /** `AT-10517`. Absent on an old order: nothing may stand in for it. */
   orderNumber?: string;
+  /** Aonik's payment status (`Captured` once paid), when it sent one. */
+  paymentStatus?: string;
   /** Aonik's own history grouping, when it sent one. */
   historyGroup?: 'Upcoming' | 'Past' | 'PendingPayment';
   /** Aonik's fulfilment status: `Confirmed | Cooking | OutForDelivery | Delivered | Cancelled`. */
@@ -254,6 +256,7 @@ export function mapOrderSummary(dto: StorefrontOrderSummaryDto): OrderSummary {
     deliveryDate: dto.deliveryDate ?? undefined,
     isGift: dto.isGift === true,
     orderNumber: dto.orderNumber?.trim() || undefined,
+    paymentStatus: dto.paymentStatus ?? undefined,
     historyGroup: HISTORY_GROUPS.find((group) => group === dto.historyGroup),
     fulfilmentStatus: dto.fulfilmentStatus ?? undefined,
     dishes: (dto.selections ?? []).flatMap(mapOrderDish),

@@ -7,17 +7,24 @@
  */
 
 import type { OrderSummary } from '@/lib/aonik/orders';
-import { formatDeliveryDateLong, formatOrderDate } from '@/lib/format';
+import { formatDeliveryDateLong, formatOrderDay } from '@/lib/format';
 
 export type OrderGroup = 'upcoming' | 'past' | 'pending';
 
 /**
  * Which list an order belongs to. Aonik says (`historyGroup`); an older Aonik
- * that does not is read from its fulfilment status. An order still awaiting
- * payment is neither: nothing has been confirmed, so it is not shown as an
- * order of the customer's yet.
+ * that does not is read from its fulfilment status. An order that was never
+ * PAID — still awaiting payment, or abandoned and expired at checkout — is
+ * neither: nothing was confirmed, so it is not shown as an order of the
+ * customer's.
  */
-export function orderGroup(order: Pick<OrderSummary, 'historyGroup' | 'fulfilmentStatus'>): OrderGroup {
+export function orderGroup(
+  order: Pick<OrderSummary, 'historyGroup' | 'fulfilmentStatus'> & { paymentStatus?: string },
+): OrderGroup {
+  // Aonik reads an order that was abandoned or expired at checkout as
+  // "Cancelled" and files it under Past. It was never an order of the
+  // customer's: no payment was taken.
+  if (order.paymentStatus !== undefined && order.paymentStatus !== 'Captured') return 'pending';
   if (order.historyGroup === 'Upcoming') return 'upcoming';
   if (order.historyGroup === 'Past') return 'past';
   if (order.historyGroup === 'PendingPayment') return 'pending';
@@ -72,8 +79,8 @@ export function splitOrders(orders: readonly OrderSummary[]): { upcoming: OrderS
 export function orderHeading(order: Pick<OrderSummary, 'deliveryDate' | 'placedAtUtc'>): string {
   const delivery = formatDeliveryDateLong(order.deliveryDate);
   if (delivery) return delivery;
-  const placed = formatOrderDate(order.placedAtUtc);
-  return placed ? `Ordered ${placed.replace(/ at \d.*$/, '')}` : 'Your order';
+  const placed = formatOrderDay(order.placedAtUtc);
+  return placed ? `Ordered ${placed}` : 'Your order';
 }
 
 /** "6-dish box" — or just "Box" when Aonik gave no size. */

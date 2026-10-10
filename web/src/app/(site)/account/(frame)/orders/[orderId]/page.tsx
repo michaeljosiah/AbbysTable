@@ -4,10 +4,10 @@ import { notFound } from 'next/navigation';
 
 import styles from '@/components/account/Account.module.css';
 import { addressText, giftLine, orderStatusLabel } from '@/lib/account/orders';
-import { formatOrderDate, getMyOrder } from '@/lib/aonik/orders';
+import { getMyOrder } from '@/lib/aonik/orders';
 import { redirectToLogin, requireSignedIn } from '@/lib/auth/guard';
 import { SessionExpiredError } from '@/lib/auth/server';
-import { formatDeliveryDateLong, formatPrice, formatPriceExact } from '@/lib/format';
+import { formatDeliveryDateLong, formatOrderDay, formatPriceExact } from '@/lib/format';
 
 /**
  * Static, and deliberately so: putting the order reference or its contents in a
@@ -28,6 +28,9 @@ interface OrderDetailPageProps {
 
 export default async function OrderDetailPage({ params }: OrderDetailPageProps) {
   const { orderId } = await params;
+  // An order id is a GUID. Anything else is not one of ours, so it never reaches
+  // Aonik's path (`..` would not even survive URL encoding).
+  if (!/^[0-9a-f-]{32,36}$/i.test(orderId)) notFound();
 
   // A signed-out request goes to Log in and comes back to this order.
   const returnTo = `/account/orders/${encodeURIComponent(orderId)}`;
@@ -49,7 +52,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
   // page must not speculate about which case it was.
   if (!order) notFound();
 
-  const placed = formatOrderDate(order.placedAtUtc);
+  const placed = formatOrderDay(order.placedAtUtc);
   const status = orderStatusLabel({ fulfilmentStatus: order.fulfilmentStatus, status: order.status });
   const { delivery, loyalty, refund } = order;
   const deliveryDay = formatDeliveryDateLong(delivery?.deliveryDate);
@@ -82,7 +85,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
           ) : null}
           <p className={styles.ordMeta}>
             {order.boxSize ? <span>{order.boxSize}-dish box</span> : null}
-            {placed ? <span>Placed {placed.replace(/ at \d.*$/, '')}</span> : null}
+            {placed ? <span>Placed {placed}</span> : null}
           </p>
           {delivery?.gift ? (
             <p className={styles.gift}>
@@ -111,6 +114,23 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
               </li>
             ))}
           </ul>
+        </div>
+      ) : null}
+
+      {order.items.length > 0 ? (
+        <div className={styles.card}>
+          <h3 className={styles.h3}>What you were charged for</h3>
+          <dl className={styles.totals}>
+            {order.items.map((item, index) => (
+              <div key={`${item.itemType}-${item.sku ?? ''}-${index}`}>
+                <dt>
+                  {item.quantity !== undefined && item.quantity !== 1 ? `${item.quantity}× ` : ''}
+                  {item.name ?? item.itemType}
+                </dt>
+                <dd>{formatPriceExact(item.amountPence)}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
       ) : null}
 
@@ -147,7 +167,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
           ) : null}
           <div className={styles.totalsGrand}>
             <dt>{order.giftCardPaidPence > 0 ? 'Paid by card' : 'Total'}</dt>
-            <dd>{formatPrice(order.giftCardPaidPence > 0 ? cardPaid : order.totalPence)}</dd>
+            <dd>{formatPriceExact(order.giftCardPaidPence > 0 ? cardPaid : order.totalPence)}</dd>
           </div>
         </dl>
         {refund && refund.totalReturnedPence > 0 ? (

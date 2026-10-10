@@ -5,9 +5,9 @@ import { test } from 'node:test';
 
 import { renderToStaticMarkup } from 'react-dom/server';
 
-import OrderDetailPage from '../src/app/(site)/account/orders/[orderId]/page';
-import OrdersPage from '../src/app/(site)/account/orders/page';
-import AccountLayout from '../src/app/(site)/account/layout';
+import OrderDetailPage from '../src/app/(site)/account/(frame)/orders/[orderId]/page';
+import OrdersPage from '../src/app/(site)/account/(frame)/orders/page';
+import AccountLayout from '../src/app/(site)/account/(frame)/layout';
 import { AccountNav } from '../src/components/account/AccountNav';
 import {
   addressText,
@@ -41,7 +41,7 @@ const text = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' '
 
 function summaryDto(overrides: Partial<StorefrontOrderSummaryDto> = {}): StorefrontOrderSummaryDto {
   return {
-    orderId: 'ord-1',
+    orderId: '0b6c1e2a-1111-4222-8333-444455556666',
     placedAtUtc: '2026-10-01T10:00:00',
     status: 'Placed',
     currency: 'GBP',
@@ -167,6 +167,16 @@ test('orders split into upcoming (soonest first, undated last) and past; unpaid 
   assert.deepEqual(past.map((o) => o.orderId), ['delivered']);
 });
 
+test('an order that was never paid is in neither list, whatever Aonik filed it under', () => {
+  // Aonik reads an order abandoned or expired at checkout as "Cancelled", under Past.
+  assert.equal(orderGroup(order({ historyGroup: 'Past', fulfilmentStatus: 'Cancelled', paymentStatus: 'Cancelled' })), 'pending');
+  assert.equal(orderGroup(order({ historyGroup: 'Upcoming', paymentStatus: 'Pending' })), 'pending');
+  // Paid, then cancelled: it is the customer's order, and it says so.
+  assert.equal(orderGroup(order({ historyGroup: 'Past', fulfilmentStatus: 'Cancelled', paymentStatus: 'Captured' })), 'past');
+  // An older Aonik with no payment status is read as before.
+  assert.equal(orderGroup(order({ historyGroup: 'Past', paymentStatus: null })), 'past');
+});
+
 test('a card is titled by its delivery day, else when it was placed, never a guess', () => {
   assert.equal(orderHeading(order({ deliveryDate: '2026-10-08' })), 'Thursday 8 October');
   assert.equal(orderHeading(order({ deliveryDate: null, placedAtUtc: '2026-07-21T14:32:00Z' })), 'Ordered 21 July 2026');
@@ -194,7 +204,7 @@ function signedIn() {
 }
 
 const DETAIL = {
-  orderId: 'ord-1', placedAtUtc: '2026-10-01T10:00:00', status: 'Placed', currency: 'GBP',
+  orderId: '0b6c1e2a-1111-4222-8333-444455556666', placedAtUtc: '2026-10-01T10:00:00', status: 'Placed', currency: 'GBP',
   subtotal: 158, discountTotal: 0, taxTotal: 0, total: 158, boxSize: 6, items: [], selections: [],
   orderNumber: 'AT-10517', fulfilmentStatus: 'Cooking', giftCardPaid: 0,
   delivery: {
@@ -216,7 +226,7 @@ const ordersPage = (page?: string) => OrdersPage({ searchParams: Promise.resolve
 test('the Orders page shows Upcoming and Past as cards, with the dishes behind a toggle, and no sign-out of its own', async () => {
   signedIn();
   stubAonik({
-    '/commerce/storefront/orders/ord-1': { status: 200, body: DETAIL },
+    '/commerce/storefront/orders/0b6c1e2a-1111-4222-8333-444455556666': { status: 200, body: DETAIL },
     '/commerce/storefront/orders': {
       status: 200,
       body: {
@@ -243,7 +253,7 @@ test('the Orders page shows Upcoming and Past as cards, with the dishes behind a
   assert.doesNotMatch(read, /AT-99999/, 'an unpaid order is not shown');
   assert.doesNotMatch(read, /Sign out|Signed in as/);
   assert.doesNotMatch(read, /Order again|Need to change this delivery/);
-  assert.match(html, /href="\/account\/orders\/ord-1"/);
+  assert.match(html, /href="\/account\/orders\/0b6c1e2a-1111-4222-8333-444455556666"/);
 });
 
 test('detail reads are made only for upcoming and gift orders, never one per past order', async () => {
@@ -259,7 +269,7 @@ test('detail reads are made only for upcoming and gift orders, never one per pas
   await ordersPage();
 
   const detailReads = aonikRequests.filter((request) => /\/orders\/[^?]+/.test(request.path));
-  assert.deepEqual(detailReads.map((request) => request.path), ['/commerce/storefront/orders/ord-1']);
+  assert.deepEqual(detailReads.map((request) => request.path), ['/commerce/storefront/orders/0b6c1e2a-1111-4222-8333-444455556666']);
 });
 
 test('a detail that cannot be read costs its address line, not the page', async () => {
@@ -273,6 +283,37 @@ test('a detail that cannot be read costs its address line, not the page', async 
 
   assert.match(read, /Order AT-10517 Cooking/);
   assert.doesNotMatch(read, /High Street/);
+});
+
+test('an order id that is not a GUID never reaches Aonik', async () => {
+  signedIn();
+  stubAonik();
+
+  await assert.rejects(OrderDetailPage({ params: Promise.resolve({ orderId: '..' }) }), (error: { digest?: string }) =>
+    String(error.digest).startsWith('NEXT_NOT_FOUND') || String(error.digest).includes('404'),
+  );
+  assert.equal(aonikRequests.length, 0);
+});
+
+test('the order page lists what was charged for, by name', async () => {
+  signedIn();
+  stubAonik({
+    '/commerce/storefront/orders/0b6c1e2a-1111-4222-8333-444455556666': {
+      status: 200,
+      body: {
+        ...DETAIL,
+        items: [
+          { itemType: 'Box', quantity: 1, unitPrice: 158, amountIn: 158, sku: 'BOX', name: 'Six-dish box', itemIndex: 0 },
+          { itemType: 'Delivery', quantity: null, unitPrice: null, amountIn: 5.95, sku: null, name: null, itemIndex: 1 },
+          { itemType: 'Extra', quantity: 2, unitPrice: 4, amountIn: 8, sku: 'X', name: 'Chin chin', itemIndex: 2 },
+        ],
+      },
+    },
+  });
+
+  const read = text(renderToStaticMarkup(await OrderDetailPage({ params: Promise.resolve({ orderId: '0b6c1e2a-1111-4222-8333-444455556666' }) })));
+
+  assert.match(read, /What you were charged for Six-dish box £158\.00 Delivery £5\.95 2× Chin chin £8\.00/);
 });
 
 test('an empty history says so, with a way to build a box', async () => {
@@ -299,7 +340,7 @@ test('an outage is said plainly, with Try again', async () => {
 test('the order page names its dishes as purchased, with Signature, and splits gift card from card', async () => {
   signedIn();
   stubAonik({
-    '/commerce/storefront/orders/ord-1': {
+    '/commerce/storefront/orders/0b6c1e2a-1111-4222-8333-444455556666': {
       status: 200,
       body: {
         ...DETAIL,
@@ -315,7 +356,7 @@ test('the order page names its dishes as purchased, with Signature, and splits g
     },
   });
 
-  const read = text(renderToStaticMarkup(await OrderDetailPage({ params: Promise.resolve({ orderId: 'ord-1' }) })));
+  const read = text(renderToStaticMarkup(await OrderDetailPage({ params: Promise.resolve({ orderId: '0b6c1e2a-1111-4222-8333-444455556666' }) })));
 
   assert.match(read, /Order AT-10517 Cooking/);
   assert.match(read, /Thursday 8 October/);
@@ -373,7 +414,7 @@ test('a signed-out request gets no frame: the page inside redirects it', async (
 test('the menu lists only sections that are built, each a real route', () => {
   assert.deepEqual(ACCOUNT_SECTIONS.map((section) => section.href), ['/account/orders']);
   assert.equal(currentSection('/account/orders')?.key, 'orders');
-  assert.equal(currentSection('/account/orders/ord-1')?.key, 'orders');
+  assert.equal(currentSection('/account/orders/0b6c1e2a-1111-4222-8333-444455556666')?.key, 'orders');
   assert.equal(currentSection('/account'), undefined);
   assert.equal(currentSection(null), undefined);
 

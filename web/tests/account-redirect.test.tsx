@@ -5,8 +5,8 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { beforeEach, test } from 'node:test';
 
-import OrderDetailPage from '../src/app/(site)/account/orders/[orderId]/page';
-import OrdersPage from '../src/app/(site)/account/orders/page';
+import OrderDetailPage from '../src/app/(site)/account/(frame)/orders/[orderId]/page';
+import OrdersPage from '../src/app/(site)/account/(frame)/orders/page';
 import { GET as refresh } from '../src/app/account/refresh/route';
 import { SESSION_COOKIE, type CustomerSession } from '../src/lib/auth/session';
 import { DESKTOP_STATIC_EXAMPLES, autoHidesOnDesktop } from '../src/lib/site-header/visibility';
@@ -47,7 +47,7 @@ async function redirectedTo(run: Promise<unknown>): Promise<string> {
 }
 
 const orders = (page?: string) => OrdersPage({ searchParams: Promise.resolve(page ? { page } : {}) });
-const order = () => OrderDetailPage({ params: Promise.resolve({ orderId: 'ord-1' }) });
+const order = () => OrderDetailPage({ params: Promise.resolve({ orderId: '0b6c1e2a-1111-4222-8333-444455556666' }) });
 
 test('the order history sends a signed-out request to Log in, carrying the page', async () => {
   resetCookies();
@@ -64,7 +64,7 @@ test('an order sends a signed-out request to Log in, carrying the order', async 
   renderMode();
   useAonik(() => undefined);
 
-  assert.equal(await redirectedTo(order()), '/login?next=%2Faccount%2Forders%2Ford-1');
+  assert.equal(await redirectedTo(order()), '/login?next=%2Faccount%2Forders%2F0b6c1e2a-1111-4222-8333-444455556666');
 });
 
 test('an expired session with a refresh token goes via the refresh route, not to Log in', async () => {
@@ -89,7 +89,7 @@ test('a session Aonik rejects mid-render becomes the same redirect, not a signed
   );
 
   assert.equal(await redirectedTo(orders()), '/account/refresh?next=%2Faccount%2Forders&ended=1');
-  assert.equal(await redirectedTo(order()), '/account/refresh?next=%2Faccount%2Forders%2Ford-1&ended=1');
+  assert.equal(await redirectedTo(order()), '/account/refresh?next=%2Faccount%2Forders%2F0b6c1e2a-1111-4222-8333-444455556666&ended=1');
 });
 
 test('the refresh route ends a session a page found dead, then goes to Log in', async () => {

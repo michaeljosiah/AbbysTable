@@ -108,7 +108,9 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
       <h3 className={styles.h3}>Upcoming</h3>
       {upcoming.length === 0 ? (
         <div className={styles.empty}>
-          <p className={styles.p}>No deliveries on the way.</p>
+          <p className={styles.p}>
+            {pageCount > 1 ? 'No deliveries on this page.' : 'No deliveries on the way.'}
+          </p>
           <Link href={BOX_HREF} className={styles.pill}>
             Build a box
           </Link>
