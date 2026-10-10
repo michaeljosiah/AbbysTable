@@ -33,11 +33,20 @@ export interface SelectionContent {
   precautionaryStatement?: string;
   nutrition: DishNutrition;
   state: DishContentState;
-  /** Authored steps for this selection, or generic guidance (then `state.heatingWithheld`). */
+  /** Authored steps for this selection; empty when withheld (`state.heatingWithheld`). */
   heating: HeatingInstruction[];
 }
 
-export type SelectionContentAnswer = { status: 'resolved'; content: SelectionContent } | { status: 'unavailable' };
+/**
+ * `resolved`: Aonik's answer for exactly that selection (its declaration may
+ * itself be withheld). `unpublished`: there is no content to have (demo, or a
+ * product with none). `unavailable`: Aonik could not be asked or did not
+ * answer — not known, so not "not published".
+ */
+export type SelectionContentAnswer =
+  | { status: 'resolved'; content: SelectionContent }
+  | { status: 'unpublished' }
+  | { status: 'unavailable' };
 
 /** A selection the route may pass on: an object of short keys to a key or keys. */
 export function readSelection(raw: string | null): Record<string, string | string[]> | null {
@@ -65,6 +74,7 @@ export function readSelection(raw: string | null): Record<string, string | strin
 /** An answer from the route as the panels may use it — anything else is unavailable. */
 export function readSelectionContentAnswer(body: unknown): SelectionContentAnswer {
   const answer = body as { status?: unknown; content?: Partial<SelectionContent> } | null;
+  if (answer?.status === 'unpublished') return { status: 'unpublished' };
   const content = answer?.content;
   if (
     answer?.status === 'resolved' &&
@@ -84,8 +94,8 @@ export function readSelectionContentAnswer(body: unknown): SelectionContentAnswe
 /**
  * The dish as the panels show it for the customer's choices while their own
  * content is unknown: no declaration (the standard recipe's does not apply),
- * the standard figures captioned as such, and the caller's reheating framed
- * as general guidance.
+ * the standard figures captioned as such, and no reheating (the standard's
+ * timings need not hold for other choices either).
  */
 export function withoutSelectionContent(dish: Dish): Dish {
   const state: DishContentState = {

@@ -5,7 +5,8 @@ import test, { mock } from 'node:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import { GET as dishContent } from '../src/app/api/dish-content/[slug]/route';
-import { DishInfoPanels } from '../src/components/dish/DishInfoPanels';
+import { DishInfoPanels, DishInfoPanelsView } from '../src/components/dish/DishInfoPanels';
+import { selectionKey, selectionView } from '../src/components/dish/useSelectionContent';
 import type { ResolvedContentDto } from '../src/lib/aonik/dto';
 import type { Dish } from '../src/lib/aonik/types';
 import {
@@ -83,13 +84,74 @@ test('the panels, asked about other choices, never print the standard recipe’s
   assert.doesNotMatch(html, /Celery/);
   assert.doesNotMatch(html, /Chicken, rice, tomato/);
   assert.doesNotMatch(html, /handles peanuts/);
-  assert.match(html, /Checking the ingredients and allergens for your choices…/);
-  assert.match(html, /Allergen information for the choices you’ve made is not yet published\./);
+  // While the answer is on its way: checking — neither the standard's nor "not published".
+  assert.match(html, /Checking the ingredients for your choices…/);
+  assert.match(html, /Checking the allergens for your choices…/);
+  assert.match(html, /Checking how to heat your choices…/);
+  assert.doesNotMatch(html, /not yet published|has not been published/);
+  assert.match(html, /role="status">Checking the ingredients and allergens for your choices…</, 'announced');
   assert.match(html, /These figures are for the standard preparation\./);
 
-  // The standard preparation: the dish's own declaration, as before.
-  const standard = renderToStaticMarkup(<DishInfoPanels dish={STANDARD} heating={[]} />);
-  assert.match(standard, /<strong>Allergens:<\/strong> Celery/);
+  // The standard preparation (no choices, or null): the dish's own declaration, as before.
+  for (const standard of [
+    renderToStaticMarkup(<DishInfoPanels dish={STANDARD} heating={[]} />),
+    renderToStaticMarkup(<DishInfoPanels dish={STANDARD} heating={[]} selection={null} />),
+  ]) {
+    assert.match(standard, /<strong>Allergens:<\/strong> Celery/);
+    assert.match(standard, /role="status"><\/p>/, 'the live region is always there, silent for the standard');
+  }
+});
+
+test('an answer counts only for the dish AND the choices it was asked for', () => {
+  const selection = { protein: 'king-prawns' };
+  const content = {
+    ingredients: 'King prawns, rice, tomato.',
+    allergens: 'Crustaceans',
+    nutrition: { calories: 480 },
+    state: { ...STANDARD.contentState!, contentVersion: 5 },
+    heating: [{ method: 'Hob', body: 'Heat through.' }],
+  };
+  const held = { key: selectionKey('jollof-chicken', selection), answer: { status: 'resolved' as const, content } };
+
+  const own = selectionView(STANDARD, [], selectionKey('jollof-chicken', selection), held);
+  assert.equal(own.state, 'resolved');
+  assert.equal(own.dish.allergens, 'Crustaceans');
+
+  // Another dish with the same group keys and choice: not its answer.
+  const other = { ...STANDARD, id: 'd-2', slug: 'fried-rice-chicken' };
+  const borrowed = selectionView(other, [], selectionKey('fried-rice-chicken', selection), held);
+  assert.equal(borrowed.state, 'pending');
+  assert.equal(borrowed.dish.allergens, undefined);
+  assert.deepEqual(borrowed.heating, [], 'never the standard’s reheating for other choices');
+
+  // Other choices on the same dish: not its answer either.
+  assert.equal(selectionView(STANDARD, [], selectionKey('jollof-chicken', { protein: 'beef' }), held).state, 'pending');
+  // The standard preparation needs no answer.
+  assert.equal(selectionView(STANDARD, [{ method: 'Oven', body: 'x' }], null, held).state, 'standard');
+});
+
+test('"not yet published" and "couldn’t check" are different answers, said differently', () => {
+  const view = (state: 'unpublished' | 'unavailable') =>
+    renderToStaticMarkup(
+      <DishInfoPanelsView view={{ dish: withoutSelectionContent(STANDARD), heating: [], forSelection: true, state }} />,
+    );
+
+  const unpublished = view('unpublished');
+  assert.match(unpublished, /Allergen information for the choices you’ve made is not yet published\./);
+  assert.match(unpublished, /The ingredient list for the choices you’ve made has not been published yet\./);
+  assert.match(unpublished, /Heating instructions for the choices you’ve made have not been published yet\./);
+  assert.doesNotMatch(unpublished, /General guidance/, 'no steps, so nothing to frame as general');
+  assert.doesNotMatch(unpublished, /couldn’t check/);
+
+  const unavailable = view('unavailable');
+  assert.match(unavailable, /We couldn’t check the allergens for the choices you’ve made just now\./);
+  assert.match(unavailable, /We couldn’t check the ingredient list for the choices you’ve made just now\./);
+  assert.match(unavailable, /role="status">We couldn’t check the ingredients and allergens for your choices just now\.</);
+  assert.doesNotMatch(unavailable, /not yet published|has not been published/);
+  for (const html of [unpublished, unavailable]) {
+    assert.doesNotMatch(html, /Celery/);
+    assert.match(html, /contact us<\/a> before ordering/);
+  }
 });
 
 const ROUTE = (slug: string, selection: string) =>
@@ -138,19 +200,28 @@ test('live: the route asks Aonik for exactly that selection and passes on only w
         ? { status: 200, body: resolved({ declarationsWithheld: true, ingredients: null, allergens: null, allergensPresent: null, isStandardPreparation: true, heatingWithheld: true, heating: [] }) }
         : undefined,
     );
+    const before = aonikRequests.length;
     const withheld = readSelectionContentAnswer(await (await ROUTE('jollof-chicken', '{"protein":"king-prawns"}')).json());
     assert.equal(withheld.status === 'resolved' && withheld.content.allergens, undefined);
     assert.equal(withheld.status === 'resolved' && withheld.content.state.declarationsWithheld, true);
+    // Withheld reheating stays withheld: no general steps passed off as these choices'.
+    assert.deepEqual(withheld.status === 'resolved' && withheld.content.heating, []);
+    assert.equal(aonikRequests.length, before + 1, 'one read: the selection’s content, nothing else');
 
-    // No content, an outage, a bad request: unavailable — never the standard's.
+    // A product with no content: not published. An outage: couldn't check. Never the standard's.
+    const errors = mock.method(console, 'error', () => undefined);
     useAonik(() => ({ status: 404, body: {} }));
-    assert.deepEqual(await (await ROUTE('jollof-chicken', '{"protein":"king-prawns"}')).json(), { status: 'unavailable' });
-    const quiet = mock.method(console, 'error', () => undefined);
+    assert.deepEqual(await (await ROUTE('jollof-chicken', '{"protein":"king-prawns"}')).json(), { status: 'unpublished' });
+    useAonik(() => ({ status: 400, body: { error: 'Unknown option.', code: 'commerce.option_validation' } }));
+    assert.deepEqual(await (await ROUTE('jollof-chicken', '{"protein":"nope"}')).json(), { status: 'unavailable' });
+    assert.equal(errors.mock.callCount(), 0, 'a 404 or a rejected selection is not an outage to log');
     useAonik(() => ({ status: 503, body: {} }));
     assert.deepEqual(await (await ROUTE('jollof-chicken', '{"protein":"king-prawns"}')).json(), { status: 'unavailable' });
-    quiet.mock.restore();
+    assert.equal(errors.mock.callCount(), 1, 'an outage is logged');
+    errors.mock.restore();
     assert.equal((await ROUTE('jollof-chicken', 'nope')).status, 400);
     assert.equal((await ROUTE('Bad Slug', '{"a":"b"}')).status, 400);
+    assert.equal((await ROUTE('x'.repeat(161), '{"a":"b"}')).status, 400);
   } finally {
     delete env.AONIK_DATA_MODE;
   }
@@ -161,7 +232,7 @@ test('demo: no content per selection, so the declaration for other choices is wi
   configureAonik({ AONIK_DATA_MODE: 'demo' });
   try {
     useAonik(() => undefined);
-    assert.deepEqual(await (await ROUTE('jollof-chicken', '{"protein":"king-prawns"}')).json(), { status: 'unavailable' });
+    assert.deepEqual(await (await ROUTE('jollof-chicken', '{"protein":"king-prawns"}')).json(), { status: 'unpublished' });
     assert.equal(aonikRequests.length, 0);
   } finally {
     delete env.AONIK_DATA_MODE;
