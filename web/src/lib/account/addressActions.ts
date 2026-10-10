@@ -26,6 +26,7 @@ import { SessionExpiredError } from '@/lib/auth/server';
 import {
   ADDRESS_MESSAGES,
   addressFormErrors,
+  readCountry,
   toAddressWrite,
   trimmedForm,
   type AddressFormErrors,
@@ -53,6 +54,9 @@ async function currentBook(): Promise<AddressBook | undefined> {
 async function failed(error: unknown): Promise<AddressActionResult> {
   if (error instanceof SessionExpiredError) return { status: 'ended' };
   const reason = addressWriteFailure(error);
+  if (reason === 'forbidden') {
+    return { status: 'failed', message: ADDRESS_MESSAGES.forbidden, book: await currentBook() };
+  }
   if (!reason) {
     console.error('[account] an address write failed', error instanceof Error ? error.name : error);
     return { status: 'failed', message: ADDRESS_MESSAGES.unavailable, book: await currentBook() };
@@ -73,16 +77,19 @@ export interface SaveAddressInput {
   /** The ids the page was showing, so a newly created address can be found. */
   knownIds: string[];
   /** An edited address's fields the form does not ask for, carried through unchanged. */
-  keep?: { line3?: string; state?: string };
+  keep?: { line3?: string; state?: string; country?: string };
 }
 
 export async function saveAddressAction(input: SaveAddressInput): Promise<AddressActionResult> {
   const values = trimmedForm(input.values);
-  const errors = addressFormErrors(values);
+  const country = readCountry(input.keep?.country);
+  const errors = addressFormErrors(values, country);
   if (Object.keys(errors).length > 0) return { status: 'invalid', errors };
-  const write = toAddressWrite(values);
+  const write = toAddressWrite(values, country);
   if (!write) return { status: 'failed', message: ADDRESS_MESSAGES.refused };
-  const payload: AddressWrite = { ...write, line3: input.keep?.line3, state: input.keep?.state };
+  // Carried through unchanged, but never trusted as typed: strings, bounded.
+  const carried = (value: unknown, max: number) => (typeof value === 'string' && value.trim() ? value.trim().slice(0, max) : undefined);
+  const payload: AddressWrite = { ...write, line3: carried(input.keep?.line3, 256), state: carried(input.keep?.state, 128) };
 
   let book: AddressBook;
   try {

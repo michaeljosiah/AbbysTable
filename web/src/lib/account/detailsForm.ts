@@ -12,10 +12,12 @@ export interface DetailsFormValues {
   phone: string;
 }
 
-export type DetailsFormErrors = Partial<Record<'firstName' | 'phone', string>>;
+export type DetailsFormErrors = Partial<Record<'firstName' | 'lastName' | 'phone', string>>;
 
 export const DETAILS_MESSAGES = {
   firstName: 'Enter your first name.',
+  lastName: 'Enter your last name.',
+  phoneKept: 'To remove your phone number, contact us.',
   phone: 'Enter a phone number, like 07700 900123.',
   saved: 'Your details have been saved.',
   refused: 'We couldn’t save your details. Please check them and try again.',
@@ -34,14 +36,21 @@ export const DETAILS_COPY = {
 } as const;
 
 export function trimmedDetails(values: Partial<DetailsFormValues>): DetailsFormValues {
-  const text = (value: string | undefined) => (value ?? '').trim();
+  const text = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
   return { firstName: text(values.firstName), lastName: text(values.lastName), phone: text(values.phone) };
 }
 
-/** The field errors, empty when fine. A phone is optional, but when given it must be one. */
-export function detailsFormErrors(values: DetailsFormValues): DetailsFormErrors {
+/**
+ * The field errors, empty when fine. Aonik requires BOTH names whenever either is
+ * saved. A phone is optional, but when given it must be one — and once one is
+ * stored it cannot be cleared here (Aonik ignores a blank phone), so emptying
+ * the field is an error that says so rather than a save that quietly keeps it.
+ */
+export function detailsFormErrors(values: DetailsFormValues, options: { hasStoredPhone?: boolean } = {}): DetailsFormErrors {
   const errors: DetailsFormErrors = {};
   if (!values.firstName) errors.firstName = DETAILS_MESSAGES.firstName;
+  if (!values.lastName) errors.lastName = DETAILS_MESSAGES.lastName;
   if (values.phone && !toE164(values.phone)) errors.phone = DETAILS_MESSAGES.phone;
+  else if (!values.phone && options.hasStoredPhone) errors.phone = DETAILS_MESSAGES.phoneKept;
   return errors;
 }

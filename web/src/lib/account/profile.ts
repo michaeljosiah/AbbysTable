@@ -45,13 +45,17 @@ export function mapProfile(dto: CustomerProfileDto): CustomerProfile {
  * included): the caller decides what a missing name is worth.
  */
 export const getMyProfile = cache(async (): Promise<CustomerProfile> =>
-  mapProfile(await aonikAuthedFetch<CustomerProfileDto>('/profiles/customers/me')),
+  // A 403 here is "may not read", not "session over": the greeting is not worth a log-out.
+  mapProfile(await aonikAuthedFetch<CustomerProfileDto>('/profiles/customers/me', { forbiddenKeepsSession: true })),
 );
 
 /**
- * Saves the name and phone. Aonik's `PUT /profiles/customers/me` REPLACES the
- * profile's editable fields, so the title and country the customer already has
- * are sent back unchanged. Returns the profile as it now is.
+ * Saves the name and phone. Aonik's `PUT /profiles/customers/me` reads a null
+ * field as "leave it alone" and a blank one as "clear it"; it requires BOTH names
+ * whenever either is sent, and it ignores a blank phone. So the names are always
+ * sent, the stored title and country are sent back as they are, and a phone is
+ * sent only when there is one. Returns the profile as Aonik now holds it — what
+ * the form must show, not what was typed.
  */
 export async function updateMyProfile(
   current: CustomerProfile,
@@ -60,9 +64,10 @@ export async function updateMyProfile(
   return mapProfile(
     await aonikAuthedFetch<CustomerProfileDto>('/profiles/customers/me', {
       method: 'PUT',
+      forbiddenKeepsSession: true,
       body: {
         firstName: change.firstName,
-        lastName: change.lastName || null,
+        lastName: change.lastName,
         title: current.title ?? null,
         phone: change.phone,
         countryCode: current.countryCode ?? null,

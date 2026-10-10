@@ -33,6 +33,7 @@ export const ADDRESS_MESSAGES = {
   conflict: 'Your addresses changed somewhere else, so we’ve refreshed them. Please check and try again.',
   missing: 'That address has already been removed.',
   refused: 'We couldn’t save that address. Please check it and try again.',
+  forbidden: 'We can’t change your addresses right now. Please contact us.',
   unavailable: 'We couldn’t reach your addresses just now. Please try again in a moment.',
 } as const;
 
@@ -43,7 +44,7 @@ export const MAX_ADDRESS_TYPE = 32;
 export const EMPTY_ADDRESS_FORM: AddressFormValues = { label: '', line1: '', line2: '', city: '', postcode: '' };
 
 export function trimmedForm(values: Partial<AddressFormValues>): AddressFormValues {
-  const text = (value: string | undefined) => (value ?? '').trim();
+  const text = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
   return {
     label: text(values.label),
     line1: text(values.line1),
@@ -53,13 +54,22 @@ export function trimmedForm(values: Partial<AddressFormValues>): AddressFormValu
   };
 }
 
-/** The field errors for a form, empty when it is fine. */
-export function addressFormErrors(values: AddressFormValues): AddressFormErrors {
+/** An ISO 3166-1 alpha-2 country code, else the storefront's own (GB). */
+export function readCountry(value: unknown): string {
+  return typeof value === 'string' && /^[A-Z]{2}$/.test(value) ? value : 'GB';
+}
+
+/**
+ * The field errors for a form, empty when it is fine. The UK postcode format is
+ * asked only of a UK address: one saved elsewhere (made at checkout, or
+ * abroad) is edited in its own country and keeps it.
+ */
+export function addressFormErrors(values: AddressFormValues, country = 'GB'): AddressFormErrors {
   const errors: AddressFormErrors = {};
   if (!values.line1) errors.line1 = ADDRESS_MESSAGES.line1;
   if (!values.city) errors.city = ADDRESS_MESSAGES.city;
   if (!values.postcode) errors.postcode = ADDRESS_MESSAGES.postcodeMissing;
-  else if (!normalisePostcode(values.postcode)) errors.postcode = ADDRESS_MESSAGES.postcodeInvalid;
+  else if (country === 'GB' && !normalisePostcode(values.postcode)) errors.postcode = ADDRESS_MESSAGES.postcodeInvalid;
   return errors;
 }
 
@@ -77,10 +87,10 @@ function hasControl(value: string): boolean {
  * "DA1 2AB"), an empty label read as "Home". Null when any field carries a
  * control character (Aonik would refuse it).
  */
-export function toAddressWrite(values: AddressFormValues): AddressWrite | null {
+export function toAddressWrite(values: AddressFormValues, country = 'GB'): AddressWrite | null {
   const form = trimmedForm(values);
   if (Object.values(form).some(hasControl)) return null;
-  const postcode = normalisePostcode(form.postcode);
+  const postcode = country === 'GB' ? normalisePostcode(form.postcode) : form.postcode.toUpperCase().slice(0, 32);
   if (!postcode) return null;
   return {
     type: (form.label || DEFAULT_ADDRESS_TYPE).slice(0, MAX_ADDRESS_TYPE),
@@ -88,7 +98,7 @@ export function toAddressWrite(values: AddressFormValues): AddressWrite | null {
     line2: form.line2 ? form.line2.slice(0, 256) : undefined,
     city: form.city.slice(0, 128),
     postcode,
-    country: 'GB',
+    country,
   };
 }
 

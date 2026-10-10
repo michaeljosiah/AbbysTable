@@ -58,10 +58,13 @@ export function AddressBook({ initial }: { initial: Book }) {
   const [busy, setBusy] = useState(false);
   const formTitleRef = useRef<HTMLHeadingElement>(null);
   const saidRef = useRef<HTMLParagraphElement>(null);
+  const addButtonRef = useRef<HTMLButtonElement>(null);
+  /** Bumped each time the form is opened (or switched to another address): focus follows. */
+  const [focusForm, setFocusForm] = useState(0);
 
   useEffect(() => {
-    if (form) formTitleRef.current?.focus();
-  }, [form?.editing?.id, form === null]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (focusForm > 0) formTitleRef.current?.focus();
+  }, [focusForm]);
 
   const apply = (result: AddressActionResult): boolean => {
     if (result.status === 'ended') {
@@ -74,7 +77,18 @@ export function AddressBook({ initial }: { initial: Book }) {
       return true;
     }
     if (result.status === 'failed') {
-      if (result.book) setBook(result.book);
+      if (result.book) {
+        const fresh = result.book;
+        setBook(fresh);
+        // An open edit is re-based on the book as it now is: its untouched fields
+        // (and the version it will be saved against) are the other tab's, not the
+        // ones it was opened with. An address that is gone closes the form.
+        setForm((current) => {
+          if (!current?.editing) return current;
+          const editing = fresh.addresses.find((address) => address.id === current.editing?.id);
+          return editing ? { ...current, editing } : null;
+        });
+      }
       setSaid({ kind: 'problem', text: result.message });
     }
     return false;
@@ -94,7 +108,9 @@ export function AddressBook({ initial }: { initial: Book }) {
     }
   };
 
+  /** Where focus goes when what had it is gone (the form on save, a card on remove). */
   const announce = () => requestAnimationFrame(() => saidRef.current?.focus());
+  const focusAdd = () => requestAnimationFrame(() => addButtonRef.current?.focus());
 
   const open = (editing?: CustomerAddress) => {
     setSaid(null);
@@ -106,6 +122,7 @@ export function AddressBook({ initial }: { initial: Book }) {
       // The first address is the default whatever the box says; later ones are not unless asked.
       makeDefault: editing ? editing.isDefault : book.addresses.length === 0,
     });
+    setFocusForm((count) => count + 1);
   };
 
   const setValue = (key: keyof AddressFormValues, value: string) =>
@@ -121,7 +138,8 @@ export function AddressBook({ initial }: { initial: Book }) {
     event.preventDefault();
     if (!form) return;
     const values = trimmedForm(form.values);
-    const errors = addressFormErrors(values);
+    const country = form.editing?.country ?? 'GB';
+    const errors = addressFormErrors(values, country);
     if (Object.keys(errors).length > 0) {
       setForm({ ...form, errors });
       const first = (['line1', 'city', 'postcode'] as const).find((key) => errors[key]);
@@ -135,7 +153,9 @@ export function AddressBook({ initial }: { initial: Book }) {
         values,
         makeDefault: form.makeDefault,
         knownIds: book.addresses.map((address) => address.id),
-        keep: form.editing ? { line3: form.editing.fields.line3, state: form.editing.fields.state } : undefined,
+        keep: form.editing
+          ? { line3: form.editing.fields.line3, state: form.editing.fields.state, country: form.editing.country }
+          : undefined,
       }),
     );
     if (!result) return;
@@ -143,21 +163,22 @@ export function AddressBook({ initial }: { initial: Book }) {
       setForm({ ...form, errors: result.errors });
       return;
     }
-    if (apply(result)) setForm(null);
-    announce();
+    if (apply(result)) {
+      setForm(null);
+      announce();
+    }
   };
 
   const remove = async (id: string) => {
     const result = await run(() => removeAddressAction({ id, version: book.version }));
     setConfirming(null);
-    if (result) apply(result);
-    announce();
+    if (result && apply(result)) announce();
+    else focusAdd();
   };
 
   const makeDefault = async (id: string) => {
     const result = await run(() => setDefaultAddressAction({ id, version: book.version }));
     if (result) apply(result);
-    announce();
   };
 
   const errors = form?.errors ?? {};
@@ -271,7 +292,15 @@ export function AddressBook({ initial }: { initial: Book }) {
               <button className={styles.submit} type="submit" disabled={busy}>
                 {busy ? 'Saving…' : 'Save address'}
               </button>
-              <button className={styles.act} type="button" onClick={() => setForm(null)} disabled={busy}>
+              <button
+                className={styles.act}
+                type="button"
+                onClick={() => {
+                  setForm(null);
+                  focusAdd();
+                }}
+                disabled={busy}
+              >
                 Cancel
               </button>
             </div>
@@ -344,7 +373,7 @@ export function AddressBook({ initial }: { initial: Book }) {
 
       {form ? null : (
         <div>
-          <button className={`${styles.pill} ${styles.pillOutline}`} type="button" onClick={() => open()} disabled={busy}>
+          <button ref={addButtonRef} className={`${styles.pill} ${styles.pillOutline}`} type="button" onClick={() => open()} disabled={busy}>
             Add an address
           </button>
         </div>

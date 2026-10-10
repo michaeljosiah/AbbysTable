@@ -114,13 +114,16 @@ export type AddressWriteFailure =
   /** The address is no longer there (removed in another tab). */
   | 'missing'
   /** Aonik refused the content. */
-  | 'invalid';
+  | 'invalid'
+  /** This customer may not write addresses (a 403): the session is NOT over. */
+  | 'forbidden';
 
 /** Reads Aonik's refusal of an address write, or null when it is not one (rethrow it). */
 export function addressWriteFailure(error: unknown): AddressWriteFailure | null {
   if (!(error instanceof AonikError)) return null;
   if (error.status === 409 && error.code === AONIK_CODES.concurrencyConflict) return 'conflict';
   if (error.status === 404) return 'missing';
+  if (error.status === 403) return 'forbidden';
   if (error.status === 400 || error.status === 409 || error.status === 422) return 'invalid';
   return null;
 }
@@ -142,12 +145,12 @@ function body(input: AddressWrite, version: string) {
 const BOOK = '/profiles/customers/me/addresses';
 
 export async function createAddress(input: AddressWrite, version: string): Promise<AddressBook> {
-  return mapAddressBook(await aonikAuthedFetch<CustomerAddressBookDto>(BOOK, { method: 'POST', body: body(input, version) }));
+  return mapAddressBook(await aonikAuthedFetch<CustomerAddressBookDto>(BOOK, { method: 'POST', body: body(input, version), forbiddenKeepsSession: true }));
 }
 
 export async function updateAddress(id: string, input: AddressWrite, version: string): Promise<AddressBook> {
   return mapAddressBook(
-    await aonikAuthedFetch<CustomerAddressBookDto>(`${BOOK}/${encodeURIComponent(id)}`, { method: 'PUT', body: body(input, version) }),
+    await aonikAuthedFetch<CustomerAddressBookDto>(`${BOOK}/${encodeURIComponent(id)}`, { method: 'PUT', body: body(input, version), forbiddenKeepsSession: true }),
   );
 }
 
@@ -156,6 +159,7 @@ export async function removeAddress(id: string, version: string): Promise<Addres
     await aonikAuthedFetch<CustomerAddressBookDto>(`${BOOK}/${encodeURIComponent(id)}`, {
       method: 'DELETE',
       body: { expectedVersion: version },
+      forbiddenKeepsSession: true,
     }),
   );
 }
@@ -165,6 +169,7 @@ export async function setDefaultAddress(id: string, version: string): Promise<Ad
     await aonikAuthedFetch<CustomerAddressBookDto>(`${BOOK}/${encodeURIComponent(id)}/default`, {
       method: 'PUT',
       body: { expectedVersion: version },
+      forbiddenKeepsSession: true,
     }),
   );
 }

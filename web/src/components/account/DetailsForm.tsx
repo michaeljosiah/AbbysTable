@@ -29,11 +29,14 @@ export function DetailsForm({ initial, email }: { initial: DetailsFormValues; em
   const [said, setSaid] = useState<{ kind: 'ok' | 'problem'; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const firstRef = useRef<HTMLInputElement>(null);
+  const lastRef = useRef<HTMLInputElement>(null);
   const phoneRef = useRef<HTMLInputElement>(null);
+  // Aonik cannot clear a stored phone: the form knows it has one.
+  const hasStoredPhone = Boolean(initial.phone);
 
   const set = (key: keyof DetailsFormValues, value: string) => {
     setValues((current) => ({ ...current, [key]: value }));
-    if (key === 'firstName' || key === 'phone') setErrors((current) => ({ ...current, [key]: undefined }));
+    if (key === 'firstName' || key === 'lastName' || key === 'phone') setErrors((current) => ({ ...current, [key]: undefined }));
     setSaid(null);
   };
 
@@ -41,10 +44,10 @@ export function DetailsForm({ initial, email }: { initial: DetailsFormValues; em
     event.preventDefault();
     if (busy) return;
     const trimmed = trimmedDetails(values);
-    const found = detailsFormErrors(trimmed);
+    const found = detailsFormErrors(trimmed, { hasStoredPhone });
     if (Object.keys(found).length > 0) {
       setErrors(found);
-      (found.firstName ? firstRef : phoneRef).current?.focus();
+      (found.firstName ? firstRef : found.lastName ? lastRef : phoneRef).current?.focus();
       return;
     }
     setBusy(true);
@@ -93,12 +96,20 @@ export function DetailsForm({ initial, email }: { initial: DetailsFormValues; em
             Last name
           </label>
           <input
+            ref={lastRef}
             className={styles.field}
             id="details-last"
             autoComplete="family-name"
             value={values.lastName}
             onChange={(event) => set('lastName', event.target.value)}
+            aria-invalid={errors.lastName ? 'true' : undefined}
+            aria-describedby={errors.lastName ? 'details-last-e' : undefined}
           />
+          {errors.lastName ? (
+            <p className={styles.err} id="details-last-e">
+              {errors.lastName}
+            </p>
+          ) : null}
         </div>
       </div>
 
@@ -121,7 +132,7 @@ export function DetailsForm({ initial, email }: { initial: DetailsFormValues; em
 
       <div>
         <label className={styles.formLabel} htmlFor="details-phone">
-          Phone <i>(optional)</i>
+          Phone {hasStoredPhone ? null : <i>(optional)</i>}
         </label>
         <input
           ref={phoneRef}

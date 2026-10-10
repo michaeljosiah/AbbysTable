@@ -431,9 +431,13 @@ Conventions inside `web/` that are easy to get wrong:
   current book, which replaces the page's (`lib/account/addressActions.ts`, outcomes as values).
   A new address made default is a SECOND write (set default) using the version just returned. The
   form's rules (`addressForm.ts`, `detailsForm.ts`, `phone.ts`) are React-free and run in the
-  browser AND the action. Details: name and phone only — Aonik's `PUT /profiles/customers/me`
-  REPLACES the editable fields, so the stored title and country are sent back; the phone must be
-  E.164 and a UK number as dialled ("07700 900123") is read as +44. The EMAIL IS READ-ONLY: a
+  browser AND the action. Details: name and phone only. Aonik's `PUT /profiles/customers/me` reads
+  null as "leave alone" and blank as "clear", REQUIRES BOTH names whenever either is sent (so the
+  last name is required here) and IGNORES a blank phone (so a stored phone can't be cleared: emptying
+  it is an error that says to contact us); the form shows what Aonik's response holds, not what
+  was typed. The phone must be E.164; a UK number as dialled ("07700 900123", "+44 (0) 7700 …")
+  is read as +44. An address saved outside the UK keeps its country on edit and isn't held to a UK
+  postcode. A 403 on these reads/writes is "may not", not "session over" (`forbiddenKeepsSession`). The EMAIL IS READ-ONLY: a
   change needs a recent identity-provider proof the storefront can't supply (Aonik answers 202 and
   silently does nothing without it), so it goes through Contact. Password: no password is handled
   here; "Send reset link" is Forgot password's Aonik call for the address Aonik holds for the

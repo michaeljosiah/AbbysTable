@@ -9,16 +9,26 @@
 
 const E164 = /^\+[1-9]\d{7,14}$/;
 
-/** Spaces, dashes, dots and brackets are formatting, never an error. */
+/**
+ * Spaces, dashes, dots and brackets are formatting, never an error. "(0)" is the
+ * trunk digit written after a country code ("+44 (0) 7700 900123"): it is not
+ * part of the number and is dropped.
+ */
 function compact(raw: string): string {
-  return raw.replace(/[\s\-.()]/g, '');
+  return raw.replace(/\(0\)/g, '').replace(/[\s\-.()]/g, '');
 }
 
 /** E.164 for what was typed, or null when it is not a phone number we can read. Empty is null too. */
 export function toE164(raw: string | null | undefined): string | null {
   const typed = compact(String(raw ?? ''));
   if (!typed) return null;
-  const candidate = typed.startsWith('00') ? `+${typed.slice(2)}` : typed.startsWith('0') ? `+44${typed.slice(1)}` : typed;
+  const international = typed.startsWith('00') ? `+${typed.slice(2)}` : typed;
+  // "+44 07700 …": the trunk 0 typed after the country code is not part of the number.
+  const candidate = international.startsWith('+440')
+    ? `+44${international.slice(4)}`
+    : international.startsWith('0')
+      ? `+44${international.slice(1)}`
+      : international;
   return E164.test(candidate) ? candidate : null;
 }
 

@@ -57,6 +57,9 @@ test('a UK number is read as dialled and stored as E.164; nothing else is guesse
   assert.equal(toE164('+44 7700 900123'), '+447700900123');
   assert.equal(toE164('0044 7700 900123'), '+447700900123');
   assert.equal(toE164('+1 415 555 0132'), '+14155550132');
+  assert.equal(toE164('+44 (0) 7700 900123'), '+447700900123', 'the (0) trunk digit is not part of the number');
+  assert.equal(toE164('0044 (0)7700 900123'), '+447700900123');
+  assert.equal(toE164('+44 07700 900123'), '+447700900123', 'a trunk 0 typed after the country code');
   assert.equal(toE164(''), null);
   assert.equal(toE164('abc'), null);
   assert.equal(toE164('12345'), null);
@@ -85,10 +88,20 @@ test('an address becomes Aonik’s write: postcode normalised, an empty label is
   assert.equal(toAddressWrite({ label: '', line1: 'x', line2: '', city: 'y', postcode: 'nope' }), null);
 });
 
-test('the details form requires a first name, and a phone only when one is given', () => {
-  assert.deepEqual(detailsFormErrors({ firstName: '', lastName: '', phone: '' }), { firstName: 'Enter your first name.' });
-  assert.deepEqual(detailsFormErrors({ firstName: 'Ada', lastName: '', phone: '123' }), { phone: 'Enter a phone number, like 07700 900123.' });
-  assert.deepEqual(detailsFormErrors({ firstName: 'Ada', lastName: '', phone: '07700 900123' }), {});
+test('the details form requires both names (Aonik does), and a phone only when one is given', () => {
+  assert.deepEqual(detailsFormErrors({ firstName: '', lastName: '', phone: '' }), {
+    firstName: 'Enter your first name.',
+    lastName: 'Enter your last name.',
+  });
+  assert.deepEqual(detailsFormErrors({ firstName: 'Ada', lastName: 'L', phone: '123' }), { phone: 'Enter a phone number, like 07700 900123.' });
+  assert.deepEqual(detailsFormErrors({ firstName: 'Ada', lastName: 'L', phone: '07700 900123' }), {});
+});
+
+test('a stored phone cannot be cleared (Aonik ignores a blank one), so emptying it is an error that says so', () => {
+  assert.deepEqual(detailsFormErrors({ firstName: 'Ada', lastName: 'L', phone: '' }, { hasStoredPhone: true }), {
+    phone: 'To remove your phone number, contact us.',
+  });
+  assert.deepEqual(detailsFormErrors({ firstName: 'Ada', lastName: 'L', phone: '' }, { hasStoredPhone: false }), {});
 });
 
 /* ---- Aonik's side --------------------------------------------------------------- */
@@ -239,35 +252,75 @@ test('saving details reads the profile first and sends back what the form does n
   assert.equal(result.status, 'saved');
   const put = aonikRequests.find((request) => request.method === 'PUT');
   assert.deepEqual(put?.body, { firstName: 'Augusta', lastName: 'King', title: 'Countess', phone: '+447911123456', countryCode: 'GB' });
+  assert.equal(result.status === 'saved' && result.values.phone, '07700 900123', 'the form shows what Aonik now holds, not what was typed');
   assert.deepEqual(revalidated, [{ path: '/account', type: 'layout' }], 'the greeting reads the name');
 });
 
-test('a phone left empty clears it; a bad phone or empty name never reaches Aonik', async () => {
+test('a stored phone is never "cleared" by an empty field; a customer with none can save without one', async () => {
   signedIn();
   stubAonik((request) => (request.path === '/profiles/customers/me' ? { status: 200, body: PROFILE } : undefined));
 
-  await saveDetailsAction({ firstName: 'Ada', lastName: '', phone: '' });
-  assert.equal((aonikRequests.find((request) => request.method === 'PUT')?.body as { phone: null }).phone, null);
+  const kept = await saveDetailsAction({ firstName: 'Ada', lastName: 'L', phone: '' });
+  assert.deepEqual(kept, { status: 'invalid', errors: { phone: 'To remove your phone number, contact us.' } });
+  assert.equal(aonikRequests.some((request) => request.method === 'PUT'), false);
 
   aonikRequests.length = 0;
+  stubAonik((request) => (request.path === '/profiles/customers/me' ? { status: 200, body: { ...PROFILE, phone: null } } : undefined));
+  const saved = await saveDetailsAction({ firstName: 'Ada', lastName: 'L', phone: '' });
+  assert.equal(saved.status, 'saved');
+  assert.equal((aonikRequests.find((request) => request.method === 'PUT')?.body as { phone: null }).phone, null);
+});
+
+test('a bad phone, or a missing name, never reaches Aonik', async () => {
+  signedIn();
+  stubAonik(() => undefined);
+
   assert.deepEqual(await saveDetailsAction({ firstName: '', lastName: '', phone: '123' }), {
     status: 'invalid',
-    errors: { firstName: 'Enter your first name.', phone: 'Enter a phone number, like 07700 900123.' },
+    errors: { firstName: 'Enter your first name.', lastName: 'Enter your last name.', phone: 'Enter a phone number, like 07700 900123.' },
   });
   assert.equal(aonikRequests.length, 0);
+});
+
+test('a 403 on a details or address write is "may not", not "session over": the cookie stays', async () => {
+  signedIn();
+  stubAonik((request) => (request.method === 'PUT' && request.path === '/profiles/customers/me' ? { status: 403, body: { error: 'no' } } : { status: 200, body: PROFILE }));
+  const details = await saveDetailsAction({ firstName: 'Ada', lastName: 'L', phone: '07700 900123' });
+  assert.deepEqual(details, { status: 'failed', message: DETAILS_MESSAGES.refused });
+
+  stubAonik((request) => (request.method === 'DELETE' ? { status: 403, body: { error: 'no' } } : { status: 200, body: BOOK }));
+  const removed = await removeAddressAction({ id: 'a1', version: 'v1' });
+  assert.equal(removed.status === 'failed' && removed.message, ADDRESS_MESSAGES.forbidden);
+  assert.ok(cookieValue(SESSION_COOKIE), 'the session was not cleared');
+});
+
+test('an address saved outside the UK is edited in its own country: kept, and not held to a UK postcode', async () => {
+  signedIn();
+  assert.deepEqual(addressFormErrors({ label: '', line1: '1 Rue X', line2: '', city: 'Dublin', postcode: 'D02 X285' }, 'IE'), {});
+  assert.equal(toAddressWrite({ label: '', line1: '1 Rue X', line2: '', city: 'Dublin', postcode: 'd02 x285' }, 'IE')?.country, 'IE');
+  assert.equal(toAddressWrite({ label: '', line1: '1 Rue X', line2: '', city: 'Dublin', postcode: 'd02 x285' }, 'IE')?.postcode, 'D02 X285');
+
+  stubAonik((request) => (request.method === 'PUT' ? { status: 200, body: BOOK } : undefined));
+  await saveAddressAction({ id: 'a1', version: 'v1', values: { label: '', line1: '1 Rue X', line2: '', city: 'Dublin', postcode: 'D02 X285' }, makeDefault: false, knownIds: ['a1'], keep: { country: 'IE' } });
+  assert.equal((aonikRequests[0].body as { country: string }).country, 'IE');
+
+  aonikRequests.length = 0;
+  await saveAddressAction({ id: 'a1', version: 'v1', values: { label: '', line1: 'x', line2: '', city: 'y', postcode: 'DA1 1AA' }, makeDefault: false, knownIds: ['a1'], keep: { country: 'not-a-code', line3: 5 as unknown as string } });
+  assert.equal((aonikRequests[0].body as { country: string }).country, 'GB', 'an unreadable country falls back to GB');
+  assert.equal((aonikRequests[0].body as { line3: unknown }).line3, null, 'a carried field that is not a string is dropped');
 });
 
 test('a refused or failed save says so plainly, and a dead session is "ended"', async () => {
   signedIn();
   stubAonik((request) => (request.method === 'PUT' ? { status: 422, body: { error: 'Phone must be in E.164 format.' } } : { status: 200, body: PROFILE }));
-  const refused = await saveDetailsAction({ firstName: 'Ada', lastName: '', phone: '' });
+  const refused = await saveDetailsAction({ firstName: 'Ada', lastName: 'L', phone: '07700 900123' });
   assert.deepEqual(refused, { status: 'failed', message: DETAILS_MESSAGES.refused });
 
   stubAonik((request) => (request.method === 'PUT' ? { status: 503, body: { error: 'down' } } : { status: 200, body: PROFILE }));
-  assert.deepEqual(await saveDetailsAction({ firstName: 'Ada', lastName: '', phone: '' }), { status: 'failed', message: DETAILS_MESSAGES.unavailable });
+  assert.deepEqual(await saveDetailsAction({ firstName: 'Ada', lastName: 'L', phone: '07700 900123' }), { status: 'failed', message: DETAILS_MESSAGES.unavailable });
 
   stubAonik(() => ({ status: 401, body: { error: 'expired' } }));
-  assert.deepEqual(await saveDetailsAction({ firstName: 'Ada', lastName: '', phone: '' }), { status: 'ended' });
+  assert.deepEqual(await saveDetailsAction({ firstName: 'Ada', lastName: 'L', phone: '07700 900123' }), { status: 'ended' });
 });
 
 test('the reset link goes to the address Aonik holds for this session, under the reset limits', async () => {
