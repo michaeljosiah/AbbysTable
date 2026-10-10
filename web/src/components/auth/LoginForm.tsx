@@ -1,20 +1,21 @@
 'use client';
 
 import Link from 'next/link';
-import { useActionState, useState } from 'react';
+import { useActionState, useEffect, useRef, useState, type FormEvent } from 'react';
 
 import { loginAction, type AuthActionState } from '@/lib/auth/actions';
-import { CONTACT_HREF } from '@/lib/content/navigation';
+import { LOGIN_MESSAGES, emailProblem } from '@/lib/auth/messages';
+import { FORGOT_PASSWORD_HREF } from '@/lib/content/navigation';
 
-import { GoogleMark } from './GoogleMark';
+import { FieldError } from './FieldError';
 import styles from './AuthForm.module.css';
 
-/** Eye / eye-off glyphs for the password toggle. */
+/** Eye / eye-off glyphs for the password reveal. */
 function EyeIcon({ off }: { off?: boolean }) {
   return (
     <svg
-      width="19"
-      height="19"
+      width="22"
+      height="22"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -23,187 +24,166 @@ function EyeIcon({ off }: { off?: boolean }) {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
+      <path d="M3 12s3.6-6.5 9-6.5 9 6.5 9 6.5-3.6 6.5-9 6.5S3 12 3 12z" />
       <circle cx="12" cy="12" r="3" />
       {off ? <path d="M4 20 20 4" /> : null}
     </svg>
   );
 }
 
+type FieldErrors = NonNullable<AuthActionState['fieldErrors']>;
+
 /**
- * Sign-in form.
+ * Log in (design: Log in v2).
  *
- * Submits to a SERVER ACTION, which is what keeps the password out of the
- * browser's world: it is posted same-origin, exchanged for a token on our
- * server, and never touches client JavaScript or an Aonik call from here.
+ * Submits to a SERVER ACTION, which keeps the password out of the browser's
+ * world: it is posted same-origin, exchanged for a token on our server, and
+ * never touches client JavaScript or an Aonik call from here. Without
+ * JavaScript the form still posts; the server's answer is the one that decides.
  *
- * The inputs are uncontrolled — the action reads `FormData` — so a failed
- * submission keeps what was typed without any state plumbing. Validation still
- * runs client-side for instant feedback, but the server's answer is the one
- * that decides, and it is the only one that can tell a wrong password from a
- * deployment with accounts switched off.
+ * Validation also runs here, on submit, for the design's instant feedback and
+ * focus move. The email is controlled so a refused attempt keeps it (React 19
+ * clears an uncontrolled field after an action); the password is not kept.
  */
 export function LoginForm({ next }: { next?: string }) {
-  const [showPassword, setShowPassword] = useState(false);
-  const [remember, setRemember] = useState(true);
-  /**
-   * Google sign-in has no backend here and, per ADR-007, never will have an
-   * Aonik one — it rides the deployment's Keycloak federation, which is an
-   * operator setting this tenant cannot turn on. The button stays live and
-   * explains itself rather than being `disabled`, which would say nothing.
-   */
-  const [googleNotice, setGoogleNotice] = useState(false);
-  const [state, formAction, isPending] = useActionState<AuthActionState, FormData>(
-    loginAction,
-    { status: 'idle' },
-  );
+  const [email, setEmail] = useState('');
+  const [revealed, setRevealed] = useState(false);
+  const [local, setLocal] = useState<FieldErrors | null>(null);
+  const [state, formAction, isPending] = useActionState<AuthActionState, FormData>(loginAction, {
+    status: 'idle',
+  });
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
 
-  const errors = state.fieldErrors ?? {};
+  // The server's field errors win until the customer edits that field.
+  const errors: FieldErrors = local ?? state.fieldErrors ?? {};
+
+  // A refused attempt: the password was not kept, so the cursor goes back to it
+  // (or to the email when that is what was wrong).
+  useEffect(() => {
+    if (state.status !== 'error') return;
+    if (state.fieldErrors?.email) emailRef.current?.focus();
+    else passwordRef.current?.focus();
+  }, [state]);
+
+  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+    const found: FieldErrors = {};
+    const emailError = emailProblem(email.trim());
+    if (emailError) found.email = emailError;
+    if (!passwordRef.current?.value) found.password = LOGIN_MESSAGES.passwordMissing;
+    if (!found.email && !found.password) {
+      setLocal(null);
+      return;
+    }
+    event.preventDefault();
+    setLocal(found);
+    (found.email ? emailRef.current : passwordRef.current)?.focus();
+  };
+
+  const clear = (field: keyof FieldErrors) => {
+    if (!errors[field]) return;
+    setLocal({ ...errors, [field]: undefined });
+  };
 
   return (
-    <form className={styles.form} action={formAction} noValidate>
+    <form className={styles.form} action={formAction} onSubmit={onSubmit} noValidate>
       <input type="hidden" name="next" value={next ?? ''} />
-      <h1 className={styles.heading}>Sign in</h1>
-      <p className={styles.sub}>Your boxes, personalisations and deliveries, all in one place.</p>
 
-      <button type="button" className={styles.google} onClick={() => setGoogleNotice(true)}>
-        <GoogleMark />
-        Continue with Google
-      </button>
-
-      <div className={styles.switchRow} aria-hidden="true">
-        <span className={styles.switchRule} />
-        <span className={styles.switchLabel}>or continue with email</span>
-        <span className={styles.switchRule} />
-      </div>
-
-      <div className={styles.field}>
+      <div>
         <label className={styles.label} htmlFor="login-email">
           Email address
         </label>
-        <div className={styles.inputWrap}>
-          <input
-            id="login-email"
-            className={styles.input}
-            type="email"
-            autoComplete="email"
-            spellCheck={false}
-            placeholder="you@example.com"
-            name="email"
-            aria-invalid={errors.email ? 'true' : undefined}
-            aria-describedby={errors.email ? 'login-email-error' : undefined}
-          />
-        </div>
-        {errors.email ? (
-          <p className={styles.error} id="login-email-error">
-            {errors.email}
-          </p>
-        ) : null}
+        <input
+          ref={emailRef}
+          id="login-email"
+          className={styles.field}
+          name="email"
+          type="email"
+          autoComplete="email"
+          autoCapitalize="none"
+          spellCheck={false}
+          placeholder="you@example.com"
+          value={email}
+          onChange={(event) => {
+            setEmail(event.target.value);
+            clear('email');
+          }}
+          aria-invalid={errors.email ? 'true' : undefined}
+          aria-describedby={errors.email ? 'login-email-error' : undefined}
+        />
+        {errors.email ? <FieldError id="login-email-error">{errors.email}</FieldError> : null}
       </div>
 
-      <div className={styles.field}>
-        <div className={styles.labelRow}>
-          <label className={styles.label} htmlFor="login-password">
-            Password
-          </label>
-          {/* No password reset exists yet, so a person resets it: Contact
-              (site-chrome spec, open question 10). */}
-          <Link href={CONTACT_HREF} className={styles.quietLink}>
-            Forgotten it?
-          </Link>
-        </div>
-        <div className={styles.inputWrap}>
+      <div>
+        <label className={styles.label} htmlFor="login-password">
+          Password
+        </label>
+        <div className={styles.passwordWrap}>
           <input
+            ref={passwordRef}
             id="login-password"
-            className={`${styles.input} ${styles.inputWithToggle}`}
-            type={showPassword ? 'text' : 'password'}
-            autoComplete="current-password"
-            placeholder="Your password"
+            className={styles.field}
             name="password"
+            type={revealed ? 'text' : 'password'}
+            autoComplete="current-password"
+            placeholder="Enter your password"
+            onChange={() => clear('password')}
             aria-invalid={errors.password ? 'true' : undefined}
             aria-describedby={errors.password ? 'login-password-error' : undefined}
           />
+          {/* aria-pressed carries the state; the label says what the control
+              will DO, so it is never read as a description of what is shown. */}
           <button
             type="button"
-            className={styles.toggle}
-            onClick={() => setShowPassword((current) => !current)}
-            aria-label={showPassword ? 'Hide password' : 'Show password'}
-            aria-pressed={showPassword}
+            className={styles.reveal}
+            onClick={() => setRevealed((current) => !current)}
+            aria-pressed={revealed}
+            aria-controls="login-password"
+            aria-label={revealed ? 'Hide password' : 'Show password'}
           >
-            <EyeIcon off={showPassword} />
+            <EyeIcon off={revealed} />
           </button>
         </div>
-        {errors.password ? (
-          <p className={styles.error} id="login-password-error">
-            {errors.password}
-          </p>
-        ) : null}
+        {errors.password ? <FieldError id="login-password-error">{errors.password}</FieldError> : null}
       </div>
 
-      <div className={styles.betweenRow}>
-        <button
-          type="button"
-          className={styles.check}
-          onClick={() => setRemember((current) => !current)}
-          aria-pressed={remember}
-        >
-          <span className={styles.checkBox} aria-hidden="true">
-            {remember ? (
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--white)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 6L9 17l-5-5" />
-              </svg>
-            ) : null}
-          </span>
-          Keep me signed in
-        </button>
+      <div className={styles.forgot}>
+        <Link href={FORGOT_PASSWORD_HREF} className={styles.link}>
+          <span>Forgot your password?</span>
+        </Link>
       </div>
 
       {state.status === 'error' && state.message ? (
-        <p className={styles.error} role="alert">
-          {state.message}
+        <FieldError role="alert">{state.message}</FieldError>
+      ) : null}
+
+      {state.status === 'unavailable' ? (
+        <p className={styles.notice} role="status">
+          <svg
+            className={styles.noticeGlyph}
+            width="17"
+            height="17"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 8v4.5" />
+            <path d="M12 16h.01" />
+          </svg>
+          <span>
+            <strong>Log in isn’t available yet.</strong> Nothing was sent. Your box carries on without an
+            account.
+          </span>
         </p>
       ) : null}
 
-      {state.status === 'unavailable' || googleNotice ? (
-        <div className={styles.notice} role="status">
-          <span className={styles.noticeIcon} aria-hidden="true">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 8v4.5" />
-              <path d="M12 16h.01" />
-            </svg>
-          </span>
-          <span>
-            <span className={styles.noticeTitle}>
-              {googleNotice ? 'Google sign-in isn’t available yet' : 'Accounts aren’t available yet'}
-            </span>
-            <span className={styles.noticeSub}>
-              {googleNotice
-                ? 'Use your email and password for now — nothing was sent.'
-                : 'Sign-in isn’t switched on for this site yet, so nothing was sent. Your box carries on without an account.'}
-            </span>
-          </span>
-        </div>
-      ) : null}
-
       <button type="submit" className={styles.submit} disabled={isPending}>
-        {isPending ? 'Signing you in…' : 'Sign in'}
-        {!isPending ? (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <line x1="4" y1="12" x2="19" y2="12" />
-            <path d="M13 6l6 6-6 6" />
-          </svg>
-        ) : null}
+        {isPending ? 'Logging you in…' : 'Log in'}
       </button>
-
-      <div className={styles.switchRow} aria-hidden="true">
-        <span className={styles.switchRule} />
-        <span className={styles.switchLabel}>New to Abby&apos;s Table?</span>
-        <span className={styles.switchRule} />
-      </div>
-      <Link href="/register" className={styles.switchLink}>
-        Create your account
-      </Link>
     </form>
   );
 }

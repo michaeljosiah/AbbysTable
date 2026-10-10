@@ -1,339 +1,333 @@
-/* Shared styling for the login and registration forms. Inputs sit on the
-   bright surface with the brand's brass focus ring (the same treatment the
-   design templates give their search fields); validation speaks terracotta. */
+/* ===========================================================================
+   Log in and Forgot password — design/Abby's Table - Log in.dc.html
+   ---------------------------------------------------------------------------
+   Mobile is the base; 640 adds the card's padding, min-width only. One band
+   holds the page open to a full viewport so the footer cannot ride up under a
+   short card (min-height, never a fixed height: it grows with accessibility
+   text; dvh so mobile browser chrome cannot clip it). Field, label and error
+   are the Contact form's, verbatim - there is no second form language.
+   =========================================================================== */
 
-.form {
-  width: min(400px, 100%);
+.page {
+  display: flex;
+  align-items: flex-start;
+  min-height: calc(100dvh - 210px);
+  padding: 44px 0 48px;
+  background: var(--cream);
 }
 
-.heading {
+.inner {
+  width: 100%;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 22px;
+}
+
+.head {
+  text-align: center;
+}
+
+.title {
   margin: 0;
   font-family: var(--font-display);
   font-weight: var(--weight-medium);
-  font-size: var(--display-2);
-  line-height: var(--line-display);
-  letter-spacing: var(--track-display);
+  font-size: clamp(38px, 11.6vw, 56px);
+  line-height: 1.04;
+  letter-spacing: -0.015em;
   color: var(--text-heading);
+  /* The page's heading takes focus when a result replaces the form. */
+  outline: none;
 }
 
-.sub {
-  margin: var(--space-3) 0 0;
+.lede {
+  margin: 12px 0 0;
   font-family: var(--font-sans);
-  font-size: var(--body-md);
-  line-height: var(--line-snug);
-  color: var(--text-muted);
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--text-body);
+  text-wrap: pretty;
 }
 
-/* ---- Social sign-in ---------------------------------------------------------- */
+/* The card is the page's only object: centred and capped at a form measure. */
+.card {
+  box-sizing: border-box;
+  max-width: 520px;
+  margin: 26px auto 0;
+  padding: 24px 20px 26px;
+  border: var(--border-hairline) solid var(--sand);
+  border-radius: 18px;
+  background: var(--cream-3);
+}
 
-/* The ghost-CTA language: bright ground, sand hairline, forest text. */
-.google {
+.form {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  width: 100%;
-  margin-top: var(--space-5);
-  padding: 13px 24px;
-  border: 1.5px solid var(--sand-2);
-  border-radius: var(--radius-pill);
-  background: var(--surface-bright);
-  font-family: var(--font-sans);
-  font-weight: var(--weight-semibold);
-  font-size: var(--body-md);
-  color: var(--text-heading);
-  cursor: pointer;
-  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+  flex-direction: column;
+  gap: 18px;
 }
 
-.google:hover {
-  border-color: var(--action-dark);
-  box-shadow: var(--shadow-card);
-}
-
-.google svg {
-  flex: 0 0 auto;
-}
-
-/* ---- Fields ----------------------------------------------------------------- */
-
-.field {
-  margin-top: var(--space-5);
-}
-
-.labelRow {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
+/* ---- Fields (Contact's, verbatim) ---- */
 
 .label {
   display: block;
+  margin-bottom: 7px;
   font-family: var(--font-sans);
   font-weight: var(--weight-semibold);
-  font-size: var(--body-sm);
-  letter-spacing: 0.04em;
-  color: var(--text-heading);
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--brass-ink);
 }
 
-.inputWrap {
-  position: relative;
-  margin-top: var(--space-2);
-}
-
-.input {
+.field {
+  display: block;
+  box-sizing: border-box;
   width: 100%;
+  min-height: 52px;
+  margin: 0;
   padding: 13px 16px;
-  border: 1.5px solid var(--sand-2);
-  border-radius: 14px;
-  background: var(--surface-bright);
+  border: var(--border-hairline) solid var(--taupe);
+  border-radius: var(--radius-sm);
+  background: var(--white);
   font-family: var(--font-sans);
-  font-size: var(--body-md);
+  /* 16px: anything smaller makes iOS zoom the page on focus. */
+  font-size: 16px;
+  line-height: 1.4;
   color: var(--text-body);
-  outline: none;
-  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+  transition: border-color 0.16s ease;
 }
 
-.input::placeholder {
-  color: var(--text-muted);
+.field:hover {
+  border-color: var(--brown);
 }
 
-.input:focus {
-  border-color: var(--focus-ring);
-  box-shadow: 0 0 0 3px rgb(194 142 60 / 0.16);
+.field:focus-visible {
+  border-color: var(--green-forest);
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
 }
 
-.input[aria-invalid='true'] {
-  border-color: var(--text-accent);
+.field[aria-invalid='true'] {
+  border-color: var(--chilli);
 }
 
-.input[aria-invalid='true']:focus {
-  box-shadow: 0 0 0 3px rgb(184 67 28 / 0.14);
+.field::placeholder {
+  color: var(--brown);
+  opacity: 0.7;
 }
 
-/* Room for the show/hide toggle. */
-.inputWithToggle {
-  padding-right: 52px;
+/* The reveal sits in a sibling overlay, not inside the field: an input cannot
+   contain another control. A 44px hit area; the padding reserves its room. */
+.passwordWrap {
+  position: relative;
 }
 
-.toggle {
+.passwordWrap .field {
+  padding-right: 58px;
+}
+
+.reveal {
   position: absolute;
   top: 50%;
-  right: 8px;
+  right: 4px;
   transform: translateY(-50%);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
   border: none;
-  border-radius: 50%;
+  border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: color 0.16s ease, background 0.16s ease;
-}
-
-.toggle:hover {
-  color: var(--text-heading);
-  background: var(--surface-raised);
-}
-
-.hint {
-  margin: var(--space-2) 0 0;
-  font-family: var(--font-sans);
-  font-size: 12.5px;
-  color: var(--text-muted);
-}
-
-.error {
-  margin: var(--space-2) 0 0;
-  font-family: var(--font-sans);
-  font-weight: var(--weight-medium);
-  font-size: 12.5px;
-  color: var(--text-accent);
-}
-
-/* ---- Row helpers ------------------------------------------------------------ */
-
-.betweenRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-top: var(--space-4);
-}
-
-.check {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border: none;
-  background: none;
-  padding: 0;
-  font-family: var(--font-sans);
-  font-size: var(--body-sm);
-  color: var(--text-body);
-  text-align: left;
-  cursor: pointer;
-}
-
-.checkBox {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border: 1.5px solid var(--sand-2);
-  border-radius: 6px;
-  background: var(--surface-bright);
-  transition: background 0.16s ease, border-color 0.16s ease;
-}
-
-.check[aria-pressed='true'] .checkBox {
-  border-color: var(--action-dark);
-  background: var(--action-dark);
-}
-
-.quietLink {
-  border: none;
-  background: none;
-  padding: 0;
-  font-family: var(--font-sans);
-  font-weight: var(--weight-semibold);
-  font-size: var(--body-sm);
-  color: var(--text-heading);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  text-decoration-color: var(--rule-brass);
+  color: var(--brown);
   cursor: pointer;
   transition: color 0.16s ease;
 }
 
-.quietLink:hover {
-  color: var(--text-eyebrow);
+.reveal:hover {
+  color: var(--terracotta-deep);
 }
 
-/* ---- Submit + notice --------------------------------------------------------- */
+.reveal:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 0;
+}
 
-.submit {
+.error,
+.failure {
   display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 7px 0 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--chilli);
+}
+
+.failure {
+  margin: 0;
+}
+
+.errorGlyph {
+  flex: 0 0 auto;
+  margin-top: 3px;
+}
+
+/* ---- Links and the primary ---- */
+
+.forgot {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  text-decoration: none;
+}
+
+.link span {
+  padding-bottom: 3px;
+  border-bottom: 1.5px solid var(--brass);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  color: var(--green-forest);
+  transition: color 0.16s ease, border-color 0.16s ease;
+}
+
+.link:hover span {
+  color: var(--terracotta-deep);
+  border-bottom-color: var(--terracotta-deep);
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
+}
+
+/* 52px, the major-section CTA height, full width inside the card. Green-forest,
+   not terracotta: terracotta is reserved for the three persistent primaries. */
+.submit {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 9px;
   width: 100%;
-  margin-top: var(--space-5);
-  padding: 15px 26px;
+  min-height: 52px;
+  padding: 0 30px;
   border: none;
   border-radius: var(--radius-pill);
-  background: var(--action-dark);
-  color: var(--text-on-dark);
+  background: var(--green-forest);
+  color: var(--white);
   font-family: var(--font-sans);
   font-weight: var(--weight-semibold);
-  font-size: var(--body-md);
+  font-size: 16px;
+  letter-spacing: 0.04em;
   cursor: pointer;
-  transition: filter 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+  transition: background 0.16s ease;
 }
 
-.submit:hover:not(:disabled) {
-  filter: brightness(1.06);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-raised);
+.submit:hover {
+  background: var(--green-deep);
 }
 
-.submit:active:not(:disabled) {
+.submit:active {
   filter: brightness(0.94);
-  transform: translateY(0);
-  box-shadow: none;
+}
+
+.submit:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 3px;
 }
 
 .submit:disabled {
-  background: var(--sand-2);
-  color: var(--text-muted);
-  cursor: not-allowed;
+  cursor: progress;
+  opacity: 0.7;
 }
 
-/* Accounts aren't live yet — the stub submit says so plainly. */
+/* ---- Notices ---- */
+
+/* Information, not an error: it explains why nothing happened rather than
+   blaming input. 16px - a message a customer must act on is not microcopy. */
 .notice {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  margin-top: var(--space-5);
-  padding: 15px 16px;
-  border: var(--border-hairline) solid var(--rule-brass);
-  border-radius: 16px;
-  background: var(--surface-bright);
-}
-
-.noticeIcon {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: rgb(194 142 60 / 0.14);
-  color: var(--text-eyebrow);
-}
-
-.noticeTitle {
-  display: block;
+  gap: 8px;
+  margin: 0;
+  padding: 14px 16px;
+  border: var(--border-hairline) solid var(--sand-2);
+  border-radius: 14px;
+  background: var(--blush);
   font-family: var(--font-sans);
-  font-weight: var(--weight-semibold);
-  font-size: var(--btn-size);
-  color: var(--text-heading);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-body);
 }
 
-.noticeSub {
-  display: block;
+.noticeGlyph {
+  flex: 0 0 auto;
   margin-top: 3px;
-  font-family: var(--font-sans);
-  font-size: var(--body-sm);
-  line-height: var(--line-snug);
-  color: var(--text-muted);
 }
 
-/* ---- Cross links -------------------------------------------------------------- */
-
-.switchRow {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-top: var(--space-5);
-}
-
-.switchRule {
-  flex: 1;
-  height: 1px;
-  background: var(--sand-2);
-}
-
-.switchLabel {
-  flex: 0 0 auto;
-  font-family: var(--font-sans);
-  font-size: var(--body-xs);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-.switchLink {
-  display: block;
-  margin-top: var(--space-4);
-  text-align: center;
-  font-family: var(--font-sans);
-  font-weight: var(--weight-semibold);
-  font-size: var(--body-sm);
-  color: var(--text-heading);
-  text-decoration: underline;
+.notice a,
+.sentBody a {
+  color: var(--green-forest);
+  text-decoration-color: var(--brass);
   text-underline-offset: 3px;
-  text-decoration-color: var(--rule-brass);
-  transition: color 0.16s ease;
 }
 
-.switchLink:hover {
-  color: var(--text-eyebrow);
+.notice a:hover,
+.sentBody a:hover {
+  color: var(--terracotta-deep);
+}
+
+.sent {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sentTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 26px;
+  line-height: 1.15;
+  color: var(--text-heading);
+  outline: none;
+}
+
+.sentBody {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--text-body);
+}
+
+.sentBody strong {
+  font-weight: var(--weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.foot {
+  display: flex;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+@media (min-width: 640px) {
+  .card {
+    padding: 32px 36px 34px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .field,
+  .reveal,
+  .link span,
+  .submit {
+    transition: none;
+  }
 }

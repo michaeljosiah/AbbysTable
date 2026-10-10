@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 
 import { formatOrderDate, getMyOrder } from '@/lib/aonik/orders';
 import { SessionExpiredError } from '@/lib/auth/server';
-import { readSessionView } from '@/lib/auth/session';
+import { redirectToLogin, requireSignedIn } from '@/lib/auth/guard';
 import { CONTACT_HREF } from '@/lib/content/navigation';
 import { formatPrice, formatPriceExact } from '@/lib/format';
 
@@ -27,53 +27,22 @@ interface OrderDetailPageProps {
   params: Promise<{ orderId: string }>;
 }
 
-function SignInRequired() {
-  return (
-    <div className={styles.notice}>
-      <h1 className={styles.noticeHeading}>Sign in to see this order</h1>
-      <p className={styles.noticeBody}>
-        Orders are tied to the account that placed them. Sign in and it will be here.
-      </p>
-      <div className={styles.noticeActions}>
-        <Link href="/login" className={styles.primary}>
-          Sign in
-        </Link>
-        <Link href="/menu" className={styles.secondary}>
-          Browse the menu
-        </Link>
-      </div>
-    </div>
-  );
-}
-
 export default async function OrderDetailPage({ params }: OrderDetailPageProps) {
   const { orderId } = await params;
 
-  // Checked first so a signed-out visitor sees the sign-in state rather than a
-  // not-found page — the order may well exist; they just cannot read it yet.
-  const session = await readSessionView();
+  // A signed-out request goes to Log in and comes back to this order.
+  const returnTo = `/account/orders/${encodeURIComponent(orderId)}`;
+  await requireSignedIn(returnTo);
 
   let order = null;
-  let signedIn = session.isSignedIn;
-
-  if (signedIn) {
-    try {
-      order = await getMyOrder(orderId);
-    } catch (error) {
-      if (!(error instanceof SessionExpiredError)) throw error;
-      signedIn = false;
-    }
+  let ended = false;
+  try {
+    order = await getMyOrder(orderId);
+  } catch (error) {
+    if (!(error instanceof SessionExpiredError)) throw error;
+    ended = true;
   }
-
-  if (!signedIn) {
-    return (
-      <section className={styles.page}>
-        <div className={styles.inner}>
-          <SignInRequired />
-        </div>
-      </section>
-    );
-  }
+  if (ended) redirectToLogin(returnTo);
 
   // Aonik answers 404 for an order that does not exist AND for one belonging to
   // someone else — by design, so the URL cannot be used to probe for other

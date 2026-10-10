@@ -30,6 +30,7 @@ import {
   ALLERGENS_ITEM,
   CONTACT_ITEM,
   DELIVERY_FAQS_ITEM,
+  FORGOT_PASSWORD_HREF,
   HOW_IT_WORKS_ITEM,
   MENU_ITEM,
   OUR_STORY_ITEM,
@@ -86,6 +87,7 @@ export const DESKTOP_STATIC_EXAMPLES: readonly string[] = [
   '/privacy',
   '/terms-of-sale',
   '/login',
+  FORGOT_PASSWORD_HREF,
   '/account/orders',
   '/box',
 ];
