@@ -13,7 +13,7 @@
  */
 
 // Relative, not `@/`: tests reach this module without the alias hook.
-import { allergenLine, declaredAllergens, splitAllergenText } from '../allergens';
+import { allergenLine, declaredAllergens, declaresNone, NONE_DECLARED, splitAllergenText } from '../allergens';
 
 import type {
   BoxCartDto,
@@ -172,7 +172,11 @@ export function mapResolvedContent(dto: ResolvedContentDto): {
   const controlled = 'allergensPresent' in dto;
   const declared = controlled ? declaredAllergens(dto.allergensPresent) : undefined;
   if (controlled && !dto.declarationsWithheld && declared === null) {
-    console.warn('[aonik] an allergen declaration names a group this storefront does not know; it is withheld');
+    console.warn(
+      Array.isArray(dto.allergensPresent)
+        ? '[aonik] an allergen declaration names a group this storefront does not know; it is withheld'
+        : '[aonik] an allergen declaration is not reviewed but was not withheld; it is withheld',
+    );
   }
   const withheld = dto.declarationsWithheld || declared === null;
   const allergenNames = withheld
@@ -184,9 +188,17 @@ export function mapResolvedContent(dto: ResolvedContentDto): {
   return {
     nutrition: mapNutrition(dto.nutrition),
     ingredients: withheld ? undefined : (dto.ingredients ?? undefined),
-    // Built from the names either way, so an older Aonik's "None" reads as the
-    // reviewed-and-none wording too, never as an allergen-free claim.
-    allergens: withheld || allergenNames === undefined ? undefined : allergenLine(allergenNames),
+    // The controlled list by name; an older Aonik's text exactly as written —
+    // its "None" as the reviewed-and-none wording, never an allergen-free
+    // claim, and a blank one as nothing declared at all.
+    allergens:
+      withheld || allergenNames === undefined
+        ? undefined
+        : controlled
+          ? allergenLine(allergenNames)
+          : declaresNone(dto.allergens ?? '')
+            ? NONE_DECLARED
+            : dto.allergens?.trim(),
     allergenNames,
     precautionaryStatement: withheld ? undefined : dto.precautionaryStatement?.trim() || undefined,
     // Heating is never null on the wire — an empty list when withheld.

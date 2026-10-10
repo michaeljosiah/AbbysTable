@@ -165,10 +165,10 @@
   border-top: var(--border-hairline) solid var(--sand-2);
 }
 
-/* The declaration is printed verbatim. The design shows each allergen as a
-   pill, which needs controlled allergen values (frontend-backend contract §3);
-   the catalogue still carries one free-text string, and splitting it would be
-   reinterpreting safety copy. */
+/* The declaration is printed as one line: Aonik's controlled list (aonik#351)
+   joined by name, or an older source's text as written. The design shows each
+   allergen as a pill; a line keeps "None of the 14 regulated allergens
+   declared" a sentence rather than a chip. */
 .allergens {
   flex: 1 1 220px;
   padding: 10px 0;
