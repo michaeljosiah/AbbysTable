@@ -24,6 +24,7 @@ import {
 import { PRIVATE_TABLE_FROM_PENCE } from '../src/lib/content/marketing';
 import { CONTACT_HREF, DELIVERY_FAQS_HREF, PRIVATE_TABLE_ITEM } from '../src/lib/content/navigation';
 import { checkPostcode, joinNotifyList, locatePostcode } from '../src/lib/delivery/actions';
+import { SIGNUP_FORM_CHANGED } from '../src/lib/signup/consent';
 import {
   checkerReducer,
   INITIAL_CHECKER_STATE,
@@ -342,18 +343,18 @@ test('coverage (demo): a location resolves only near a demo postcode, never to a
   assert.equal(await lookup.postcodeAt(53.48, -2.24), null); // Manchester
 });
 
-test('coverage (live): no lookup and no notify-me list until Aonik has them (aonik#352, #357)', async () => {
+test('coverage (live): no lookup until Aonik has one (aonik#352); sign-up lists only live (#357)', async () => {
   await live(
     () => undefined,
     async () => {
       const client = await getAonikClient();
       assert.equal(client.coverage, null);
-      assert.equal(client.notifyList, null);
+      assert.ok(client.signupLists, 'live reads the published lists');
     },
   );
   const demoClient = new MockAonikClient();
   assert.ok(demoClient.coverage, 'demo serves the fixture coverage — a read');
-  assert.equal(demoClient.notifyList, null, 'demo never pretends a write');
+  assert.equal(demoClient.signupLists, null, 'demo never pretends a write');
 });
 
 /* ---- The server actions ---------------------------------------------------------- */
@@ -398,23 +399,59 @@ test('locatePostcode: validates coordinates and never invents a postcode', async
   );
 });
 
-test('joinNotifyList: never "joined" while nothing can store it — in either mode', async () => {
-  const form = (email: string, postcode = 'AB12 3CD') => {
-    const data = new FormData();
-    data.set('email', email);
-    data.set('postcode', postcode);
-    return data;
-  };
+const notifyForm = (email: string, postcode = 'AB12 3CD', consentVersion: string | null = 'delivery-v1') => {
+  const data = new FormData();
+  data.set('email', email);
+  data.set('postcode', postcode);
+  if (consentVersion !== null) data.set('consentVersion', consentVersion);
+  return data;
+};
+
+test('joinNotifyList: never "joined" where nothing can store it, nor for a post that is not one', async () => {
   await demo(async () => {
-    const result = await quietly(() => joinNotifyList({ status: 'idle' }, form('ada@example.com')));
-    assert.equal(result.status, 'error');
-    assert.equal((await joinNotifyList({ status: 'idle' }, form('not-an-email'))).status, 'error');
-    assert.equal((await joinNotifyList({ status: 'idle' }, form('ada@example.com', 'nope'))).status, 'error');
+    const result = await quietly(() => joinNotifyList({ status: 'idle' }, notifyForm('ada@example.com')));
+    assert.equal(result.status, 'error', 'demo has no lists');
+    assert.equal((await joinNotifyList({ status: 'idle' }, notifyForm('not-an-email'))).status, 'error');
+    assert.equal((await joinNotifyList({ status: 'idle' }, notifyForm('ada@example.com', 'nope'))).status, 'error');
   });
   await live(
     () => undefined,
     async () => {
-      assert.equal((await joinNotifyList({ status: 'idle' }, form('ada@example.com'))).status, 'error');
+      // No version shown: nothing can say what the customer agreed to, and nothing is sent.
+      const unversioned = await joinNotifyList({ status: 'idle' }, notifyForm('ada@example.com', 'AB12 3CD', null));
+      assert.deepEqual(unversioned, { status: 'error', message: SIGNUP_FORM_CHANGED });
+      assert.equal((await joinNotifyList({ status: 'idle' }, notifyForm('ada\u0001@example.com'))).status, 'error');
+      assert.deepEqual(aonikRequests, []);
+    },
+  );
+});
+
+test('joinNotifyList (live): the email, the checked postcode and the version shown — "joined" only on 202', async () => {
+  await live(
+    () => ({ status: 202 }),
+    async () => {
+      assert.deepEqual(await joinNotifyList({ status: 'idle' }, notifyForm(' ada@example.com ', 'ab123cd')), { status: 'joined' });
+      assert.equal(aonikRequests[0].method, 'POST');
+      assert.equal(aonikRequests[0].path, '/v1/signup-lists/delivery-availability');
+      assert.deepEqual(aonikRequests[0].body, { email: 'ada@example.com', consentVersion: 'delivery-v1', postcode: 'AB12 3CD' });
+    },
+  );
+  await live(
+    () => ({ status: 422, body: { error: 'This sign-up form is unavailable or has changed. Reload it before submitting.' } }),
+    async () => {
+      // The wording changed (or the list was withdrawn) since the page was rendered: reload, never retry.
+      assert.deepEqual(await joinNotifyList({ status: 'idle' }, notifyForm('ada@example.com')), {
+        status: 'error',
+        message: SIGNUP_FORM_CHANGED,
+      });
+    },
+  );
+  await live(
+    () => ({ status: 503, body: { error: 'down' } }),
+    async () => {
+      const failed = await joinNotifyList({ status: 'idle' }, notifyForm('ada@example.com'));
+      assert.equal(failed.status, 'error');
+      assert.notEqual(failed.message, SIGNUP_FORM_CHANGED);
     },
   );
 });
@@ -599,7 +636,7 @@ test('upcomingDeliveryDate: today or later in the UK; a past date is no answer',
 test('page data (demo): the checker with location, no notify-me, £5.95 from the config', async () => {
   const data = await resolveDeliveryFaqsData(new MockAonikClient());
   assert.deepEqual(data.checker, { canLocate: true });
-  assert.equal(data.notify, false);
+  assert.equal(data.notify, null);
   assert.equal(data.values.deliveryCharge, '£5.95');
   assert.equal(STOREFRONT_CONFIG_FIXTURE.delivery.chargedPence, 595, 'contract §3d, as configured data');
   assert.equal(data.values.minimumBox, 'Six-dish');
@@ -613,21 +650,59 @@ test('page data: no lookup → no checker; a failing config → the FAQs without
         throw new Error('503');
       },
       coverage: null,
-      notifyList: null,
+      signupLists: {
+        published: async () => {
+          throw new Error('never read without a checker');
+        },
+        join: async () => undefined,
+      },
     },
     (message) => logged.push(message),
   );
   assert.equal(data.checker, null);
-  assert.equal(data.notify, false);
+  assert.equal(data.notify, null, 'no checker, so no not-in-area panel to offer it in');
   assert.deepEqual(Object.keys(data.values), ['privateTablePrice']);
   assert.equal(logged.length, 1);
 
   const noLocate = await resolveDeliveryFaqsData({
     getStorefrontConfig: async () => STOREFRONT_CONFIG_FIXTURE,
     coverage: { check: async () => ({ status: 'not-served', postcode: 'AB12 3CD' }) },
-    notifyList: null,
+    signupLists: null,
   });
   assert.deepEqual(noLocate.checker, { canLocate: false }, 'no coordinates lookup, no location control');
+});
+
+test('page data: notify-me only where the tenant publishes its list — with that list’s wording', async () => {
+  const coverage = { check: async () => ({ status: 'not-served' as const, postcode: 'AB12 3CD' }) };
+  const published = {
+    listType: 'delivery-availability' as const,
+    consentVersion: 'delivery-v1',
+    consentText: 'We’ll only use your email to tell you when we reach your area.',
+    services: null,
+  };
+  const withList = await resolveDeliveryFaqsData({
+    getStorefrontConfig: async () => STOREFRONT_CONFIG_FIXTURE,
+    coverage,
+    signupLists: { published: async () => [published], join: async () => undefined },
+  });
+  assert.deepEqual(withList.notify, { text: published.consentText, version: 'delivery-v1' });
+
+  const otherListsOnly = await resolveDeliveryFaqsData({
+    getStorefrontConfig: async () => STOREFRONT_CONFIG_FIXTURE,
+    coverage,
+    signupLists: { published: async () => [{ ...published, listType: 'newsletter' as const }], join: async () => undefined },
+  });
+  assert.equal(otherListsOnly.notify, null);
+
+  const failing = await quietly(() =>
+    resolveDeliveryFaqsData({
+      getStorefrontConfig: async () => STOREFRONT_CONFIG_FIXTURE,
+      coverage,
+      signupLists: { published: async () => Promise.reject(new Error('503')), join: async () => undefined },
+    }),
+  );
+  assert.equal(failing.notify, null, 'a failed read only holds the form back');
+  assert.deepEqual(failing.checker, { canLocate: false }, 'and never the checker');
 });
 
 /* ---- Rendering ------------------------------------------------------------------- */
@@ -721,13 +796,18 @@ test('checker markup: labelled field, live regions, location control only where 
   assert.doesNotMatch(renderToStaticMarkup(<PostcodeChecker canLocate={false} />), /Use my current location/);
 });
 
-test('notify-me markup (for when aonik#357 lands): email, the checked postcode, its own consent', () => {
+test('notify-me markup: email, the checked postcode, the published wording and its version', () => {
   const html = renderToStaticMarkup(
-    <NotifyMeForm action={async () => ({ status: 'idle' })} postcode="AB12 3CD" />,
+    <NotifyMeForm
+      action={async () => ({ status: 'idle' })}
+      consent={{ text: 'Use my email only to let me know when delivery reaches my area.', version: 'delivery-v1' }}
+      postcode="AB12 3CD"
+    />,
   );
   assert.match(html, /<input[^>]*type="email"[^>]*required=""[^>]*name="email"|<input[^>]*name="email"[^>]*type="email"[^>]*required=""/);
   assert.match(html, /type="hidden" name="postcode" value="AB12 3CD"/);
-  assert.match(textOf(html), /We’ll only use your email to tell you when we reach your area\. See our Privacy Policy\./);
+  assert.match(html, /type="hidden" name="consentVersion" value="delivery-v1"/);
+  assert.match(textOf(html), /Use my email only to let me know when delivery reaches my area\. See our Privacy Policy\./);
   assert.match(html, /href="\/privacy"/);
   assert.match(textOf(html), /Let me know/);
 });

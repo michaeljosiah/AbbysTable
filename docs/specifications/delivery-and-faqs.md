@@ -6,7 +6,7 @@ branch: feat/delivery-and-faqs
 owner: michaeljosiah
 capabilities: [delivery-faqs, postcode-coverage, notify-me]
 created: 2026-10-07
-updated: 2026-10-07
+updated: 2026-10-10
 ---
 
 # Delivery & FAQs
@@ -149,16 +149,23 @@ before hydration sends nothing anywhere.
 ### Requirement: FR-08 Notify me
 `capability: notify-me` · `delta: ADDED (feat/delivery-and-faqs)`
 
-The not-in-area panel SHALL offer "Want to know when we reach your area?" only where the data
-source can store to the notify-me list (`AonikClient.notifyList`). The request carries the email
-AND the checked postcode, to a list separate from the newsletter (contract §3c); the consent line
-says so. "Thank you — we'll be in touch when we reach you." only for a stored request
-(`status: 'joined'`). No source can store one yet (aonik#357), so the form renders nowhere — in
-EITHER mode: demo serves fixture reads but never pretends a write succeeded (the footer
-newsletter's precedent, #6).
+The not-in-area panel SHALL offer "Want to know when we reach your area?" only where the tenant
+publishes Aonik's `delivery-availability` sign-up list (aonik#357; `AonikClient.signupLists`,
+`null` in demo, which never pretends a write — the footer newsletter's precedent, #6). The form
+SHALL show the list's published consent wording exactly, then "See our Privacy Policy.", and post
+the email, the checked postcode and the wording's `consentVersion` — a list separate from the
+newsletter (contract §3c). "Thank you — we'll be in touch when we reach you." only for Aonik's 202
+(`status: 'joined'`). A 422 (the list withdrawn or its wording changed since the page loaded)
+SHALL ask for a reload, never a retry.
+
+#### Scenario: The wording the customer saw is what is recorded
+- **WHEN** the tenant publishes the list as "We'll only use your email to tell you when we reach
+  your area." at version `delivery-v1`, and a customer leaves their email for AB12 3CD
+- **THEN** Aonik receives `{ email, consentVersion: "delivery-v1", postcode: "AB12 3CD" }`
+- **AND** if the version has moved on, nothing is stored and the form says to reload
 
 #### Scenario: Nothing to store to
-- **WHEN** a postcode is not served, in demo or live
+- **WHEN** a postcode is not served in demo, or in live with no published list
 - **THEN** the panel offers "Check another postcode" and no email field
 
 ### Requirement: FR-09 FAQ content and its figures
@@ -228,7 +235,8 @@ tested: `postcode.ts`, `checker.ts`, `handoff.ts`, `faq/search.ts`, `content/del
 The coverage contract proposed to aonik#352 (`CoverageLookup`): `check(postcode)` resolves
 `{ status: 'serves', postcode, earliestDeliveryDate? } | { status: 'not-served', postcode }` and
 THROWS when it cannot tell; optional `postcodeAt(latitude, longitude)` resolves a postcode or null.
-The notify-me contract proposed to aonik#357 (`NotifyList`): `join({ email, postcode })`.
+Notify-me is Aonik's sign-up list (aonik#357, shipped): `POST /v1/signup-lists/delivery-availability`
+`{ email, consentVersion, postcode }` → empty 202, de-duplicated by email.
 
 ### Target architecture
 
@@ -238,11 +246,12 @@ The notify-me contract proposed to aonik#357 (`NotifyList`): `join({ email, post
 | Checker | `web/src/components/delivery-faqs/PostcodeChecker.tsx`, `NotifyMeForm.tsx` |
 | FAQs | `web/src/components/delivery-faqs/FaqSearch.tsx`, `FaqBrowse.tsx`, `FaqAnswer.tsx`, `ExpandAllButton.tsx` |
 | Rules | `web/src/lib/delivery/*`, `web/src/lib/faq/search.ts`, `web/src/lib/content/deliveryFaqs.ts` |
-| Data | `web/src/lib/aonik/coverage.ts`, `notifyMe.ts`; `AonikClient.coverage` / `.notifyList` |
+| Data | `web/src/lib/aonik/coverage.ts`, `signupLists.ts`, `notifyMe.ts`; `AonikClient.coverage` / `.signupLists` |
 
 ### Known gaps — departures from the design, each deliberate
 
-1. **No notify-me form anywhere** until aonik#357 (FR-08); the design's not-in-area panel has one.
+1. **No notify-me form in demo, or where the tenant has not published the list** (FR-08); in live
+   it also needs the checker (aonik#352), since it lives in the not-in-area state.
 2. **No checker in live mode** until aonik#352 (FR-02), so live's "Where do you deliver?" answer
    ("Enter your postcode above…") has nothing above it until then.
 3. Field corrections are 16px `--terracotta-ink` (the design: 14px `--chilli`, 3.8:1 on sand and a
@@ -281,7 +290,8 @@ The notify-me contract proposed to aonik#357 (`NotifyList`): `join({ email, post
   auto-hide (#8, #23)
 - [ ] `T3` Live coverage: `HttpAonikClient.coverage` over aonik#352's endpoint (+ the location
   lookup); the checker then renders in live with no other change
-- [ ] `T4` Notify-me: `HttpAonikClient.notifyList` over aonik#357; the form then renders
+- [x] `T4` Notify-me over Aonik's `delivery-availability` sign-up list (aonik#357), with its
+  published consent wording and version
 - [ ] `T5` Choose Box v2 reads the hand-off (FR-07 scenario) (#28)
 - [ ] `T6` Copy sign-off: 7-day rule, duplicates, payment methods, gifting mechanics (#38)
 - [ ] `T7` Reconcile the demo checkout's delivery fixture with the storefront config (#28, #31)

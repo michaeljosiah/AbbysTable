@@ -50,7 +50,7 @@ async function loadPageData(): Promise<DeliveryFaqsPageData> {
   } catch (error) {
     // No client at all: the FAQs still render, without the checker.
     console.error('[delivery-and-faqs] Aonik unavailable; rendering without the checker', error);
-    return { values: faqValues({}), checker: null, notify: false };
+    return { values: faqValues({}), checker: null, notify: null };
   }
 }
 
@@ -80,7 +80,7 @@ export default async function DeliveryAndFaqsPage() {
       {data.checker ? (
         <PostcodeChecker
           canLocate={data.checker.canLocate}
-          notifyAction={data.notify ? joinNotifyList : undefined}
+          notify={data.notify ? { action: joinNotifyList, consent: data.notify } : undefined}
         />
       ) : null}
 

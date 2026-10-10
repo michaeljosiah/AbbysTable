@@ -3,14 +3,20 @@ import './support/runtime';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import test from 'node:test';
+import test, { mock } from 'node:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import PrivateTablePage from '../src/app/(site)/private-table/page';
 import { PrivateTableView } from '../src/components/private-table/PrivateTableView';
 import { WaitlistForm } from '../src/components/private-table/WaitlistForm';
-import { getAonikClient, HttpAonikClient, MockAonikClient } from '../src/lib/aonik/client';
-import { HttpWaitlist, toWaitlistBody, WAITLIST_PATH } from '../src/lib/aonik/waitlist';
+import { HttpAonikClient, MockAonikClient } from '../src/lib/aonik/client';
+import { AonikError } from '../src/lib/aonik/errors';
+import {
+  clearPublishedListsCache,
+  HttpSignupLists,
+  type SignupList,
+  type SignupLists,
+} from '../src/lib/aonik/signupLists';
 import { COUNTRIES, FEATURED_COUNTRY_CODES } from '../src/lib/content/countries';
 import {
   PRIVATE_TABLE_CREDENTIALS,
@@ -30,7 +36,7 @@ import {
 import { formatPrice } from '../src/lib/format';
 import { joinWaitlistAction } from '../src/lib/private-table/actions';
 import { waitlistOpen } from '../src/lib/private-table/availability';
-import { joinWaitlist } from '../src/lib/private-table/join';
+import { joinWaitlist, toWaitlistBody } from '../src/lib/private-table/join';
 import {
   countryByCode,
   matchCountries,
@@ -65,7 +71,9 @@ import {
   type ScrollDirection,
 } from '../src/lib/purchase-bar/visibility';
 
-import { AONIK_BASE, TENANT_ID, configureAonik } from './support/aonik';
+import type { SignupConsent } from '../src/lib/signup/consent';
+
+import { AONIK_BASE, TENANT_ID, aonikRequests, configureAonik, useAonik } from './support/aonik';
 import { resetCookies } from './support/next-headers';
 
 /*
@@ -108,11 +116,33 @@ const draft = (overrides: Partial<WaitlistDraft> = {}): WaitlistDraft => ({
   ...overrides,
 });
 
-const formOf = (values: Partial<WaitlistDraft>) => {
+/** The consent a published waitlist carries (the design's wording). */
+const CONSENT: SignupConsent = {
+  text: 'We’ll only use your details to contact you about Private Table.',
+  version: 'private-table-v1',
+};
+
+/** A posted form: the draft, plus the consent version the form showed (unless `consentVersion: null`). */
+const formOf = (values: Partial<WaitlistDraft> & { consentVersion?: string | null } = {}) => {
+  const { consentVersion = CONSENT.version, ...fields } = values;
   const form = new FormData();
-  for (const [key, value] of Object.entries({ ...draft(), ...values })) form.set(key, value);
+  for (const [key, value] of Object.entries({ ...draft(), ...fields })) form.set(key, value);
+  if (consentVersion !== null) form.set('consentVersion', consentVersion);
   return form;
 };
+
+/** The waitlist as the tenant publishes it in Aonik: the three services the form offers. */
+const PUBLISHED: SignupList = {
+  listType: 'private-table',
+  consentVersion: CONSENT.version,
+  consentText: CONSENT.text,
+  services: WAITLIST_SERVICES.map(({ id, label }) => ({ id, label })),
+};
+
+/** A stand-in client whose sign-up lists publish `lists` and record what joins. */
+function listsClient(lists: SignupList[], join: SignupLists['join'] = async () => undefined) {
+  return async () => ({ signupLists: { published: async () => lists, join } satisfies SignupLists });
+}
 
 /* ---- Copy: verbatim from the design --------------------------------------------- */
 
@@ -303,32 +333,40 @@ test('the entry: trimmed, the country as its code, the phone only when given', (
   assert.deepEqual(draftFromForm(form), { ...draft({ phone: '0123' }), service: '' });
 });
 
-/* ---- Nothing can store an entry yet ------------------------------------------------- */
+/* ---- Aonik's sign-up list (aonik#357) ----------------------------------------------- */
 
-test('no waitlist anywhere until aonik#357 — in either data mode', async () => {
-  assert.equal(WAITLIST_PATH, null, 'aonik#357 has shipped? Set WAITLIST_PATH, then update this test and the spec');
-  assert.equal(new MockAonikClient().waitlist, null, 'demo never pretends a write');
-  assert.equal(new HttpAonikClient({ baseUrl: AONIK_BASE, tenantId: TENANT_ID }).waitlist, null);
-  resetCookies();
-  configureAonik({ AONIK_DATA_MODE: 'live' });
+test('the waitlist opens only where the tenant publishes it with every service the form offers', async () => {
+  assert.equal(new MockAonikClient().signupLists, null, 'demo never pretends a write');
+  assert.ok(new HttpAonikClient({ baseUrl: AONIK_BASE, tenantId: TENANT_ID }).signupLists);
+
+  assert.equal(await waitlistOpen(listsClient([PUBLISHED])), true);
+  assert.equal(await waitlistOpen(listsClient([])), false, 'not published');
+  assert.equal(await waitlistOpen(async () => ({ signupLists: null })), false, 'no lists in this mode');
+  const logged = mock.method(console, 'error', () => undefined);
   try {
-    assert.equal((await getAonikClient()).waitlist, null);
-    assert.equal(await waitlistOpen(), false);
-    env.AONIK_DATA_MODE = 'demo';
-    assert.equal(await waitlistOpen(), false);
+    // A service the list does not offer would be refused, so the form stays closed.
+    const twoServices = { ...PUBLISHED, services: PUBLISHED.services!.slice(0, 2) };
+    assert.equal(await waitlistOpen(listsClient([twoServices])), false);
+    assert.equal(await waitlistOpen(listsClient([{ ...PUBLISHED, services: null }])), false);
+    // A read that fails hides the form; it never throws into the page.
+    const failing = async () => ({
+      signupLists: { published: async () => Promise.reject(new Error('down')), join: async () => undefined },
+    });
+    assert.equal(await waitlistOpen(failing), false);
+    assert.equal(await waitlistOpen(async () => Promise.reject(new Error('no Aonik'))), false);
   } finally {
-    delete env.AONIK_DATA_MODE;
+    logged.mock.restore();
   }
 });
 
-test('the action re-checks everything and never answers "joined" without a waitlist', async () => {
+test('the action re-checks everything and never answers "joined" without a list', async () => {
   resetCookies();
   configureAonik({ AONIK_DATA_MODE: 'live' });
   const original = globalThis.fetch;
   let requests = 0;
   globalThis.fetch = (async () => {
     requests += 1;
-    return new Response(null, { status: 201 });
+    return new Response(null, { status: 202 });
   }) as typeof fetch;
   try {
     const empty = await joinWaitlistAction({ status: 'idle' }, new FormData());
@@ -343,14 +381,17 @@ test('the action re-checks everything and never answers "joined" without a waitl
       { name: 'x'.repeat(201) },
       { phone: 'call me' },
       { email: 'a@x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x@' },
+      { email: 'ada\u0001@example.test' },
     ]) {
       assert.equal((await joinWaitlistAction({ status: 'idle' }, formOf(values))).status, 'invalid', JSON.stringify(values).slice(0, 40));
     }
 
-    const valid = await joinWaitlistAction({ status: 'idle' }, formOf({}));
-    assert.equal(valid.status, 'unavailable');
+    // No consent version: nothing can say what the customer agreed to — reload.
+    for (const consentVersion of [null, '', ' v1', 'x'.repeat(33), 'v\u00071']) {
+      assert.equal((await joinWaitlistAction({ status: 'idle' }, formOf({ consentVersion }))).status, 'changed', String(consentVersion));
+    }
     env.AONIK_DATA_MODE = 'demo';
-    assert.equal((await joinWaitlistAction({ status: 'idle' }, formOf({}))).status, 'unavailable');
+    assert.equal((await joinWaitlistAction({ status: 'idle' }, formOf())).status, 'unavailable', 'demo has no lists');
     assert.equal(requests, 0, 'nothing was sent anywhere');
   } finally {
     globalThis.fetch = original;
@@ -358,98 +399,120 @@ test('the action re-checks everything and never answers "joined" without a waitl
   }
 });
 
-test('when it ships: JSON in the proposed names, the tenant, and only a 2xx is a sign-up', async () => {
+test('the sign-up is Aonik’s private-table body, with the version shown — the phone only when given', () => {
   const result = toWaitlistEntry(draft({ phone: '+44 7700 900000', service: 'recipe-development-and-meal-preparation' }));
   assert.ok('entry' in result);
-  assert.deepEqual(toWaitlistBody(result.entry), {
-    name: 'Ada Obi',
+  assert.deepEqual(toWaitlistBody(result.entry, 'private-table-v1'), {
     email: 'ada@example.test',
+    consentVersion: 'private-table-v1',
+    name: 'Ada Obi',
     phone: '+44 7700 900000',
     country: 'GB',
     service: 'recipe-development-and-meal-preparation',
   });
   const noPhone = toWaitlistEntry(draft());
   assert.ok('entry' in noPhone);
-  assert.equal('phone' in toWaitlistBody(noPhone.entry), false);
-
-  const original = globalThis.fetch;
-  const seen: Array<{ url: string; init: RequestInit | undefined }> = [];
-  const replyWith = (status: number, body: string | null) => {
-    globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
-      seen.push({ url: String(input), init });
-      return new Response(body, { status });
-    }) as typeof fetch;
-  };
-  const waitlist = new HttpWaitlist('/commerce/waitlists/private-table', { baseUrl: AONIK_BASE, tenantId: TENANT_ID });
-  try {
-    replyWith(201, '{}');
-    await waitlist.join(result.entry);
-    assert.equal(seen[0].url, `${AONIK_BASE}/commerce/waitlists/private-table`);
-    assert.equal(seen[0].init?.method, 'POST');
-    const headers = new Headers(seen[0].init?.headers);
-    assert.equal(headers.get('X-Tenant-Id'), TENANT_ID);
-    assert.equal(headers.get('Content-Type'), 'application/json');
-    assert.deepEqual(JSON.parse(String(seen[0].init?.body)), toWaitlistBody(result.entry));
-    // An empty 200 or 201 is still the acceptance — never a parse failure that
-    // tells the customer nothing happened and invites a second sign-up.
-    replyWith(200, null);
-    await waitlist.join(result.entry);
-    replyWith(201, '');
-    await waitlist.join(result.entry);
-    replyWith(503, '{"error":"down"}');
-    await assert.rejects(waitlist.join(result.entry));
-    replyWith(409, '{"error":"exists"}');
-    await assert.rejects(waitlist.join(result.entry));
-  } finally {
-    globalThis.fetch = original;
-  }
+  assert.equal('phone' in toWaitlistBody(noPhone.entry, 'v1'), false);
+  // A control character in the name (a pasted tab) is a space — Aonik refuses them.
+  const tabbed = toWaitlistEntry(draft({ name: 'Ada\tObi\u0000' }));
+  assert.ok('entry' in tabbed);
+  assert.equal(tabbed.entry.name, 'Ada Obi');
+  assert.equal(validateWaitlist(draft({ name: '\u0001\u0002' })).name, WAITLIST_MESSAGES.name);
 });
 
-test('"joined" only once the list has stored the entry; "error" when it could not', async () => {
-  const stored: unknown[] = [];
-  let fail = false;
-  const withList = async () => ({
-    waitlist: {
-      join: async (entry: unknown) => {
-        if (fail) throw new Error('down');
-        stored.push(entry);
-      },
-    },
+test('"joined" only once the list has stored the entry; "changed" when its wording moved on', async () => {
+  const stored: Array<{ listType: string; body: Record<string, string> }> = [];
+  let failWith: Error | null = null;
+  const client = listsClient([PUBLISHED], async (listType, body) => {
+    if (failWith) throw failWith;
+    stored.push({ listType, body });
   });
-  assert.deepEqual(await joinWaitlist(formOf({ country: 'nigeria' }), withList), { status: 'joined' });
-  assert.deepEqual(stored, [{ name: 'Ada Obi', email: 'ada@example.test', phone: null, country: 'NG', service: 'not-sure' }]);
-  fail = true;
+  assert.deepEqual(await joinWaitlist(formOf({ country: 'nigeria' }), client), { status: 'joined' });
+  assert.deepEqual(stored, [
+    {
+      listType: 'private-table',
+      body: { email: 'ada@example.test', consentVersion: CONSENT.version, name: 'Ada Obi', country: 'NG', service: 'not-sure' },
+    },
+  ]);
+
   // Every answer but "joined" hands back what was posted, so a submit made
   // without JavaScript comes back with its fields filled.
   const posted = draft();
-  assert.deepEqual(await joinWaitlist(formOf({}), withList), { status: 'error', values: posted });
+  const quiet = mock.method(console, 'warn', () => undefined);
+  const logged = mock.method(console, 'error', () => undefined);
+  try {
+    // Aonik refuses a version that is no longer the published one (or a list withdrawn).
+    failWith = new AonikError({ status: 422, path: '/v1/signup-lists/private-table', message: 'This sign-up form is unavailable or has changed.' });
+    assert.deepEqual(await joinWaitlist(formOf({}), client), { status: 'changed', values: posted });
+    failWith = new AonikError({ status: 503, path: '/v1/signup-lists/private-table', message: 'down' });
+    assert.deepEqual(await joinWaitlist(formOf({}), client), { status: 'error', values: posted });
+    failWith = new Error('network');
+    assert.deepEqual(await joinWaitlist(formOf({}), client), { status: 'error', values: posted });
+    // A client that cannot even be built is a failure to store, said as one.
+    assert.deepEqual(
+      await joinWaitlist(formOf({}), async () => {
+        throw new Error('no Aonik');
+      }),
+      { status: 'error', values: posted },
+    );
+  } finally {
+    quiet.mock.restore();
+    logged.mock.restore();
+  }
+  failWith = null;
+
   // An invalid post never reaches the list; no list is "unavailable", never "joined".
-  const invalid = await joinWaitlist(formOf({ service: '' }), withList);
+  const invalid = await joinWaitlist(formOf({ service: '' }), client);
   assert.equal(invalid.status, 'invalid');
   assert.deepEqual(invalid.values, { ...posted, service: '' });
   assert.equal(stored.length, 1);
-  assert.deepEqual(await joinWaitlist(formOf({}), async () => ({ waitlist: null })), {
+  assert.deepEqual(await joinWaitlist(formOf({}), async () => ({ signupLists: null })), {
     status: 'unavailable',
     values: posted,
   });
-  // A client that cannot even be built is a failure to store, said as one.
-  assert.deepEqual(
-    await joinWaitlist(formOf({}), async () => {
-      throw new Error('no Aonik');
-    }),
-    { status: 'error', values: posted },
-  );
   // What is handed back is clipped to the caps and never an unknown service.
-  const long = await joinWaitlist(formOf({ name: 'A'.repeat(5000), service: 'catering' }), withList);
+  const long = await joinWaitlist(formOf({ name: 'A'.repeat(5000), service: 'catering' }), client);
   assert.equal(long.values?.name.length, 200);
   assert.equal(long.values?.service, '');
 });
 
-/* ---- The page as configured today: closed ---------------------------------------------- */
+test('over the wire: Aonik’s published lists in, the sign-up out, its 202 the only acceptance', async () => {
+  configureAonik();
+  clearPublishedListsCache();
+  const lists = new HttpSignupLists({ baseUrl: AONIK_BASE, tenantId: TENANT_ID });
+  let reply: { status: number; body?: unknown } = { status: 200, body: { lists: [PUBLISHED] } };
+  useAonik(() => reply);
 
-test('as configured today: the service, its credentials and prices — and no waitlist to join', async () => {
+  assert.deepEqual(await lists.published(), [PUBLISHED]);
+  assert.equal(aonikRequests[0].path, '/v1/signup-lists');
+  assert.equal(aonikRequests[0].headers['x-tenant-id'], TENANT_ID);
+
+  reply = { status: 202 };
+  const body = { email: 'ada@example.test', consentVersion: 'private-table-v1', name: 'Ada Obi', country: 'GB', service: 'not-sure' };
+  await lists.join('private-table', body);
+  assert.equal(aonikRequests[1].method, 'POST');
+  assert.equal(aonikRequests[1].path, '/v1/signup-lists/private-table');
+  assert.deepEqual(aonikRequests[1].body, body);
+
+  reply = { status: 422, body: { error: 'This sign-up form is unavailable or has changed. Reload it before submitting.' } };
+  await assert.rejects(lists.join('private-table', body), (error: unknown) => error instanceof AonikError && error.status === 422);
+  reply = { status: 503, body: { error: 'down' } };
+  await assert.rejects(lists.join('private-table', body));
+});
+
+/* ---- The page with no published waitlist: closed ---------------------------------------------- */
+
+test('with no published waitlist: the service, its credentials and prices — and nothing to join', async () => {
   resetCookies();
-  const html = renderToStaticMarkup(await PrivateTablePage());
+  clearPublishedListsCache();
+  configureAonik({ AONIK_DATA_MODE: 'live' });
+  useAonik(() => ({ status: 200, body: { lists: [] } }));
+  let html: string;
+  try {
+    html = renderToStaticMarkup(await PrivateTablePage());
+  } finally {
+    delete env.AONIK_DATA_MODE;
+  }
   const text = textOf(html);
 
   assert.equal(count(html, /<h1[ >]/g), 1);
@@ -517,8 +580,25 @@ test('the bar’s markers: revealed once the whole hero has gone, stopped on ent
 
 const joinStub: WaitlistAction = async () => ({ status: 'error' });
 
+test('live, with the tenant’s published waitlist: the form, showing its wording and posting its version', async () => {
+  resetCookies();
+  clearPublishedListsCache();
+  configureAonik({ AONIK_DATA_MODE: 'live' });
+  const wording = 'Use my details only to contact me about Private Table.';
+  useAonik(() => ({ status: 200, body: { lists: [{ ...PUBLISHED, consentText: wording, consentVersion: 'pt-2026-10' }] } }));
+  let html: string;
+  try {
+    html = renderToStaticMarkup(await PrivateTablePage());
+  } finally {
+    delete env.AONIK_DATA_MODE;
+  }
+  assert.match(html, /<input type="hidden" name="consentVersion" value="pt-2026-10"\/>/);
+  assert.match(textOf(html), new RegExp(`Confidential by design\. ${wording} See our Privacy Policy ?\.`));
+  assert.match(textOf(html), /Join the waitlist/);
+});
+
 test('open: EVERY call to action reads "Join the waitlist" and goes to the form', () => {
-  const html = renderToStaticMarkup(<PrivateTableView joinAction={joinStub} />);
+  const html = renderToStaticMarkup(<PrivateTableView waitlist={{ action: joinStub, consent: CONSENT }} />);
   // Hero, both service cards and the mobile bar jump to the form; its submit joins.
   const jumps = [...html.matchAll(/<a href="#enquire" class="([^"]*)">(.*?)<\/a>/g)];
   assert.deepEqual(
@@ -544,12 +624,14 @@ test('open: EVERY call to action reads "Join the waitlist" and goes to the form'
 });
 
 test('open: the form — its fields in order, a real combobox, a native radio group', () => {
-  const html = renderToStaticMarkup(<WaitlistForm action={joinStub} />);
+  const html = renderToStaticMarkup(<WaitlistForm action={joinStub} consent={CONSENT} />);
   assert.match(html, /<form[^>]*novalidate=""/i);
   const labels = [...html.matchAll(/<(?:label|legend)[^>]*>(.*?)<\/(?:label|legend)>/g)].map((m) => textOf(m[1]));
   assert.deepEqual(labels.slice(0, 5), ['Full name', 'Email address', 'Telephone number (optional)', 'Country or region', 'Which service']);
   const names = [...html.matchAll(/<input[^>]*name="([^"]*)"/g)].map((m) => m[1]);
-  assert.deepEqual(names, ['name', 'email', 'phone', 'country', 'service', 'service', 'service']);
+  // The consent version rides with every post, the no-JavaScript one included.
+  assert.deepEqual(names, ['consentVersion', 'name', 'email', 'phone', 'country', 'service', 'service', 'service']);
+  assert.match(html, new RegExp(`<input type="hidden" name="consentVersion" value="${CONSENT.version}"/>`));
   const input = (name: string) => html.match(new RegExp(`<input[^>]*name="${name}"[^>]*>`))?.[0] ?? '';
   for (const attribute of ['type="text"', 'autoComplete="name"', 'placeholder="Your name"', 'maxLength="200"']) {
     assert.ok(input('name').includes(attribute), attribute);

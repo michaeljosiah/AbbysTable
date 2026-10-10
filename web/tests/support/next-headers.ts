@@ -75,12 +75,20 @@ export async function cookies() {
   return store;
 }
 
+let requestHeaders = new Headers();
+
 export async function headers() {
-  return new Headers();
+  return requestHeaders;
+}
+
+/** The request's headers, as the platform would send them (e.g. `X-Forwarded-For`). */
+export function setRequestHeaders(init: Record<string, string>): void {
+  requestHeaders = new Headers(init);
 }
 
 /** Starts a fresh browser, optionally already holding some cookies. */
 export function resetCookies(initial: Record<string, string> = {}): void {
+  requestHeaders = new Headers();
   jar.clear();
   cookieWrites.length = 0;
   sealed = false;

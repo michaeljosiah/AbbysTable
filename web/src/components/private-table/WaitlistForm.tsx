@@ -16,6 +16,7 @@ import {
 import { PRIVACY_ITEM } from '@/lib/content/navigation';
 import { JOIN_WAITLIST_LABEL, WAITLIST_SERVICES } from '@/lib/content/privateTable';
 import { revealUnderHeader } from '@/lib/dom/reveal';
+import { SIGNUP_FORM_CHANGED, SIGNUP_TOO_MANY, type SignupConsent } from '@/lib/signup/consent';
 import {
   firstInvalidField,
   validateWaitlist,
@@ -72,9 +73,11 @@ const EMPTY_FIELDS: Omit<WaitlistDraft, 'service'> = { name: '', email: '', phon
  * v2.dc.html, "Register your interest"; behaviour guide §8.
  *
  * Rendered only when the page has a waitlist that can really store an entry
- * (`waitlistOpen`; none until michaeljosiah/aonik#357), and it confirms only
- * `status: 'joined'`, which the action returns only after a 2xx. The
- * confirmation promises no consultation date and no reply time.
+ * (`waitlistList`: the tenant's published list, michaeljosiah/aonik#357), and
+ * it confirms only `status: 'joined'`, which the action returns only after
+ * Aonik's 202. The confirmation promises no consultation date and no reply
+ * time. Its consent line is the list's published wording, exactly, and the
+ * post carries that wording's version (`@/lib/signup/consent`).
  *
  * - Fields, in order: Full name, Email address, Telephone number (optional),
  *   Country or region (`CountryCombobox`, the fixed list), Which service — a
@@ -92,7 +95,7 @@ const EMPTY_FIELDS: Omit<WaitlistDraft, 'service'> = { name: '', email: '', phon
  * Posts through `useActionState`, so a submit before hydration is still a POST
  * to the server action — never details in a URL.
  */
-export function WaitlistForm({ action }: { action: WaitlistAction }) {
+export function WaitlistForm({ action, consent }: { action: WaitlistAction; consent: SignupConsent }) {
   const [state, dispatch, isPending] = useActionState<WaitlistState, FormData>(action, {
     status: 'idle',
   });
@@ -180,7 +183,13 @@ export function WaitlistForm({ action }: { action: WaitlistAction }) {
 
   const current = state !== settled;
   const joined = current && state.status === 'joined';
-  const failed = current && !isPending && (state.status === 'error' || state.status === 'unavailable');
+  const failed =
+    current &&
+    !isPending &&
+    (state.status === 'error' ||
+      state.status === 'changed' ||
+      state.status === 'limited' ||
+      state.status === 'unavailable');
 
   // Stable, so a re-render never takes focus back: it runs once, as the
   // confirmation mounts — announced, and where a keyboard user continues.
@@ -232,6 +241,7 @@ export function WaitlistForm({ action }: { action: WaitlistAction }) {
     form.set(WAITLIST_FORM_FIELDS.phone, draft.phone);
     form.set(WAITLIST_FORM_FIELDS.country, draft.country);
     form.set(WAITLIST_FORM_FIELDS.service, service);
+    form.set(WAITLIST_FORM_FIELDS.consentVersion, consent.version);
     startTransition(() => dispatch(form));
   };
 
@@ -271,6 +281,9 @@ export function WaitlistForm({ action }: { action: WaitlistAction }) {
       noValidate
       aria-busy={isPending || undefined}
     >
+      {/* The wording shown below, by version — what the sign-up agrees to. */}
+      <input type="hidden" name={WAITLIST_FORM_FIELDS.consentVersion} value={consent.version} />
+
       <div data-field="">
         <label htmlFor={ids.name} className={styles.label}>
           Full name
@@ -403,7 +416,11 @@ export function WaitlistForm({ action }: { action: WaitlistAction }) {
             <span>
               {state.status === 'unavailable'
                 ? 'The waitlist can’t take sign-ups from this page yet, so you haven’t been added.'
-                : 'We couldn’t add you to the waitlist just now. Everything you’ve entered is still here, so please try again.'}
+                : state.status === 'changed'
+                  ? SIGNUP_FORM_CHANGED
+                  : state.status === 'limited'
+                    ? SIGNUP_TOO_MANY
+                    : 'We couldn’t add you to the waitlist just now. Everything you’ve entered is still here, so please try again.'}
             </span>
           </p>
         ) : null}
@@ -412,9 +429,11 @@ export function WaitlistForm({ action }: { action: WaitlistAction }) {
         <button type="submit" className={styles.submit} disabled={isPending}>
           {JOIN_WAITLIST_LABEL}
         </button>
+        {/* The design's line is "Confidential by design. We’ll only use your
+            details to contact you about Private Table. See our Privacy
+            Policy." — its middle sentence is the list's published wording. */}
         <p className={styles.privacy}>
-          Confidential by design. We’ll only use your details to contact you about Private Table.
-          See our{' '}
+          Confidential by design. {consent.text} See our{' '}
           <Link href={PRIVACY_ITEM.href} className={styles.privacyLink}>
             {PRIVACY_ITEM.label}
           </Link>

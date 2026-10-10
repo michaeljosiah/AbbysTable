@@ -17,6 +17,11 @@
 
 import { getAonikClient, type AonikClient } from '@/lib/aonik/client';
 import type { NotifyMeState } from '@/lib/aonik/notifyMe';
+import { readConsentVersion } from '@/lib/aonik/signupLists';
+import { isEmailAddress } from '@/lib/email';
+import { CONSENT_VERSION_FIELD, SIGNUP_FORM_CHANGED, SIGNUP_TOO_MANY } from '@/lib/signup/consent';
+import { admitSignup } from '@/lib/signup/rateLimit';
+import { isSignupRefused } from '@/lib/signup/server';
 
 import { upcomingDeliveryDate } from './checker';
 import { normalisePostcode, readPostcodeEntry } from './postcode';
@@ -90,8 +95,6 @@ export async function locatePostcode(latitude: unknown, longitude: unknown): Pro
   }
 }
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 const field = (form: FormData, key: string): string => {
   const value = form.get(key);
   return typeof value === 'string' ? value.trim() : '';
@@ -99,9 +102,12 @@ const field = (form: FormData, key: string): string => {
 
 /**
  * Joins the notify-me list (contract §3c): the email AND the checked
- * postcode. Separate from the newsletter, always. Answers "joined" only once
- * the list has stored it; the page offers the form only where a list exists
- * (`AonikClient.notifyList`), so the no-list branch is a guard, not a path.
+ * postcode, with the consent version the form showed, to Aonik's
+ * `delivery-availability` sign-up list (aonik#357). Separate from the
+ * newsletter, always. Answers "joined" only after Aonik's 202; the page offers
+ * the form only where the list is published, so the no-list branch is a
+ * guard, not a path. A 422 is the list changing under the page (the fields
+ * were checked here first) and asks for a reload, never a retry.
  */
 export async function joinNotifyList(
   _previous: NotifyMeState,
@@ -110,17 +116,24 @@ export async function joinNotifyList(
   const email = field(form, 'email');
   const entry = field(form, 'postcode');
   const postcode = entry.length > MAX_ENTRY ? null : normalisePostcode(entry);
-  if (email.length > 254 || !EMAIL_PATTERN.test(email)) {
+  if (!isEmailAddress(email)) {
     return { status: 'error', message: 'Please enter a valid email address.' };
   }
   if (!postcode) return { status: 'error', message: 'Please check your postcode again first.' };
+  const consentVersion = readConsentVersion(form.get(CONSENT_VERSION_FIELD));
+  if (!consentVersion) return { status: 'error', message: SIGNUP_FORM_CHANGED };
+  if (!(await admitSignup('delivery-availability'))) return { status: 'error', message: SIGNUP_TOO_MANY };
 
   try {
     const client = await getAonikClient();
-    if (!client.notifyList) throw new Error('No notify-me list (michaeljosiah/aonik#357)');
-    await client.notifyList.join({ email, postcode });
+    if (!client.signupLists) throw new Error('No sign-up lists in this data mode (michaeljosiah/aonik#357)');
+    await client.signupLists.join('delivery-availability', { email, consentVersion, postcode });
     return { status: 'joined' };
   } catch (error) {
+    if (isSignupRefused(error)) {
+      console.warn('[delivery] notify-me request refused: the list changed since the page was rendered');
+      return { status: 'error', message: SIGNUP_FORM_CHANGED };
+    }
     log('notify-me request not stored', error);
     return { status: 'error', message: 'We couldn’t save your email just now. Please try again.' };
   }

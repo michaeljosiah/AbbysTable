@@ -21,7 +21,8 @@ export const MAX_EMAIL_LENGTH = 254;
  */
 export function isEmailAddress(value: string): boolean {
   if (value.length === 0 || value.length > MAX_EMAIL_LENGTH) return false;
-  if (/\s/.test(value)) return false;
+  // Whitespace and control characters: Aonik refuses both in any field.
+  if (/[\s\p{Cc}]/u.test(value)) return false;
   const at = value.indexOf('@');
   if (at <= 0 || at !== value.lastIndexOf('@')) return false;
   const domain = value.slice(at + 1);

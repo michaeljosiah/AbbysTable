@@ -8,25 +8,12 @@
  * a list of its own, SEPARATE from the newsletter, and it must never be merged
  * into it.
  *
- * Nothing can store one yet (michaeljosiah/aonik#357), so `AonikClient
- * .notifyList` is null in BOTH data modes and the page renders no form — the
- * footer newsletter's precedent (#6): a form that thanks someone for leaving
- * their email while saving nothing is a live-looking control that does
- * nothing, and demo mode does not get to pretend a WRITE succeeded any more
- * than it places orders. Wiring it is an implementation of `NotifyList`; the
- * page then offers the form with no other change.
+ * Stored in Aonik's `delivery-availability` sign-up list (michaeljosiah/aonik
+ * #357, `@/lib/aonik/signupLists`), which the page offers only while the
+ * tenant has published it — never in demo mode, the footer newsletter's
+ * precedent (#6): a form that thanks someone for leaving their email while
+ * saving nothing is a live-looking control that does nothing.
  */
-
-export interface NotifyMeRequest {
-  email: string;
-  /** Normalised, as the checker echoed it. */
-  postcode: string;
-}
-
-export interface NotifyList {
-  /** Resolves once stored; throws when it could not be. */
-  join(request: NotifyMeRequest): Promise<void>;
-}
 
 /**
  * The form's contract with its server action, shaped like the newsletter's
