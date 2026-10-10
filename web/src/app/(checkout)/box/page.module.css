@@ -2,25 +2,51 @@
    The two-column shell and everything interactive lives in BoxChooser. */
 
 .page {
-  max-width: var(--content-max);
-  margin-inline: auto;
-  padding: 30px var(--space-7) var(--space-8);
+  padding-bottom: var(--space-8);
 }
 
-/* ---- Back to menu ------------------------------------------------------------- */
+/* The page body keeps the content width; the back bar and the delivery band
+   above it carry their own gutters (Choose Box v2). */
+.body {
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding: 30px var(--space-7) 0;
+}
+
+/* ---- Back ------------------------------------------------------------------------ */
+
+/* Directly under the step band at every width, above the delivery check: it is
+   wayfinding out of the step, not part of the page body. */
+.backbar {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 8px 22px 0;
+}
 
 .back {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  margin-bottom: 18px;
+  min-height: 44px;
   font-family: var(--font-sans);
   font-weight: var(--weight-semibold);
-  font-size: 14.5px;
+  font-size: 16px;
   line-height: normal;
   color: var(--text-heading);
   text-decoration: none;
   transition: color 0.16s ease, gap 0.16s ease;
+}
+
+@media (min-width: 640px) {
+  .backbar {
+    padding: 18px 34px 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .backbar {
+    padding: 22px 48px 0;
+  }
 }
 
 .back:hover {
@@ -32,21 +58,6 @@
 
 .stepHeading {
   margin: 0 0 28px;
-}
-
-.stepEyebrow {
-  display: block;
-  /* In the template the eyebrow rides inside a 16px anonymous line box, so
-     the h1 starts 31px below the heading's top. The h1's own 12px margin
-     collapses into this. */
-  margin-bottom: 16px;
-  font-family: var(--font-sans);
-  font-weight: var(--weight-semibold);
-  font-size: 13px;
-  line-height: normal;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--brass);
 }
 
 .heading {
@@ -69,15 +80,8 @@
 }
 
 @media (max-width: 1080px) {
-  .page {
-    padding: 26px 22px 40px;
-  }
-}
-
-@media (max-width: 860px) {
-  /* The compact header stepper already reads "Step 1 of 5" at this width. */
-  .stepEyebrow {
-    display: none;
+  .body {
+    padding: 26px 22px 0;
   }
 }
 
@@ -88,10 +92,6 @@
 }
 
 @media (max-width: 640px) {
-  .back {
-    margin-bottom: 14px;
-  }
-
   .stepHeading {
     margin-bottom: 22px;
   }

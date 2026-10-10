@@ -308,54 +308,60 @@ export const DISH_FIXTURES: Dish[] = [
 ];
 
 /**
- * Box catalogue, taken from the checkout templates (Step 1 / Step 2).
+ * The demo box plan, ONE copy: the preset cards, the custom scale and the
+ * storefront config's plan all derive from it, so demo quotes what the plan
+ * says and the two can never drift apart (they once did).
  *
- * These supersede the homepage template's "8 dishes for £150" and "£78 Taster",
- * which do not reconcile with the builder and are treated as stale marketing
- * copy. The homepage promo now derives its numbers from these tiers.
+ * Only the six-dish price is confirmed: £158 (the "6 dishes from £158" model).
+ * The 12 and 18 figures are the contract's placeholders (changelog 0.4: £306 /
+ * £449, savings £10 / £25 against a pro-rata £158 list) — an OWNER DECISION
+ * (#28, #37) that Aonik's box plan will carry once made; live mode charges
+ * whatever the plan says. A custom size is priced per space, pro-rata to the
+ * six-dish price, and never shows a saving (only a preset may author one).
  */
-export const BOX_FIXTURES: BoxOffer[] = [
-  {
-    id: 'box-6',
-    name: '6-dish box',
-    dishCount: 6,
-    pricePence: 9500,
-    // The template gives this card no badge; "Minimum order" is its blurb.
-    blurb: 'Minimum order',
-  },
-  {
-    id: 'box-12',
-    name: '12-dish box',
-    dishCount: 12,
-    pricePence: 17000,
-    badge: 'Most popular',
-    savingPence: 1000,
-    blurb: 'A balanced weekly selection',
-  },
-  {
-    id: 'box-18',
-    name: '18-dish box',
-    dishCount: 18,
-    pricePence: 24000,
-    badge: 'Best value',
-    savingPence: 2500,
-    blurb: 'Ideal for larger tables',
-  },
-];
+const BOX_PLAN = {
+  minSize: 6,
+  maxSize: 99,
+  baseSize: 6,
+  basePence: 15800,
+  /** £158 ÷ 6, to the penny. */
+  perSpacePence: 2633,
+  presets: [
+    { size: 6, pricePence: 15800, blurb: 'Minimum order' },
+    { size: 12, pricePence: 30600, savingPence: 1000, badge: 'Most popular', blurb: 'A balanced weekly selection' },
+    { size: 18, pricePence: 44900, savingPence: 2500, badge: 'Best value', blurb: 'Ideal for larger tables' },
+  ],
+  /** £5.95 per order (frontend-backend-contract §3d); the cost is still an open decision. */
+  deliveryPence: 595,
+} as const;
+
+/**
+ * Box catalogue, from the checkout templates (Step 1 / Step 2) and the plan
+ * above. These supersede the homepage template's "8 dishes for £150" and
+ * "£78 Taster", which do not reconcile with the builder.
+ */
+export const BOX_FIXTURES: BoxOffer[] = BOX_PLAN.presets.map((preset) => ({
+  id: `box-${preset.size}`,
+  name: `${preset.size}-dish box`,
+  dishCount: preset.size,
+  pricePence: preset.pricePence,
+  ...('badge' in preset ? { badge: preset.badge } : {}),
+  ...('savingPence' in preset ? { savingPence: preset.savingPence } : {}),
+  blurb: preset.blurb,
+}));
 
 export const BOX_PRICING_FIXTURE: BoxPricing = {
   presets: BOX_FIXTURES,
   custom: {
-    minDishes: 6,
-    maxDishes: 30,
-    // Mirrors the seeded Aonik plan, so demo mode quotes what live mode charges.
-    baseDishes: 6,
-    basePence: 9500,
-    perSpacePence: 1700,
+    minDishes: BOX_PLAN.minSize,
+    maxDishes: BOX_PLAN.maxSize,
+    baseDishes: BOX_PLAN.baseSize,
+    basePence: BOX_PLAN.basePence,
+    perSpacePence: BOX_PLAN.perSpacePence,
   },
-  extraDishPence: 1500,
-  // Both checkout templates show delivery as £10 struck through → Free.
-  delivery: { listPence: 1000, pricePence: 0 },
+  extraDishPence: BOX_PLAN.perSpacePence,
+  // Charged, never struck through: the list and the charge are the same figure.
+  delivery: { listPence: BOX_PLAN.deliveryPence, pricePence: BOX_PLAN.deliveryPence },
 };
 
 export const DELIVERY_FIXTURE: DeliveryWindow = {
@@ -437,7 +443,7 @@ export const PERSONALISATION_GROUP_SOURCE: EffectiveOptionGroupDto[] = [
  *
  * Values mirror what the design templates already hard-code, so demo mode and
  * a correctly-authored tenant render identically: "Abby's choice" as the
- * recommended label, delivery shown as £10 struck through to free, and the
+ * recommended label, the delivery charge, and the
  * three preset box sizes.
  *
  * Note the box plan carries no list price — matching Aonik, where only presets
@@ -449,16 +455,15 @@ export const STOREFRONT_CONFIG_FIXTURE: StorefrontConfig = {
   resultsPageSize: 8,
   backToTopTrigger: { type: 'cardIndex', value: 10 },
   // £5.95 per order, the configured charge Delivery & FAQs states
-  // (frontend-backend-contract §3d). The checkout steps still price from
-  // BOX_PRICING_FIXTURE's older "£10 → Free" until the funnel is reconciled.
-  delivery: { listPence: 595, chargedPence: 595 },
+  // (frontend-backend-contract §3d) — the same figure the box steps charge.
+  delivery: { listPence: BOX_PLAN.deliveryPence, chargedPence: BOX_PLAN.deliveryPence },
   defaultBoxSlug: 'abbys-box',
   extrasCollectionSlug: 'extras',
   box: {
-    minSize: 6,
-    maxSize: 30,
+    minSize: BOX_PLAN.minSize,
+    maxSize: BOX_PLAN.maxSize,
     currency: 'GBP',
-    perSpacePence: 1700,
+    perSpacePence: BOX_PLAN.perSpacePence,
     presets: BOX_FIXTURES.map((offer) => ({
       size: offer.dishCount,
       pricePence: offer.pricePence,

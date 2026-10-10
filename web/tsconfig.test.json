@@ -38,6 +38,7 @@
     "tests/selection-content.test.tsx",
     "tests/checkout.test.tsx",
     "tests/payment.test.tsx",
+    "tests/choose-box.test.tsx",
     "tests/email.test.ts",
     "tests/signup-lists.test.tsx",
     "tests/support/*.ts",

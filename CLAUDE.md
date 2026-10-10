@@ -208,6 +208,22 @@ Conventions inside `web/` that are easy to get wrong:
   #38). "Country or region" resolves against the FIXED list in `src/lib/content/countries.ts`
   (codes stored, aliases matched); the rules are React-free in `src/lib/private-table/`
   (`country.ts`, `waitlist.ts`, `join.ts`; `tests/private-table.test.tsx`).
+- **Choose Box (#28, Choose Box v2): `/box`; the entry rules are React-free in `src/lib/box/entry.ts`**
+  (`tests/choose-box.test.tsx`). The demo box plan is ONE copy (`BOX_PLAN` in `fixtures.ts`):
+  **£158 for six**, 6 to 99 dishes, delivery £5.95 charged — never struck through, and a
+  struck "was" shows only where the list price exceeds the charge. The 12 (£306) and 18 (£449)
+  figures and the pro-rata £26.33 per space are the contract's PLACEHOLDERS — an owner decision
+  (#37); live mode charges whatever Aonik's plan says. `?dishes=6|12|18|custom` preselects the
+  size (an unknown value is the first tier, never an error; the URL carries no price). A box is
+  never smaller than the dishes in it: a smaller tier is raised to that size and the rail says
+  "Your box has N dishes. To choose a smaller box, remove dishes on the next step." — nothing
+  is deleted. Set-your-own's quantity is typeable (two digits; an out-of-range entry reverts with
+  "Choose between 6 and 99 dishes."). The postcode band is the Delivery & FAQs lookup
+  (`lib/delivery/*`, the session hand-off) and renders only where `AonikClient.coverage` exists.
+  "Back" is a real `history.back()` when `NavigationTrail` (root layout; the path only, in
+  sessionStorage) knows there is a page of this site behind it that is not the funnel; otherwise
+  it is the link to the menu. The demo steps' running total includes delivery, as Review's
+  demo quote and a live quote do (`cartTotals`).
 - **Menu (#21, Menu Landing v3): the rules live React-free in `src/lib/menu/`** — the four
   groups and their matching (`facets.ts`), the pills and result line (`filters.ts`), the three
   sorts (`sort.ts`), the card's tags with the DERIVED "Under 500 kcal" (`cardTags.ts`) and ↑ Top

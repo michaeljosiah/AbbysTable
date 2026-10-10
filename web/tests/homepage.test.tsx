@@ -108,7 +108,7 @@ test('no delivery date anywhere on the homepage', async () => {
   assert.doesNotMatch(text, /earliest/i);
 });
 
-test('the How it works note is the demo plan’s offer, read once with the bar’s (still £95 until #28)', async () => {
+test('the How it works note is the demo plan’s offer, read once with the bar’s', async () => {
   const html = await renderHomePage();
   const lines = offerLines(purchaseBarOffer(STOREFRONT_CONFIG_FIXTURE.box)!);
   assert.match(textOf(html), new RegExp(`${lines.minimum} · ${lines.from}`));

@@ -474,7 +474,9 @@ export function ExtrasStep({
         <div className={styles.estRow}>
           <span>Delivery</span>
           <span className={styles.estDelivery}>
-            <span className={styles.estWas}>{formatPrice(pricing.delivery.listPence)}</span>
+            {pricing.delivery.listPence > pricing.delivery.pricePence ? (
+              <span className={styles.estWas}>{formatPrice(pricing.delivery.listPence)}</span>
+            ) : null}
             <span className={styles.estNow}>
               {pricing.delivery.pricePence === 0
                 ? 'Free'
