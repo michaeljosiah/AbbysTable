@@ -198,6 +198,12 @@ export interface Dish {
    */
   ingredients?: string;
   allergens?: string;
+  /**
+   * The kitchen's own cross-contamination statement ("Made in a kitchen that
+   * also handles peanuts"), shown beside the allergens exactly as authored —
+   * never generated from them. Withheld with them.
+   */
+  precautionaryStatement?: string;
 
   /** Present only on dishes resolved from Aonik content. See `DishContentState`. */
   contentState?: DishContentState;
@@ -389,6 +395,8 @@ export interface Extra {
    */
   ingredients?: string;
   allergens?: string[];
+  /** As on `Dish`. */
+  precautionaryStatement?: string;
   serveStyle: ExtraServeStyle;
   /** Reheating / serving guidance from the catalogue. */
   heating: string;

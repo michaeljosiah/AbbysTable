@@ -183,6 +183,14 @@ export interface ResolvedContentDto {
   canonicalSelectionJson: string;
   matchedVariantSelectionJson: string | null;
   contentVersion: number;
+  /**
+   * The controlled declaration (aonik#351): the 14 groups by name, `[]` for a
+   * reviewed list with none declared, null when unreviewed or withheld. Since
+   * then `allergens` is derived from it. Optional: an older Aonik sends none.
+   */
+  allergensPresent?: string[] | null;
+  /** The kitchen's own cross-contamination statement, as authored; null when withheld. */
+  precautionaryStatement?: string | null;
 }
 
 /* ---- Facets & collections (Spec 070) --------------------------------------- */

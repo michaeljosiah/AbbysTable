@@ -31,7 +31,15 @@ Conventions inside `web/` that are easy to get wrong:
   `src/lib/aonik/` and are formatted with `src/lib/format.ts`. Money is stored in pence.
 - **Never infer ingredients or allergens.** `Dish.ingredients` and `Dish.allergens` are optional and
   populated only where a source template published them. Dishes without them render an explicit
-  "not yet published" notice — do not fill the gap with plausible-looking data.
+  "not yet published" notice — do not fill the gap with plausible-looking data. From Aonik the
+  allergen line comes from the CONTROLLED list (`allergensPresent`, aonik#351; names in
+  `src/lib/allergens.ts`): `[]` is a reviewed list with none of the 14 declared and reads "None of
+  the 14 regulated allergens declared" — never "None" or "free from"; a value we do not know
+  withholds the whole declaration (ingredients too, logged) rather than drop one, and a present
+  `allergensPresent: null` is unreviewed, never read from the text; names are Aonik's own (its
+  label feed), e.g. "Soybeans", "Tree nuts". The `precautionaryStatement` shows beside the
+  declaration — dish panels, extras modal, the Our Standards and How it works examples — as
+  authored (line breaks kept), and never without it.
 - **Server Components by default.** Client components are `Header`, `MobileDrawer`, `Footer`, the
   homepage `Menu` rail and How it works clip (`HowItWorksClip`: lazy source, pause control,
   reduced motion), the dish card's `SignatureInfo` (the Signature "i" and its note, outside the

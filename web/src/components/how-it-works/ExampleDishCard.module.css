@@ -159,10 +159,10 @@
   margin: 0;
 }
 
-/* The declaration is shown verbatim, as supporting copy (16px, the floor for
-   a sentence). It is a free-text string today — the contract's controlled
-   `allergens_present[]` is not served yet — so it is not split into the
-   design's one-chip-per-allergen tags: "nuts (peanuts, almonds)" would break.
+/* The declaration is shown as one line of supporting copy (16px, the floor
+   for a sentence): Aonik's controlled list (aonik#351) joined by name, or an
+   older source's text as written — never split into the design's
+   one-chip-per-allergen tags, which would need a pill for "None of the 14…".
    The label is set in the heading ink so it still reads apart from it. */
 .allergens {
   min-width: 0;
@@ -215,4 +215,11 @@
   .value {
     font-size: 30px;
   }
+}
+
+/* The kitchen's precautionary statement (aonik#351): its own line, as authored. */
+.precaution {
+  display: block;
+  margin-top: 4px;
+  white-space: pre-line;
 }

@@ -30,6 +30,8 @@ export interface ExampleDishFacts {
   unpublished: string[];
   /** The published allergen declaration, verbatim; undefined when there is none. */
   allergens?: string;
+  /** The kitchen's precautionary statement, as authored — only with its declaration. */
+  precautionaryStatement?: string;
   /** Aonik's caption when the figures are not the current recipe's own. */
   figuresNote?: string;
 }
@@ -67,6 +69,8 @@ export function exampleDishFacts(dish: Dish): ExampleDishFacts {
    */
   const state = dish.contentState;
   const allergens = state?.declarationsWithheld ? undefined : dish.allergens?.trim() || undefined;
+  // A statement goes with its declaration and never without one.
+  const precautionaryStatement = allergens ? dish.precautionaryStatement?.trim() || undefined : undefined;
 
   // The dish page's captions, in its order, so the two pages cannot disagree.
   const figuresNote = state?.figuresAreStandardPreparation
@@ -81,6 +85,7 @@ export function exampleDishFacts(dish: Dish): ExampleDishFacts {
     cells,
     unpublished: cells.filter((cell) => cell.value === undefined).map((cell) => cell.name),
     allergens,
+    precautionaryStatement,
     figuresNote,
   };
 }

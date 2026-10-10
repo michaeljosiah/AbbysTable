@@ -12,6 +12,9 @@
  * minor units, these become identities and nothing else changes.
  */
 
+// Relative, not `@/`: tests reach this module without the alias hook.
+import { allergenLine, declaredAllergens, declaresNone, NONE_DECLARED, splitAllergenText } from '../allergens';
+
 import type {
   BoxCartDto,
   CheckoutResultDto,
@@ -152,16 +155,52 @@ export function mapNutrition(dto: NutritionDto): DishNutrition {
 export function mapResolvedContent(dto: ResolvedContentDto): {
   nutrition: DishNutrition;
   ingredients?: string;
+  /** The allergen line, as a customer reads it. */
   allergens?: string;
+  /** The declared groups' names; `[]` for a reviewed list with none declared. */
+  allergenNames?: string[];
+  precautionaryStatement?: string;
   heating: HeatingInstruction[];
   state: DishContentState;
 } {
-  const withheld = dto.declarationsWithheld;
+  // The controlled list (aonik#351) wherever Aonik sends one; a value we do
+  // not know makes it unreadable, and an unreadable declaration is withheld
+  // WHOLE — ingredients too — exactly as Aonik withholds a half-published one.
+  // A source that sends the member speaks for it: null there is unreviewed,
+  // never a cue to read the text. Only a source WITHOUT the member (an older
+  // Aonik) is read from its text.
+  const controlled = 'allergensPresent' in dto;
+  const declared = controlled ? declaredAllergens(dto.allergensPresent) : undefined;
+  if (controlled && !dto.declarationsWithheld && declared === null) {
+    console.warn(
+      Array.isArray(dto.allergensPresent)
+        ? '[aonik] an allergen declaration names a group this storefront does not know; it is withheld'
+        : '[aonik] an allergen declaration is not reviewed but was not withheld; it is withheld',
+    );
+  }
+  const withheld = dto.declarationsWithheld || declared === null;
+  const allergenNames = withheld
+    ? undefined
+    : controlled
+      ? (declared ?? undefined)
+      : splitAllergenText(dto.allergens ?? undefined);
 
   return {
     nutrition: mapNutrition(dto.nutrition),
     ingredients: withheld ? undefined : (dto.ingredients ?? undefined),
-    allergens: withheld ? undefined : (dto.allergens ?? undefined),
+    // The controlled list by name; an older Aonik's text exactly as written —
+    // its "None" as the reviewed-and-none wording, never an allergen-free
+    // claim, and a blank one as nothing declared at all.
+    allergens:
+      withheld || allergenNames === undefined
+        ? undefined
+        : controlled
+          ? allergenLine(allergenNames)
+          : declaresNone(dto.allergens ?? '')
+            ? NONE_DECLARED
+            : dto.allergens?.trim(),
+    allergenNames,
+    precautionaryStatement: withheld ? undefined : dto.precautionaryStatement?.trim() || undefined,
     // Heating is never null on the wire — an empty list when withheld.
     heating: dto.heatingWithheld ? [] : dto.heating.map((step) => ({ ...step })),
     state: {
@@ -600,6 +639,7 @@ export function mapProductToDish(dto: ProductDto): Dish {
     dietary: (attributes.dietary ?? []) as Dish['dietary'],
     ingredients: content?.ingredients,
     allergens: content?.allergens,
+    precautionaryStatement: content?.precautionaryStatement,
     contentState: content?.state,
   };
 }
@@ -887,23 +927,6 @@ function extraServeStyle(value: string | undefined): ExtraServeStyle {
 }
 
 /**
- * Splits an allergen declaration into the chips the modal renders.
- *
- * Returns undefined for an ABSENT declaration and `[]` only for one that was
- * made and listed nothing. The distinction is the whole point: see `Extra`.
- */
-function splitAllergens(declaration: string | undefined): string[] | undefined {
-  if (declaration === undefined) return undefined;
-  const parts = declaration
-    .split(/[,;]/)
-    .map((part) => part.trim())
-    .filter(Boolean);
-  // "None" is a real declaration of no allergens, not a missing one.
-  if (parts.length === 1 && /^none$/i.test(parts[0])) return [];
-  return parts;
-}
-
-/**
  * One extras-rail row.
  *
  * `id` is the VARIANT id, not the product id, because that is what the cart
@@ -927,7 +950,10 @@ export function mapExtraRow(dto: ExtraRowDto): Extra {
     // SAFETY: `mapResolvedContent` has already cleared both when Aonik withheld
     // them, so absence here always means "not declared".
     ingredients: content?.ingredients,
-    allergens: splitAllergens(content?.allergens),
+    // The controlled list's names (aonik#351), or an older Aonik's text split;
+    // `[]` is a reviewed list with none of the 14 declared.
+    allergens: content?.allergenNames,
+    precautionaryStatement: content?.precautionaryStatement,
     serveStyle: extraServeStyle(attributes.serveStyle),
     heating: content?.heating.map((step) => step.body).join(' ') || (attributes.heating ?? ''),
   };
