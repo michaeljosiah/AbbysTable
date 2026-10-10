@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { ConsentManager } from '@/components/consent/ConsentManager';
 import { DevDataMode } from '@/components/dev/DevDataMode';
 import { liveOrderingEnabled, resolveDataMode } from '@/lib/aonik/dataMode';
+import { readSessionView } from '@/lib/auth/session';
 import { CartProvider } from '@/lib/cart/CartProvider';
 
 import { fontVariables } from './fonts';
@@ -38,6 +39,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // Which cart engine runs is a server decision — the client is told, never
   // asked, so a browser cannot elect itself onto the live cart.
   const { mode } = await resolveDataMode();
+  // Whose box it is can change under a mounted provider: signing in adopts the
+  // guest box (a write, which moves its version) and signing out hands it back.
+  // A cookie read only — it cannot block or fail.
+  const { isSignedIn } = await readSessionView();
 
   return (
     /*
@@ -65,7 +70,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       suppressHydrationWarning
     >
       <body>
-        <CartProvider mode={mode} liveOrdering={liveOrderingEnabled()}>
+        <CartProvider mode={mode} liveOrdering={liveOrderingEnabled()} signedIn={isSignedIn}>
           {children}
         </CartProvider>
         {/* Mounted ONCE, here, so it covers every route group — never per page

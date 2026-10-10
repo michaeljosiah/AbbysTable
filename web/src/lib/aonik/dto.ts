@@ -282,6 +282,19 @@ export interface BoxCartDto {
   changes: BoxChangeDto[];
   /** Disclosed EXACTLY ONCE, on creation. Never returned again. */
   cartToken: string | null;
+  /**
+   * The cart's row version (Aonik #347), on every box response. The next write
+   * must send it as `X-Cart-Version`; it changes with every write.
+   */
+  cartVersion?: string;
+  /**
+   * `Open` while it can change; `CheckedOut` once it became an order, and
+   * `Abandoned` once Aonik's sweeper expired it (an empty box after 24 hours
+   * idle, a populated one after 7 days).
+   */
+  status?: string;
+  /** The order it became — set once a checkout created one, paid or not yet. */
+  orderId?: string | null;
 }
 
 /* ---- Extras rail (Spec 071) -------------------------------------------------- */

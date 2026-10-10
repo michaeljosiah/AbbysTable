@@ -5,6 +5,7 @@ import test from 'node:test';
 
 import { readAonikConfig } from '../src/lib/aonik/dataMode';
 import { AONIK_CODES, toAonikError } from '../src/lib/aonik/errors';
+import { aonikFetch } from '../src/lib/aonik/http';
 import { toMajor, toPence } from '../src/lib/aonik/map';
 import { register } from '../src/instrumentation';
 
@@ -102,6 +103,63 @@ test('a 409 drift body reads its code from `error` and its text from `message`',
   assert.equal(error.message, 'Your box changed.');
   assert.equal(error.isDrift, true);
   assert.deepEqual(error.drift, { box, quote, changes });
+
+  // Aonik saved the repair, so its new version rides along when sent (#347).
+  const versioned = toAonikError(409, '/commerce/carts/c/checkout', {
+    error: AONIK_CODES.boxDrift,
+    message: 'Your box changed.',
+    box,
+    quote,
+    changes,
+    cartVersion: 'AAAAAAAAB9E=',
+  });
+  assert.deepEqual(versioned.drift, { box, quote, changes, cartVersion: 'AAAAAAAAB9E=' });
+});
+
+test('a refused cart write is told apart from every other 409 (#347)', () => {
+  const body = (code: string) => ({ code, message: 'The cart changed.', cartId: 'c', cartVersion: 'v9', status: 'Open', orderId: null });
+
+  const conflict = toAonikError(409, '/commerce/carts/c/size', body(AONIK_CODES.cartConflict));
+  assert.equal(conflict.code, AONIK_CODES.cartConflict);
+  assert.equal(conflict.message, 'The cart changed.');
+  assert.equal(conflict.isCartWriteRefused, true);
+  assert.equal(conflict.isDrift, false);
+
+  assert.equal(conflict.cartStatus, 'Open');
+  assert.equal(toAonikError(409, '/commerce/carts/c/size', body(AONIK_CODES.cartLocked)).isCartWriteRefused, true);
+  // Two writes on the same version: the loser is refused like any conflict.
+  assert.equal(
+    toAonikError(409, '/commerce/carts/c/size', { error: 'The resource was modified by another operation.', code: 'concurrency_conflict' })
+      .isCartWriteRefused,
+    true,
+  );
+  // A different 409 is not a refused write, and neither is the code at another status.
+  assert.equal(toAonikError(409, '/x', body(AONIK_CODES.boxChoiceRequired)).isCartWriteRefused, false);
+  assert.equal(toAonikError(400, '/x', body(AONIK_CODES.cartConflict)).isCartWriteRefused, false);
+});
+
+test('the transport sends the cart version only when given one, and can PUT', async () => {
+  const seen: Array<{ method: string; version: string | null }> = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (async (_input: string | URL | Request, init?: RequestInit) => {
+    seen.push({ method: init?.method ?? 'GET', version: new Headers(init?.headers).get('X-Cart-Version') });
+    return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }) as typeof fetch;
+
+  try {
+    const base = { baseUrl: 'https://aonik.test', tenantId: 't', policy: 'volatile' as const };
+    await aonikFetch('/commerce/carts/c/size', { ...base, method: 'PATCH', body: {}, cartVersion: 'v1' });
+    await aonikFetch('/commerce/carts/c/checkout-draft', { ...base, method: 'PUT', body: {}, cartVersion: 'v2' });
+    await aonikFetch('/commerce/carts/c', base);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+
+  assert.deepEqual(seen, [
+    { method: 'PATCH', version: 'v1' },
+    { method: 'PUT', version: 'v2' },
+    { method: 'GET', version: null },
+  ]);
 });
 
 test('a not-found sentence is never mistaken for a code', () => {

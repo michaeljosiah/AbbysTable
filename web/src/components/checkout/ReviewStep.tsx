@@ -103,6 +103,7 @@ export function ReviewStep({
     revalidate,
     isServerCart,
     pending,
+    ordered,
   } = useCart();
 
   /** This dish's own effective groups. */
@@ -125,6 +126,13 @@ export function ReviewStep({
   );
   const runGate = useCallback(async () => {
     if (!isServerCart || pending) return;
+    // A box that already holds an order cannot be revalidated (Aonik locks it
+    // mid-payment), and placing it again only replays that order — the way
+    // back to its confirmation when the first answer never arrived.
+    if (ordered) {
+      setGateStatus('ready');
+      return;
+    }
     setGateStatus('pending');
     try {
       await revalidate();
@@ -132,7 +140,7 @@ export function ReviewStep({
     } catch {
       setGateStatus('failed');
     }
-  }, [isServerCart, pending, revalidate]);
+  }, [isServerCart, pending, revalidate, ordered]);
 
   useEffect(() => {
     if (!isServerCart || !hydrated || gateRun.current) return;
@@ -330,6 +338,9 @@ export function ReviewStep({
   if (hydrated && boxSize === null) {
     return (
       <div className={styles.noBox}>
+        {/* Why the box went, when a request just found out — "This order has
+            already been completed.", or that there is no box any more. */}
+        <DriftNotices />
         <p className={styles.noBoxTitle}>Choose your box size first</p>
         <Link href="/box" className={styles.noBoxLink}>
           Choose a box

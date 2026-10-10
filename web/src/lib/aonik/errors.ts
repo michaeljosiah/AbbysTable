@@ -6,7 +6,9 @@
  *
  *   validation  { error: <message>, code: "commerce.…", rule?: "V5" }
  *   not found   { error: <message> }                      ← no code at all
- *   box drift   { error: "commerce.box_drift", message, box, quote, changes }
+ *   box drift   { error: "commerce.box_drift", message, box, quote, changes, cartVersion }
+ *   cart write  { code: "commerce.cart_conflict" | "commerce.cart_locked", message,
+ *                 cartId, cartVersion, status, orderId }
  *
  * Note the third: for drift, `error` holds the CODE and `message` holds the
  * text — the inverse of the first. A parser that only reads `code` never
@@ -21,6 +23,22 @@ export const AONIK_CODES = {
   optionValidation: 'commerce.option_validation',
   storefrontValidation: 'commerce.storefront_validation',
   boxDrift: 'commerce.box_drift',
+  /** A cart write sent no `X-Cart-Version`, or an older one (Aonik #347). */
+  cartConflict: 'commerce.cart_conflict',
+  /** The cart is not editable: a payment is in progress, or it was ordered. */
+  cartLocked: 'commerce.cart_locked',
+  /** Signing in with a guest box when the account holds a different one (#348). */
+  boxChoiceRequired: 'commerce.box_choice_required',
+  /** The keep/use-saved choice was made against boxes that have since moved on. */
+  boxChoiceStale: 'commerce.box_choice_stale',
+  /** The account already holds more than one active box; adoption cannot pick. */
+  multipleActiveBoxes: 'commerce.multiple_active_boxes',
+  /**
+   * Two writes raced on the same row version and this one lost (Aonik's
+   * `DbUpdateConcurrencyException`). On a cart it is the same as a conflict:
+   * another tab's change landed first.
+   */
+  concurrencyConflict: 'concurrency_conflict',
 } as const;
 
 /** A dotted lowercase token, e.g. `commerce.box_drift`. */
@@ -34,6 +52,8 @@ export interface AonikErrorBody {
   box?: unknown;
   quote?: unknown;
   changes?: unknown;
+  cartVersion?: unknown;
+  status?: unknown;
   errors?: unknown;
   fieldErrors?: unknown;
 }
@@ -50,7 +70,12 @@ export class AonikError extends Error {
    * The repaired box that rides a 409 drift body: `{ box, quote, changes }`,
    * unmapped. `server-box-cart` maps and re-renders it.
    */
-  readonly drift?: { box: unknown; quote: unknown; changes: unknown };
+  readonly drift?: { box: unknown; quote: unknown; changes: unknown; cartVersion?: string };
+  /**
+   * The cart's status as a refused write reported it (`Open`, `CheckedOut`,
+   * `Abandoned`): whether the box is busy for now or finished for good.
+   */
+  readonly cartStatus?: string;
   /**
    * Per-field validation failures, keyed by Aonik's field name: FastEndpoints'
    * `errors` (a request validator's 422) or a service's own `fieldErrors`.
@@ -64,7 +89,8 @@ export class AonikError extends Error {
     message: string;
     code?: string;
     rule?: string;
-    drift?: { box: unknown; quote: unknown; changes: unknown };
+    drift?: { box: unknown; quote: unknown; changes: unknown; cartVersion?: string };
+    cartStatus?: string;
     fieldErrors?: Readonly<Record<string, readonly string[]>>;
   }) {
     super(init.message);
@@ -74,12 +100,28 @@ export class AonikError extends Error {
     this.code = init.code;
     this.rule = init.rule;
     this.drift = init.drift;
+    this.cartStatus = init.cartStatus;
     this.fieldErrors = init.fieldErrors;
   }
 
   /** Catalogue drift at continue/checkout — Spec 068's A18 stop. */
   get isDrift(): boolean {
     return this.status === 409 && this.code === AONIK_CODES.boxDrift;
+  }
+
+  /**
+   * The cart write was refused because the box is not the one it was based on
+   * (`cart_conflict`, or a lost race on the same version, `concurrency_conflict`)
+   * or cannot be edited now (`cart_locked`). Nothing changed; the box must be
+   * re-read before anything else is attempted.
+   */
+  get isCartWriteRefused(): boolean {
+    return (
+      this.status === 409 &&
+      (this.code === AONIK_CODES.cartConflict ||
+        this.code === AONIK_CODES.cartLocked ||
+        this.code === AONIK_CODES.concurrencyConflict)
+    );
   }
 
   /**
@@ -131,9 +173,17 @@ export function toAonikError(status: number, path: string, body: unknown): Aonik
     errorField ??
     `Aonik request failed with ${status}`;
 
+  // The drift body carries the repaired box's new version too: Aonik saved the
+  // repair, so the next write must be based on it.
+  const driftVersion = asString(envelope.cartVersion);
   const drift =
     code === AONIK_CODES.boxDrift && envelope.box !== undefined
-      ? { box: envelope.box, quote: envelope.quote, changes: envelope.changes }
+      ? {
+          box: envelope.box,
+          quote: envelope.quote,
+          changes: envelope.changes,
+          ...(driftVersion ? { cartVersion: driftVersion } : {}),
+        }
       : undefined;
 
   return new AonikError({
@@ -143,6 +193,7 @@ export function toAonikError(status: number, path: string, body: unknown): Aonik
     code,
     rule: asString(envelope.rule),
     drift,
+    cartStatus: asString(envelope.status),
     fieldErrors: asFieldErrors(envelope.fieldErrors) ?? asFieldErrors(envelope.errors),
   });
 }
