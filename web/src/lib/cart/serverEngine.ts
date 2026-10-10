@@ -15,10 +15,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { BoxCart, CheckoutResult, PersonalisationSelection } from '@/lib/aonik/map';
 
+import { CART_ORDERED_CODE } from './cartMissing';
 import { ORDERING_DISABLED_CODE } from './ordering';
 import {
   admitCartRequest,
   adoptCartResponse,
+  adoptCartVersion,
+  CART_REQUEST_IN_FLIGHT_CODE,
+  CART_VERSION_HEADER,
   CartRequestError,
   processCartResponse,
   type CartResponse,
@@ -81,7 +85,11 @@ export interface ServerCartEngine {
   checkout: (body?: { discountCode?: string }) => Promise<CheckoutResult>;
 }
 
-export function useServerCart(enabled: boolean): ServerCartEngine {
+/**
+ * `identity` is anything that changes when whose box this is changes (the
+ * signed-in flag): the box is read again then, with the version it now has.
+ */
+export function useServerCart(enabled: boolean, identity: unknown = null): ServerCartEngine {
   const [cart, setCart] = useState<BoxCart | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [pending, setPending] = useState(false);
@@ -92,6 +100,13 @@ export function useServerCart(enabled: boolean): ServerCartEngine {
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   /** Synchronous admission; unlike React state, this changes before the next click. */
   const inFlight = useRef(false);
+  /**
+   * The version of the box this tab last adopted, sent with every request so
+   * Aonik can refuse a change based on a box that has since moved on (another
+   * tab, another device). A ref, not state: requests run one at a time, and the
+   * next one must read what the previous response set, not a render's copy.
+   */
+  const version = useRef<string | undefined>(undefined);
 
   /**
    * One `/api/cart` round trip, queued behind any in-flight mutation.
@@ -103,13 +118,29 @@ export function useServerCart(enabled: boolean): ServerCartEngine {
    * outcome worse than either.
    */
   const send = useCallback(
-    (path: string, init?: { method?: string; body?: unknown }): Promise<CartResponse> => {
+    (
+      path: string,
+      init?: {
+        method?: string;
+        body?: unknown;
+        /**
+         * False when the caller reports the failure itself (placing the order:
+         * the button says whether anything was ordered), so the cart-wide alert
+         * never says the same thing a second time.
+         */
+        reportError?: boolean;
+      },
+    ): Promise<CartResponse> => {
       const run = async () => {
         setPending(true);
         try {
+          const headers: Record<string, string> = {};
+          if (init?.body) headers['Content-Type'] = 'application/json';
+          if (version.current) headers[CART_VERSION_HEADER] = version.current;
+
           const response = await fetch(`/api/cart${path}`, {
             method: init?.method ?? 'GET',
-            headers: init?.body ? { 'Content-Type': 'application/json' } : undefined,
+            headers,
             body: init?.body ? JSON.stringify(init.body) : undefined,
           });
 
@@ -118,6 +149,7 @@ export function useServerCart(enabled: boolean): ServerCartEngine {
           processCartResponse(response, payload, (authoritative) => {
             // Null is an authoritative empty cart. Absence carries no cart
             // information and therefore preserves the confirmed projection.
+            version.current = adoptCartVersion(version.current, authoritative);
             setCart((current) => adoptCartResponse(current, authoritative));
           });
 
@@ -134,7 +166,12 @@ export function useServerCart(enabled: boolean): ServerCartEngine {
           // Closed ordering says nothing about the box, and the Place order
           // button reports it itself. As the cart-wide error it would surface as
           // a "try again" alert on every cart surface, where retrying can't help.
-          if (failure.code !== ORDERING_DISABLED_CODE) setError(failure);
+          // A failure that took the box away is reported whoever asked: the
+          // caller's own message goes with the box it sat beside.
+          const boxGone = failure.code === CART_ORDERED_CODE || failure.code === 'cart.missing';
+          if (failure.code !== ORDERING_DISABLED_CODE && (init?.reportError !== false || boxGone)) {
+            setError(failure);
+          }
           throw failure;
         } finally {
           setPending(false);
@@ -156,7 +193,7 @@ export function useServerCart(enabled: boolean): ServerCartEngine {
 
   const checkout = useCallback(
     async (body?: { discountCode?: string }): Promise<CheckoutResult> => {
-      const payload = await send('/checkout', { method: 'POST', body: body ?? {} });
+      const payload = await send('/checkout', { method: 'POST', body: body ?? {}, reportError: false });
       if (!payload.order) {
         const failure = new CartRequestError(500, 'The order was placed but could not be read back.');
         setError(failure);
@@ -167,17 +204,25 @@ export function useServerCart(enabled: boolean): ServerCartEngine {
     [send],
   );
 
-  // Hydrate from the server once, after mount.
+  // Hydrate from the server after mount, and again whenever the identity the
+  // box belongs to changes (sign-in adopts it, which moves its version).
   useEffect(() => {
     if (!enabled) {
       setHydrated(true);
       return;
     }
     setDisplay(readDisplayIndex());
-    void request('')
-      .catch(() => undefined)
-      .finally(() => setHydrated(true));
-  }, [enabled, request]);
+    // A change still in flight (sign-in landing mid-click) turns a read away
+    // rather than queueing it; read once that change has settled, or the tab
+    // would keep the version from before the identity changed.
+    const read = (): Promise<unknown> =>
+      request('').catch((failure: unknown) =>
+        (failure as { code?: string } | null)?.code === CART_REQUEST_IN_FLIGHT_CODE
+          ? queue.current.catch(() => undefined).then(read)
+          : undefined,
+      );
+    void read().finally(() => setHydrated(true));
+  }, [enabled, request, identity]);
 
   const rememberDisplay = useCallback((productId: string, value: LineDisplay) => {
     setDisplay((current) => {

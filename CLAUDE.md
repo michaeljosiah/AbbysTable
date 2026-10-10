@@ -82,6 +82,27 @@ Conventions inside `web/` that are easy to get wrong:
   disagree: one order CTA on screen at a time. Never give either its own scroll listener for it.
   While the bar is slid in it holds `data-purchase-bar-shown` on `<html>`; `/menu`'s ↑ Top reads it
   (with `--at-bar-h`) to sit 14px above the bar.
+- **Live cart writes carry the tab's box version (Aonik #347).** Every box response has
+  `cartVersion` (mapped to `BoxCart.version`); the provider sends the version of the box it last
+  adopted as `X-Cart-Version` on every `/api/cart` call, and `lib/cart/server.ts` forwards it on
+  each write. Aonik refuses a missing or older one (409 `commerce.cart_conflict`) or a box
+  mid-payment (`commerce.cart_locked`); the route answers `cart.conflict` / `cart.locked` with the
+  box as it is now, for the tab to adopt. Never fetch a fresh version server-side to make a write
+  succeed — that is the blind overwrite SHOPPING-STATE §53 forbids. Only adoption on sign-in
+  reads it (ownership changes, not contents). A box whose `status` is not `Open` is FINISHED
+  (`Abandoned` by Aonik's sweeper after 24h empty / 7 days populated, or `CheckedOut`): a read of
+  it answers no box and clears the cookie; a write refused on it answers `cart.missing`, or
+  `cart.ordered` ("This order has already been completed.") — never "payment in progress".
+  Checkout reads the box raw first: one with an `orderId` (or `CheckedOut`) goes straight to Aonik,
+  which REPLAYS it — never refuse that as stale; Review skips its gate for such a box (`ordered`).
+  A read that reports a REPAIR (any reason but `unavailable`) stops checkout as drift whatever
+  `orderId` says (a payment-failed box keeps its order id and is still version-checked); another
+  tab's edit Aonik refuses on the version sent. The root layout passes `signedIn` to
+  `CartProvider`, which re-reads the box when it changes (sign-in adoption moves the version).
+  Cart calls refresh an expired access token (`currentSession`). A tokenless cookie (an adopted
+  box) with no session is no box and is never sent to Aonik or cleared — the way back after
+  signing in again — though a signed-out customer who starts a new box replaces it (choosing
+  between boxes is #14). Spec: `server-box-cart.md`.
 - **Site chrome (#10) is the v2 header, drawer and footer** (Homepage v2 is canonical). There is no
   announcement strip — the v2 design dropped it site-wide, and the homepage must never show the
   earliest delivery date. Every chrome destination is defined ONCE in `src/lib/content/navigation.ts`;

@@ -25,14 +25,16 @@ import {
 } from '@/lib/aonik/map';
 import { liveOrderingEnabled, readAonikConfig } from '@/lib/aonik/dataMode';
 
+import { currentSession } from '@/lib/auth/server';
 import { isExpired, readSession } from '@/lib/auth/session';
 
 import { clearCartCookie, readCartCookie, writeCartCookie } from './cartCookie';
-import { CartMissingError } from './cartMissing';
+import { CartMissingError, cartOrderedError } from './cartMissing';
 import { cartExistsAfterProbe } from './convergence';
 import { ORDERING_DISABLED_MESSAGE } from './ordering';
 import {
   clearPlacedOrder,
+  readPlacedOrder,
   writePlacedOrder,
   type PlacedOrder,
   type PlacedOrderLine,
@@ -141,6 +143,22 @@ export async function createBoxCart(input: {
 }
 
 /**
+ * Whether a box is finished for good: Aonik answers `status` on every box and
+ * on a refused write, and only `Open` can change. `Abandoned` is a box its
+ * sweeper expired (an empty one after 24 hours idle, a populated one after 7
+ * days — while the cookie naming it lives 30); `CheckedOut` is one that became
+ * an order. An absent status is an Aonik from before it reported one: Open.
+ */
+function isFinished(status: string | undefined): boolean {
+  return status !== undefined && status !== 'Open';
+}
+
+/** What a finished box means to the tab: an order already placed, or simply no box. */
+function finishedCartError(status: string | undefined): CartMissingError {
+  return status === 'CheckedOut' ? cartOrderedError() : new CartMissingError();
+}
+
+/**
  * Runs an operation against the stored cart.
  *
  * A 404 about the CART means it is unknown OR not ours — Aonik makes those two
@@ -156,18 +174,37 @@ export async function createBoxCart(input: {
  * differs, so rather than pattern-match English, ask the question directly —
  * re-read the cart, and let its answer decide. That costs one request on an
  * error path and is immune to how the message is worded.
+ *
+ * A write refused because the box is FINISHED (expired, or already an order)
+ * is the same dead end as a missing cart: no retry can ever succeed against it,
+ * so the cookie goes and the tab is told the box is gone — never "payment in
+ * progress", which would leave the customer retrying for good.
  */
 async function withCart<T>(
   run: (cartId: string, auth: CartFetchOptions) => Promise<T>,
+  version?: string,
 ): Promise<T | null> {
   const cookie = await readCartCookie();
   if (!cookie) return null;
 
   const auth = await cartAuth(cookie.cartToken);
 
+  // A box adopted into an account answers only to that account's bearer. With
+  // no session (signed out, or lapsed) there is nothing to send: asking would
+  // 404 and clear the cookie — the one way back to the box once the customer
+  // signs in again. So there is simply no box to show until then.
+  if (!cookie.cartToken && !auth.accessToken) return null;
+
   try {
-    return await run(cookie.cartId, auth);
+    // Only a write carries the version: it is the precondition Aonik checks
+    // before changing the box, and a read has nothing to check.
+    return await run(cookie.cartId, version ? { ...auth, cartVersion: version } : auth);
   } catch (error) {
+    if (error instanceof AonikError && error.isCartWriteRefused && isFinished(error.cartStatus)) {
+      await clearCartCookie();
+      throw finishedCartError(error.cartStatus);
+    }
+
     if (!(error instanceof AonikError) || !error.isNotFound) throw error;
 
     if (await cartStillExists(cookie.cartId, auth)) {
@@ -184,11 +221,24 @@ async function withCart<T>(
 /** Requires the cart rather than turning a missing/stale cart into a 200 no-op. */
 async function withRequiredCart<T>(
   run: (cartId: string, auth: CartFetchOptions) => Promise<T>,
+  version?: string,
 ): Promise<T> {
-  const result = await withCart(run);
+  const result = await withCart(run, version);
   if (result === null) throw new CartMissingError();
   return result;
 }
+
+/**
+ * The version of the box a change is based on: the `version` of the cart the
+ * customer's tab last adopted, sent with the request (`CART_VERSION_HEADER`).
+ *
+ * Every write below takes one and sends it to Aonik, which refuses the write
+ * when it is missing or older than the box (409 `commerce.cart_conflict`) — so
+ * a change made in a stale tab never lands blindly on a box that has moved on
+ * (SHOPPING-STATE §53). It is never fetched here to make a write "just work":
+ * that would defeat the precondition. Creating a box needs none.
+ */
+export type CartVersion = string | undefined;
 
 /** Whether the cart still resolves for us; only Aonik not-found means gone. */
 async function cartStillExists(cartId: string, auth: CartFetchOptions): Promise<boolean> {
@@ -211,25 +261,42 @@ async function cartStillExists(cartId: string, auth: CartFetchOptions): Promise<
  * throws when there is no session, and the overwhelmingly common case here is a
  * perfectly valid guest cart with no session at all. A session that cannot be
  * refreshed simply means "no bearer to add", never "this cart call fails".
+ *
+ * An expired access token IS refreshed here (`currentSession`), though: an
+ * adopted box answers only to its bearer, so without one the box would read
+ * as gone — and the next size or dish would start a second box over it.
  */
 async function cartAuth(cartToken: string | undefined): Promise<CartFetchOptions> {
   const auth: CartFetchOptions = { cartToken };
-
-  try {
-    const session = await readSession();
-    if (session && !isExpired(session)) auth.accessToken = session.accessToken;
-  } catch {
-    // No session, unreadable cookie — guest semantics, exactly as before.
-  }
-
+  const session = await currentSession();
+  if (session) auth.accessToken = session.accessToken;
   return auth;
 }
 
-/** The current cart, or null without a cookie. Confirmed stale carts reject. */
+/**
+ * The stored box as Aonik answers it, or null without one. Confirmed stale
+ * carts reject. A FINISHED box (expired, or already an order) is no box at
+ * all: its cookie is cleared and the answer is null — SHOPPING-STATE's "clear
+ * stale draft, fresh ordering state" — so the tab never shows a box that every
+ * change would be refused on.
+ */
+async function readBoxCart(): Promise<BoxCartDto | null> {
+  const dto = await fetchBoxCart();
+  if (dto && isFinished(dto.status)) {
+    await clearCartCookie();
+    return null;
+  }
+  return dto;
+}
+
+/** The stored box exactly as Aonik answers it, finished or not. */
+function fetchBoxCart(): Promise<BoxCartDto | null> {
+  return withCart((cartId, auth) => cartFetch<BoxCartDto>(`/commerce/carts/${cartId}`, auth));
+}
+
+/** The current cart, or null without one. Confirmed stale carts reject. */
 export async function getBoxCart(): Promise<BoxCart | null> {
-  const dto = await withCart((cartId, auth) =>
-    cartFetch<BoxCartDto>(`/commerce/carts/${cartId}`, auth),
-  );
+  const dto = await readBoxCart();
   return dto ? mapBoxCart(dto) : null;
 }
 
@@ -281,7 +348,7 @@ export async function addBoxLine(input: {
    * only side of the seam that knows them.
    */
   choices?: PersonalisationSelection;
-}): Promise<BoxCart | null> {
+}, version?: CartVersion): Promise<BoxCart | null> {
   const { variantId, groups } = await resolveForCart(input.slug);
   // The UI has already applied add policy: an all-default add sends no choices.
   // Once choices are present (custom add or edit), retain their complete canonical
@@ -290,16 +357,18 @@ export async function addBoxLine(input: {
     ? encodeSelection(groups, input.choices, false)
     : undefined;
 
-  const dto = await withCart((cartId, auth) =>
-    cartFetch<BoxCartDto>(`/commerce/carts/${cartId}/lines`, {
-      ...auth,
-      method: 'POST',
-      body: {
-        productVariantId: variantId,
-        quantity: input.quantity,
-        personalisation,
-      },
-    }),
+  const dto = await withCart(
+    (cartId, auth) =>
+      cartFetch<BoxCartDto>(`/commerce/carts/${cartId}/lines`, {
+        ...auth,
+        method: 'POST',
+        body: {
+          productVariantId: variantId,
+          quantity: input.quantity,
+          personalisation,
+        },
+      }),
+    version,
   );
   if (dto) return mapBoxCart(dto);
 
@@ -335,23 +404,28 @@ export async function addBoxLine(input: {
 export async function updateBoxLine(
   lineId: string,
   input: { quantity?: number; personalisation?: PersonalisationSelection; applyToUnits?: number },
+  version?: CartVersion,
 ): Promise<BoxCart> {
-  const dto = await withRequiredCart((cartId, auth) =>
-    cartFetch<BoxCartDto>(`/commerce/carts/${cartId}/lines/${lineId}`, {
-      ...auth,
-      method: 'PATCH',
-      body: input,
-    }),
+  const dto = await withRequiredCart(
+    (cartId, auth) =>
+      cartFetch<BoxCartDto>(`/commerce/carts/${cartId}/lines/${lineId}`, {
+        ...auth,
+        method: 'PATCH',
+        body: input,
+      }),
+    version,
   );
   return mapBoxCart(dto);
 }
 
-export async function removeBoxLine(lineId: string): Promise<BoxCart> {
-  const dto = await withRequiredCart((cartId, auth) =>
-    cartFetch<BoxCartDto>(`/commerce/carts/${cartId}/lines/${lineId}`, {
-      ...auth,
-      method: 'DELETE',
-    }),
+export async function removeBoxLine(lineId: string, version?: CartVersion): Promise<BoxCart> {
+  const dto = await withRequiredCart(
+    (cartId, auth) =>
+      cartFetch<BoxCartDto>(`/commerce/carts/${cartId}/lines/${lineId}`, {
+        ...auth,
+        method: 'DELETE',
+      }),
+    version,
   );
   return mapBoxCart(dto);
 }
@@ -374,13 +448,15 @@ export async function removeBoxLine(lineId: string): Promise<BoxCart> {
  * (`boxPrice(target) − boxPrice(current)`), computed server-side — it may bend
  * around preset price points and is never a flat per-dish figure.
  */
-export async function setBoxSize(size: number): Promise<BoxCart | null> {
-  const dto = await withCart((cartId, auth) =>
-    cartFetch<BoxCartDto>(`/commerce/carts/${cartId}/size`, {
-      ...auth,
-      method: 'PATCH',
-      body: { size },
-    }),
+export async function setBoxSize(size: number, version?: CartVersion): Promise<BoxCart | null> {
+  const dto = await withCart(
+    (cartId, auth) =>
+      cartFetch<BoxCartDto>(`/commerce/carts/${cartId}/size`, {
+        ...auth,
+        method: 'PATCH',
+        body: { size },
+      }),
+    version,
   );
   if (dto) return mapBoxCart(dto);
 
@@ -414,25 +490,32 @@ async function defaultBoxPlan(): Promise<BoxPlanDto> {
 }
 
 /** Adds an à-la-carte extra. Consumes no box space; lands in the `addOns` component. */
-export async function addBoxExtra(input: {
-  productVariantId: string;
-  quantity: number;
-  personalisation?: PersonalisationSelection;
-}): Promise<BoxCart> {
-  const dto = await withRequiredCart((cartId, auth) =>
-    cartFetch<BoxCartDto>(`/commerce/carts/${cartId}/extras`, {
-      ...auth,
-      method: 'POST',
-      body: input,
-    }),
+export async function addBoxExtra(
+  input: {
+    productVariantId: string;
+    quantity: number;
+    personalisation?: PersonalisationSelection;
+  },
+  version?: CartVersion,
+): Promise<BoxCart> {
+  const dto = await withRequiredCart(
+    (cartId, auth) =>
+      cartFetch<BoxCartDto>(`/commerce/carts/${cartId}/extras`, {
+        ...auth,
+        method: 'POST',
+        body: input,
+      }),
+    version,
   );
   return mapBoxCart(dto);
 }
 
 /** Re-validates against the live catalogue before review (SPEC review-checkout). */
-export async function continueBoxCart(): Promise<BoxCart> {
-  const dto = await withRequiredCart((cartId, auth) =>
-    cartFetch<BoxCartDto>(`/commerce/carts/${cartId}/continue`, { ...auth, method: 'POST' }),
+export async function continueBoxCart(version?: CartVersion): Promise<BoxCart> {
+  const dto = await withRequiredCart(
+    (cartId, auth) =>
+      cartFetch<BoxCartDto>(`/commerce/carts/${cartId}/continue`, { ...auth, method: 'POST' }),
+    version,
   );
   return mapBoxCart(dto);
 }
@@ -469,12 +552,15 @@ function paymentLabels(): { provider: string; paymentMethodType: string } {
  *     so the cookie is cleared here — leaving it would strand the customer on a
  *     dead cart with no way back to an empty box.
  */
-export async function checkoutBoxCart(input?: {
-  returnUrl?: string;
-  cancelUrl?: string;
-  customerAccountId?: string;
-  discountCode?: string;
-}): Promise<CheckoutResult> {
+export async function checkoutBoxCart(
+  input?: {
+    returnUrl?: string;
+    cancelUrl?: string;
+    customerAccountId?: string;
+    discountCode?: string;
+  },
+  version?: CartVersion,
+): Promise<CheckoutResult> {
   // Before anything else, including the read below: while ordering is closed
   // this call must not touch the cart or Aonik at all.
   if (!liveOrderingEnabled()) throw new OrderingDisabledError();
@@ -485,21 +571,81 @@ export async function checkoutBoxCart(input?: {
   // order routes are authenticated and party-scoped, so an anonymous customer
   // can never read the order back. A drift 409 throws before the snapshot is
   // written, which is correct — nothing was placed.
-  const placed = await getBoxCart();
-  if (!placed) throw new CartMissingError('There is no box to check out.');
+  //
+  // Read as it is, finished or not: a box that already became an order — a
+  // checkout whose answer never arrived, or one placed from another tab — is
+  // REPLAYED by Aonik (before any version check), and that replay is how the
+  // customer reaches the confirmation rather than a false "nothing ordered"
+  // (SHOPPING-STATE §42, §53).
+  const snapshot = await fetchBoxCart();
+  if (!snapshot) {
+    // No box, but a receipt from this browser: another tab placed the order
+    // and took the box with it (SHOPPING-STATE §53).
+    if (await readPlacedOrder()) throw cartOrderedError();
+    throw new CartMissingError('There is no box to check out.');
+  }
+  const placed = mapBoxCart(snapshot);
+  const ordered = Boolean(snapshot.orderId) || snapshot.status === 'CheckedOut';
+  if (isFinished(snapshot.status) && !ordered) {
+    // Expired, and never ordered: nothing to place or replay.
+    await clearCartCookie();
+    throw new CartMissingError('There is no box to check out.');
+  }
 
-  const dto = await withRequiredCart((cartId, auth) =>
-    cartFetch<CheckoutResultDto>(`/commerce/carts/${cartId}/checkout`, {
-      ...auth,
-      method: 'POST',
-      body: { ...paymentLabels(), ...input },
-    }),
+  // That read is itself a chance for the box to move: Aonik saves a catalogue
+  // repair on a read and reports it once, in `changes`. Sending the checkout
+  // after it would be refused on the tab's older version as a conflict, and the
+  // list of what changed would be lost — so nothing is placed, and the tab gets
+  // the box with its changes to confirm again (Spec 068 A18). Any other move
+  // (another tab's edit) Aonik refuses itself, on the version sent below.
+  //
+  // A REPAIR (any reason but `unavailable`, which Aonik recomputes on every
+  // read) stops it whatever `orderId` says: a payment-failed (Retryable) box
+  // keeps its order id yet is editable, and Aonik checks its version. On a box
+  // with no order, an unavailable line stops it too — the checkout would only
+  // be refused for it.
+  const repaired = snapshot.changes.some((change) => change.reason !== 'unavailable');
+  if (snapshot.status !== 'CheckedOut' && (repaired || (!ordered && snapshot.changes.length > 0))) {
+    throw changedBeforeCheckout(snapshot);
+  }
+
+  const dto = await withRequiredCart(
+    (cartId, auth) =>
+      cartFetch<CheckoutResultDto>(`/commerce/carts/${cartId}/checkout`, {
+        ...auth,
+        method: 'POST',
+        body: { ...paymentLabels(), ...input },
+      }),
+    version,
   );
 
   const order = mapCheckoutResult(dto);
-  await writePlacedOrder(snapshotOrder(order, placed, await earliestDeliveryDate()));
+  // A replay's promise was made at the first placement, and is not known here:
+  // better no date on the confirmation than today's, presented as that one.
+  const promised = ordered ? undefined : await earliestDeliveryDate();
+  await writePlacedOrder(snapshotOrder(order, placed, promised));
   await clearCartCookie();
   return order;
+}
+
+/**
+ * Checkout stopped before it was sent: the read before placing reported
+ * changes. Shaped as Aonik's own drift, with the box riding along, so the tab
+ * adopts it — changes and new version — exactly as it adopts any drift.
+ */
+function changedBeforeCheckout(snapshot: BoxCartDto): AonikError {
+  return new AonikError({
+    status: 409,
+    path: `/commerce/carts/${snapshot.box.cartId}/checkout`,
+    code: AONIK_CODES.boxDrift,
+    message: 'The box changed before checkout.',
+    drift: {
+      box: snapshot.box,
+      quote: snapshot.quote,
+      changes: snapshot.changes,
+      ...(snapshot.cartVersion ? { cartVersion: snapshot.cartVersion } : {}),
+    },
+  });
 }
 
 /**
@@ -569,6 +715,18 @@ function snapshotOrder(
  *    Open (it already became an order — order history carries it now) or the
  *    account has no customer profile to adopt into. Different facts, same
  *    response here: leave the cart alone and carry on.
+ *  - **409 `commerce.box_choice_required`** → the account already holds a
+ *    different box (Aonik #348). Choosing between them is SHOPPING-STATE §54's
+ *    KEEP THIS BOX / USE SAVED BOX, not built yet (#14), so the guest box stays
+ *    a guest box and nothing is lost. `cart_locked` / `cart_conflict` likewise:
+ *    the box is mid-payment or changed as we read it, so adoption waits; and
+ *    `box_choice_stale` / `multiple_active_boxes` are that same unbuilt choice.
+ *  - **a finished guest box** (expired, or already an order) → nothing to bring
+ *    along: its cookie is cleared, and adoption is not attempted.
+ *
+ * Adoption is a write, so it carries the box's version (#347). It is read here
+ * first, from the guest box itself: unlike an edit, adoption changes who owns
+ * the box, not what is in it, so there is no customer-seen state to protect.
  */
 export async function adoptBoxCart(): Promise<'adopted' | 'nothing-to-adopt' | 'skipped'> {
   const cookie = await readCartCookie();
@@ -579,9 +737,18 @@ export async function adoptBoxCart(): Promise<'adopted' | 'nothing-to-adopt' | '
   if (!session || isExpired(session)) return 'nothing-to-adopt';
 
   try {
+    const guest = await cartFetch<BoxCartDto>(`/commerce/carts/${cookie.cartId}`, {
+      cartToken: cookie.cartToken,
+    });
+    if (isFinished(guest.status)) {
+      await clearCartCookie();
+      return 'skipped';
+    }
+
     await cartFetch<unknown>(`/commerce/carts/${cookie.cartId}/adopt`, {
       method: 'POST',
       cartToken: cookie.cartToken,
+      cartVersion: guest.cartVersion || undefined,
       accessToken: session.accessToken,
     });
 
@@ -597,6 +764,16 @@ export async function adoptBoxCart(): Promise<'adopted' | 'nothing-to-adopt' | '
       error instanceof AonikError &&
       error.status === 400 &&
       error.code === AONIK_CODES.storefrontValidation
+    ) {
+      return 'skipped';
+    }
+
+    if (
+      error instanceof AonikError &&
+      (error.isCartWriteRefused ||
+        error.code === AONIK_CODES.boxChoiceRequired ||
+        error.code === AONIK_CODES.boxChoiceStale ||
+        error.code === AONIK_CODES.multipleActiveBoxes)
     ) {
       return 'skipped';
     }

@@ -6,7 +6,7 @@ branch: feat/server-box-cart
 owner: michaeljosiah
 capabilities: [box-builder, extras]
 created: 2026-07-22
-updated: 2026-07-22
+updated: 2026-10-10
 ---
 
 # Server cart — the box session moves to Aonik
@@ -76,6 +76,69 @@ losing the cookie means the guest cart is simply gone — render the empty-box s
   swept as abandoned)
 - **THEN** the route handler clears the cookie and the UI resets to the empty-box state
 - **AND** no copy speculates about why (unknown and unauthorized are indistinguishable)
+
+### Requirement: Every write is based on the box the tab last saw
+`capability: box-builder` · `delta: ADDED (feat/cart-version)`
+
+Aonik #347 made every cart write conditional on the cart's row version (`X-Cart-Version`,
+from the `cartVersion` on every box response); a missing or older one is refused with 409
+`commerce.cart_conflict`, and a box that cannot be edited (payment in progress, or ordered)
+with 409 `commerce.cart_locked`. The storefront SHALL send, with every write, the version of
+the box the customer's tab last adopted — never one fetched to make the write succeed, which
+would defeat SHOPPING-STATE §53 ("one tab should not overwrite newer changes blindly"). The
+version reaches the browser on the mapped box (`BoxCart.version`, not a secret) and returns in
+the `X-Cart-Version` header on `/api/cart` writes. A refused write SHALL answer 409
+`cart.conflict` / `cart.locked` carrying the box as it is now, which the tab adopts (or
+`cart: null` when it is gone by then); it SHALL NOT be retried by the server. A lost race on
+the same version (`concurrency_conflict`) is a conflict. A box whose status is not `Open` is
+finished for good and SHALL NOT be offered to the tab at all. A drift 409 SHALL carry the repaired box's new version. Creating
+a box needs no version; adopting a guest box on sign-in reads the guest box's version first,
+because adoption changes who owns the box, not what is in it.
+
+#### Scenario: Another tab changed the box
+- **WHEN** a tab holding version v2 changes the size after another tab moved the box to v3
+- **THEN** Aonik refuses the write, nothing changes, and the tab shows the v3 box with "Your box
+  changed in another window, so we've updated it here." and "Please try the action again."
+- **AND** trying again sends v3 and succeeds
+
+#### Scenario: A box mid-payment
+- **WHEN** a change reaches a box whose payment is in progress
+- **THEN** it is refused with "Your box can't be changed while its payment is being processed."
+  and no "try again" line
+
+#### Scenario: A box Aonik expired
+- **WHEN** the cookie still names a box Aonik has marked `Abandoned` (empty for 24 hours, or
+  populated for 7 days)
+- **THEN** reading it answers no box and clears the cookie (SHOPPING-STATE: "clear stale draft,
+  fresh ordering state"), and a write refused on it answers `cart.missing` with `cart: null`
+- **AND** the next size or dish starts a fresh box
+
+#### Scenario: The box already became an order
+- **WHEN** a change or a read reaches a box that is `CheckedOut`
+- **THEN** the cookie is cleared; a refused write answers `cart.ordered` with "This order has
+  already been completed." (SHOPPING-STATE §53) and no "try again" line
+
+#### Scenario: Checkout's own read repairs the box
+- **WHEN** the read checkout makes before placing reports changes (a catalogue repair it saved)
+  on a box with no order yet
+- **THEN** nothing is placed; it answers as drift, with the repaired box and what changed
+- **AND** a box another tab changed is refused by Aonik on the tab's version, as `cart.conflict`
+
+#### Scenario: The first answer never arrived
+- **WHEN** Place order is pressed again for a box that already holds an order (its `orderId` is
+  set, or it is `CheckedOut`)
+- **THEN** the checkout goes to Aonik whatever the tab's version, Aonik replays the same order,
+  and the customer reaches its confirmation — never "Nothing has been ordered"
+
+#### Scenario: Signing out and back in
+- **WHEN** a customer whose box was adopted signs out
+- **THEN** the tab shows no box, nothing is asked of Aonik, and the cookie naming the box stays
+- **AND** signing in again shows that box
+
+#### Scenario: Signing in adopts the box
+- **WHEN** a guest with a box signs in and the box is adopted
+- **THEN** the tab reads the box again (the root layout's `signedIn` changes), so its next
+  change is based on the adopted box's version, not the guest one
 
 ### Requirement: Line operations map onto box routes
 `capability: box-builder` · `delta: MODIFIED (feat/server-box-cart)`

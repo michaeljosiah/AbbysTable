@@ -103,6 +103,12 @@ interface CartContextValue extends CartState {
   changes: BoxChange[];
   /** Any line Aonik flagged unavailable blocks continue and checkout. */
   hasUnavailableLine: boolean;
+  /**
+   * The server box already holds an order — its checkout's answer may never
+   * have arrived. Placing it again replays that order (Aonik), so Review lets
+   * the customer do so rather than gating on a box that can no longer change.
+   */
+  ordered: boolean;
   /** A mutation is in flight — disable controls rather than double-firing. */
   pending: boolean;
   /** The last cart failure, for inline messages. */
@@ -185,6 +191,7 @@ function projectServerCart(
 export function CartProvider({
   mode = 'demo',
   liveOrdering = false,
+  signedIn = false,
   children,
 }: {
   /** Resolved server-side; decides which engine runs. */
@@ -195,6 +202,13 @@ export function CartProvider({
    * switch on every request; this only lets the page say so without asking.
    */
   liveOrdering?: boolean;
+  /**
+   * Whether a customer is signed in, from the session cookie. When it changes
+   * the server box is read again: adopting it on sign-in is a write, so the
+   * version this tab holds is stale the moment the redirect lands, and after
+   * sign-out the box is no longer this browser's to show.
+   */
+  signedIn?: boolean;
   children: ReactNode;
 }) {
   const isServerCart = mode === 'live';
@@ -202,7 +216,7 @@ export function CartProvider({
 
   const [state, setState] = useState<CartState>(EMPTY);
   const [hydrated, setHydrated] = useState(false);
-  const server = useServerCart(isServerCart);
+  const server = useServerCart(isServerCart, signedIn);
 
   // Read storage after mount so server and first client render agree. Skipped
   // entirely in live mode, where the server cart is the truth.
@@ -516,6 +530,7 @@ export function CartProvider({
       quote: server.cart?.quote ?? null,
       changes: server.cart?.changes ?? [],
       hasUnavailableLine: server.cart?.lines.some((line) => line.isUnavailable) ?? false,
+      ordered: server.cart?.ordered ?? false,
       pending: server.pending,
       error: server.error,
       isServerCart,

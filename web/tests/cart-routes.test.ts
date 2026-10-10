@@ -3,7 +3,7 @@ import './support/runtime';
 import assert from 'node:assert/strict';
 import { beforeEach, mock, test } from 'node:test';
 
-import { DELETE, GET, POST } from '../src/app/api/cart/[[...action]]/route';
+import { DELETE, GET, PATCH, POST } from '../src/app/api/cart/[[...action]]/route';
 import type { BoxCartDto, CheckoutResultDto } from '../src/lib/aonik/dto';
 import { AONIK_CODES } from '../src/lib/aonik/errors';
 import { CART_COOKIE } from '../src/lib/cart/cartCookie';
@@ -58,14 +58,19 @@ const placed: CheckoutResultDto = {
   checkoutUrl: null,
 };
 
-function call(action: string[], method: 'POST' | 'DELETE', body?: unknown) {
+function call(action: string[], method: 'POST' | 'PATCH' | 'DELETE', body?: unknown, version?: string) {
+  const headers: Record<string, string> = {};
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  // The provider sends the version of the box the tab last adopted.
+  if (version) headers['X-Cart-Version'] = version;
   const request = new Request(`http://localhost/api/cart/${action.join('/')}`, {
     method,
-    headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+    headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const context = { params: Promise.resolve({ action }) };
-  return method === 'POST' ? POST(request, context) : DELETE(request, context);
+  if (method === 'POST') return POST(request, context);
+  return method === 'PATCH' ? PATCH(request, context) : DELETE(request, context);
 }
 
 async function read(response: Response) {
@@ -140,6 +145,101 @@ test('reading the cart proves possession with the token header, and keeps it ser
   assert.ok(!text.includes(CART_TOKEN));
 });
 
+/* ---- The box version (Aonik #347) ---------------------------------------------- */
+
+test('every write carries the version of the box the tab last saw; the box comes back with its new one', async () => {
+  resetCookies({ [CART_COOKIE]: GUEST_COOKIE });
+  let next = 1;
+  useAonik((request) => {
+    if (request.method === 'GET') return { status: 200, body: cartDto({ cartVersion: 'v0' }) };
+    next += 1;
+    return { status: 200, body: cartDto({ cartVersion: `v${next}` }) };
+  });
+
+  const extra = await read(await call(['extras'], 'POST', { productVariantId: 'var-1' }, 'v1'));
+  const size = await read(await call(['size'], 'PATCH', { size: 12 }, 'v2'));
+  const line = await read(await call(['lines', 'l-1'], 'PATCH', { quantity: 2 }, 'v3'));
+  const removed = await read(await call(['lines', 'l-1'], 'DELETE', undefined, 'v4'));
+  const continued = await read(await call(['continue'], 'POST', {}, 'v5'));
+
+  assert.deepEqual(
+    aonikRequests.map((request) => [request.method, request.path, request.headers['x-cart-version']]),
+    [
+      ['POST', `/commerce/carts/${CART_ID}/extras`, 'v1'],
+      ['PATCH', `/commerce/carts/${CART_ID}/size`, 'v2'],
+      ['PATCH', `/commerce/carts/${CART_ID}/lines/l-1`, 'v3'],
+      ['DELETE', `/commerce/carts/${CART_ID}/lines/l-1`, 'v4'],
+      ['POST', `/commerce/carts/${CART_ID}/continue`, 'v5'],
+    ],
+  );
+  // Each response hands the tab the version its next change must be based on.
+  assert.deepEqual(
+    [extra, size, line, removed, continued].map(({ json }) => (json.cart as { version?: string }).version),
+    ['v2', 'v3', 'v4', 'v5', 'v6'],
+  );
+});
+
+test('a read never carries a version: there is nothing for it to protect', async () => {
+  resetCookies({ [CART_COOKIE]: GUEST_COOKIE });
+  useAonik(() => ({ status: 200, body: cartDto({ cartVersion: 'v3' }) }));
+
+  const { json } = await read(await GET());
+
+  assert.equal(aonikRequests[0].headers['x-cart-version'], undefined);
+  assert.equal((json.cart as { version?: string }).version, 'v3');
+});
+
+test('a change based on an older box is refused, answered with the box as it is now, and never retried', async () => {
+  resetCookies({ [CART_COOKIE]: GUEST_COOKIE });
+  useAonik((request) => {
+    if (request.method === 'GET') return { status: 200, body: cartDto({ cartVersion: 'v9' }) };
+    return {
+      status: 409,
+      body: {
+        code: AONIK_CODES.cartConflict,
+        message: 'The cart changed. Reload it before saving your changes.',
+        cartId: CART_ID,
+        cartVersion: 'v9',
+        status: 'Open',
+        orderId: null,
+      },
+    };
+  });
+
+  const { status, json } = await read(await call(['size'], 'PATCH', { size: 12 }, 'v1'));
+
+  assert.equal(status, 409);
+  assert.equal(json.code, 'cart.conflict');
+  assert.match(String(json.error), /changed in another window/);
+  // The tab adopts this box and its version before the customer tries again.
+  assert.equal((json.cart as { version?: string }).version, 'v9');
+  // One write, then one read: re-sending the change against a box the customer
+  // has not seen is exactly what the version exists to prevent.
+  assert.deepEqual(
+    aonikRequests.map((request) => request.method),
+    ['PATCH', 'GET'],
+  );
+  assert.equal(cookieValue(CART_COOKIE), GUEST_COOKIE, 'the box is kept');
+});
+
+test('a box whose payment is in progress cannot be changed, and says so', async () => {
+  resetCookies({ [CART_COOKIE]: GUEST_COOKIE });
+  useAonik((request) => {
+    if (request.method === 'GET') return { status: 200, body: cartDto({ cartVersion: 'v4' }) };
+    return {
+      status: 409,
+      body: { code: AONIK_CODES.cartLocked, message: 'This cart is no longer editable.', cartId: CART_ID, cartVersion: 'v4' },
+    };
+  });
+
+  const { status, json } = await read(await call(['extras'], 'POST', { productVariantId: 'var-1' }, 'v4'));
+
+  assert.equal(status, 409);
+  assert.equal(json.code, 'cart.locked');
+  assert.match(String(json.error), /payment/);
+  assert.equal((json.cart as { version?: string }).version, 'v4');
+});
+
 test('a mutation with no cart is refused with an authoritative empty cart', async () => {
   useAonik(() => undefined);
 
@@ -201,19 +301,22 @@ test('checkout drift answers 409 with the repaired box and orders nothing', asyn
           box: repaired.box,
           quote: repaired.quote,
           changes: repaired.changes,
+          cartVersion: 'v-repaired',
         },
       };
     }
     return undefined;
   });
 
-  const { status, json } = await read(await call(['checkout'], 'POST', {}));
+  const { status, json } = await read(await call(['checkout'], 'POST', {}, 'v1'));
 
   assert.equal(status, 409);
   assert.equal(json.code, AONIK_CODES.boxDrift);
-  const cart = json.cart as { cartId: string; changes: unknown[] };
+  const cart = json.cart as { cartId: string; changes: unknown[]; version?: string };
   assert.equal(cart.cartId, CART_ID);
   assert.equal(cart.changes.length, 1);
+  // Aonik saved the repair, so the confirmation must be based on the repaired box.
+  assert.equal(cart.version, 'v-repaired');
   assert.equal(cookieValue(CART_COOKIE), GUEST_COOKIE, 'the box survives a drift stop');
   assert.equal(cookieValue(ORDER_COOKIE), undefined, 'nothing was ordered');
 });
@@ -221,17 +324,315 @@ test('checkout drift answers 409 with the repaired box and orders nothing', asyn
 test('a successful checkout clears the cart cookie and leaves an order snapshot', async () => {
   resetCookies({ [CART_COOKIE]: GUEST_COOKIE });
   useAonik((request) => {
-    if (request.method === 'GET') return { status: 200, body: cartDto() };
+    if (request.method === 'GET') return { status: 200, body: cartDto({ cartVersion: 'v5' }) };
     if (request.path === `/commerce/carts/${CART_ID}/checkout`) return { status: 200, body: placed };
     return undefined;
   });
 
-  const { status, text, json } = await read(await call(['checkout'], 'POST', {}));
+  const { status, text, json } = await read(await call(['checkout'], 'POST', {}, 'v5'));
 
   assert.equal(status, 200);
+  // Placing is a write like any other: based on the box the tab confirmed.
+  const checkout = aonikRequests.find((request) => request.path.endsWith('/checkout'));
+  assert.equal(checkout?.headers['x-cart-version'], 'v5');
   assert.equal(json.cart, null, 'an explicit null resets the client');
   assert.equal((json.order as { orderId: string }).orderId, 'order-1');
   assert.ok(!text.includes(CART_TOKEN));
   assert.equal(cookieValue(CART_COOKIE), undefined);
   assert.equal(JSON.parse(cookieValue(ORDER_COOKIE) ?? '{}').orderId, 'order-1');
+});
+
+
+/* ---- A box that moved, or finished, under the tab (#347) ------------------------------ */
+
+test('adding a dish carries the version too', async () => {
+  resetCookies({ [CART_COOKIE]: GUEST_COOKIE });
+  useAonik((request) => {
+    if (request.path === '/commerce/catalog/products/jollof') {
+      return {
+        status: 200,
+        body: { id: 'p-1', slug: 'jollof', variants: [{ id: 'var-1', isActive: true }], effectiveOptionGroups: [] },
+      };
+    }
+    if (request.path === `/commerce/carts/${CART_ID}/lines`) return { status: 200, body: cartDto({ cartVersion: 'v8' }) };
+    return undefined;
+  });
+
+  const { status } = await read(await call(['lines'], 'POST', { slug: 'jollof', quantity: 1 }, 'v7'));
+
+  assert.equal(status, 200);
+  const added = aonikRequests.find((request) => request.path === `/commerce/carts/${CART_ID}/lines`);
+  assert.equal(added?.headers['x-cart-version'], 'v7');
+});
+
+test('checkout stops before placing when its own read finds the box repaired, and shows what changed', async () => {
+  resetCookies({ [CART_COOKIE]: GUEST_COOKIE });
+  useAonik((request) => {
+    // The read before placing repairs the box (Aonik saves it, so it moves on).
+    if (request.method === 'GET') {
+      return {
+        status: 200,
+        body: cartDto({
+          cartVersion: 'v6',
+          changes: [
+            { lineId: 'l-1', group: 'Heat', from: 'Hot', to: 'Medium', reason: 'option-retired', priceDelta: null, mergedIntoLineId: null },
+          ],
+        }),
+      };
+    }
+    return undefined;
+  });
+
+  const { status, json } = await read(await call(['checkout'], 'POST', {}, 'v5'));
+
+  assert.equal(status, 409);
+  assert.equal(json.code, AONIK_CODES.boxDrift);
+  const cart = json.cart as { changes: unknown[]; version?: string };
+  assert.equal(cart.changes.length, 1, 'the customer sees what changed');
+  assert.equal(cart.version, 'v6');
+  assert.deepEqual(aonikRequests.map((request) => request.method), ['GET'], 'nothing was placed');
+  assert.equal(cookieValue(ORDER_COOKIE), undefined);
+});
+
+test('checkout of a box another tab changed is refused by Aonik on the tab’s version', async () => {
+  resetCookies({ [CART_COOKIE]: GUEST_COOKIE });
+  useAonik((request) => {
+    if (request.method === 'GET') return { status: 200, body: cartDto({ cartVersion: 'v9' }) };
+    return { status: 409, body: { code: AONIK_CODES.cartConflict, message: 'The cart changed.', cartVersion: 'v9', status: 'Open', orderId: null } };
+  });
+
+  const { status, json } = await read(await call(['checkout'], 'POST', {}, 'v5'));
+
+  assert.equal(status, 409);
+  assert.equal(json.code, 'cart.conflict');
+  assert.equal((json.cart as { version?: string }).version, 'v9');
+  const placing = aonikRequests.find((request) => request.path.endsWith('/checkout'));
+  assert.equal(placing?.headers['x-cart-version'], 'v5', 'based on the box the tab confirmed');
+  assert.equal(cookieValue(ORDER_COOKIE), undefined, 'nothing was ordered');
+});
+
+test('checkout of a box that already became an order is replayed, never refused as stale', async () => {
+  // The answer to the first click never arrived: Aonik holds the order and the
+  // box moved on (checkout saved it), but the tab still has the old version.
+  resetCookies({ [CART_COOKIE]: GUEST_COOKIE });
+  useAonik((request) => {
+    if (request.method === 'GET') return { status: 200, body: cartDto({ cartVersion: 'v9', orderId: 'order-1' }) };
+    if (request.path === `/commerce/carts/${CART_ID}/checkout`) return { status: 200, body: placed };
+    return undefined;
+  });
+
+  const { status, json } = await read(await call(['checkout'], 'POST', {}, 'v5'));
+
+  assert.equal(status, 200);
+  assert.equal((json.order as { orderId: string }).orderId, 'order-1', 'the same order, replayed');
+  assert.equal(JSON.parse(cookieValue(ORDER_COOKIE) ?? '{}').orderId, 'order-1');
+  assert.equal(cookieValue(CART_COOKIE), undefined);
+});
+
+test('checkout of a box already paid for reaches the confirmation, not "no box"', async () => {
+  resetCookies({ [CART_COOKIE]: GUEST_COOKIE });
+  useAonik((request) => {
+    if (request.method === 'GET') return { status: 200, body: cartDto({ cartVersion: 'v9', status: 'CheckedOut', orderId: 'order-1' }) };
+    if (request.path === `/commerce/carts/${CART_ID}/checkout`) return { status: 200, body: placed };
+    return undefined;
+  });
+
+  const { status, json } = await read(await call(['checkout'], 'POST', {}, 'v5'));
+
+  assert.equal(status, 200);
+  assert.equal((json.order as { orderId: string }).orderId, 'order-1');
+  assert.equal(JSON.parse(cookieValue(ORDER_COOKIE) ?? '{}').orderId, 'order-1');
+});
+
+/** Aonik's refusal of a write on a box that can no longer change. */
+function lockedBody(status: string, orderId: string | null = null) {
+  return {
+    code: AONIK_CODES.cartLocked,
+    message: 'This cart is no longer editable. Reload its current state.',
+    cartId: CART_ID,
+    cartVersion: 'v4',
+    status,
+    orderId,
+  };
+}
+
+test('a box Aonik expired is no box: the write is refused as missing and the cookie goes', async () => {
+  resetCookies({ [CART_COOKIE]: GUEST_COOKIE });
+  useAonik(() => ({ status: 409, body: lockedBody('Abandoned') }));
+
+  const { status, json } = await read(await call(['size'], 'PATCH', { size: 12 }, 'v4'));
+
+  assert.equal(status, 404);
+  assert.equal(json.code, 'cart.missing');
+  assert.equal(json.cart, null, 'the tab drops it; the next size or add starts a fresh box');
+  assert.doesNotMatch(String(json.error), /payment/);
+  assert.equal(cookieValue(CART_COOKIE), undefined);
+});
+
+test('a box that already became an order says so, and the cookie goes', async () => {
+  resetCookies({ [CART_COOKIE]: GUEST_COOKIE });
+  useAonik(() => ({ status: 409, body: lockedBody('CheckedOut', 'order-7') }));
+
+  const { status, json } = await read(await call(['extras'], 'POST', { productVariantId: 'var-1' }, 'v4'));
+
+  assert.equal(status, 409);
+  assert.equal(json.code, 'cart.ordered');
+  assert.equal(json.error, 'This order has already been completed.');
+  assert.equal(json.cart, null);
+  assert.equal(cookieValue(CART_COOKIE), undefined);
+});
+
+for (const finished of ['Abandoned', 'CheckedOut']) {
+  test(`reading a box that is ${finished} answers no box, and clears it`, async () => {
+    resetCookies({ [CART_COOKIE]: GUEST_COOKIE });
+    useAonik(() => ({ status: 200, body: cartDto({ status: finished }) }));
+
+    const { status, json } = await read(await GET());
+
+    assert.equal(status, 200);
+    assert.equal(json.cart, null);
+    assert.equal(cookieValue(CART_COOKIE), undefined);
+  });
+}
+
+test('reading a box that is gone answers no box, not an error', async () => {
+  resetCookies({ [CART_COOKIE]: GUEST_COOKIE });
+  useAonik(() => ({ status: 404, body: { error: `Cart ${CART_ID} was not found.` } }));
+
+  const { status, json } = await read(await GET());
+
+  assert.equal(status, 200);
+  assert.equal(json.cart, null);
+  assert.equal(json.error, undefined);
+  assert.equal(cookieValue(CART_COOKIE), undefined);
+});
+
+test('a conflict whose box is gone by the re-read drops the box too', async () => {
+  resetCookies({ [CART_COOKIE]: GUEST_COOKIE });
+  useAonik((request) => {
+    if (request.method === 'GET') return { status: 404, body: { error: `Cart ${CART_ID} was not found.` } };
+    return { status: 409, body: { code: AONIK_CODES.cartConflict, message: 'The cart changed.', status: 'Open' } };
+  });
+
+  const { status, json } = await read(await call(['size'], 'PATCH', { size: 12 }, 'v1'));
+
+  assert.equal(status, 409);
+  assert.equal(json.cart, null, 'never undefined: the tab must not keep a box that is gone');
+  assert.equal(json.code, 'cart.missing', 'no longer a conflict: there is no box');
+  assert.match(String(json.error), /no box/i);
+  assert.equal(cookieValue(CART_COOKIE), undefined);
+});
+
+test('a conflict whose box cannot be re-read says nothing was updated here', async () => {
+  resetCookies({ [CART_COOKIE]: GUEST_COOKIE });
+  useAonik((request) => {
+    if (request.method === 'GET') return { status: 500, body: { error: 'Boom.' } };
+    return { status: 409, body: { code: 'concurrency_conflict', error: 'The resource was modified by another operation.' } };
+  });
+  const logged = mock.method(console, 'error', () => undefined);
+
+  try {
+    const { status, json } = await read(await call(['size'], 'PATCH', { size: 12 }, 'v1'));
+
+    assert.equal(status, 409);
+    assert.equal(json.code, 'cart.reload', 'a conflict (a lost race on the same version) only a reload can resolve');
+    assert.equal(json.cart, undefined, 'the tab keeps its own box');
+    assert.match(String(json.error), /Reload the page/);
+    assert.doesNotMatch(String(json.error), /updated it here/);
+  } finally {
+    logged.mock.restore();
+  }
+});
+
+/* ---- A box adopted into an account, while signed out --------------------------------- */
+
+test('signed out, an adopted box is simply not shown — and its cookie is kept for signing back in', async () => {
+  const adopted = JSON.stringify({ cartId: CART_ID });
+  resetCookies({ [CART_COOKIE]: adopted });
+  useAonik(() => ({ status: 404, body: { error: 'Not found.' } }));
+
+  const reading = await read(await GET());
+  assert.equal(reading.status, 200);
+  assert.equal(reading.json.cart, null);
+
+  const writing = await read(await call(['lines', 'l-1'], 'PATCH', { quantity: 2 }, 'v1'));
+  assert.equal(writing.status, 404);
+  assert.equal(writing.json.cart, null);
+
+  assert.equal(aonikRequests.length, 0, 'nothing to authorize with, so nothing is asked');
+  assert.equal(cookieValue(CART_COOKIE), adopted, 'the way back to the box survives');
+});
+
+/* ---- Round 3: replay, repairs and receipts --------------------------------------------- */
+
+test('a payment-failed box (order id, still editable) whose read repairs it stops, with what changed', async () => {
+  resetCookies({ [CART_COOKIE]: GUEST_COOKIE });
+  useAonik((request) => {
+    if (request.method === 'GET') {
+      return {
+        status: 200,
+        body: cartDto({
+          cartVersion: 'v7',
+          orderId: 'order-1',
+          changes: [{ lineId: 'l-1', group: null, from: null, to: null, reason: 'price-changed', priceDelta: 0.5, mergedIntoLineId: null }],
+        }),
+      };
+    }
+    return undefined;
+  });
+
+  const { status, json } = await read(await call(['checkout'], 'POST', {}, 'v5'));
+
+  assert.equal(status, 409);
+  assert.equal(json.code, AONIK_CODES.boxDrift);
+  assert.equal((json.cart as { changes: unknown[] }).changes.length, 1, 'the A18 notice survives');
+  assert.deepEqual(aonikRequests.map((request) => request.method), ['GET'], 'nothing was placed');
+});
+
+test('a box with an order whose read flags only an unavailable line still goes to Aonik', async () => {
+  resetCookies({ [CART_COOKIE]: GUEST_COOKIE });
+  useAonik((request) => {
+    if (request.method === 'GET') {
+      return {
+        status: 200,
+        body: cartDto({
+          orderId: 'order-1',
+          changes: [{ lineId: 'l-1', group: null, from: null, to: null, reason: 'unavailable', priceDelta: null, mergedIntoLineId: null }],
+        }),
+      };
+    }
+    if (request.path.endsWith('/checkout')) return { status: 200, body: placed };
+    return undefined;
+  });
+
+  const { status } = await read(await call(['checkout'], 'POST', {}, 'v5'));
+
+  assert.equal(status, 200, 'replayed');
+  // A replay's promise is not known here, so the receipt claims none.
+  assert.equal(JSON.parse(cookieValue(ORDER_COOKIE) ?? '{}').earliestDeliveryDate, undefined);
+});
+
+test('checkout of an expired box that never became an order is no box, and clears it', async () => {
+  resetCookies({ [CART_COOKIE]: GUEST_COOKIE });
+  useAonik((request) => (request.method === 'GET' ? { status: 200, body: cartDto({ status: 'Abandoned' }) } : undefined));
+
+  const { status, json } = await read(await call(['checkout'], 'POST', {}, 'v5'));
+
+  assert.equal(status, 404);
+  assert.equal(json.code, 'cart.missing');
+  assert.equal(json.cart, null);
+  assert.deepEqual(aonikRequests.map((request) => request.method), ['GET']);
+  assert.equal(cookieValue(CART_COOKIE), undefined);
+});
+
+test('checkout with no box but a receipt from this browser: the order was already completed', async () => {
+  resetCookies({ [ORDER_COOKIE]: JSON.stringify({ orderId: 'order-1', totalPence: 15800, currency: 'GBP', dishes: [], addOns: [] }) });
+  useAonik(() => undefined);
+
+  const { status, json } = await read(await call(['checkout'], 'POST', {}, 'v5'));
+
+  assert.equal(status, 409);
+  assert.equal(json.code, 'cart.ordered');
+  assert.equal(json.error, 'This order has already been completed.');
+  assert.equal(aonikRequests.length, 0);
 });
