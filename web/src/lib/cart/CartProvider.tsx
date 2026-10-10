@@ -32,7 +32,7 @@ import {
 } from './demoStorage';
 import { deleteExtra, patchDishPersonalisation, patchExtra, postExtra } from './mutations';
 import { ORDERING_DISABLED_CODE, ORDERING_DISABLED_MESSAGE } from './ordering';
-import { useServerCart } from './serverEngine';
+import { useServerCart, type ServerCartEngine } from './serverEngine';
 import { CartRequestError } from './transport';
 
 /**
@@ -135,6 +135,11 @@ interface CartContextValue extends CartState {
    * never retried automatically: the stop exists so a person sees the change.
    */
   placeOrder: () => Promise<CheckoutResult>;
+  /**
+   * `/box/checkout`'s calls (`/api/checkout`), in the same queue and with the
+   * same box version as every other change to this box. Live only.
+   */
+  checkoutRequest: ServerCartEngine['checkoutRequest'];
 }
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -537,6 +542,7 @@ export function CartProvider({
       orderingEnabled,
       revalidate,
       placeOrder,
+      checkoutRequest: server.checkoutRequest,
     }),
     [
       effectiveState,
@@ -558,6 +564,7 @@ export function CartProvider({
       clear,
       revalidate,
       placeOrder,
+      server.checkoutRequest,
     ],
   );
 

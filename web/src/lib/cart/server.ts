@@ -294,6 +294,32 @@ function fetchBoxCart(): Promise<BoxCartDto | null> {
   return withCart((cartId, auth) => cartFetch<BoxCartDto>(`/commerce/carts/${cartId}`, auth));
 }
 
+/**
+ * The stored box exactly as Aonik answers it, finished or not — for checkout's
+ * entry gate (`/box/checkout`), which must tell an order already placed from no
+ * box at all. Null without one.
+ */
+export function readStoredBoxCart(): Promise<BoxCartDto | null> {
+  return fetchBoxCart();
+}
+
+/**
+ * One Aonik call on the stored box (`/commerce/carts/{cartId}` + `path`),
+ * proved ours as every cart call is — the checkout routes' way in
+ * (`@/lib/checkout/server`). A write passes the version the tab's change is
+ * based on; a box that is gone rejects with `CartMissingError`.
+ */
+export function cartCall<T>(
+  path: string,
+  options: Pick<CartFetchOptions, 'method' | 'body' | 'query' | 'signal'> = {},
+  version?: CartVersion,
+): Promise<T> {
+  return withRequiredCart(
+    (cartId, auth) => cartFetch<T>(`/commerce/carts/${cartId}${path}`, { ...options, ...auth }),
+    version,
+  );
+}
+
 /** The current cart, or null without one. Confirmed stale carts reject. */
 export async function getBoxCart(): Promise<BoxCart | null> {
   const dto = await readBoxCart();

@@ -22,11 +22,12 @@ export interface CheckoutStep {
   /** Set only on steps a customer may navigate back to. */
   href?: string;
   /**
-   * Path prefix that marks this step current, when it differs from `href`.
-   * The final step has one and no `href`: it is reachable only by placing the
-   * order, so it must light up on arrival without being a link from earlier.
+   * Path prefixes that mark this step current, when they differ from `href`.
+   * The final step has them and no `href`: it is reached by Review's CHECKOUT,
+   * never by clicking ahead on the stepper, so it must light up on arrival
+   * without being a link from earlier.
    */
-  match?: string;
+  match?: readonly string[];
 }
 
 export const CHECKOUT_STEPS: CheckoutStep[] = [
@@ -34,7 +35,7 @@ export const CHECKOUT_STEPS: CheckoutStep[] = [
   { number: 2, label: 'Add dishes', href: '/box/dishes' },
   { number: 3, label: 'Extras', href: '/box/extras' },
   { number: 4, label: 'Review', href: '/box/review' },
-  { number: 5, label: 'Checkout', match: '/box/confirmation' },
+  { number: 5, label: 'Checkout', match: ['/box/checkout', '/box/confirmation'] },
 ];
 
 /**
@@ -47,9 +48,9 @@ export function CheckoutHeader() {
 
   // Longest matching prefix wins, so `/box/dishes` beats `/box`.
   const current =
-    CHECKOUT_STEPS.map((step) => ({ step, path: step.match ?? step.href }))
-      .filter((candidate) => candidate.path && pathname.startsWith(candidate.path))
-      .sort((a, b) => b.path!.length - a.path!.length)[0]?.step ?? CHECKOUT_STEPS[0];
+    CHECKOUT_STEPS.flatMap((step) => (step.match ?? (step.href ? [step.href] : [])).map((path) => ({ step, path })))
+      .filter((candidate) => pathname.startsWith(candidate.path))
+      .sort((a, b) => b.path.length - a.path.length)[0]?.step ?? CHECKOUT_STEPS[0];
 
   return (
     // data-help-open lifts this stacking context while the help drawer, which

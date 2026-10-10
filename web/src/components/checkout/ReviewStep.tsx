@@ -45,7 +45,7 @@ import { quoteComponentLabel, useCartQuote } from '@/lib/cart/quote';
 import { formatPrice, formatPriceExact, formatSignedPrice } from '@/lib/format';
 
 import { DriftNotices } from './DriftNotices';
-import { PlaceOrderButton } from './PlaceOrderButton';
+import { ContinueLink } from './ContinueLink';
 import dmStyles from './DishPicker.module.css';
 import styles from './ReviewStep.module.css';
 
@@ -187,7 +187,7 @@ export function ReviewStep({
   /*
    * The total is the QUOTE's, never a sum taken here.
    *
-   * This is the last number a customer reads before "Place order", so it has to
+   * This is the last number a customer reads before "Checkout", so it has to
    * be the number Aonik will charge. Adding the local box and extras figures
    * instead meant the page showed whatever the client could work out — £95 over
    * a £104 box while the extras lookup was broken, and silently wrong by any
@@ -757,9 +757,9 @@ export function ReviewStep({
               <span>Total</span>
               <span className={styles.totalValue}>{totalLabel}</span>
             </div>
-            <PlaceOrderButton className={styles.cta} disabled={gateStatus !== 'ready'}>
+            <ContinueLink href="/box/checkout" className={styles.cta} disabled={gateStatus !== 'ready'}>
               <span className={styles.ctaMain}>
-                Place order
+                Checkout
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <line x1="4" y1="12" x2="19" y2="12" />
                   <path d="M13 6l6 6-6 6" />
@@ -772,7 +772,7 @@ export function ReviewStep({
                 </svg>
                 Secure checkout
               </span>
-            </PlaceOrderButton>
+            </ContinueLink>
             {earliestDeliveryLabel ? (
               <p className={styles.deliveryNote}>
                 Earliest UK-wide delivery: <strong>{earliestDeliveryLabel}</strong>
@@ -809,13 +809,13 @@ export function ReviewStep({
           </span>
         </button>
         <span className={styles.barDivider} aria-hidden="true" />
-        <PlaceOrderButton className={styles.barCta} disabled={gateStatus !== 'ready'}>
+        <ContinueLink href="/box/checkout" className={styles.barCta} disabled={gateStatus !== 'ready'}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <line x1="4" y1="12" x2="19" y2="12" />
             <path d="M13 6l6 6-6 6" />
           </svg>
-          Place order
-        </PlaceOrderButton>
+          Checkout
+        </ContinueLink>
       </div>
 
       {sheetOpen ? (
@@ -851,12 +851,12 @@ export function ReviewStep({
                 <span>Total</span>
                 <span className={styles.sheetTotalValue}>{totalLabel}</span>
               </div>
-              <PlaceOrderButton
+              <ContinueLink href="/box/checkout"
                 className={`${styles.cta} ${styles.sheetCta}`}
                 disabled={gateStatus !== 'ready'}
               >
                 <span className={styles.ctaMain}>
-                  Place order
+                  Checkout
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <line x1="4" y1="12" x2="19" y2="12" />
                     <path d="M13 6l6 6-6 6" />
@@ -869,7 +869,7 @@ export function ReviewStep({
                   </svg>
                   Secure checkout
                 </span>
-              </PlaceOrderButton>
+              </ContinueLink>
               {earliestDeliveryLabel ? (
                 <p className={styles.sheetDeliveryNote}>
                   Earliest UK-wide delivery: <strong>{earliestDeliveryLabel}</strong>

@@ -36,6 +36,7 @@
     "tests/menu.test.tsx",
     "tests/allergens.test.tsx",
     "tests/selection-content.test.tsx",
+    "tests/checkout.test.tsx",
     "tests/email.test.ts",
     "tests/signup-lists.test.tsx",
     "tests/support/*.ts",

@@ -302,6 +302,11 @@ export interface BoxQuoteDto {
   boxSize: number;
   spacesLeft: number;
   isFull: boolean;
+  /**
+   * The code saved on the cart, its reduction and — when it no longer
+   * applies — Aonik's typed reason (aonik#355). Null with no code.
+   */
+  discount?: DiscountCodeStatusDto | null;
 }
 
 export interface BoxChangeDto {
@@ -333,6 +338,123 @@ export interface BoxCartDto {
   status?: string;
   /** The order it became — set once a checkout created one, paid or not yet. */
   orderId?: string | null;
+  /** The saved checkout form (aonik#347): the same document the draft route answers. */
+  checkoutDraft?: CheckoutDraftDto | null;
+}
+
+/* ---- Checkout (aonik#344–#347, #355) ------------------------------------------ */
+
+export interface CheckoutContactDto {
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+}
+
+export interface DeliveryAddressDto {
+  line1: string;
+  line2: string | null;
+  city: string;
+  region: string | null;
+  postcode: string;
+  countryCode: string;
+}
+
+export interface DeliveryRecipientDto {
+  name: string;
+  phone: string;
+}
+
+export interface CartGiftDraftDto {
+  giftIntent: boolean;
+  hidePrices: boolean;
+  includeGreetingCard: boolean;
+  greetingCardMessage: string | null;
+}
+
+/**
+ * The checkout form as Aonik stores it on the cart. A FULL replacement on
+ * save: a section left out or null clears what was saved, so a save echoes
+ * every section it does not own.
+ */
+export interface CheckoutDraftDto {
+  purchaser?: CheckoutContactDto | null;
+  address?: DeliveryAddressDto | null;
+  recipient?: DeliveryRecipientDto | null;
+  /** `YYYY-MM-DD`. Owned by the reservation route: a changed date reserves. */
+  deliveryDate?: string | null;
+  notes?: string | null;
+  gift?: CartGiftDraftDto | null;
+  createAccount?: boolean;
+  discountCode?: string | null;
+  acceptedTermsVersion?: string | null;
+  requestedPoints?: number;
+}
+
+export interface CheckoutDraftResponseDto {
+  cartId: string;
+  cartVersion: string;
+  status: string;
+  orderId: string | null;
+  draft: CheckoutDraftDto | null;
+}
+
+/** `Held`, `PaymentPending`, `Committed` or `Released`; a lapsed `Held` is expired. */
+export interface DeliveryReservationDto {
+  id: string;
+  deliveryDate: string;
+  status: string;
+  selectedAtUtc: string;
+  expiresAtUtc: string;
+  paymentAttemptId: string | null;
+  paymentStartedAtUtc: string | null;
+  paymentDeadlineUtc: string | null;
+  orderId: string | null;
+}
+
+export interface CartDeliveryReservationDto {
+  cartId: string;
+  cartVersion: string;
+  serverNowUtc: string;
+  reservation: DeliveryReservationDto | null;
+}
+
+/** One day of the bookable calendar: `available`, `fully_booked`, `no_delivery` or `unknown`. */
+export interface DeliveryDateAvailabilityDto {
+  deliveryDate: string;
+  status: string;
+}
+
+/** `GET /commerce/config/delivery/dates` — a read; it reserves nothing. */
+export interface DeliveryDatesDto {
+  earliestDeliveryDate: string | null;
+  timezone: string;
+  fromDate: string;
+  toDate: string;
+  /** Available dates only. */
+  dates: string[];
+  availability?: DeliveryDateAvailabilityDto[] | null;
+  serverNowUtc?: string | null;
+}
+
+export interface DiscountCodeStatusDto {
+  code: string;
+  amount: number;
+  reasonCode?: string | null;
+  message?: string | null;
+}
+
+/** The discount routes' answer: the cart's totals with the code, and its new version. */
+export interface CartDiscountQuoteDto {
+  cartId: string;
+  cartVersion: string;
+  currency: string;
+  subtotal: number;
+  discountTotal: number;
+  taxTotal: number;
+  deliveryTotal: number;
+  total: number;
+  discount: DiscountCodeStatusDto | null;
 }
 
 /* ---- Extras rail (Spec 071) -------------------------------------------------- */

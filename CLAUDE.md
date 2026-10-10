@@ -60,7 +60,8 @@ Conventions inside `web/` that are easy to get wrong:
   `NotifyMeForm`), FAQ search (`FaqSearch`) and each group's `ExpandAllButton`, and
   `/private-table`'s `WaitlistForm` (with its `CountryCombobox`), `WaitlistChoiceProvider` (the
   service a card's "Join the waitlist" preselects) and `SectionJump` (in-page jumps that take
-  focus with them) — each for a
+  focus with them), and `/box/checkout`'s `CheckoutView` (with `DeliveryDate`,
+  `DeliveryCalendar`, `InfoNote`, `OrderSummary`) — each for a
   specific piece of state — plus `app/error.tsx` and
   `app/global-error.tsx`, which Next requires to be client components. Data is fetched once in
   `app/layout.tsx` / the route's `page.tsx` and passed down; sections never fetch for themselves.
@@ -247,6 +248,36 @@ Conventions inside `web/` that are easy to get wrong:
   rule: demo never pretends a write) — and, being in the not-in-area state, only with a checker. FAQ copy is `src/lib/content/deliveryFaqs.ts`, verbatim and awaiting #38;
   prices are `{ value }` slots (the delivery charge is `StorefrontConfig.delivery.chargedPence`), and
   a question whose figure is unknown is left out. Search rules: `src/lib/faq/search.ts`.
+- **Checkout (#31): `/box/checkout`; the rules are React-free in `src/lib/checkout/`**
+  (`tests/checkout.test.tsx`; spec `docs/specifications/checkout-and-payment.md`).
+  - **The draft lives on the cart** (aonik#347). Save it only through `/api/checkout/draft`. A
+    save is a FULL replacement, so the route reads the draft first and echoes every section the
+    form doesn't own (date, code, gift, account choice, terms). It sends the TAB's
+    `X-Cart-Version`, never the version from that read, so another tab's change is refused and
+    merged three ways (`mergeDetails`), never overwritten or replayed.
+  - **The date is written only through the reservation route**, which holds capacity (#346).
+    The page only counts the hold down, from Aonik's `expiresAtUtc − serverNowUtc`, and
+    re-reads it on arrival, at zero and when the tab is shown again. Showing the suggested date
+    reserves nothing.
+  - **Payment is blocked by one function, `checkoutBlockers`**, which the rail, the sheet, the
+    bar and CONTINUE all read. Eligibility comes only from the coverage lookup, and anything
+    but `serves` blocks payment.
+  - **Every checkout call goes through the cart engine's `checkoutRequest`**: queued, and it
+    adopts the box or version a WRITE returns, so Review and the box steps never hold a stale
+    version. A READ never hands over a bare version: the hold read reports Aonik's as
+    `boxVersion`, and a page that finds the box moved on (another tab, a Back/Forward restore
+    from the router cache) re-reads box, draft and hold together through `GET sync`. Checkout's
+    writes carry the version its own form was read with (`basis`), and build their body when
+    their turn in the queue comes, so a queued save sends the form as it is after a merge.
+  - **A signed-in session that needs renewing is renewed by a route handler**
+    (`CheckoutSessionGate`), never during the page's render, which cannot keep the new cookie.
+  - **One discount code per cart, applied by Aonik at once.** Each refusal states its real
+    reason.
+  - **Not built yet:** delivery windows (Aonik rejects any) and address lookup (aonik#352).
+    Log in, account opt-in and points come with #34/#36; gifts with #26.
+  - **Until the Stripe hand-off lands (#32), CONTINUE validates and then says online ordering
+    is not open**: nothing is ordered or charged. `PlaceOrderButton` is gone, and Review's CTA
+    links here.
 - **Dish → Our Standards → dish (#17)** is specified in `src/lib/dish-return.ts`, also React-free.
   "Back to dish" needs BOTH a real dish in `?from=dish&dish=<slug>` (checked on the server against
   the catalogue) AND a live `at-dish-return-v1` sessionStorage record written by the dish page's

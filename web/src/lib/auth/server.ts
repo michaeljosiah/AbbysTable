@@ -322,6 +322,18 @@ export async function currentSession(): Promise<CustomerSession | null> {
 }
 
 /**
+ * Whether the session cookie holds an expired access token that a refresh
+ * could renew. A Server Component render cannot write the renewed cookie —
+ * refreshing there would spend the refresh token (the provider may rotate it)
+ * and then lose the new one — so a page that reads the signed-in customer's
+ * data asks this first and lets a route handler renew it.
+ */
+export async function sessionNeedsRefresh(): Promise<boolean> {
+  const session = await readSession();
+  return Boolean(session && session.refreshToken && isExpired(session));
+}
+
+/**
  * One Aonik call as the signed-in customer.
  *
  * A 401 or 403 that survives refresh means the session is genuinely finished:
