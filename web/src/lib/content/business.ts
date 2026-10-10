@@ -31,32 +31,45 @@ const digits = (e164: string) => e164.replace(/\D/g, '');
  * but could not read (`rejected`) is null — "to be confirmed" — and never the
  * configuration's: that could be an old number, or hours no longer kept.
  */
-export function mergeBusinessDetails(profile: BusinessProfile | null): BusinessDetails {
-  const pick = <T,>(fact: ProfileFact, published: T | null | undefined, configured: T | null): T | null =>
-    profile?.rejected.has(fact) ? null : (published ?? configured);
+/** The configuration the profile is laid over (`./company`, `./contact`). */
+export interface ConfiguredDetails {
+  company: CompanyDetails;
+  whatsapp: WhatsAppContact | null;
+  hours: OpeningHours | null;
+}
 
-  const email = pick('email', profile?.contact.email, COMPANY.email);
-  const phone = pick('phone', profile?.contact.phone, COMPANY.phone);
+const CONFIGURED: ConfiguredDetails = { company: COMPANY, whatsapp: WHATSAPP_CONTACT, hours: OPENING_HOURS };
 
-  const whatsAppNumber = pick('whatsApp', profile?.contact.whatsApp, WHATSAPP_CONTACT?.e164 ?? null);
+export function mergeBusinessDetails(
+  profile: BusinessProfile | null,
+  configured: ConfiguredDetails = CONFIGURED,
+): BusinessDetails {
+  const pick = <T,>(fact: ProfileFact, published: T | null | undefined, fallback: T | null): T | null =>
+    profile?.rejected.has(fact) ? null : (published ?? fallback);
+  const { company } = configured;
+
+  const email = pick('email', profile?.contact.email, company.email);
+  const phone = pick('phone', profile?.contact.phone, company.phone);
+
+  const whatsAppNumber = pick('whatsApp', profile?.contact.whatsApp, configured.whatsapp?.e164 ?? null);
   // The QR code encodes a number: it goes with the configured number it was
   // made for, never with a different one the profile publishes.
   const qrSrc =
-    whatsAppNumber && WHATSAPP_CONTACT && digits(WHATSAPP_CONTACT.e164) === digits(whatsAppNumber)
-      ? WHATSAPP_CONTACT.qrSrc
+    whatsAppNumber && configured.whatsapp && digits(configured.whatsapp.e164) === digits(whatsAppNumber)
+      ? configured.whatsapp.qrSrc
       : null;
 
   return {
     email,
     phone,
     whatsapp: whatsAppNumber ? { e164: whatsAppNumber, qrSrc } : null,
-    hours: pick('openingHours', profile?.openingHours, OPENING_HOURS),
+    hours: pick('openingHours', profile?.openingHours, configured.hours),
     company: {
-      legalName: pick('companyName', profile?.legal.companyName, COMPANY.legalName),
-      registeredOffice: pick('registeredOffice', profile?.legal.registeredOffice, COMPANY.registeredOffice),
-      companyNumber: pick('companyNumber', profile?.legal.companyNumber, COMPANY.companyNumber),
+      legalName: pick('companyName', profile?.legal.companyName, company.legalName),
+      registeredOffice: pick('registeredOffice', profile?.legal.registeredOffice, company.registeredOffice),
+      companyNumber: pick('companyNumber', profile?.legal.companyNumber, company.companyNumber),
       // Aonik publishes no payment processor: it stays configuration.
-      paymentProvider: COMPANY.paymentProvider,
+      paymentProvider: company.paymentProvider,
       email,
       phone,
     },

@@ -10,6 +10,7 @@ import TermsOfSalePage from '../src/app/(site)/terms-of-sale/page';
 import {
   BUSINESS_PROFILE_MEMO_MS,
   BUSINESS_PROFILE_PATH,
+  BUSINESS_PROFILE_RETRY_MS,
   BUSINESS_PROFILE_STALE_MS,
   clearBusinessProfileMemo,
   fetchBusinessProfile,
@@ -415,4 +416,107 @@ test('the Terms and the Privacy Policy state the published company details', asy
     delete env.AONIK_DATA_MODE;
     clearPublishedListsCache();
   }
+});
+
+test('the read never goes through Next’s data cache, which would keep a 200 past a withdrawal', async () => {
+  clearBusinessProfileMemo();
+  useAonik(() => ({ status: 200, body: PROFILE }));
+  await fetchBusinessProfile({ baseUrl: AONIK_BASE, tenantId: TENANT_ID });
+  assert.equal(aonikRequests[0].cache, 'no-store');
+  assert.equal(aonikRequests[0].next, undefined, 'no next.revalidate');
+  clearBusinessProfileMemo();
+});
+
+test('an outage costs one request per retry window, not one per page; renders at once share one', async () => {
+  const config = { baseUrl: AONIK_BASE, tenantId: TENANT_ID };
+  const start = Date.parse('2026-10-10T09:00:00Z');
+  const warn = mock.method(console, 'warn', () => undefined);
+  try {
+    clearBusinessProfileMemo();
+    useAonik(() => ({ status: 503 }));
+    await assert.rejects(fetchBusinessProfile(config, start));
+    assert.equal(aonikRequests.length, 1);
+    // Within the retry window: no request, an immediate fall back.
+    await assert.rejects(fetchBusinessProfile(config, start + BUSINESS_PROFILE_RETRY_MS - 1));
+    assert.equal(aonikRequests.length, 1);
+    // After it: asked again.
+    await assert.rejects(fetchBusinessProfile(config, start + BUSINESS_PROFILE_RETRY_MS));
+    assert.equal(aonikRequests.length, 2);
+
+    // Many renders on an empty memo: one request.
+    clearBusinessProfileMemo();
+    useAonik(() => ({ status: 200, body: PROFILE }));
+    const all = await Promise.all([1, 2, 3, 4, 5].map(() => fetchBusinessProfile(config, start)));
+    assert.equal(aonikRequests.length, 1);
+    assert.ok(all.every((profile) => profile?.legal.companyName === 'Example Kitchen Ltd'));
+
+    // Something that is not a profile (a gateway's error JSON) is a failed read, not an empty profile.
+    clearBusinessProfileMemo();
+    useAonik(() => ({ status: 200, body: { lists: [] } }));
+    await assert.rejects(fetchBusinessProfile(config, start));
+  } finally {
+    warn.mock.restore();
+    clearBusinessProfileMemo();
+  }
+});
+
+test('over a real configuration: unpublished facts are configured, rejected ones are "to be confirmed"', () => {
+  const configured = {
+    company: {
+      legalName: 'Configured Kitchen Ltd',
+      registeredOffice: ['2 Config Street'],
+      companyNumber: '00000002',
+      paymentProvider: 'Configured Payments',
+      email: 'config@example.test',
+      phone: { display: '01632 960999', e164: '+441632960999' },
+    },
+    whatsapp: { e164: '+447700900999', qrSrc: '/assets/test-qr.png' },
+    hours: readBusinessProfile(PROFILE)!.openingHours,
+  };
+  // Nothing published: all configuration, the QR with its own number.
+  const none = mergeBusinessDetails(null, configured);
+  assert.equal(none.phone?.e164, '+441632960999');
+  assert.deepEqual(none.whatsapp, { e164: '+447700900999', qrSrc: '/assets/test-qr.png' });
+  assert.equal(none.company.legalName, 'Configured Kitchen Ltd');
+
+  // Published but unreadable: "to be confirmed" — never the configured value in its place.
+  const quiet = mock.method(console, 'warn', () => undefined);
+  const rejected = readBusinessProfile(
+    {
+      displayName: 'x',
+      contact: { phone: 'ring the bell', whatsApp: 'ring me' },
+      legal: { companyName: 'x'.repeat(201) },
+      openingHours: { ...PROFILE.openingHours, timezone: 'Europe/Dublin' },
+    },
+    () => undefined,
+  );
+  quiet.mock.restore();
+  const merged = mergeBusinessDetails(rejected, configured);
+  assert.equal(merged.phone, null);
+  assert.equal(merged.whatsapp, null, 'no number, so no QR either');
+  assert.equal(merged.hours, null);
+  assert.equal(merged.company.legalName, null);
+  assert.equal(merged.company.phone, null);
+  // …while what it did not publish stays configured.
+  assert.equal(merged.email, 'config@example.test');
+  assert.equal(merged.company.companyNumber, '00000002');
+
+  // A published WhatsApp number that is not the configured one: no QR (it encodes another number).
+  const other = mergeBusinessDetails(readBusinessProfile({ contact: { whatsApp: '07700 900123' } }), configured);
+  assert.deepEqual(other.whatsapp, { e164: '+447700900123', qrSrc: null });
+});
+
+test('text: a trailing newline is fine, invisible formatting and malformed addresses are not', () => {
+  const read = (legal: Record<string, unknown>, contact: Record<string, unknown> = {}) =>
+    readBusinessProfile({ legal, contact }, () => undefined);
+  assert.equal(read({ companyName: 'Example Kitchen Ltd\n' })?.legal.companyName, 'Example Kitchen Ltd');
+  assert.equal(read({}, { email: 'hello@example.test\r\n' })?.contact.email, 'hello@example.test');
+  assert.equal(read({ companyName: 'Example\u202eKitchen' })?.legal.companyName, null, 'a right-to-left override');
+  for (const email of ['a@-.test', '.a@example.test', 'a..b@example.test', 'a@example.t']) {
+    assert.equal(read({}, { email })?.contact.email, null, email);
+  }
+  assert.deepEqual(read({ registeredOffice: '1-3, High Street, Testville' })?.legal.registeredOffice, [
+    '1-3, High Street',
+    'Testville',
+  ]);
 });

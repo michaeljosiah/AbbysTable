@@ -96,10 +96,13 @@ const unset = (value: unknown) => value === null || value === undefined || (type
 /** Published text, trimmed — or rejected when it is not a string, too long or carries control characters. */
 function readText(value: unknown, max: number, fact: ProfileFact, reject: Reject): string | null {
   if (unset(value)) return null;
-  if (typeof value !== 'string' || value.trim().length > max || /\p{Cc}/u.test(value)) {
+  // Trimmed first, so a trailing newline from a text box is not a fault; no
+  // control or invisible formatting character (a right-to-left override) after.
+  const text = typeof value === 'string' ? value.trim() : null;
+  if (text === null || text.length > max || /[\p{Cc}\p{Cf}]/u.test(text)) {
     return reject(fact, `${fact} does not read cleanly`);
   }
-  return value.trim();
+  return text;
 }
 
 /**
@@ -141,7 +144,8 @@ function readPhone(
  * before one "@", a dotted domain after it — no "?", "#", "&" or "%" that
  * would add headers to the link, no scheme.
  */
-const EMAIL = /^[A-Za-z0-9._+'-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/;
+const EMAIL =
+  /^[A-Za-z0-9_+'-]+(?:\.[A-Za-z0-9_+'-]+)*@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$/;
 
 function readEmail(value: unknown, reject: Reject): string | null {
   const email = readText(value, 254, 'email', reject);
@@ -236,7 +240,7 @@ function readHours(value: unknown, reject: Reject): OpeningHours | null {
 function readOffice(value: unknown, reject: Reject): string[] | null {
   if (unset(value)) return null;
   // Line breaks are the one control character an address may carry.
-  if (typeof value !== 'string' || value.length > 400 || /[^\P{Cc}\r\n]/u.test(value)) {
+  if (typeof value !== 'string' || value.trim().length > 400 || /[^\P{Cc}\r\n]|\p{Cf}/u.test(value.trim())) {
     return reject('registeredOffice', 'the registered office does not read cleanly');
   }
   const parts = (/[\r\n]/.test(value) ? value.split(/\r?\n|\r/) : value.split(','))
@@ -245,8 +249,11 @@ function readOffice(value: unknown, reject: Reject): string[] | null {
   const lines: string[] = [];
   for (const part of parts) {
     const previous = lines[lines.length - 1];
-    if (previous !== undefined && /^\d+[A-Za-z]?$/.test(previous)) lines[lines.length - 1] = `${previous}, ${part}`;
-    else lines.push(part);
+    if (previous !== undefined && /^\d+[A-Za-z]?(?:[-–]\d+[A-Za-z]?)?$/.test(previous)) {
+      lines[lines.length - 1] = `${previous}, ${part}`;
+    } else {
+      lines.push(part);
+    }
   }
   return lines.length > 0 ? lines : null;
 }
@@ -281,11 +288,39 @@ export function readBusinessProfile(body: unknown, log: Log = () => undefined): 
 
 /* ---- Reading it from Aonik ------------------------------------------------------- */
 
-let memo: { key: string; at: number; profile: BusinessProfile | null } | null = null;
+interface ProfileMemo {
+  key: string;
+  /** When the last good answer (a profile, or a 404) was read; null for none yet. */
+  readAt: number | null;
+  profile: BusinessProfile | null;
+  /** After a failed read, no request before this: pages fall back at once instead of each waiting. */
+  retryAt: number | null;
+}
+
+let memo: ProfileMemo | null = null;
+/** The read under way, shared: many renders at once make one request. */
+let pending: { key: string; read: Promise<BusinessProfile | null> } | null = null;
+
+/** After a failed read, how long before asking again. */
+export const BUSINESS_PROFILE_RETRY_MS = 30_000;
 
 /** Forgets the reused read (tests, and nothing else). */
 export function clearBusinessProfileMemo(): void {
   memo = null;
+  pending = null;
+}
+
+/** Aonik's profile always names the business: anything else (a gateway's error JSON) is no answer. */
+const isProfileBody = (body: unknown): boolean =>
+  typeof body === 'object' &&
+  body !== null &&
+  !Array.isArray(body) &&
+  typeof (body as { displayName?: unknown }).displayName === 'string';
+
+/** The last good read while it is recent enough to stand in, or the failure. */
+function standIn(current: ProfileMemo | null, now: number, error: unknown): BusinessProfile | null {
+  if (current?.readAt != null && now - current.readAt < BUSINESS_PROFILE_STALE_MS) return current.profile;
+  throw error instanceof Error ? error : new Error('The business profile could not be read');
 }
 
 /**
@@ -295,28 +330,41 @@ export function clearBusinessProfileMemo(): void {
  */
 export async function fetchBusinessProfile(config: AonikConfig, now = Date.now()): Promise<BusinessProfile | null> {
   const key = `${config.baseUrl}|${config.tenantId}`;
-  if (memo?.key === key && now - memo.at < BUSINESS_PROFILE_MEMO_MS) return memo.profile;
+  const current = memo?.key === key ? memo : null;
+  if (current?.readAt != null && now - current.readAt < BUSINESS_PROFILE_MEMO_MS) return current.profile;
+  if (current?.retryAt != null && now < current.retryAt) {
+    return standIn(current, now, new Error('The business profile could not be read recently; not asking again yet'));
+  }
+  if (pending?.key === key) return pending.read;
+
+  const read = (async () => {
+    try {
+      const body = await aonikFetch<unknown>(BUSINESS_PROFILE_PATH, {
+        baseUrl: config.baseUrl,
+        tenantId: config.tenantId,
+        // Never Next's data cache: it would keep a 200 past a withdrawal.
+        policy: 'volatile',
+        signal: AbortSignal.timeout(BUSINESS_PROFILE_TIMEOUT_MS),
+      });
+      if (!isProfileBody(body)) throw new Error('Aonik answered with something that is not a business profile');
+      const profile = readBusinessProfile(body, (message) => console.warn(`[aonik] business profile: ${message}`));
+      memo = { key, readAt: now, profile, retryAt: null };
+      return profile;
+    } catch (error) {
+      // Not published (or withdrawn): believed at once.
+      if (error instanceof AonikError && error.isNotFound) {
+        memo = { key, readAt: now, profile: null, retryAt: null };
+        return null;
+      }
+      memo = { key, readAt: current?.readAt ?? null, profile: current?.profile ?? null, retryAt: now + BUSINESS_PROFILE_RETRY_MS };
+      console.warn('[aonik] business profile unavailable; the last good read stands in while it is recent', error);
+      return standIn(memo, now, error);
+    }
+  })();
+  pending = { key, read };
   try {
-    const body = await aonikFetch<unknown>(BUSINESS_PROFILE_PATH, {
-      baseUrl: config.baseUrl,
-      tenantId: config.tenantId,
-      // Never Next's data cache: it would keep a 200 past a withdrawal.
-      policy: 'volatile',
-      signal: AbortSignal.timeout(BUSINESS_PROFILE_TIMEOUT_MS),
-    });
-    const profile = readBusinessProfile(body, (message) => console.warn(`[aonik] business profile: ${message}`));
-    memo = { key, at: now, profile };
-    return profile;
-  } catch (error) {
-    // Not published (or withdrawn): believed at once.
-    if (error instanceof AonikError && error.isNotFound) {
-      memo = { key, at: now, profile: null };
-      return null;
-    }
-    if (memo?.key === key && now - memo.at < BUSINESS_PROFILE_STALE_MS) {
-      console.warn('[aonik] business profile unavailable; showing the last good read', error);
-      return memo.profile;
-    }
-    throw error;
+    return await read;
+  } finally {
+    if (pending?.read === read) pending = null;
   }
 }
