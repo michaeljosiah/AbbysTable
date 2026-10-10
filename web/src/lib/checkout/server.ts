@@ -28,6 +28,7 @@ import type {
 import { mapBoxCart, type BoxCart } from '@/lib/aonik/map';
 import { sessionNeedsRefresh } from '@/lib/auth/server';
 import { CartMissingError } from '@/lib/cart/cartMissing';
+import { readCartCookie } from '@/lib/cart/cartCookie';
 import { cartCall, getBoxCart, readStoredBoxCart, type CartVersion } from '@/lib/cart/server';
 
 import { detailsFromDraft, draftSections, type CheckoutDetails } from './form';
@@ -78,6 +79,8 @@ async function reservationOf(dto: BoxCartDto): Promise<ReservationView | null> {
 
 /** The entry gate: what the page should show for the box in this browser. */
 export async function loadCheckout(): Promise<CheckoutEntry> {
+  // No box to find, whoever is signed in: nothing to renew a session for.
+  if (!(await readCartCookie())) return { kind: 'none' };
   // Before any cart read: reading would try the refresh this render cannot keep.
   if (await sessionNeedsRefresh()) return { kind: 'session' };
   const dto = await readStoredBoxCart().catch((error: unknown) => {
@@ -175,6 +178,7 @@ async function boxAfter(write: Promise<CartDiscountQuoteDto>, saved: string): Pr
   try {
     cart = await getBoxCart();
   } catch (error) {
+    if (error instanceof CartMissingError) throw error;
     console.error('[checkout] the box could not be read back after a code change', error);
     throw new CheckoutReloadError(`${saved} Reload the page to see your total.`);
   }

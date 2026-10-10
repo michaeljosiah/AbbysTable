@@ -607,4 +607,12 @@ test('the entry gate: no box, an incomplete box, an order, a payment in progress
   aonikRequests.length = 0;
   assert.equal((await loadCheckout()).kind, 'session');
   assert.equal(aonikRequests.length, 0);
+
+  // No box to find: a signed-in customer with an expired token has nothing to renew a session for.
+  resetCookies({
+    'abbys-table-session': JSON.stringify({ accessToken: 'old', expiresAt: Date.now() - 60_000, refreshToken: 'r1' }),
+  });
+  renderMode();
+  assert.equal((await loadCheckout()).kind, 'none');
+  assert.equal(aonikRequests.length, 0);
 });

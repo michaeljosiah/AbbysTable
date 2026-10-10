@@ -294,6 +294,7 @@ export function CheckoutView({
    * field only the other tab changed is taken, and the next write is based on
    * the box as it is now.
    */
+  const checkCoverageRef = useRef<() => Promise<void>>(async () => undefined);
   const adopt = useCallback((sync: CheckoutSyncAnswer, announce: 'always' | 'if-changed') => {
     const before = reservationRef.current.view;
     const changed =
@@ -308,13 +309,22 @@ export function CheckoutView({
     setReservation({ view: sync.reservation, at: Date.now() });
     setNow(Date.now());
     if (announce === 'always' || changed) setSyncNote(SYNCED);
+    // A postcode that arrived with the sync is judged as one the customer typed.
+    void checkCoverageRef.current();
   }, []);
 
   /** Adopts what a refusal carried. True when it was handled (the caller says nothing more). */
   const reconcile = useCallback(
     (refusal: CheckoutRefusal): boolean => {
-      // Left behind (the customer moved on while it was in flight): nothing to show it on.
-      if (!mounted.current) return true;
+      // Left behind (the customer moved on while it was in flight): nothing to
+      // show it on, but the next write (a flushed save) follows the box as it is.
+      if (!mounted.current) {
+        if (refusal.code === CART_CONFLICT_CODE && refusal.cart && refusal.details) {
+          saved.current = refusal.details;
+          basis.current = refusal.cart.version;
+        }
+        return true;
+      }
       if (refusal.code === CART_LOCKED_CODE) {
         // A payment attempt holds the box: the page shows that instead.
         router.refresh();
@@ -434,12 +444,19 @@ export function CheckoutView({
   saveRef.current = save;
   useEffect(() => {
     mounted.current = true;
+    const flushHidden = () => {
+      if (document.visibilityState === 'hidden') flush();
+    };
     const flush = () => {
-      if (saveTimer.current !== undefined) void saveRef.current({ keepalive: true });
+      if (saveTimer.current !== undefined || !sameDetails(latest.current, saved.current)) {
+        void saveRef.current({ keepalive: true });
+      }
     };
     window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', flushHidden);
     return () => {
       window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', flushHidden);
       mounted.current = false;
       flush();
     };
@@ -458,6 +475,8 @@ export function CheckoutView({
     if (normalisePostcode(latest.current.postcode) !== postcode) return;
     setCoverage({ status: answer.status === 'serves' || answer.status === 'not-served' || answer.status === 'invalid' ? answer.status : 'unavailable', postcode });
   }, []);
+
+  checkCoverageRef.current = checkCoverage;
 
   // A returning customer's saved postcode is judged as the page opens.
   useEffect(() => {
@@ -551,6 +570,12 @@ export function CheckoutView({
         next.delete(month);
         return next;
       });
+      // What was known about it is stale: a failed re-read offers no dates, never old ones.
+      setStatuses((current) => {
+        const next = new Map(current);
+        for (const day of next.keys()) if (monthOf(day) === month) next.delete(day);
+        return next;
+      });
       loadMonth(month);
     },
     [loadMonth],
@@ -595,11 +620,13 @@ export function CheckoutView({
         body: { date: chosen },
         version: basis.current,
       }));
+      // The version is recorded even when the page has been left: a save
+      // flushed as it was left is queued behind this write and is based on it.
+      if (result.ok) basis.current = result.payload.version;
       if (!mounted.current) return;
       setDateBusy(false);
       setCalendarOpen(false);
       if (result.ok) {
-        basis.current = result.payload.version;
         setReservation({ view: result.payload.reservation, at: Date.now() });
         setNow(Date.now());
         focusNext.current = 'ck-date';
@@ -659,10 +686,10 @@ export function CheckoutView({
       body: { code },
       version: basis.current,
     }));
+    if (result.ok) basis.current = result.payload.cart.version;
     if (!mounted.current) return;
     setCodeBusy(false);
     if (result.ok) {
-      basis.current = result.payload.cart.version;
       setCodeInput('');
       setCodeMessage({ text: appliedLine(code), bad: false });
       focusNext.current = 'ck-code-remove';
@@ -676,10 +703,10 @@ export function CheckoutView({
     if (!appliedCode || codeBusy) return;
     setCodeBusy(true);
     const result = await checkoutRequest<CheckoutCodeAnswer>('/discount', () => ({ method: 'DELETE', version: basis.current }));
+    if (result.ok) basis.current = result.payload.cart.version;
     if (!mounted.current) return;
     setCodeBusy(false);
     if (result.ok) {
-      basis.current = result.payload.cart.version;
       setCodeMessage({ text: `${appliedCode.code} has been removed.`, bad: false });
       focusNext.current = 'ck-code';
       return;

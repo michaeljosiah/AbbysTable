@@ -26,8 +26,10 @@ export function CheckoutSessionGate() {
     if (asked.current) return;
     asked.current = true;
     void checkoutRequest<CheckoutSyncAnswer>('/sync').then((result) => {
-      // An answer about the box — its draft, gone, or mid-payment — means the session is settled.
-      if (result.ok || result.payload.cart === null || result.status === 409) router.refresh();
+      // The box is gone: back to the start, never another render of this gate.
+      if (result.payload.cart === null) router.replace('/box');
+      // An answer about the box — its draft, or mid-payment — means the session is settled.
+      else if (result.ok || result.status === 409) router.refresh();
       else setFailed(true);
     });
   }, [checkoutRequest, router]);
