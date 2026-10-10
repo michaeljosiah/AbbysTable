@@ -88,8 +88,10 @@ export function confirmationRows(dto: StorefrontOrderDetailDto): ConfirmationRow
       value: formatPriceExact(pence(box.amountIn)),
     });
   }
+  // A charged delivery is an order item of its own: it is the Delivery row below, not an extra.
+  const deliveryItem = items.find((item) => item.itemType === 'DeliveryFee');
   for (const item of items) {
-    if (item === box) continue;
+    if (item === box || item === deliveryItem) continue;
     const quantity = item.quantity && item.quantity > 1 ? ` × ${item.quantity}` : '';
     rows.push({ key: `item-${item.index}`, label: `${item.name ?? 'Extra'}${quantity}`, value: `+${formatPriceExact(pence(item.amountIn))}` });
   }
@@ -105,7 +107,9 @@ export function confirmationRows(dto: StorefrontOrderDetailDto): ConfirmationRow
   if (pointsValue > 0) {
     rows.push({ key: 'points', label: 'Points', value: `−${formatPriceExact(pence(pointsValue))}`, tone: 'saving' });
   }
-  const deliveryPence = pence(dto.total) - (pence(dto.subtotal) - pence(dto.discountTotal) - pence(pointsValue) + pence(dto.taxTotal));
+  const deliveryPence = deliveryItem
+    ? pence(deliveryItem.amountIn)
+    : pence(dto.total) - (pence(dto.subtotal) - pence(dto.discountTotal) - pence(pointsValue) + pence(dto.taxTotal));
   const date = formatDeliveryDateShort(dto.delivery?.deliveryDate);
   rows.push({
     key: 'delivery',
@@ -133,11 +137,15 @@ function toConfirmed(dto: StorefrontOrderDetailDto, signedIn: boolean): Confirme
   };
 }
 
-/** The order in this browser's payment cookie, read back from Aonik. */
-export async function readConfirmation(): Promise<ConfirmationRead> {
+/**
+ * The order in this browser's payment cookie, read back from Aonik: the order
+ * and whether the customer is signed in, or null when there is nothing this
+ * browser can read (no cookie, another account's order, a 404).
+ */
+export async function readPaymentOrder(): Promise<{ dto: StorefrontOrderDetailDto; signedIn: boolean; paymentIntentId: string } | null> {
   const paid = await readPaymentCookie();
   const config = readAonikConfig();
-  if (!paid || !config) return { kind: 'none' };
+  if (!paid || !config) return null;
   const session = await currentSession();
 
   let dto: StorefrontOrderDetailDto;
@@ -153,14 +161,20 @@ export async function readConfirmation(): Promise<ConfirmationRead> {
       dto = await aonikAuthedFetch<StorefrontOrderDetailDto>(`/commerce/storefront/orders/${encodeURIComponent(paid.orderId)}`);
     } else {
       // A signed-in order, and no longer signed in: nothing here can read it.
-      return { kind: 'none' };
+      return null;
     }
   } catch (error) {
     // Missing, wrong or expired: the same 404 as no order at all, and said the same way.
-    if (error instanceof AonikError && error.status === 404) return { kind: 'none' };
+    if (error instanceof AonikError && error.status === 404) return null;
     throw error;
   }
+  return { dto, signedIn: Boolean(session), paymentIntentId: paid.paymentIntentId };
+}
 
-  if (dto.paymentStatus !== 'Captured') return { kind: 'unpaid' };
-  return { kind: 'paid', order: toConfirmed(dto, Boolean(session)) };
+/** The order in this browser's payment cookie, read back from Aonik. */
+export async function readConfirmation(): Promise<ConfirmationRead> {
+  const found = await readPaymentOrder();
+  if (!found) return { kind: 'none' };
+  if (found.dto.paymentStatus !== 'Captured') return { kind: 'unpaid' };
+  return { kind: 'paid', order: toConfirmed(found.dto, found.signedIn) };
 }

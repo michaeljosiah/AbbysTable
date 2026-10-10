@@ -282,8 +282,10 @@ Conventions inside `web/` that are easy to get wrong:
     references live in the httpOnly `abbys-table-payment` cookie, never in a URL. A return URL
     is navigation, never proof: `/box/payment` and the confirmation say only what Aonik
     reports, and "No charges have been made" only after recovery proves the attempt closed.
-    Retry reuses the same Stripe session, or re-reserves the saved date for a new attempt on
-    the same order. The confirmation (`/box/confirmation`, site chrome) renders only a
+    Retry reuses the same Stripe session, or recovers a closed one and re-reserves the saved
+    date for a new attempt on the same order. A paid attempt is found even once the box's cookie
+    is cleared (the payment cookie names the order). `STOREFRONT_ORIGIN` must be HTTPS or
+    payment is refused before anything is claimed. The confirmation (`/box/confirmation`, site chrome) renders only a
     `Captured` order. Review's CTA links to checkout; `PlaceOrderButton`, the order snapshot
     cookie and the cart route's `checkout` action are gone.
 - **Dish → Our Standards → dish (#17)** is specified in `src/lib/dish-return.ts`, also React-free.

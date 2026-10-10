@@ -27,19 +27,35 @@ import type { StorefrontConfigDto } from '@/lib/aonik/map';
 import { cartOrderedError, CartMissingError } from '@/lib/cart/cartMissing';
 import { cartCall, OrderingDisabledError, readStoredBoxCart, type CartVersion } from '@/lib/cart/server';
 
+import { readPaymentOrder } from './confirmation';
 import { readPaymentCookie, writePaymentCookie } from './paymentCookie';
 
 /** Aonik's `Stripe` / `Card` (it accepts nothing else for a box). */
 const PROVIDER = 'Stripe';
 const METHOD = 'Card';
 
+/** The storefront's return origin is not one Aonik can accept: nothing was started. */
+export class PaymentOriginError extends Error {
+  constructor() {
+    super('Payment is not available just now.');
+    this.name = 'PaymentOriginError';
+  }
+}
+
 /**
- * Where Stripe sends the customer back. It must be the origin Aonik's Stripe
- * connector is configured with (`returnOrigin`, HTTPS): `STOREFRONT_ORIGIN`,
- * or failing that the origin this request came in on.
+ * Where Stripe sends the customer back. It must be the HTTPS origin Aonik's
+ * Stripe connector is configured with (`returnOrigin`): `STOREFRONT_ORIGIN`,
+ * or failing that the origin this request came in on. Anything else is
+ * refused HERE, before Aonik claims the box and its date for an attempt that
+ * could only be rejected afterwards (behind a proxy the request's own origin
+ * can be internal and `http`).
  */
 export function returnUrls(requestOrigin: string): { returnUrl: string; cancelUrl: string } {
   const origin = (process.env.STOREFRONT_ORIGIN?.trim() || requestOrigin).replace(/\/$/, '');
+  if (!/^https:\/\/[^/\s]+$/i.test(origin)) {
+    console.error('[payment] STOREFRONT_ORIGIN (or the request origin) is not an https origin:', origin);
+    throw new PaymentOriginError();
+  }
   return {
     returnUrl: `${origin}/box/payment/return?outcome=success`,
     cancelUrl: `${origin}/box/payment/return?outcome=cancel`,
@@ -104,6 +120,7 @@ export async function startPayment(input: {
 }): Promise<PaymentStart> {
   // Checked on the server, whatever the page showed: no attempt while ordering is closed.
   if (!liveOrderingEnabled()) throw new OrderingDisabledError();
+  const urls = returnUrls(input.origin);
 
   const box = await readStoredBoxCart();
   if (!box) throw new CartMissingError('There is no box to check out.');
@@ -117,7 +134,7 @@ export async function startPayment(input: {
       body: {
         provider: PROVIDER,
         paymentMethodType: METHOD,
-        ...returnUrls(input.origin),
+        ...urls,
         // Omitted on purpose: `delivery` (the saved draft is the source),
         // `discountCode` (null keeps the saved code) and `customerAccountId`
         // (it makes the order invoice-backed, and recovery then needs staff).
@@ -143,16 +160,30 @@ export async function readPaymentState(): Promise<CartPaymentStateDto | null> {
   try {
     return await cartCall<CartPaymentStateDto>('/payment');
   } catch (error) {
-    if (error instanceof CartMissingError) return null;
-    throw error;
+    if (!(error instanceof CartMissingError)) throw error;
   }
+  // The box is gone from this browser. A captured payment turns it into an
+  // order, and the next page to load clears its cookie — which can be this
+  // page's own hydration, a moment after the payment landed. The attempt in
+  // the payment cookie is then read as the order it became: paid is paid.
+  const found = await readPaymentOrder();
+  if (found?.dto.paymentStatus !== 'Captured') return null;
+  return {
+    orderId: found.dto.orderId,
+    paymentIntentId: found.paymentIntentId,
+    status: 'succeeded',
+    canEdit: false,
+    cartVersion: '',
+    checkoutUrl: null,
+  };
 }
 
 /**
- * Asks Aonik to close the attempt if the provider says it can no longer pay —
- * the cancel return. Aonik re-reads the exact Stripe session: unpaid closure
- * makes the box editable again (and releases the hold, stock and code); a
- * capture completes the order; anything uncertain changes nothing.
+ * Asks Aonik to recover the attempt — the cancel return, a reopen of checkout,
+ * a retry. Aonik EXPIRES a Stripe session that can still take payment and
+ * re-reads it: a closure with nothing paid makes the box editable again (and
+ * releases the hold, stock and code); a capture completes the order instead;
+ * anything uncertain changes nothing.
  */
 export async function recoverPayment(state: CartPaymentStateDto): Promise<CartPaymentStateDto> {
   if (!state.paymentIntentId) return state;
@@ -191,10 +222,18 @@ const DATE_CODES = new Set([
  * 3. Otherwise it is still being decided: never a second payment.
  */
 export async function retryPayment(origin: string): Promise<PaymentRetry> {
-  const state = await readPaymentState();
+  let state = await readPaymentState();
   if (!state) throw new CartMissingError();
   if (state.status === 'succeeded') return { kind: 'paid' };
   if (state.checkoutUrl) return { kind: 'redirect', checkoutUrl: state.checkoutUrl };
+  // The provider has closed the session but Aonik has not yet moved the box
+  // on (until its sweeper does): ask it to, rather than leave the press with
+  // nothing to do. Only Aonik's answer says the box may change.
+  if (!state.canEdit && (state.status === 'failed' || state.status === 'cancelled')) {
+    state = await recoverPayment(state);
+    if (state.status === 'succeeded') return { kind: 'paid' };
+    if (state.checkoutUrl) return { kind: 'redirect', checkoutUrl: state.checkoutUrl };
+  }
   if (!state.canEdit) return { kind: 'pending' };
 
   const agreed = await readPaymentCookie();

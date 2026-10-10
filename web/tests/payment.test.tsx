@@ -4,10 +4,11 @@ import assert from 'node:assert/strict';
 import test, { mock } from 'node:test';
 
 import { GET as paymentReturn } from '../src/app/(payment)/box/payment/return/route';
-import { POST as checkoutPost } from '../src/app/api/checkout/[action]/route';
+import { GET as checkoutGet, POST as checkoutPost } from '../src/app/api/checkout/[action]/route';
 import type { BoxCartDto, CartPaymentStateDto, StorefrontOrderDetailDto } from '../src/lib/aonik/dto';
 import { confirmationRows, confirmationVariant, readConfirmation } from '../src/lib/checkout/confirmation';
-import { nextPollDelay, PAYMENT_PAGES, paymentStatusPage } from '../src/lib/checkout/paymentPages';
+import { readPaymentState } from '../src/lib/checkout/payment';
+import { nextPollDelay, NO_PAYMENT_FAQS, PAYMENT_PAGES, paymentStatusPage } from '../src/lib/checkout/paymentPages';
 import { PAYMENT_COOKIE } from '../src/lib/checkout/paymentCookie';
 import { loadCheckout } from '../src/lib/checkout/server';
 
@@ -191,23 +192,23 @@ test('back from Stripe: read, never trusted; a cancel is recovered by Aonik befo
 
   const success = await back('success');
   assert.equal(success.status, 303);
-  assert.equal(success.headers.get('location'), 'https://shop.test/box/payment', 'success is not taken on the URL’s word');
+  assert.equal(success.headers.get('location'), '/box/payment', 'success is not taken on the URL’s word; the redirect is relative');
 
   const cancelled = await back('cancel');
-  assert.equal(cancelled.headers.get('location'), 'https://shop.test/box/payment?outcome=cancelled');
+  assert.equal(cancelled.headers.get('location'), '/box/payment?outcome=cancelled');
   const recover = aonikRequests.find((request) => request.path.endsWith('/payment/recover'))!;
   assert.deepEqual(recover.body, { paymentIntentId: 'pi1' });
   assert.equal(recover.headers['x-cart-version'], 'v3');
 
   current = state({ status: 'failed' });
-  assert.equal((await back('cancel')).headers.get('location'), 'https://shop.test/box/payment?outcome=failed');
+  assert.equal((await back('cancel')).headers.get('location'), '/box/payment?outcome=failed');
 
   recovered = state({ status: 'processing' });
   current = state();
-  assert.equal((await back('cancel')).headers.get('location'), 'https://shop.test/box/payment?outcome=checking', 'uncertain: never pay again yet');
+  assert.equal((await back('cancel')).headers.get('location'), '/box/payment?outcome=checking', 'uncertain: never pay again yet');
 
   current = state({ status: 'succeeded' });
-  assert.equal((await back('cancel')).headers.get('location'), 'https://shop.test/box/confirmation');
+  assert.equal((await back('cancel')).headers.get('location'), '/box/confirmation');
 });
 
 /* ---- Retry ------------------------------------------------------------------------- */
@@ -344,4 +345,111 @@ test('the confirmation reads the order back with the guest token, and confirms o
   assert.equal((await readConfirmation()).kind, 'none');
   const quiet = mock.method(console, 'error', () => undefined);
   quiet.mock.restore();
+});
+
+/* ---- Round-1 review ------------------------------------------------------------------- */
+
+test('a closed session Aonik has not yet released is recovered, on a cancel return, a reopen and a retry', async () => {
+  configureAonik({ AONIK_DATA_MODE: 'live', LIVE_ORDERING_ENABLED: 'true' });
+  resetCookies({
+    ...CART_COOKIE,
+    [PAYMENT_COOKIE]: JSON.stringify({ orderId: 'o1', paymentIntentId: 'pi1', expectedTotalPence: 16200 }),
+  });
+  // The provider reports the session cancelled, but the box is not editable yet.
+  const current = state({ status: 'cancelled', canEdit: false });
+  let recovered = state({ status: 'cancelled', canEdit: true, cartVersion: 'v4' });
+  useAonik((request: AonikRequest) => {
+    if (request.path === '/commerce/carts/c1/payment') return { status: 200, body: current };
+    if (request.path === '/commerce/carts/c1/payment/recover') return { status: 200, body: recovered };
+    if (request.path === '/commerce/carts/c1/checkout-draft') return { status: 200, body: { cartId: 'c1', cartVersion: 'v4', status: 'Open', orderId: 'o1', draft: { deliveryDate: '2026-10-22' } } };
+    if (request.path === '/commerce/carts/c1/delivery-reservation') return { status: 200, body: { cartId: 'c1', cartVersion: 'v5', serverNowUtc: '2026-10-10T12:00:00Z', reservation: null } };
+    if (request.path === '/commerce/config/storefront') return { status: 200, body: {} };
+    if (request.path === '/commerce/carts/c1/checkout') return { status: 200, body: { ...placed, checkoutUrl: 'https://checkout.stripe.com/c/pay/cs_new' } };
+    if (request.path === '/commerce/carts/c1' && request.method === 'GET') return { status: 200, body: box({ orderId: 'o1' }) };
+    return undefined;
+  });
+
+  // Recovery is asked even though the provider already says "cancelled".
+  assert.equal((await back('cancel')).headers.get('location'), '/box/payment?outcome=cancelled');
+  assert.equal(aonikRequests.filter((request) => request.path.endsWith('/payment/recover')).length, 1);
+
+  // Checkout's own "Return to checkout" goes through the same recovery and lands on checkout.
+  assert.equal((await back('reopen')).headers.get('location'), '/box/checkout');
+
+  // A retry recovers first, then starts the new attempt: never a press that does nothing.
+  assert.deepEqual(await (await post('retry', {})).json(), { kind: 'redirect', checkoutUrl: 'https://checkout.stripe.com/c/pay/cs_new' });
+
+  // Still undecided after recovery: checking, not checkout.
+  recovered = state({ status: 'cancelled', canEdit: false });
+  assert.equal((await back('reopen')).headers.get('location'), '/box/payment?outcome=checking');
+  assert.deepEqual(await (await post('retry', {})).json(), { kind: 'pending' });
+  delete env.LIVE_ORDERING_ENABLED;
+});
+
+test('a payment that landed while the box was cleared is still found, as the order it became', async () => {
+  configureAonik({ AONIK_DATA_MODE: 'live' });
+  resetCookies({
+    ...CART_COOKIE,
+    [PAYMENT_COOKIE]: JSON.stringify({ orderId: 'o1', paymentIntentId: 'pi1', expectedTotalPence: 15230, guestOrderToken: 'order-token-secret' }),
+  });
+  let paid = true;
+  useAonik((request) => {
+    if (request.path === '/commerce/carts/c1/payment') return { status: 404, body: {} };
+    if (request.path === '/commerce/carts/c1') return { status: 404, body: {} };
+    if (request.path === '/commerce/storefront/guest-orders/o1') return { status: 200, body: order({ paymentStatus: paid ? 'Captured' : 'Pending' }) };
+    return undefined;
+  });
+  const quiet = mock.method(console, 'error', () => undefined);
+  const found = await readPaymentState();
+  assert.equal(found?.status, 'succeeded', 'paid is paid, whatever became of the cart cookie');
+  assert.equal(found?.paymentIntentId, 'pi1');
+  assert.equal(aonikRequests.find((request) => request.path.includes('guest-orders'))?.headers['x-order-token'], 'order-token-secret');
+
+  // The poll's answer, and the return handler's: the confirmation.
+  assert.deepEqual(await (await checkoutGet(new Request('https://shop.test/api/checkout/payment'), { params: Promise.resolve({ action: 'payment' }) })).json(), { status: 'succeeded', canEdit: false });
+  assert.equal((await back('success')).headers.get('location'), '/box/confirmation');
+
+  // Not paid, or nothing to read: no state, which the page says as such.
+  paid = false;
+  assert.equal(await readPaymentState(), null);
+  resetCookies();
+  assert.equal(await readPaymentState(), null);
+  quiet.mock.restore();
+});
+
+test('a return origin Aonik would reject is refused before anything is claimed', async () => {
+  configureAonik({ AONIK_DATA_MODE: 'live', LIVE_ORDERING_ENABLED: 'true' });
+  delete env.STOREFRONT_ORIGIN;
+  resetCookies(CART_COOKIE);
+  useAonik(() => undefined);
+  const quiet = mock.method(console, 'error', () => undefined);
+  const response = await checkoutPost(
+    new Request('http://internal-host:3000/api/checkout/pay', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Cart-Version': 'v1' },
+      body: JSON.stringify({ expectedTotalPence: 16200 }),
+    }),
+    { params: Promise.resolve({ action: 'pay' }) },
+  );
+  quiet.mock.restore();
+  assert.equal(response.status, 503);
+  assert.equal(aonikRequests.length, 0, 'no box was claimed and no date moved to a payment hold');
+  assert.equal(cookieWrites.length, 0);
+  delete env.LIVE_ORDERING_ENABLED;
+});
+
+test('a charged delivery is the Delivery row, not an extra as well; declined payments claim nothing unproven', () => {
+  const fee = { itemType: 'DeliveryFee', quantity: 1, unitPrice: 4.95, amountIn: 4.95, sku: null, name: 'Delivery', itemIndex: 2 };
+  const rows = confirmationRows(order({ total: 157.25, subtotal: 173.45, items: [...order().items, fee] }));
+  assert.deepEqual(rows.map(({ label, value }) => [label, value]), [
+    ['6-dish box', '£162.00'],
+    ['Fried Plantain × 2', '+£6.50'],
+    ['Discount (SAVE10)', '−£16.20'],
+    ['Delivery · Thu 22 Oct', '£4.95'],
+  ]);
+
+  const said = (faqs: { question: string; answer: string }[]) => faqs.map((faq) => `${faq.question} ${faq.answer}`).join(' ');
+  assert.doesNotMatch(said(PAYMENT_PAGES.failed.faqs), /charged\?|still saved|No\. Nothing/i);
+  assert.doesNotMatch(said(NO_PAYMENT_FAQS), /still saved|charged\?/i);
+  assert.match(said(PAYMENT_PAGES.notCompleted.faqs), /Have I been charged/);
 });

@@ -35,7 +35,7 @@ import { CART_CONFLICT_CODE, CART_LOCKED_CODE, CART_RELOAD_CODE, CART_VERSION_HE
 import { isIsoDate } from '@/lib/checkout/calendar';
 import { CODE_MAX_LENGTH, codeRefusal, isCodeRefusal, normaliseCode } from '@/lib/checkout/codes';
 import { DETAIL_FIELDS, FIELD_LIMITS, type CheckoutDetails } from '@/lib/checkout/form';
-import { readPaymentState, retryPayment, startPayment } from '@/lib/checkout/payment';
+import { PaymentOriginError, readPaymentState, retryPayment, startPayment } from '@/lib/checkout/payment';
 import {
   applyDiscountCode,
   CheckoutReloadError,
@@ -109,6 +109,9 @@ async function failure(error: unknown) {
   if (error instanceof CartMissingError) {
     const mapped = mapCartMissingError(error);
     return refuse(mapped.status, { error: mapped.payload.error, code: mapped.payload.code, cart: null });
+  }
+  if (error instanceof PaymentOriginError) {
+    return refuse(503, { error: 'We can’t start your payment just now. Please try again in a little while.', code: CHECKOUT_CODES.unavailable });
   }
   if (error instanceof OrderingDisabledError) {
     return refuse(403, { error: error.message, code: ORDERING_DISABLED_CODE });

@@ -60,8 +60,8 @@ The system SHALL decide `/box/checkout` on the server from Aonik's box (live):
 - a box that is not full, or holds an unavailable dish → `/box/dishes`;
 - `CheckedOut` → "This order has already been completed." with VIEW ORDER (SHOPPING-STATE §53);
 - an `orderId` on an open box that Aonik has not proven closed (`canEdit` false) → through
-  `/box/payment/return?outcome=cancel`, which asks Aonik to recover the attempt and then shows
-  what it found (D26). Once recovery has proven it closed unpaid, the box is editable and
+  `/box/payment/return?outcome=reopen`, which asks Aonik to recover the attempt and then goes to
+  checkout once Aonik says the box may change, or shows what it found (D26). Once recovery has proven it closed unpaid, the box is editable and
   checkout opens as usual.
 
 Demo keeps the box in the browser, so its gate runs in the page and makes the same redirects.
@@ -259,9 +259,11 @@ happened.
 ### Requirement: FR-10 The payment pages read Aonik, never the browser
 `capability: payment-states` · `delta: ADDED (feat/checkout-and-payment)`
 
-`/box/payment/return?outcome=success|cancel` is navigation only. A success return goes to
-`/box/payment`. A cancel return asks Aonik to RECOVER the attempt (`POST …/payment/recover`),
-then goes to what Aonik found:
+`/box/payment/return?outcome=success|cancel` is navigation only, and its redirects are
+relative (behind a proxy the request's origin can be an internal one). A success return goes
+to `/box/payment`. A cancel return asks Aonik to RECOVER the attempt (`POST …/payment/recover`:
+Aonik expires a Stripe session that can still take payment, and confirms one that was paid),
+even when the provider already reports the session closed, then goes to what Aonik found:
 - `?outcome=cancelled` once the attempt is proven closed and unpaid;
 - `?outcome=failed` for a failed attempt;
 - `?outcome=checking` while it is uncertain;
@@ -280,7 +282,17 @@ TRY AGAIN, USE ANOTHER CARD and CONTINUE TO PAYMENT are one action (`/api/checko
   starts on the same order with the total the customer agreed to;
 - a date that has gone, or a total that moved, goes back to checkout to choose or confirm
   again;
-- anything still undecided stays on the page and never starts a second payment.
+- a closed session Aonik has not yet released is recovered first, so the press is never a
+  no-op;
+- anything still undecided says so, stays on the page and never starts a second payment.
+
+A paid attempt is found even if the box has gone: the first page to load after a capture
+clears the cart cookie (this page's own hydration can be that page), so with no box the
+attempt in the payment cookie is read as the order it became (`readPaymentState`), and a
+`null` answer from the poll sends the customer to the confirmation.
+
+`STOREFRONT_ORIGIN` must be an HTTPS origin equal to the Stripe connector's `returnOrigin`;
+anything else is refused (503) before Aonik claims the box and its date.
 
 #### Scenario: the customer cancels on Stripe's page
 - **WHEN** Stripe sends the customer to the cancel URL

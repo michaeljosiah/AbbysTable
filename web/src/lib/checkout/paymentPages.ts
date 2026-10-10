@@ -68,13 +68,35 @@ const DATE_HELD: Faq = {
     'Delivery dates are held for a short time during checkout. If yours is no longer available, you can choose another from your delivery details.',
 };
 
-const NOT_COMPLETED_FAQS: Faq[] = [
+const WHY_FAILED: Faq = {
+  id: 'why',
+  question: 'Why didn’t my payment go through?',
+  answer:
+    'Usually a detail didn’t match, the card was declined by your bank, or the bank asked for extra verification that wasn’t completed. Check your details and try again, or use a different payment method.',
+};
+
+/**
+ * A declined payment: not yet proven closed, so no "Have I been charged? No"
+ * and no promise that the order is kept — a declined card can leave a pending
+ * authorisation, and what is proven is only what Aonik reports.
+ */
+const FAILED_FAQS: Faq[] = [
+  WHY_FAILED,
   {
-    id: 'why',
-    question: 'Why didn’t my payment go through?',
+    id: 'pending',
+    question: 'My bank shows a pending amount',
     answer:
-      'Usually a detail didn’t match, the card was declined by your bank, or the bank asked for extra verification that wasn’t completed. Check your details and try again, or use a different payment method.',
+      'A declined card can leave a temporary hold. If the payment isn’t completed it is released by your bank automatically, usually within a few working days.',
   },
+  DATE_HELD,
+  SECURE,
+];
+
+/** Not shown for a payment in this browser: nothing about any order is implied. */
+export const NO_PAYMENT_FAQS: Faq[] = [WHY_FAILED, SECURE];
+
+const NOT_COMPLETED_FAQS: Faq[] = [
+  WHY_FAILED,
   {
     id: 'charged',
     question: 'Have I been charged?',
@@ -130,7 +152,7 @@ export const PAYMENT_PAGES: Record<
     panelTitle: 'Your payment didn’t go through',
     // Not yet proven closed (a declined card can leave a pending authorisation): no "No charges".
     panelText: 'Please check your details or try another payment method.',
-    faqs: NOT_COMPLETED_FAQS,
+    faqs: FAILED_FAQS,
   },
   notCompleted: {
     title: 'Payment wasn’t completed',

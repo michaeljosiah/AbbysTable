@@ -7,7 +7,7 @@ import { PaymentStatusView } from '@/components/checkout/payment/PaymentStatusVi
 import styles from '@/components/checkout/payment/Payment.module.css';
 import { resolveDataMode } from '@/lib/aonik/dataMode';
 import { readPaymentState } from '@/lib/checkout/payment';
-import { PAYMENT_PAGES, paymentStatusPage } from '@/lib/checkout/paymentPages';
+import { NO_PAYMENT_FAQS, paymentStatusPage } from '@/lib/checkout/paymentPages';
 
 export const metadata: Metadata = {
   title: "Payment — Abby's Table",
@@ -39,7 +39,7 @@ export default async function PaymentPage({ searchParams }: { searchParams: Prom
   // Not designed: no payment for this browser (another browser, an expired
   // box, demo data). Says what is true, and implies nothing about an order.
   return (
-    <PaymentChrome inFlight={false} faqs={PAYMENT_PAGES.notCompleted.faqs}>
+    <PaymentChrome inFlight={false} faqs={NO_PAYMENT_FAQS}>
       <section className={styles.section} aria-labelledby="pp-h">
         <div className={styles.inner}>
           <h1 className={styles.h1} id="pp-h">

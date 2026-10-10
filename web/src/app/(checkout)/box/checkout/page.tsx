@@ -45,7 +45,7 @@ export default async function BoxCheckoutPage() {
   if (entry?.kind === 'incomplete') redirect('/box/dishes');
   // Back from Stripe while the attempt is live (D26): treated as leaving the
   // payment page, so Aonik is asked to close it — never a second checkout.
-  if (entry?.kind === 'payment') redirect('/box/payment/return?outcome=cancel');
+  if (entry?.kind === 'payment') redirect('/box/payment/return?outcome=reopen');
   if (entry?.kind === 'completed') return <CheckoutStatus kind="completed" />;
 
   const [calendar, pricing, extras] = await Promise.all([

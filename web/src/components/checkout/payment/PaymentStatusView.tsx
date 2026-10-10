@@ -27,7 +27,8 @@ async function retry(): Promise<{ go: string } | { error: string }> {
     if (answer.kind === 'redirect' && answer.checkoutUrl.startsWith('https://')) return { go: answer.checkoutUrl };
     if (answer.kind === 'paid') return { go: '/box/confirmation' };
     if (answer.kind === 'checkout') return { go: '/box/checkout' };
-    return { go: '/box/payment' };
+    // Still being decided: said, never a silent reload.
+    return { error: 'We’re still checking your payment with our payment provider. Please wait a moment, then try again.' };
   } catch {
     return { error: 'We couldn’t reopen the payment just now. Please try again in a moment.' };
   }
@@ -95,7 +96,9 @@ function useConfirmation(onSlow: () => void) {
         throttled = response.status === 429;
         const answer = (await response.json().catch(() => null)) as CheckoutPaymentAnswer | null;
         if (stopped) return;
-        if (answer?.status === 'succeeded') {
+        if (answer?.status === 'succeeded' || (response.ok && answer?.status === null)) {
+          // Paid; or nothing of this box is left to confirm (it became an
+          // order, and the confirmation says what it can read).
           window.location.replace('/box/confirmation');
           return;
         }
