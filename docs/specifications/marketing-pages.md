@@ -6,7 +6,7 @@ branch: feat/marketing-pages
 owner: michaeljosiah
 capabilities: [marketing-pages, homepage, legal-pages, contact-page, private-table]
 created: 2026-10-07
-updated: 2026-10-07
+updated: 2026-10-10
 ---
 
 # Marketing pages
@@ -421,9 +421,9 @@ is a disclosure (`aria-expanded`, `aria-controls`) below 1024 and, from 1024, a 
 the sidebar's "Opening hours" heading. No hero and no purchase bar (FR-07); the desktop header
 auto-hides (site-chrome FR-03). The FAQs card SHALL appear only while Delivery & FAQs has its own
 page (it has since #23; before, the card would have linked to this one) and the Private Table
-panel only while its waitlist can take a name (`waitlistOpen`, FR-28: the page exists since #25,
-the list waits on aonik#357; the panel links `PRIVATE_TABLE_WAITLIST_HREF`), never a "Join the
-waitlist" with nothing to join.
+panel only while its waitlist can take a name (`waitlistOpen`, FR-28: the tenant has published
+Aonik's `private-table` sign-up list; the panel links `PRIVATE_TABLE_WAITLIST_HREF`), never a
+"Join the waitlist" with nothing to join.
 
 #### Scenario: The hours move, the markup does not
 - **WHEN** the page is resized from 390px to 1280px
@@ -570,22 +570,32 @@ consultation date, no reply time — and takes focus. The rules live in
 `capability: private-table` · `delta: ADDED (feat/marketing-pages)`
 
 The form, every "Join the waitlist" and the bar SHALL render only where the waitlist can really
-store an entry: `waitlistOpen()`, i.e. `AonikClient.waitlist` exists — `null` in BOTH data modes
-until aonik#357 (`WAITLIST_PATH` in `src/lib/aonik/waitlist.ts` is the one switch; demo never
-pretends a write, #6's rule). Until then Register your interest says "The Private Table waitlist
-isn't open yet." and nothing links to the form. The server action SHALL re-run every rule on what
+store an entry: `waitlistList()` — the tenant publishes Aonik's `private-table` sign-up list
+(aonik#357, `GET /v1/signup-lists`) and it offers all three of the form's services
+(`WAITLIST_SERVICES`; Aonik refuses any other). Demo has no lists (`AonikClient.signupLists` is
+`null`; it never pretends a write, #6's rule). Otherwise Register your interest says "The Private
+Table waitlist isn't open yet." and nothing links to the form. The form's consent line SHALL be
+"Confidential by design. {the list's published wording} See our Privacy Policy.", and every post
+SHALL carry that wording's `consentVersion`. The server action SHALL re-run every rule on what
 arrived — every field capped (name 200, email 254, telephone 32, country 100 characters), the
 email shape checked in linear time (`isEmailAddress`), the country resolved against the fixed list
-and stored as its ISO code, the service one of the three — and answer `joined` only after a 2xx;
-otherwise `invalid`, `unavailable` or `error`, keeping everything entered ("We couldn't add you to
-the waitlist just now. Everything you've entered is still here, so please try again."). The entry
-is JSON in proposed field names (`name`, `email`, `phone?`, `country`, `service`), never retried,
-and is a list of its own — not the newsletter, not notify-me.
+and stored as its ISO code, the service one of the three — and answer `joined` only after Aonik's 202;
+otherwise `invalid`, `changed` (Aonik's 422: the wording moved on — "This form has changed since you
+opened it, so you haven't been added. Please reload the page and try again."), `unavailable` (no
+list, or no version posted) or `error`, keeping everything entered ("We couldn't add you to the
+waitlist just now. Everything you've entered is still here, so please try again."). The entry is
+Aonik's body (`email`, `consentVersion`, `name`, `country` ISO code, `service`, `phone?`), never
+retried, and is a list of its own — not the newsletter, not notify-me.
 
 #### Scenario: Nothing to store to
-- **WHEN** a valid entry is posted to the action while `WAITLIST_PATH` is `null`, in demo or live
+- **WHEN** a valid entry is posted in demo, or without the consent version the form shows
 - **THEN** it answers `unavailable`
 - **AND** no request leaves the server
+
+#### Scenario: The wording moved on
+- **WHEN** the tenant republishes the waitlist's wording while a customer has the form open, and
+  they join
+- **THEN** Aonik refuses the old version, nothing is stored, and the form says to reload
 
 ### Requirement: FR-29 The mobile bar's waitlist variant
 `capability: private-table` · `delta: ADDED (feat/marketing-pages)`
@@ -689,9 +699,10 @@ first two gaps recorded here, were closed by #15 (PR #59; T6, T9) and are no lon
     that notice. And the notice: one sentence, or a route meanwhile (the socials, as Contact's)?
 11. **Private Table's undesigned copy.** The three extra messages (FR-27), the failure line and
     the closed-state notice are ours; the credentials and both prices await #38.
-12. **The waitlist entry** (aonik#357). Field names are proposed (`name`, `email`, `phone?`,
-    `country` ISO code, `service` id); a second sign-up with the same email, abuse protection and
-    the unsubscribe route (Privacy Policy) are the endpoint's to settle. The country list (ISO
+12. **The waitlist entry** (aonik#357, shipped). Aonik de-duplicates by email (a repeat keeps the
+    first details) and issues unsubscribe tokens in its admin export; the storefront's unsubscribe
+    landing page (no mutation on GET, then `POST …/unsubscribe`) is not designed yet. Abuse
+    protection is Aonik's per-IP rate limit. The country list (ISO
     3166-1 less uninhabited regions, plus Kosovo; GOV.UK-style names) is ours to confirm.
 
 ---
@@ -736,9 +747,9 @@ first two gaps recorded here, were closed by #15 (PR #59; T6, T9) and are no lon
 - [x] `T17` Private Table (#25): the page, the CTAs, the form and its country typeahead, the
   action, the bar's waitlist variant, every Private Table link repointed to `/private-table` and
   the route on the desktop auto-hide list (FR-25–FR-29); held closed until aonik#357
-- [ ] `T18` Wire the waitlist when aonik#357 ships: set `WAITLIST_PATH`, reconcile
-  `toWaitlistBody` with its field names, confirm de-duplication, abuse protection and the
-  unsubscribe route (FR-28); Contact's panel and the page's CTAs then appear on their own
+- [x] `T18` The waitlist over Aonik's `private-table` sign-up list (aonik#357): published wording
+  and version, `changed` on a 422 (FR-28); Contact's panel and the page's CTAs appear on their own
+- [ ] `T18b` An unsubscribe landing page for the three lists (Aonik issues the tokens; needs a design)
 - [ ] `T19` The ↑ Top control on Private Table, once the canonical one lands with Menu v3 (#21)
 
 ### Testing

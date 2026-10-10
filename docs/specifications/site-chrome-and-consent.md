@@ -6,7 +6,7 @@ branch: feat/site-chrome-and-consent
 owner: michaeljosiah
 capabilities: [site-chrome, consent, purchase-bar, status-pages]
 created: 2026-10-07
-updated: 2026-10-07
+updated: 2026-10-10
 ---
 
 # Site chrome and consent
@@ -154,8 +154,11 @@ sign-out moved to the account area (`/account/orders`).
 `capability: site-chrome` · `delta: ADDED (feat/site-chrome-and-consent)`
 
 On `--green-deep` under a 2px brass rule, the footer SHALL carry: the "Join the table" signup only
-when a subscribe action is supplied (none is until Aonik can store one — #6, aonik#357), with its
-consent line linking `/privacy`; three columns — Shop: Menu / Gifting / Private Table; Learn:
+where it can really subscribe — the chrome supplies `subscribeNewsletterAction`, and the tenant
+publishes Aonik's `newsletter` sign-up list (aonik#357), which the footer reads FROM THE BROWSER
+(`GET /api/newsletter`, no-store) because the chrome must never await Aonik; so it appears after
+load, never in demo, and not without JavaScript (#6) — with the list's published consent wording,
+then "See our Privacy Policy." linking `/privacy`, posting the wording's `consentVersion`; three columns — Shop: Menu / Gifting / Private Table; Learn:
 Abby's Story / How it works / Our standards; Information: Delivery & FAQs / Allergens / Contact
 us; the follow row with four icon links and "@FromAbbysTable" as plain text; the wordmark and
 "Abby x"; and the legal strip "© 2026 Abby's Table", Privacy Policy | Terms, and Cookie

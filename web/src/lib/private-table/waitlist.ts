@@ -7,11 +7,13 @@
  * Sources: design/Abby's Table - Private Table v2.dc.html (fields, copy and
  * messages, verbatim), behaviour guide §8 (a WAITLIST, not a booking). The
  * browser's checks are a courtesy; the server action checks everything again,
- * and the waitlist endpoint (michaeljosiah/aonik#357) must too.
+ * and so does Aonik's sign-up list (michaeljosiah/aonik#357), with the same
+ * caps, telephone rule and two-letter country.
  */
 
 import { isWaitlistService, type WaitlistServiceId } from '@/lib/content/privateTable';
 import { isEmailAddress, MAX_EMAIL_LENGTH } from '@/lib/email';
+import { CONSENT_VERSION_FIELD } from '@/lib/signup/consent';
 
 import { MAX_COUNTRY_TEXT, resolveCountry } from './country';
 
@@ -118,10 +120,19 @@ export function isTelephoneNumber(phone: string): boolean {
   return digits >= PHONE_MIN_DIGITS && digits <= PHONE_MAX_DIGITS;
 }
 
+/**
+ * The name as it is stored: a control character (a pasted tab, say) becomes a
+ * space — Aonik refuses them, and the name means the same without — and the
+ * ends are trimmed.
+ */
+function cleanName(name: string): string {
+  return name.replace(/\p{Cc}+/gu, ' ').trim();
+}
+
 /** Every problem with the draft, keyed by field. Empty when it can be sent. */
 export function validateWaitlist(draft: WaitlistDraft): WaitlistErrors {
   const errors: WaitlistErrors = {};
-  const name = draft.name.trim();
+  const name = cleanName(draft.name);
   const email = draft.email.trim();
   const phone = draft.phone.trim();
   const country = draft.country.trim();
@@ -167,7 +178,7 @@ export function toWaitlistEntry(
   if (firstInvalidField(errors) || !country || !isWaitlistService(draft.service)) return { errors };
   return {
     entry: {
-      name: draft.name.trim(),
+      name: cleanName(draft.name),
       email: draft.email.trim(),
       phone: draft.phone.trim() || null,
       country: country.code,
@@ -188,10 +199,12 @@ export function toWaitlistEntry(
  * - `invalid`     the fields failed the shared rules (`errors`)
  * - `joined`      stored
  * - `error`       the waitlist failed; everything entered stays in the form
- * - `unavailable` this deployment cannot store an entry at all (aonik#357)
+ * - `changed`     Aonik refused the consent version the form showed: the list
+ *                 was withdrawn or its wording changed since the page loaded
+ * - `unavailable` this deployment cannot store an entry at all (no list)
  */
 export interface WaitlistState {
-  status: 'idle' | 'invalid' | 'joined' | 'error' | 'unavailable';
+  status: 'idle' | 'invalid' | 'joined' | 'error' | 'changed' | 'unavailable';
   errors?: WaitlistErrors;
   /**
    * What was posted, on every answer but `joined` — so a submit made without
@@ -221,6 +234,8 @@ export const WAITLIST_FORM_FIELDS = {
   phone: 'phone',
   country: 'country',
   service: 'service',
+  /** The consent wording's version, as the form showed it (`@/lib/signup/consent`). */
+  consentVersion: CONSENT_VERSION_FIELD,
 } as const;
 
 /** Reads a posted form back into a draft. Missing or non-text values are empty. */

@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 
 import { PrivateTableView } from '@/components/private-table/PrivateTableView';
 import { joinWaitlistAction } from '@/lib/private-table/actions';
-import { waitlistOpen } from '@/lib/private-table/availability';
+import { waitlistList } from '@/lib/private-table/availability';
+import { consentOf } from '@/lib/signup/server';
 
 /*
  * Abby's Private Table (#25) — design/Abby's Table - Private Table v2.dc.html
@@ -11,10 +12,11 @@ import { waitlistOpen } from '@/lib/private-table/availability';
  *
  * A WAITLIST, not a booking. The form, every "Join the waitlist" and the
  * mobile bar are given their action only when the waitlist can really store
- * an entry (`waitlistOpen`: Aonik's list, michaeljosiah/aonik#357, which does
- * not exist yet — so in neither data mode today). Until then the page states
- * the service, its credentials and prices, and says the waitlist is not open
- * yet, rather than thanking anyone for a name that went nowhere (#6's rule).
+ * an entry (`waitlistList`: the tenant's published `private-table` sign-up
+ * list in Aonik, michaeljosiah/aonik#357 — never in demo mode). Without it the
+ * page states the service, its credentials and prices, and says the waitlist
+ * is not open yet, rather than thanking anyone for a name that went nowhere
+ * (#6's rule). The form shows the list's consent wording and posts its version.
  *
  * On the desktop header auto-hide list, as the design opts Private Table in
  * (build-handoff §3v).
@@ -30,6 +32,10 @@ export const metadata: Metadata = {
 };
 
 export default async function PrivateTablePage() {
-  const open = await waitlistOpen();
-  return <PrivateTableView joinAction={open ? joinWaitlistAction : undefined} />;
+  const list = await waitlistList();
+  return (
+    <PrivateTableView
+      waitlist={list ? { action: joinWaitlistAction, consent: consentOf(list) } : undefined}
+    />
+  );
 }

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { readSessionView } from '@/lib/auth/session';
+import { subscribeNewsletterAction } from '@/lib/newsletter/actions';
 
 import { Footer } from './Footer';
 import { Header } from './Header';
@@ -33,7 +34,9 @@ export async function SiteChrome({ children }: { children: ReactNode }) {
     <>
       <Header session={session} />
       <main>{children}</main>
-      <Footer />
+      {/* The newsletter's published list is read by the footer itself, from
+          the browser — never awaited here. */}
+      <Footer subscribeAction={subscribeNewsletterAction} />
     </>
   );
 }

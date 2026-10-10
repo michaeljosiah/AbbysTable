@@ -133,11 +133,11 @@ Conventions inside `web/` that are easy to get wrong:
   its panel ("Join the waitlist") shows only while that waitlist is open (`waitlistOpen`).
 - **Private Table (#25): `/private-table` is a WAITLIST, never a booking** (`PrivateTableView`;
   behaviour guide §8). Every call to action reads "Join the waitlist" (`JOIN_WAITLIST_LABEL`) and the
-  confirmation promises no date and no reply time. Nothing can store an entry until aonik#357:
-  `AonikClient.waitlist` is `null` in BOTH modes (`WAITLIST_PATH` in `src/lib/aonik/waitlist.ts`,
-  the one switch), so `waitlistOpen()` is false and the page renders NO form, NO "Join the
-  waitlist" and NO mobile bar — it says the waitlist isn't open yet (#6's rule); the action answers
-  `joined` only after a 2xx. Prices are `PRIVATE_TABLE_FROM_PENCE` / `…_MEAL_PREPARATION_FROM_PENCE`
+  confirmation promises no date and no reply time. It opens only while the tenant PUBLISHES
+  Aonik's `private-table` sign-up list (aonik#357) with all three `WAITLIST_SERVICES` ids
+  (`waitlistList()`); demo has no lists (`AonikClient.signupLists` is `null`). Closed, the page
+  renders NO form, NO "Join the waitlist" and NO mobile bar — it says the waitlist isn't open yet
+  (#6's rule); the action answers `joined` only after Aonik's 202. Prices are `PRIVATE_TABLE_FROM_PENCE` / `…_MEAL_PREPARATION_FROM_PENCE`
   (`marketing.ts`), copy and credentials verbatim (`src/lib/content/privateTable.ts`, awaiting
   #38). "Country or region" resolves against the FIXED list in `src/lib/content/countries.ts`
   (codes stored, aliases matched); the rules are React-free in `src/lib/private-table/`
@@ -162,9 +162,9 @@ Conventions inside `web/` that are easy to get wrong:
   `stateOverride` must never ship (contract §4b). "Use my current location" asks only on a click
   and renders only where the lookup can place a postcode. A served postcode goes to the box
   builder in sessionStorage `at-checked-postcode-v1` (`src/lib/delivery/handoff.ts`), never a URL;
-  Choose Box (#28) reads it into an empty field and re-checks. Notify-me renders only where
-  `AonikClient.notifyList` exists — nowhere until aonik#357, in either mode (#6's rule: demo never
-  pretends a write). FAQ copy is `src/lib/content/deliveryFaqs.ts`, verbatim and awaiting #38;
+  Choose Box (#28) reads it into an empty field and re-checks. Notify-me renders only where the
+  tenant publishes Aonik's `delivery-availability` sign-up list (aonik#357) — never in demo (#6's
+  rule: demo never pretends a write) — and, being in the not-in-area state, only with a checker. FAQ copy is `src/lib/content/deliveryFaqs.ts`, verbatim and awaiting #38;
   prices are `{ value }` slots (the delivery charge is `StorefrontConfig.delivery.chargedPence`), and
   a question whose figure is unknown is left out. Search rules: `src/lib/faq/search.ts`.
 - **Dish → Our Standards → dish (#17)** is specified in `src/lib/dish-return.ts`, also React-free.
@@ -180,6 +180,18 @@ Conventions inside `web/` that are easy to get wrong:
   drops it). Never put the selection in a URL: a link must not carry one customer's choices to
   another. React renders a popstate navigation synchronously inside Next's own listener, so a
   popstate listener added later never runs first.
+- **Sign-up lists (aonik#357): newsletter, notify-me, Private Table waitlist** —
+  `src/lib/aonik/signupLists.ts` (`AonikClient.signupLists`, `null` in demo). Three SEPARATE
+  lists, each offered only while the tenant publishes it (`GET /v1/signup-lists`, no-store). A form
+  shows the list's `consentText` EXACTLY (the design's surrounding words stay ours — "Confidential
+  by design.", "See our Privacy Policy.") and posts back its `consentVersion` (`CONSENT_VERSION_FIELD`,
+  `src/lib/signup/consent.ts`); Aonik's 422 means the wording moved on → `SIGNUP_FORM_CHANGED`
+  ("reload"), never "try again". The tenant should publish the design's wording: newsletter "We use
+  your email for kitchen notes and offers only. Unsubscribe any time.", notify-me "We’ll only use
+  your email to tell you when we reach your area.", waitlist "We’ll only use your details to
+  contact you about Private Table." The FOOTER newsletter is read from the BROWSER
+  (`GET /api/newsletter`, then `subscribeNewsletterAction`) because the chrome must never await
+  Aonik — so it appears after load and not at all without JavaScript.
 - **Internal links go through `next/link`.** `Button` and `NavLink` route on `href` automatically
   (`isExternalHref` in `src/lib/links.ts`); nav anchors are root-relative (`/#founder`) so they work
   from `/menu` as well as `/`.

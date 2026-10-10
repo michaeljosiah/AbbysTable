@@ -52,8 +52,7 @@ import {
   type StorefrontConfigDto,
   mapExtraRow,
 } from './map';
-import type { NotifyList } from './notifyMe';
-import { HttpWaitlist, WAITLIST_PATH, type Waitlist } from './waitlist';
+import { HttpSignupLists, type SignupLists } from './signupLists';
 import type {
   BoxOffer,
   BoxPricing,
@@ -112,15 +111,11 @@ export interface AonikClient {
    */
   readonly coverage: CoverageLookup | null;
   /**
-   * The notify-me list (contract §3c), or null while nothing can store to it
-   * — then the not-in-area panel offers no form.
+   * The sign-up lists — newsletter, notify-me, Private Table waitlist (Aonik
+   * #357) — or null where nothing can store a sign-up. Each form renders only
+   * for a list the tenant has published, with its published consent wording.
    */
-  readonly notifyList: NotifyList | null;
-  /**
-   * The Private Table waitlist (#25), or null while nothing can store to it
-   * — then the Private Table page offers no form and no "Join the waitlist".
-   */
-  readonly waitlist: Waitlist | null;
+  readonly signupLists: SignupLists | null;
 }
 
 export interface ProductPage {
@@ -137,12 +132,10 @@ export class MockAonikClient implements AonikClient {
 
   /**
    * None, deliberately: demo serves fixture reads but never pretends a write
-   * succeeded — it stores no email, so it offers no form (`./notifyMe`).
+   * succeeded — it stores no email or name, so it offers no sign-up form
+   * (`./signupLists`).
    */
-  readonly notifyList: NotifyList | null = null;
-
-  /** None, for the same reason: demo never stores a name (`./waitlist`). */
-  readonly waitlist: Waitlist | null = null;
+  readonly signupLists: SignupLists | null = null;
 
   async getDishes(): Promise<Dish[]> {
     return DISH_FIXTURES;
@@ -293,9 +286,6 @@ export class HttpAonikClient implements AonikClient {
    */
   readonly coverage: CoverageLookup | null = null;
 
-  /** None yet: Aonik cannot store a notify-me request (michaeljosiah/aonik#357). */
-  readonly notifyList: NotifyList | null = null;
-
   /**
    * Recommended only. Aonik's browse sorts by `name | newest | rank`, and its
    * rows carry no typed nutrition to sort by — Highest protein and Lowest
@@ -304,12 +294,9 @@ export class HttpAonikClient implements AonikClient {
    */
   readonly menuSorts: readonly MenuSortKey[] = ['recommended'];
 
-  /**
-   * The waitlist over `WAITLIST_PATH`, or null while Aonik has none
-   * (michaeljosiah/aonik#357) — never a stub that fails every sign-up.
-   */
-  get waitlist(): Waitlist | null {
-    return WAITLIST_PATH === null ? null : new HttpWaitlist(WAITLIST_PATH, this.options);
+  /** Aonik's sign-up lists (#357). Which forms show is the tenant's publishing. */
+  get signupLists(): SignupLists {
+    return new HttpSignupLists(this.options);
   }
 
   private get<T>(path: string, query?: Record<string, string | number | undefined>): Promise<T> {

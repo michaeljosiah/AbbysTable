@@ -19,6 +19,7 @@ import {
 import { formatPrice } from '@/lib/format';
 import type { WaitlistAction } from '@/lib/private-table/waitlist';
 import { STOP_ON_ENTRY } from '@/lib/purchase-bar/visibility';
+import type { SignupConsent } from '@/lib/signup/consent';
 
 import { SectionJump, WaitlistChoiceProvider } from './WaitlistChoice';
 import { WaitlistForm } from './WaitlistForm';
@@ -80,11 +81,12 @@ function ArrowRight() {
 
 export interface PrivateTableViewProps {
   /**
-   * The join action — given ONLY when the waitlist can really store an entry
-   * (`waitlistOpen`; aonik#357). Without it the page offers no form and no
-   * "Join the waitlist" anywhere, and says the waitlist is not open yet.
+   * The join action and the published list's consent — given ONLY when the
+   * waitlist can really store an entry (`waitlistList`; aonik#357). Without it
+   * the page offers no form and no "Join the waitlist" anywhere, and says the
+   * waitlist is not open yet.
    */
-  joinAction?: WaitlistAction;
+  waitlist?: { action: WaitlistAction; consent: SignupConsent };
 }
 
 /**
@@ -109,8 +111,8 @@ export interface PrivateTableViewProps {
  * enquiry section is on screen (`data-purchase-bar-stop="entry"`), through
  * the footer. Only while the waitlist is open.
  */
-export function PrivateTableView({ joinAction }: PrivateTableViewProps) {
-  const open = Boolean(joinAction);
+export function PrivateTableView({ waitlist }: PrivateTableViewProps) {
+  const open = Boolean(waitlist);
   const fromLine = `Private Table from ${formatPrice(PRIVATE_TABLE_FROM_PENCE)}`;
 
   return (
@@ -343,19 +345,20 @@ export function PrivateTableView({ joinAction }: PrivateTableViewProps) {
           <h2 className={`${styles.h2} ${styles.centre}`} tabIndex={-1} data-jump-focus="">
             Register your interest
           </h2>
-          {joinAction ? (
+          {waitlist ? (
             <>
               <p className={`${styles.intro} ${styles.centre}`}>
                 Tell us which Private Table service interests you and we’ll let you know when
                 consultations open.
               </p>
               <div className={styles.panel}>
-                <WaitlistForm action={joinAction} />
+                <WaitlistForm action={waitlist.action} consent={waitlist.consent} />
               </div>
             </>
           ) : (
-            // Held back until Aonik can store an entry (aonik#357): never a
-            // form that thanks someone for a name that went nowhere (#6).
+            // Held back while Aonik cannot store an entry (no published list,
+            // aonik#357): never a form that thanks someone for a name that
+            // went nowhere (#6).
             <p className={`${styles.intro} ${styles.centre}`}>
               The Private Table waitlist isn’t open yet.
             </p>

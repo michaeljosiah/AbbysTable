@@ -18,6 +18,7 @@ import {
 } from '@/lib/delivery/handoff';
 import { POSTCODE_MESSAGES, readPostcodeEntry } from '@/lib/delivery/postcode';
 import { formatDeliveryDateLong } from '@/lib/format';
+import type { SignupConsent } from '@/lib/signup/consent';
 import { DESKTOP_QUERY } from '@/lib/site-header/visibility';
 
 import { NotifyMeForm } from './NotifyMeForm';
@@ -44,12 +45,15 @@ import styles from './PostcodeChecker.module.css';
  */
 export function PostcodeChecker({
   canLocate,
-  notifyAction,
+  notify,
 }: {
   /** Show "Use my current location": only where a coordinates lookup exists. */
   canLocate: boolean;
-  /** The notify-me action, only where a list can store to (contract §3c). */
-  notifyAction?: NotifyMeAction;
+  /**
+   * The notify-me action and its list's consent, only where the tenant has
+   * published that list (contract §3c; aonik#357).
+   */
+  notify?: { action: NotifyMeAction; consent: SignupConsent };
 }) {
   const [state, dispatch] = useReducer(checkerReducer, INITIAL_CHECKER_STATE);
   const [hasValue, setHasValue] = useState(false);
@@ -413,8 +417,8 @@ export function PostcodeChecker({
                   </div>
                 </div>
 
-                {notifyAction ? (
-                  <NotifyMeForm action={notifyAction} postcode={result.postcode} />
+                {notify ? (
+                  <NotifyMeForm action={notify.action} consent={notify.consent} postcode={result.postcode} />
                 ) : null}
               </div>
             </div>

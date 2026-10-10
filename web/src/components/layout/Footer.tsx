@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useActionState, useId, useState } from 'react';
+import { useActionState, useEffect, useId, useState } from 'react';
 
 import { Logo } from '@/components/brand/Logo';
 import { SocialIcons } from '@/components/brand/SocialIcons';
@@ -14,7 +14,13 @@ import {
   TERMS_ITEM,
 } from '@/lib/content/navigation';
 import { useMediaQuery } from '@/lib/dom/hooks';
-import type { NewsletterSignupAction, NewsletterSignupState } from '@/lib/newsletter';
+import {
+  NEWSLETTER_CONSENT_PATH,
+  NEWSLETTER_EMAIL_FIELD,
+  type NewsletterSignupAction,
+  type NewsletterSignupState,
+} from '@/lib/newsletter';
+import { CONSENT_VERSION_FIELD, type SignupConsent } from '@/lib/signup/consent';
 import { DESKTOP_QUERY } from '@/lib/site-header/visibility';
 import { ariaCurrentFor } from '@/lib/site-header/state';
 
@@ -36,16 +42,21 @@ const COPYRIGHT_YEAR = 2026;
  * for a list that is always open. Server-rendered as the phone version; the
  * desktop semantics follow on the client.
  *
- * The newsletter signup renders only when `subscribeAction` is supplied, and
- * nothing supplies it yet: Aonik has no endpoint to store a subscription
- * (michaeljosiah/aonik#357, #6). A form that thanks someone for joining while
- * saving nothing is a live-looking control that does nothing, so the whole
- * "Join the table" block stays out of the page until a server action can
- * really subscribe. Wiring it means passing that server action from the site
- * layout (contract in `@/lib/newsletter`).
+ * "Join the table" renders only where it can really subscribe: the site chrome
+ * passes `subscribeAction`, AND the tenant has published its newsletter list
+ * in Aonik (michaeljosiah/aonik#357), whose consent wording the block shows
+ * and whose version it posts. A form that thanks someone for joining while
+ * saving nothing is a live-looking control that does nothing (#6).
+ *
+ * The published list is read from the BROWSER, once the footer mounts
+ * (`useNewsletterConsent`): the chrome renders into every document — the root
+ * 404 included — and must never await Aonik (tests/not-found-chrome.test.ts).
+ * So the block appears after load and, without JavaScript, not at all.
  */
 export function Footer({ subscribeAction }: { subscribeAction?: NewsletterSignupAction }) {
   const pathname = usePathname();
+  const consent = useNewsletterConsent(Boolean(subscribeAction));
+  const signup = subscribeAction && consent ? { action: subscribeAction, consent } : null;
   const desktop = useMediaQuery(DESKTOP_QUERY);
   const idBase = useId();
   const [openColumns, setOpenColumns] = useState<Record<string, boolean>>({});
@@ -62,8 +73,8 @@ export function Footer({ subscribeAction }: { subscribeAction?: NewsletterSignup
       <div className={styles.brassRule} aria-hidden="true" />
 
       <div className={styles.inner}>
-        <div className={styles.grid} data-signup={subscribeAction ? '' : undefined}>
-          {subscribeAction ? <NewsletterSignup action={subscribeAction} /> : null}
+        <div className={styles.grid} data-signup={signup ? '' : undefined}>
+          {signup ? <NewsletterSignup action={signup.action} consent={signup.consent} /> : null}
 
           <div className={styles.cols}>
             {FOOTER_COLUMNS.map((column, index) => {
@@ -184,19 +195,55 @@ export function Footer({ subscribeAction }: { subscribeAction?: NewsletterSignup
   );
 }
 
+/** The published newsletter consent, or null while there is none (or none yet). */
+function readConsent(body: unknown): SignupConsent | null {
+  const consent = (body as { consent?: { text?: unknown; version?: unknown } } | null)?.consent;
+  return typeof consent?.text === 'string' && consent.text && typeof consent.version === 'string' && consent.version
+    ? { text: consent.text, version: consent.version }
+    : null;
+}
+
+/**
+ * Asks this server for the newsletter list's consent, once per mount — the
+ * footer stays mounted across client navigations, so once per page load.
+ * Anything but a well-formed answer leaves the block out.
+ */
+function useNewsletterConsent(wanted: boolean): SignupConsent | null {
+  const [consent, setConsent] = useState<SignupConsent | null>(null);
+
+  useEffect(() => {
+    if (!wanted) return;
+    const controller = new AbortController();
+    fetch(NEWSLETTER_CONSENT_PATH, { cache: 'no-store', signal: controller.signal })
+      // The body is read either way: one left unread holds the request open.
+      .then(async (response) => {
+        const body: unknown = await response.json().catch(() => null);
+        return response.ok ? body : null;
+      })
+      .then((body) => setConsent(readConsent(body)))
+      .catch(() => {
+        // Aborted, offline or unpublished: no block, which is the safe answer.
+      });
+    return () => controller.abort();
+  }, [wanted]);
+
+  return consent;
+}
+
 /**
  * The "Join the table" signup. Its own component so the action state hook runs
  * only when there is an action to run.
  *
- * Posts through `useActionState` like the auth forms, so a submit before
- * hydration is still a POST to the server action rather than a GET that would
- * put the email in the URL.
+ * Posts through `useActionState` like the auth forms, so the email travels in
+ * a POST body, never a URL. The field is controlled: a resolved form action
+ * resets uncontrolled fields, which would blank the address beside its error.
  */
-function NewsletterSignup({ action }: { action: NewsletterSignupAction }) {
+export function NewsletterSignup({ action, consent }: { action: NewsletterSignupAction; consent: SignupConsent }) {
   const [state, formAction, isPending] = useActionState<NewsletterSignupState, FormData>(action, {
     status: 'idle',
   });
   const inputId = useId();
+  const [email, setEmail] = useState('');
 
   return (
     <div className={styles.news}>
@@ -215,15 +262,19 @@ function NewsletterSignup({ action }: { action: NewsletterSignupAction }) {
             </label>
             <input
               id={inputId}
-              name="email"
+              name={NEWSLETTER_EMAIL_FIELD}
               type="email"
               required
               autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
               aria-invalid={state.status === 'error' || undefined}
               aria-describedby={state.status === 'error' ? `${inputId}-error` : undefined}
               placeholder="Enter your email address"
               className={styles.input}
             />
+            {/* The wording shown below, by version — what the sign-up agrees to. */}
+            <input type="hidden" name={CONSENT_VERSION_FIELD} value={consent.version} />
             <button type="submit" className={styles.join} disabled={isPending}>
               {isPending ? 'Joining…' : 'Join'}
             </button>
@@ -233,8 +284,11 @@ function NewsletterSignup({ action }: { action: NewsletterSignupAction }) {
               {state.message ?? 'We couldn’t add you just now. Please try again.'}
             </p>
           ) : null}
+          {/* The design's line is "We use your email for kitchen notes and
+              offers only. Unsubscribe any time. See our Privacy Policy." — all
+              but the last sentence is the list's published wording. */}
           <p className={styles.consent}>
-            We use your email for kitchen notes and offers only. Unsubscribe any time. See our{' '}
+            {consent.text} See our{' '}
             <Link href={PRIVACY_ITEM.href} className={styles.consentLink}>
               {PRIVACY_ITEM.label}
             </Link>

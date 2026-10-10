@@ -5,6 +5,7 @@ import { useActionState, useId, useState } from 'react';
 
 import type { NotifyMeAction, NotifyMeState } from '@/lib/aonik/notifyMe';
 import { PRIVACY_ITEM } from '@/lib/content/navigation';
+import { CONSENT_VERSION_FIELD, type SignupConsent } from '@/lib/signup/consent';
 
 import styles from './PostcodeChecker.module.css';
 
@@ -13,14 +14,24 @@ import styles from './PostcodeChecker.module.css';
  * capture (contract §3c): the email and the CHECKED postcode, to a list of its
  * own, never the newsletter.
  *
- * Rendered only when the page has a list to store to, and none exists yet
- * (michaeljosiah/aonik#357), so today it renders nowhere — the newsletter's
- * precedent (#6). It thanks the customer only for `status: 'joined'`.
+ * Rendered only when the tenant has published that list in Aonik (its
+ * `delivery-availability` sign-up list, michaeljosiah/aonik#357) — never in
+ * demo mode, the newsletter's precedent (#6). Its consent line is the list's
+ * published wording, exactly, and the post carries that wording's version.
+ * It thanks the customer only for `status: 'joined'`.
  *
  * Posts through `useActionState`, so a submit before hydration is still a POST
  * to the server action — the email never lands in a URL.
  */
-export function NotifyMeForm({ action, postcode }: { action: NotifyMeAction; postcode: string }) {
+export function NotifyMeForm({
+  action,
+  consent,
+  postcode,
+}: {
+  action: NotifyMeAction;
+  consent: SignupConsent;
+  postcode: string;
+}) {
   const [state, formAction, isPending] = useActionState<NotifyMeState, FormData>(action, {
     status: 'idle',
   });
@@ -74,6 +85,8 @@ export function NotifyMeForm({ action, postcode }: { action: NotifyMeAction; pos
             />
             {/* The checked postcode is why the record is worth keeping. */}
             <input type="hidden" name="postcode" value={postcode} />
+            {/* The wording shown below, by version — what the sign-up agrees to. */}
+            <input type="hidden" name={CONSENT_VERSION_FIELD} value={consent.version} />
             <button type="submit" className={styles.check} disabled={isPending}>
               Let me know
             </button>
@@ -85,8 +98,11 @@ export function NotifyMeForm({ action, postcode }: { action: NotifyMeAction; pos
               </span>
             </p>
           ) : null}
+          {/* The design's line is "We’ll only use your email to tell you when
+              we reach your area. See our Privacy Policy." — its first sentence
+              is the list's published wording. */}
           <p className={styles.consent}>
-            We’ll only use your email to tell you when we reach your area. See our{' '}
+            {consent.text} See our{' '}
             <Link href={PRIVACY_ITEM.href} className={styles.consentLink}>
               {PRIVACY_ITEM.label}
             </Link>
