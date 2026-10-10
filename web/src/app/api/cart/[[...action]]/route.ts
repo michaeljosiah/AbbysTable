@@ -22,7 +22,7 @@ import { AONIK_CODES, AonikError } from '@/lib/aonik/errors';
 import { mapBoxCart, type BoxCart, type PersonalisationSelection } from '@/lib/aonik/map';
 import { CartMissingError, mapCartMissingError } from '@/lib/cart/cartMissing';
 import { ORDERING_DISABLED_CODE } from '@/lib/cart/ordering';
-import { CART_CONFLICT_CODE, CART_LOCKED_CODE, CART_VERSION_HEADER } from '@/lib/cart/transport';
+import { CART_CONFLICT_CODE, CART_LOCKED_CODE, CART_RELOAD_CODE, CART_VERSION_HEADER } from '@/lib/cart/transport';
 import {
   CartUnavailableError,
   OrderingDisabledError,
@@ -123,13 +123,16 @@ async function errorResponse(error: unknown) {
         console.error('[api/cart] could not re-read the box after a refused write', readFailure);
       }
     }
-    const message =
-      cart === null
-        ? new CartMissingError().message
-        : cart === undefined && code === CART_CONFLICT_CODE
-          ? CONFLICT_UNREAD_MESSAGE
-          : REFUSED_WRITE_MESSAGES[code];
-    return NextResponse.json({ error: message, code, cart }, { status: 409 });
+    if (cart === null) {
+      // Not a conflict any more: there is no box, said as such.
+      const missing = new CartMissingError();
+      return NextResponse.json({ error: missing.message, code: missing.code, cart }, { status: 409 });
+    }
+    if (cart === undefined && code === CART_CONFLICT_CODE) {
+      // The tab keeps its old version, so only a reload can help — not a retry.
+      return NextResponse.json({ error: CONFLICT_UNREAD_MESSAGE, code: CART_RELOAD_CODE }, { status: 409 });
+    }
+    return NextResponse.json({ error: REFUSED_WRITE_MESSAGES[code], code, cart }, { status: 409 });
   }
 
   if (error instanceof AonikError) {

@@ -293,6 +293,8 @@ export interface BoxCartDto {
    * idle, a populated one after 7 days).
    */
   status?: string;
+  /** The order it became — set once a checkout created one, paid or not yet. */
+  orderId?: string | null;
 }
 
 /* ---- Extras rail (Spec 071) -------------------------------------------------- */

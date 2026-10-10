@@ -5,17 +5,23 @@ import { useState } from 'react';
 import type { BoxChange } from '@/lib/aonik/map';
 import { useCart } from '@/lib/cart/CartProvider';
 import { CART_ORDERED_CODE } from '@/lib/cart/cartMissing';
-import { CART_LOCKED_CODE } from '@/lib/cart/transport';
+import { CART_LOCKED_CODE, CART_RELOAD_CODE } from '@/lib/cart/transport';
 import { formatPrice } from '@/lib/format';
 
 import styles from './DriftNotices.module.css';
 
 /**
  * Errors whose message already says what to do, or where retrying cannot help:
- * a box locked for payment, one already ordered, and a missing box (its own
- * message says to start a new one and try again).
+ * a box locked for payment, one already ordered, a missing box (its own
+ * message says to start a new one and try again) and a conflict only a reload
+ * can resolve.
  */
-const NO_RETRY_LINE = new Set<string | undefined>([CART_LOCKED_CODE, CART_ORDERED_CODE, 'cart.missing']);
+const NO_RETRY_LINE = new Set<string | undefined>([
+  CART_LOCKED_CODE,
+  CART_ORDERED_CODE,
+  CART_RELOAD_CODE,
+  'cart.missing',
+]);
 
 /**
  * Tells the customer what Aonik changed under their box, and why.

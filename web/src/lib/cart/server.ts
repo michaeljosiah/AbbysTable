@@ -187,6 +187,12 @@ async function withCart<T>(
 
   const auth = await cartAuth(cookie.cartToken);
 
+  // A box adopted into an account answers only to that account's bearer. With
+  // no session (signed out, or lapsed) there is nothing to send: asking would
+  // 404 and clear the cookie — the one way back to the box once the customer
+  // signs in again. So there is simply no box to show until then.
+  if (!cookie.cartToken && !auth.accessToken) return null;
+
   try {
     // Only a write carries the version: it is the precondition Aonik checks
     // before changing the box, and a read has nothing to check.
@@ -275,14 +281,17 @@ async function cartAuth(cartToken: string | undefined): Promise<CartFetchOptions
  * change would be refused on.
  */
 async function readBoxCart(): Promise<BoxCartDto | null> {
-  const dto = await withCart((cartId, auth) =>
-    cartFetch<BoxCartDto>(`/commerce/carts/${cartId}`, auth),
-  );
+  const dto = await fetchBoxCart();
   if (dto && isFinished(dto.status)) {
     await clearCartCookie();
     return null;
   }
   return dto;
+}
+
+/** The stored box exactly as Aonik answers it, finished or not. */
+function fetchBoxCart(): Promise<BoxCartDto | null> {
+  return withCart((cartId, auth) => cartFetch<BoxCartDto>(`/commerce/carts/${cartId}`, auth));
 }
 
 /** The current cart, or null without one. Confirmed stale carts reject. */
@@ -562,19 +571,24 @@ export async function checkoutBoxCart(
   // order routes are authenticated and party-scoped, so an anonymous customer
   // can never read the order back. A drift 409 throws before the snapshot is
   // written, which is correct — nothing was placed.
-  const snapshot = await readBoxCart();
+  //
+  // Read as it is, finished or not: a box that already became an order — a
+  // checkout whose answer never arrived, or one placed from another tab — is
+  // REPLAYED by Aonik (before any version check), and that replay is how the
+  // customer reaches the confirmation rather than a false "nothing ordered"
+  // (SHOPPING-STATE §42, §53).
+  const snapshot = await fetchBoxCart();
   if (!snapshot) throw new CartMissingError('There is no box to check out.');
   const placed = mapBoxCart(snapshot);
+  const ordered = Boolean(snapshot.orderId) || snapshot.status === 'CheckedOut';
 
   // That read is itself a chance for the box to move: Aonik saves a catalogue
-  // repair on a read, and another tab may have changed it. Either way it is no
-  // longer the box this tab is confirming, so nothing is placed — the tab is
-  // handed the box as it now is, with what changed, to confirm again (Spec 068
-  // A18). Placing it would order a box the customer never saw; sending the old
-  // version would only be refused as a conflict, losing the list of changes.
-  if (version && placed.version && placed.version !== version) {
-    throw staleCheckoutError(snapshot);
-  }
+  // repair on a read and reports it once, in `changes`. Sending the checkout
+  // after it would be refused on the tab's older version as a conflict, and the
+  // list of what changed would be lost — so nothing is placed, and the tab gets
+  // the box with its changes to confirm again (Spec 068 A18). Any other move
+  // (another tab's edit) Aonik refuses itself, on the version sent below.
+  if (!ordered && snapshot.changes.length > 0) throw changedBeforeCheckout(snapshot);
 
   const dto = await withRequiredCart(
     (cartId, auth) =>
@@ -593,32 +607,22 @@ export async function checkoutBoxCart(
 }
 
 /**
- * Checkout refused before it was sent: the box moved since the tab saw it.
- * With changes to show it is drift — the refreshed box rides along, as on
- * Aonik's own drift — and without, another tab's edit: a conflict, which the
- * route answers with the box re-read.
+ * Checkout stopped before it was sent: the read before placing reported
+ * changes. Shaped as Aonik's own drift, with the box riding along, so the tab
+ * adopts it — changes and new version — exactly as it adopts any drift.
  */
-function staleCheckoutError(snapshot: BoxCartDto): AonikError {
-  const path = `/commerce/carts/${snapshot.box.cartId}/checkout`;
-  if (snapshot.changes.length > 0) {
-    return new AonikError({
-      status: 409,
-      path,
-      code: AONIK_CODES.boxDrift,
-      message: 'The box changed before checkout.',
-      drift: {
-        box: snapshot.box,
-        quote: snapshot.quote,
-        changes: snapshot.changes,
-        ...(snapshot.cartVersion ? { cartVersion: snapshot.cartVersion } : {}),
-      },
-    });
-  }
+function changedBeforeCheckout(snapshot: BoxCartDto): AonikError {
   return new AonikError({
     status: 409,
-    path,
-    code: AONIK_CODES.cartConflict,
+    path: `/commerce/carts/${snapshot.box.cartId}/checkout`,
+    code: AONIK_CODES.boxDrift,
     message: 'The box changed before checkout.',
+    drift: {
+      box: snapshot.box,
+      quote: snapshot.quote,
+      changes: snapshot.changes,
+      ...(snapshot.cartVersion ? { cartVersion: snapshot.cartVersion } : {}),
+    },
   });
 }
 

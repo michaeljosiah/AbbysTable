@@ -93,9 +93,12 @@ Conventions inside `web/` that are easy to get wrong:
   (`Abandoned` by Aonik's sweeper after 24h empty / 7 days populated, or `CheckedOut`): a read of
   it answers no box and clears the cookie; a write refused on it answers `cart.missing`, or
   `cart.ordered` ("This order has already been completed.") — never "payment in progress".
-  Checkout compares the version its own pre-placement read returns with the tab's and places
-  nothing when they differ. The root layout passes `signedIn` to `CartProvider`, which re-reads
-  the box when it changes (sign-in adoption moves the version). Spec: `server-box-cart.md`.
+  Checkout reads the box raw first: one with an `orderId` (or `CheckedOut`) goes straight to Aonik,
+  which REPLAYS it — never refuse that as stale — and only an un-ordered box whose read reported
+  `changes` stops as drift; another tab's edit Aonik refuses on the version sent. The root layout
+  passes `signedIn` to `CartProvider`, which re-reads the box when it changes (sign-in adoption
+  moves the version). A tokenless cookie (an adopted box) with no session is no box and is NEVER
+  sent to Aonik or cleared — it is the way back after signing in again. Spec: `server-box-cart.md`.
 - **Site chrome (#10) is the v2 header, drawer and footer** (Homepage v2 is canonical). There is no
   announcement strip — the v2 design dropped it site-wide, and the homepage must never show the
   earliest delivery date. Every chrome destination is defined ONCE in `src/lib/content/navigation.ts`;

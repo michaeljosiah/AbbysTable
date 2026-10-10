@@ -118,11 +118,22 @@ because adoption changes who owns the box, not what is in it.
 - **THEN** the cookie is cleared; a refused write answers `cart.ordered` with "This order has
   already been completed." (SHOPPING-STATE §53) and no "try again" line
 
-#### Scenario: Checkout's own read moves the box
-- **WHEN** the read checkout makes before placing returns a version other than the tab's (a
-  catalogue repair it saved, or another tab's change)
-- **THEN** nothing is placed: with changes it answers as drift, with the repaired box and what
-  changed; without, as `cart.conflict` with the box as it is
+#### Scenario: Checkout's own read repairs the box
+- **WHEN** the read checkout makes before placing reports changes (a catalogue repair it saved)
+  on a box with no order yet
+- **THEN** nothing is placed; it answers as drift, with the repaired box and what changed
+- **AND** a box another tab changed is refused by Aonik on the tab's version, as `cart.conflict`
+
+#### Scenario: The first answer never arrived
+- **WHEN** Place order is pressed again for a box that already holds an order (its `orderId` is
+  set, or it is `CheckedOut`)
+- **THEN** the checkout goes to Aonik whatever the tab's version, Aonik replays the same order,
+  and the customer reaches its confirmation — never "Nothing has been ordered"
+
+#### Scenario: Signing out and back in
+- **WHEN** a customer whose box was adopted signs out
+- **THEN** the tab shows no box, nothing is asked of Aonik, and the cookie naming the box stays
+- **AND** signing in again shows that box
 
 #### Scenario: Signing in adopts the box
 - **WHEN** a guest with a box signs in and the box is adopted

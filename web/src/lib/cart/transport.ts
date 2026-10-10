@@ -14,6 +14,11 @@ export const CART_VERSION_HEADER = 'X-Cart-Version';
  */
 export const CART_CONFLICT_CODE = 'cart.conflict';
 export const CART_LOCKED_CODE = 'cart.locked';
+/**
+ * A conflict whose box could not be re-read: the tab still holds the old
+ * version, so trying again would only conflict again — it needs a reload.
+ */
+export const CART_RELOAD_CODE = 'cart.reload';
 
 /** An `/api/cart` failure, carrying whatever the handler could tell us. */
 export class CartRequestError extends Error {
@@ -91,6 +96,9 @@ function enqueueCartRequest<T>(
  * Synchronous admission closes the React-state timing gap: a second activation
  * is rejected before it can enter the queue or issue a fetch.
  */
+/** Another request is still running; this one was turned away, not queued. */
+export const CART_REQUEST_IN_FLIGHT_CODE = 'cart.request_in_flight';
+
 export function admitCartRequest<T>(
   queue: { current: Promise<unknown> },
   inFlight: { current: boolean },
@@ -98,7 +106,7 @@ export function admitCartRequest<T>(
 ): Promise<T> {
   if (inFlight.current) {
     return Promise.reject(
-      new CartRequestError(409, 'A box update is already in progress.', 'cart.request_in_flight'),
+      new CartRequestError(409, 'A box update is already in progress.', CART_REQUEST_IN_FLIGHT_CODE),
     );
   }
 

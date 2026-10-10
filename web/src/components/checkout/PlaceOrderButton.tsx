@@ -80,8 +80,8 @@ export function PlaceOrderButton({
         // The refreshed box is already on screen — the notices say what moved.
         setMessage('Your box changed while you were reviewing it. Nothing has been ordered — check the changes above, then confirm again.');
       } else if (code === CART_CONFLICT_CODE) {
-        // Another tab changed the box; this one now shows it as it is.
-        setMessage('Your box changed in another window. Nothing has been ordered — check your box, then confirm again.');
+        // The box moved on since this tab saw it; the tab now shows it as it is.
+        setMessage('Your box changed while you were reviewing it. Nothing has been ordered — check your box, then confirm again.');
       } else if (code === ORDERING_DISABLED_CODE) {
         // The server's switch disagreed with the one this page rendered with.
         setMessage(ORDERING_DISABLED_MESSAGE);
