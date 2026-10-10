@@ -6,10 +6,14 @@
  * (`@/lib/contact/send`), as JSON.
  *
  * Left out of the middleware matcher, because middleware buffers request
- * bodies only up to 10MB — so it answers maintenance mode itself. Its own cap
- * is Aonik's: a request over 32MiB is refused before it is read, and one that
- * does not say how large it is is refused too (a browser's `fetch` of a
- * `FormData` always does).
+ * bodies only up to 10MB — so it answers maintenance mode itself.
+ *
+ * Reading a body costs memory (about three times its size, parsed), and this
+ * process serves every page, so nothing is read until it must be: not in
+ * demo, not past this address's limit (`admitEnquiry`), not over three full
+ * images' worth, not without a declared length (a browser's `fetch` of a
+ * `FormData` always declares one), and not while `MAX_IN_FLIGHT` others are
+ * being read and sent — that one is told to try again.
  *
  * Unlike a server action, a route handler has no built-in origin check: a
  * post that names another site as its origin is refused, so no other page can
@@ -18,15 +22,28 @@
 
 import { NextResponse } from 'next/server';
 
-import { IMAGE_MESSAGES, type EnquiryState } from '@/lib/contact/enquiry';
-import { sendEnquiryForm } from '@/lib/contact/send';
+import { enquiriesAvailable } from '@/lib/aonik/enquiries';
+import {
+  IMAGE_MESSAGES,
+  MAX_ENQUIRY_IMAGE_BYTES,
+  MAX_ENQUIRY_IMAGES,
+  type EnquiryState,
+} from '@/lib/contact/enquiry';
+import { admitEnquiry, ENQUIRY_LIMITED, sendEnquiryForm } from '@/lib/contact/send';
 import { inMaintenance, maintenanceResponse } from '@/lib/status-pages/maintenance';
 
 /** Never cached: every answer is about one post. */
 export const dynamic = 'force-dynamic';
 
-/** Aonik's limit for a whole enquiry (`SubmitContactEnquiryEndpoint.MaxRequestBytes`). */
-const MAX_ENQUIRY_REQUEST_BYTES = 32 * 1024 * 1024;
+/**
+ * The largest post the form can make: three full images and the text, with
+ * room for the multipart framing. Under Aonik's own 32MiB for the request.
+ */
+const MAX_ENQUIRY_REQUEST_BYTES = MAX_ENQUIRY_IMAGES * MAX_ENQUIRY_IMAGE_BYTES + 256 * 1024;
+
+/** Enquiries being read and sent at once, in this process (Aonik takes four at a time). */
+const MAX_IN_FLIGHT = 4;
+let inFlight = 0;
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
 
@@ -37,19 +54,20 @@ function answer(state: EnquiryState, status = 200) {
 /**
  * True when the request names an origin other than the host it was sent to —
  * the comparison Next makes for server actions: the `Origin` header against
- * `X-Forwarded-Host` (behind a proxy) or `Host`. Not `request.url`, which
- * Next rebuilds from its own configured hostname.
+ * `X-Forwarded-Host` (behind a proxy) OR `Host`, either matching. Not
+ * `request.url`, which Next rebuilds from its own configured hostname.
  */
 function crossSite(request: Request): boolean {
   const origin = request.headers.get('origin');
   if (!origin) return false;
-  const host = request.headers.get('x-forwarded-host')?.split(',')[0]?.trim() || request.headers.get('host');
-  if (!host) return true;
+  let originHost: string;
   try {
-    return new URL(origin).host !== host;
+    originHost = new URL(origin).host;
   } catch {
     return true;
   }
+  const hosts = [request.headers.get('x-forwarded-host')?.split(',')[0]?.trim(), request.headers.get('host')];
+  return !hosts.some((host) => host && host === originHost);
 }
 
 export async function POST(request: Request) {
@@ -64,13 +82,21 @@ export async function POST(request: Request) {
   if (!request.headers.get('content-type')?.toLowerCase().startsWith('multipart/form-data')) {
     return answer({ status: 'error' }, 415);
   }
+  if (!(await enquiriesAvailable())) return answer({ status: 'unavailable' });
+  if (!(await admitEnquiry())) return answer(ENQUIRY_LIMITED, 429);
+  if (inFlight >= MAX_IN_FLIGHT) return answer({ status: 'error' }, 503);
 
-  let form: FormData;
+  inFlight += 1;
   try {
-    form = await request.formData();
-  } catch {
-    return answer({ status: 'error' }, 400);
+    let form: FormData;
+    try {
+      form = await request.formData();
+    } catch {
+      return answer({ status: 'error' }, 400);
+    }
+    // The outcome is in the body: the form reads `status`, whatever the HTTP status.
+    return answer(await sendEnquiryForm(form, { admitted: true }));
+  } finally {
+    inFlight -= 1;
   }
-  // The outcome is in the body: the form reads `status`, whatever the HTTP status.
-  return answer(await sendEnquiryForm(form));
 }

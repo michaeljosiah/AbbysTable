@@ -15,6 +15,8 @@ import {
   toEnquiryForm,
 } from '../src/lib/aonik/enquiries';
 import { sendEnquiryAction } from '../src/lib/contact/actions';
+import { clearEnquiryAttempts, ENQUIRY_ATTEMPTS } from '../src/lib/contact/send';
+import { addressFromHeaders, addressOf } from '../src/lib/request/clientAddress';
 import {
   addImages,
   asksForOrderNumber,
@@ -428,6 +430,14 @@ test('what Aonik would refuse is cleaned or counted as it counts', () => {
   assert.equal(validateEnquiry(draft({ message: '🍲'.repeat(2501) })).message, ENQUIRY_MESSAGES.messageLong);
   assert.equal(validateEnquiry(draft({ message: '🍲'.repeat(2500) })).message, undefined);
   assert.equal(validateEnquiry(draft({ name: '🍲'.repeat(101) })).name, ENQUIRY_MESSAGES.nameLong);
+  // A line break is posted as CRLF — two to Aonik — so it counts two here, in
+  // the browser as on the server: 4,990 letters and five breaks are 5,000 sent…
+  assert.equal(validateEnquiry(draft({ message: `${'a\n'.repeat(5)}${'a'.repeat(4985)}` })).message, undefined);
+  // …4,991 and five are 5,001, though the textarea counts 4,996.
+  assert.equal(validateEnquiry(draft({ message: `${'a\n'.repeat(5)}${'a'.repeat(4986)}` })).message, ENQUIRY_MESSAGES.messageLong);
+  // The same post as the server receives it, breaks already CRLF: the same answer.
+  assert.equal(validateEnquiry(draft({ message: `${'a\r\n'.repeat(5)}${'a'.repeat(4985)}` })).message, undefined);
+  assert.equal(validateEnquiry(draft({ message: `${'a\r\n'.repeat(5)}${'a'.repeat(4986)}` })).message, ENQUIRY_MESSAGES.messageLong);
 });
 
 test('an image is sent under a name its type agrees with — Aonik refuses one that disagrees', () => {
@@ -439,6 +449,24 @@ test('an image is sent under a name its type agrees with — Aonik refuses one t
   assert.equal(uploadName('photo.jpg', 'image/heic'), 'photo.heic');
   assert.equal(uploadName('IMG_1.HEIC', ''), 'IMG_1.HEIC', 'a typeless HEIC keeps the name it was accepted by');
   assert.equal(uploadName('.png', 'image/jpeg'), 'image.jpg');
+});
+
+test('an image name Aonik would refuse is made one it accepts — never "couldn’t be attached" for a good photo', () => {
+  // Colons (GNOME screenshots, Android), angle brackets, quotes, controls.
+  assert.equal(uploadName('Screenshot from 2016-05-18 14:23:15.png', 'image/png'), 'Screenshot from 2016-05-18 14-23-15.png');
+  assert.equal(uploadName('a<b>"c".jpg', 'image/jpeg'), 'a-b--c-.jpg');
+  assert.equal(uploadName('tab\there.jpg', 'image/jpeg'), 'tab-here.jpg');
+  // No path, whichever separator.
+  assert.equal(uploadName('C:\\Users\\ada\\okra.jpg', 'image/jpeg'), 'okra.jpg');
+  assert.equal(uploadName('photos/okra.jfif', 'image/jpeg'), 'okra.jpg');
+  // Long names keep their extension and stay well under Aonik's 200.
+  const long = uploadName(`${'x'.repeat(3000)}.jpeg`, 'image/jpeg');
+  assert.equal(long, `${'x'.repeat(145)}.jpeg`);
+  assert.ok(long.length <= 150);
+  const emoji = uploadName(`${'🍲'.repeat(100)}.png`, 'image/png');
+  assert.equal(emoji, `${'🍲'.repeat(73)}.png`, 'never half an emoji');
+  assert.equal(uploadName(':::.jpg', 'image/jpeg'), '---.jpg');
+  assert.equal(uploadName('   .jpg', 'image/jpeg'), 'image.jpg');
 });
 
 test('the request: multipart, Aonik’s field names and reference, the tenant, images under one key', async () => {
@@ -485,6 +513,7 @@ async function sendLive(
   requestHeaders: Record<string, string> = {},
 ) {
   resetCookies();
+  clearEnquiryAttempts();
   setRequestHeaders(requestHeaders);
   configureAonik({ AONIK_DATA_MODE: 'live' });
   stubAonik(() => reply);
@@ -507,9 +536,9 @@ test('"sent" only on Aonik’s 202, and with the reference the form kept', async
   const [request] = aonikRequests;
   assert.equal(request.path, '/v1/contact-enquiries');
 
-  // The customer's address goes with it — Aonik's limit is per address — and
-  // only when it is one.
-  await sendLive({ status: 202 }, formOf({}), { 'x-forwarded-for': '203.0.113.9, 10.0.0.1' });
+  // The customer's address goes with it — the one the platform appended, not
+  // what the client claimed before it — and only when it is one.
+  await sendLive({ status: 202 }, formOf({}), { 'x-forwarded-for': '198.51.100.7, 203.0.113.9:51234' });
   assert.equal(aonikRequests[0].headers['x-forwarded-for'], '203.0.113.9');
   await sendLive({ status: 202 }, formOf({}), { 'x-forwarded-for': 'unknown; drop table' });
   assert.equal(aonikRequests[0].headers['x-forwarded-for'], undefined);
@@ -572,11 +601,59 @@ test('Aonik’s refusals, in the form’s own words — never its text', async (
     status: 'error',
     newSubmission: true,
   });
-  // Not taking enquiries (routing not configured, or a dependency down).
+  // A 503 is nearly always passing (image slots full, the scanner or storage
+  // down, an unknown commit): try again, under the same reference — never
+  // "can't be sent from this page".
   assert.deepEqual(await sendLive({ status: 503, body: { code: 'contact.unavailable', error: 'Unavailable.' } }), {
-    status: 'unavailable',
+    status: 'error',
   });
-  assert.deepEqual(await sendLive({ status: 429 }), { status: 'error' });
+  assert.deepEqual(await sendLive({ status: 429 }), { status: 'error', limited: true });
+});
+
+test('the address: the platform’s own entry, its port dropped, nothing that is not one', () => {
+  const from = (entries: Record<string, string>) => addressFromHeaders(new Headers(entries));
+  // The client can prepend anything; only the last entry is the proxy's.
+  assert.equal(from({ 'x-forwarded-for': '1.2.3.4, 203.0.113.9' }), '203.0.113.9');
+  assert.equal(from({ 'x-forwarded-for': '203.0.113.9:51234' }), '203.0.113.9');
+  assert.equal(from({ 'x-forwarded-for': '[2001:db8::1]:443' }), '2001:db8::1');
+  assert.equal(from({ 'x-forwarded-for': '2001:db8::1' }), '2001:db8::1');
+  assert.equal(from({ 'x-forwarded-for': '1.2.3.4, unknown' }), null, 'never an earlier, client-written entry');
+  assert.equal(from({ 'x-real-ip': '198.51.100.4' }), '198.51.100.4');
+  assert.equal(from({}), null);
+  assert.equal(addressOf('drop table'), null);
+  assert.equal(addressOf('1.2.3.4:99999999'), null);
+});
+
+test('one address may send a few enquiries in a few minutes, then is asked to wait', async () => {
+  const address = { 'x-forwarded-for': '203.0.113.20' };
+  for (let attempt = 1; attempt <= ENQUIRY_ATTEMPTS; attempt += 1) {
+    // sendLive clears the count, so make the earlier attempts by hand.
+    if (attempt === 1) await sendLive({ status: 202 }, formOf({}), address);
+    else {
+      setRequestHeaders(address);
+      configureAonik({ AONIK_DATA_MODE: 'live' });
+      try {
+        assert.equal((await sendEnquiryAction({ status: 'idle' }, formOf({}))).status, 'sent', String(attempt));
+      } finally {
+        delete env.AONIK_DATA_MODE;
+      }
+    }
+  }
+  setRequestHeaders(address);
+  configureAonik({ AONIK_DATA_MODE: 'live' });
+  try {
+    aonikRequests.length = 0;
+    assert.deepEqual(await sendEnquiryAction({ status: 'idle' }, formOf({})), { status: 'error', limited: true });
+    assert.equal(aonikRequests.length, 0, 'nothing sent');
+    // A form the rules refuse costs nothing.
+    assert.equal((await sendEnquiryAction({ status: 'idle' }, formOf({ email: 'nope' }))).status, 'invalid');
+    // Another address is its own count.
+    setRequestHeaders({ 'x-forwarded-for': '203.0.113.21' });
+    assert.equal((await sendEnquiryAction({ status: 'idle' }, formOf({}))).status, 'sent');
+  } finally {
+    delete env.AONIK_DATA_MODE;
+    clearEnquiryAttempts();
+  }
 });
 
 test('a retry of the same content keeps its reference; any change takes a new one', () => {
@@ -825,6 +902,13 @@ test('the route refuses what it must, before reading a byte', async () => {
       await measured(formOf({}), { origin: 'https://abbystable.example', host: '10.0.0.4:3000', 'x-forwarded-host': 'abbystable.example' }),
     );
     assert.notEqual(proxied.status, 403);
+    // …or, where the proxy forwards its own name, the Host the customer used — as Next accepts.
+    const custom = await postEnquiryRoute(
+      await measured(formOf({}), { origin: 'https://abbystable.example', host: 'abbystable.example', 'x-forwarded-host': 'app.azurestaticapps.net' }),
+    );
+    assert.notEqual(custom.status, 403);
+    const nullOrigin = await postEnquiryRoute(await measured(formOf({}), { origin: 'null', host: 'shop.test' }));
+    assert.equal(nullOrigin.status, 403);
 
     const unmeasured = enquiryRequest(formOf({}));
     assert.equal((await postEnquiryRoute(unmeasured)).status, 411);
@@ -862,5 +946,50 @@ test('the form reads only a real answer from the route', () => {
   assert.deepEqual(readEnquiryAnswer({ status: 'sent', email: 'ada@example.test' }), { status: 'sent', email: 'ada@example.test' });
   for (const body of [null, 'nope', {}, { status: 'joined' }, { error: 'down' }]) {
     assert.deepEqual(readEnquiryAnswer(body), { status: 'error' }, JSON.stringify(body));
+  }
+  // A platform's own body limit answers 413 with no answer of ours: trying
+  // again could never work, so it is the images, not "try again".
+  assert.deepEqual(readEnquiryAnswer(null, 413), { status: 'invalid', imageError: IMAGE_MESSAGES.together });
+  assert.deepEqual(readEnquiryAnswer(null, 502), { status: 'error' });
+});
+
+test('the route limits each address and reads only a few bodies at once', async () => {
+  resetCookies();
+  clearEnquiryAttempts();
+  configureAonik({ AONIK_DATA_MODE: 'live' });
+  // Aonik holds every send until released.
+  let release: () => void = () => undefined;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const original = globalThis.fetch;
+  globalThis.fetch = (async () => {
+    await held;
+    return new Response(JSON.stringify({ id: 'e-1' }), { status: 202, headers: { 'Content-Type': 'application/json' } });
+  }) as typeof fetch;
+  try {
+    // Five at once: four are read and sent, the fifth is told to try again.
+    setRequestHeaders({ 'x-forwarded-for': '203.0.113.31' });
+    const posts = await Promise.all([1, 2, 3, 4, 5].map(() => measured(formOf({}))));
+    const answers = posts.map((post) => postEnquiryRoute(post));
+    const busy = await Promise.race(answers);
+    assert.equal(busy.status, 503);
+    assert.deepEqual(await busy.json(), { status: 'error' });
+    release();
+    const settled = await Promise.all(answers);
+    assert.equal(settled.filter((response) => response.status === 200).length, 4);
+
+    // One address, past its limit: refused before its body is read.
+    setRequestHeaders({ 'x-forwarded-for': '203.0.113.40' });
+    for (let attempt = 0; attempt < ENQUIRY_ATTEMPTS; attempt += 1) {
+      assert.equal((await postEnquiryRoute(await measured(formOf({})))).status, 200);
+    }
+    const limited = await postEnquiryRoute(await measured(formOf({})));
+    assert.equal(limited.status, 429);
+    assert.deepEqual(await limited.json(), { status: 'error', limited: true });
+  } finally {
+    globalThis.fetch = original;
+    delete env.AONIK_DATA_MODE;
+    clearEnquiryAttempts();
   }
 });

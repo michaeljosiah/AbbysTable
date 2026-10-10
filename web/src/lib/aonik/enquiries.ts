@@ -15,7 +15,7 @@
  * privately. Its refusals — 422 `contact.validation_failed` with `fieldErrors`
  * and `imageProblems`, 409 `contact.submission_conflict`, 413, 429 and 503
  * `contact.unavailable` (routing not configured, or a dependency down) — are
- * mapped by the action (`@/lib/contact/actions`).
+ * mapped by `@/lib/contact/send`.
  *
  * Demo mode never sends: there is nowhere to send to, and a production
  * deployment with no Aonik configured also runs on demo data, so a demo
@@ -34,8 +34,12 @@ import { aonikFetch } from './http';
 /** Aonik's enquiry endpoint. */
 export const ENQUIRY_PATH = '/v1/contact-enquiries';
 
-/** How long a send may take, images and scanning included. */
-export const ENQUIRY_TIMEOUT_MS = 60_000;
+/**
+ * How long a send may take, images and scanning included — Aonik allows each
+ * of three images up to 30 seconds. A send cut off here is `error`, and trying
+ * again under the same reference replays it if it was saved after all.
+ */
+export const ENQUIRY_TIMEOUT_MS = 120_000;
 
 /** Raised when this deployment cannot send an enquiry at all. */
 export class EnquiriesUnavailableError extends Error {

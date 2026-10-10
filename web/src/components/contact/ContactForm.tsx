@@ -277,7 +277,7 @@ export function ContactForm({ action }: { action: EnquiryAction }) {
     }
     setSending(true);
     void fetch(ENQUIRY_ROUTE, { method: 'POST', body: form })
-      .then(async (response) => readEnquiryAnswer(await response.json().catch(() => null)))
+      .then(async (response) => readEnquiryAnswer(await response.json().catch(() => null), response.status))
       // Offline, or the request never answered: not sent, and said so.
       .catch((): EnquiryState => ({ status: 'error' }))
       .then(setRouteState)
@@ -649,7 +649,9 @@ export function ContactForm({ action }: { action: EnquiryAction }) {
               <span>
                 {state.status === 'unavailable'
                   ? 'Messages can’t be sent from this page yet, so nothing was sent.'
-                  : 'We couldn’t send your message just now. Everything you’ve written is still here, so please try again.'}
+                  : state.limited
+                    ? 'You’ve sent several messages in a short time, so this one wasn’t sent. Everything you’ve written is still here, so please try again in a few minutes.'
+                    : 'We couldn’t send your message just now. Everything you’ve written is still here, so please try again.'}
               </span>
             </p>
           ) : null}
