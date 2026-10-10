@@ -95,7 +95,7 @@ export function checkerReducer(state: CheckerState, event: CheckerEvent): Checke
 }
 
 /** Today's date in the UK, as `YYYY-MM-DD` — the calendar delivery dates are written in. */
-function londonToday(now: Date): string {
+export function londonToday(now: Date = new Date()): string {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Europe/London',
     year: 'numeric',

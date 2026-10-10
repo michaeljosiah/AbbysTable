@@ -16,6 +16,7 @@ import { resolveBoxPlan, resolveExampleDish } from '@/lib/how-it-works/pageData'
 import { readAonikConfig, resolveDataMode } from './dataMode';
 import type {
   BoxPlanDto,
+  DeliveryDatesDto,
   FacetGroupDto,
   PagedResultDto,
   ProductDto,
@@ -39,6 +40,9 @@ import {
   HEATING_FIXTURE,
   STOREFRONT_CONFIG_FIXTURE,
 } from './fixtures';
+import { addDays, demoDayStatus, isIsoDate, readDayStatus } from '@/lib/checkout/calendar';
+import { londonToday } from '@/lib/delivery/checker';
+
 import { aonikFetch } from './http';
 import {
   mapBoxPlan,
@@ -57,6 +61,7 @@ import { HttpSignupLists, type SignupLists } from './signupLists';
 import type {
   BoxOffer,
   BoxPricing,
+  DeliveryCalendar,
   DeliveryWindow,
   Dish,
   Extra,
@@ -77,6 +82,11 @@ export interface AonikClient {
   getBoxPricing(): Promise<BoxPricing>;
   /** Null when the tenant has no fulfilment calendar — a state, not an error. */
   getDeliveryWindow(): Promise<DeliveryWindow | null>;
+  /**
+   * Checkout's calendar from `fromDate` for `days` days (1–62), never cached:
+   * holds change availability. Null when the tenant has no calendar.
+   */
+  getDeliveryCalendar(fromDate: string, days: number): Promise<DeliveryCalendar | null>;
   getHeatingInstructions(): Promise<HeatingInstruction[]>;
   /** À-la-carte extras sold alongside the box (Step 3). */
   getExtras(): Promise<Extra[]>;
@@ -175,6 +185,24 @@ export class MockAonikClient implements AonikClient {
 
   async getDeliveryWindow(): Promise<DeliveryWindow | null> {
     return DELIVERY_FIXTURE;
+  }
+
+  /**
+   * The design's holding availability, counted from today (`demoDayStatus`):
+   * the fixture's window is a fixed past date, and a calendar of past days
+   * would leave nothing to review.
+   */
+  async getDeliveryCalendar(fromDate: string, days: number): Promise<DeliveryCalendar | null> {
+    const today = londonToday();
+    const range = Array.from({ length: days }, (_, index) => addDays(fromDate, index));
+    let earliest = addDays(today, 7);
+    while (demoDayStatus(earliest, today) !== 'available') earliest = addDays(earliest, 1);
+    return {
+      earliestDeliveryDate: earliest,
+      fromDate,
+      toDate: range[range.length - 1],
+      days: range.map((date) => ({ date, status: demoDayStatus(date, today) })),
+    };
   }
 
   async getHeatingInstructions(): Promise<HeatingInstruction[]> {
@@ -589,6 +617,43 @@ export class HttpAonikClient implements AonikClient {
       if (error instanceof AonikError && error.isNotFound) return null;
       throw error;
     }
+  }
+
+  /**
+   * Both of Aonik's delivery reads, uncached (#346 serves them `no-store`):
+   * the suggestion from `/commerce/config/delivery` — the first date with
+   * KNOWN capacity, 404 when none can truthfully be given — and the range's
+   * availability. A calendar that is not configured (404) is null; a 404 on
+   * the suggestion alone is no suggestion, and the page says it cannot
+   * confirm availability.
+   */
+  async getDeliveryCalendar(fromDate: string, days: number): Promise<DeliveryCalendar | null> {
+    const fresh = <T,>(path: string, query?: Record<string, string | number>) =>
+      aonikFetch<T>(path, {
+        baseUrl: this.options.baseUrl,
+        tenantId: this.options.tenantId,
+        policy: 'volatile',
+        query,
+      }).catch((error: unknown) => {
+        if (error instanceof AonikError && error.isNotFound) return null;
+        throw error;
+      });
+    const [window, dates] = await Promise.all([
+      fresh<DeliveryWindow>('/commerce/config/delivery'),
+      fresh<DeliveryDatesDto>('/commerce/config/delivery/dates', { fromDate, days }),
+    ]);
+    if (!dates) return null;
+    const statuses = new Map((dates.availability ?? []).map((entry) => [entry.deliveryDate, readDayStatus(entry.status)]));
+    // An Aonik from before capacity (#346) lists available dates only.
+    if (!dates.availability) for (const date of dates.dates) statuses.set(date, 'available');
+    const range: string[] = [];
+    for (let date = dates.fromDate; date <= dates.toDate; date = addDays(date, 1)) range.push(date);
+    return {
+      earliestDeliveryDate: isIsoDate(window?.earliestDeliveryDate) ? window!.earliestDeliveryDate : null,
+      fromDate: dates.fromDate,
+      toDate: dates.toDate,
+      days: range.map((date) => ({ date, status: statuses.get(date) ?? 'no_delivery' })),
+    };
   }
 
   /**

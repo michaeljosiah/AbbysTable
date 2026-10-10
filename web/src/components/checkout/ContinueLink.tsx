@@ -21,14 +21,17 @@ export function ContinueLink({
   className,
   children,
   onClick,
+  disabled = false,
 }: {
   href: string;
   className?: string;
   children: ReactNode;
   onClick?: () => void;
+  /** The page's own reason to hold it (Review: the box is still being checked). */
+  disabled?: boolean;
 }) {
   const { hasUnavailableLine, pending } = useCart();
-  const blocked = hasUnavailableLine || pending;
+  const blocked = disabled || hasUnavailableLine || pending;
 
   const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
     if (blocked) {

@@ -21,6 +21,7 @@ import {
   admitCartRequest,
   adoptCartResponse,
   adoptCartVersion,
+  enqueueCartRequest,
   CART_REQUEST_IN_FLIGHT_CODE,
   CART_VERSION_HEADER,
   CartRequestError,
@@ -83,6 +84,20 @@ export interface ServerCartEngine {
    * caller re-renders and the customer confirms the change. Never retried.
    */
   checkout: (body?: { discountCode?: string }) => Promise<CheckoutResult>;
+  /**
+   * One `/api/checkout` call (`/box/checkout`), QUEUED behind any other box
+   * request rather than turned away — a draft save may follow a date choice —
+   * and sent with the version this tab holds. Whatever box or version comes
+   * back is adopted, refusals included: a conflict carries the box as it is.
+   * Never throws: a network failure is a `checkout.unavailable` answer.
+   */
+  checkoutRequest: <T>(path: string, init?: { method?: string; body?: unknown }) => Promise<CheckoutCall<T>>;
+}
+
+export interface CheckoutCall<T> {
+  ok: boolean;
+  status: number;
+  payload: T & CartResponse;
 }
 
 /**
@@ -191,6 +206,33 @@ export function useServerCart(enabled: boolean, identity: unknown = null): Serve
     [send],
   );
 
+  const checkoutRequest = useCallback(
+    <T,>(path: string, init?: { method?: string; body?: unknown }): Promise<CheckoutCall<T>> =>
+      enqueueCartRequest(queue, async () => {
+        try {
+          const headers: Record<string, string> = {};
+          if (init?.body !== undefined) headers['Content-Type'] = 'application/json';
+          if (version.current) headers[CART_VERSION_HEADER] = version.current;
+          const response = await fetch(`/api/checkout${path}`, {
+            method: init?.method ?? 'GET',
+            headers,
+            body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
+          });
+          const payload = (await response.json().catch(() => ({}))) as T & CartResponse;
+          version.current = adoptCartVersion(version.current, payload);
+          if (payload.cart !== undefined) setCart((current) => adoptCartResponse(current, payload));
+          return { ok: response.ok, status: response.status, payload };
+        } catch {
+          return {
+            ok: false,
+            status: 0,
+            payload: { code: 'checkout.unavailable', error: 'Checkout could not be reached.' } as T & CartResponse,
+          };
+        }
+      }),
+    [],
+  );
+
   const checkout = useCallback(
     async (body?: { discountCode?: string }): Promise<CheckoutResult> => {
       const payload = await send('/checkout', { method: 'POST', body: body ?? {}, reportError: false });
@@ -233,7 +275,7 @@ export function useServerCart(enabled: boolean, identity: unknown = null): Serve
     });
   }, []);
 
-  return { cart, hydrated, pending, error, display, rememberDisplay, request, checkout };
+  return { cart, hydrated, pending, error, display, rememberDisplay, request, checkout, checkoutRequest };
 }
 
 export type { PersonalisationSelection };

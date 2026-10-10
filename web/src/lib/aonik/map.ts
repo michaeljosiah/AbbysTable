@@ -692,6 +692,12 @@ export interface BoxQuote {
   boxSize: number;
   spacesLeft: number;
   isFull: boolean;
+  /** The saved discount code and what it takes off; `reasonCode` when it no longer applies. */
+  discount?: {
+    code: string;
+    amountPence: number;
+    reasonCode?: string;
+  };
 }
 
 export interface BoxChange {
@@ -757,6 +763,15 @@ export function mapBoxQuote(dto: BoxQuoteDto): BoxQuote {
     boxSize: dto.boxSize,
     spacesLeft: dto.spacesLeft,
     isFull: dto.isFull,
+    ...(dto.discount?.code
+      ? {
+          discount: {
+            code: dto.discount.code,
+            amountPence: toPence(dto.discount.amount),
+            ...(dto.discount.reasonCode ? { reasonCode: dto.discount.reasonCode } : {}),
+          },
+        }
+      : {}),
   };
 }
 

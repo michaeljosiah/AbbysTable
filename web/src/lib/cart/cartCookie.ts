@@ -61,14 +61,21 @@ export async function writeCartCookie(value: CartCookie): Promise<void> {
 }
 
 export async function clearCartCookie(): Promise<void> {
-  // Azure Static Web Apps drops empty-value Set-Cookie headers. A non-empty
-  // expired tombstone is forwarded, and still reads as no cart if expiry is
-  // mishandled by an intermediary because it is deliberately not JSON.
-  (await cookies()).set(CART_COOKIE, 'deleted', {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    path: '/',
-    maxAge: 0,
-  });
+  const jar = await cookies();
+  try {
+    // Azure Static Web Apps drops empty-value Set-Cookie headers. A non-empty
+    // expired tombstone is forwarded, and still reads as no cart if expiry is
+    // mishandled by an intermediary because it is deliberately not JSON.
+    jar.set(CART_COOKIE, 'deleted', {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: 0,
+    });
+  } catch {
+    // A page render (`/box/checkout`'s entry gate) may read the box but cannot
+    // set cookies. The box is still treated as gone there; the next cart
+    // route clears the cookie.
+  }
 }

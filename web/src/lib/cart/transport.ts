@@ -38,6 +38,11 @@ export class CartRequestError extends Error {
 
 export interface CartResponse {
   cart?: BoxCart | null;
+  /**
+   * The box's new version when a write answered without the box itself (a
+   * checkout draft save, a date hold): the change moved it all the same.
+   */
+  version?: string;
   order?: CheckoutResult;
   error?: string;
   code?: string;
@@ -51,9 +56,10 @@ export interface CartResponse {
  */
 export function adoptCartVersion(
   current: string | undefined,
-  payload: Pick<CartResponse, 'cart'>,
+  payload: Pick<CartResponse, 'cart' | 'version'>,
 ): string | undefined {
-  return payload.cart === undefined ? current : (payload.cart?.version ?? undefined);
+  if (payload.cart !== undefined) return payload.cart?.version ?? undefined;
+  return payload.version ?? current;
 }
 
 /** Object/null replace server truth; an absent cart preserves it. */
@@ -83,7 +89,7 @@ export function processCartResponse(
 }
 
 /** Promise tail retained so every admitted request settles before the next starts. */
-function enqueueCartRequest<T>(
+export function enqueueCartRequest<T>(
   queue: { current: Promise<unknown> },
   operation: () => Promise<T>,
 ): Promise<T> {

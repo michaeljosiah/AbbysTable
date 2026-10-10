@@ -313,6 +313,20 @@ export interface DeliveryWindow {
   timezone: string;
 }
 
+/**
+ * Checkout's bookable calendar (aonik#346): each day's availability over a
+ * range, plus the suggestion — the first date with known capacity. Read
+ * uncached, because a hold changes it. Reading it reserves nothing.
+ */
+export interface DeliveryCalendar {
+  /** The suggested date, or null when no truthful next date can be given. */
+  earliestDeliveryDate: string | null;
+  fromDate: string;
+  toDate: string;
+  /** Every day of the range: `available`, `fully_booked`, `no_delivery` or `unknown`. */
+  days: Array<{ date: string; status: 'available' | 'fully_booked' | 'no_delivery' | 'unknown' }>;
+}
+
 /* ---- Storefront config ----------------------------------------------------
    Aonik's `GET /commerce/config/storefront`: the tenant-authored settings the
    storefront must not hard-code. Money arrives in pence like everything else.
