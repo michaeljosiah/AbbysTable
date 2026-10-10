@@ -17,6 +17,7 @@ import {
 import { sendEnquiryAction } from '../src/lib/contact/actions';
 import { clearEnquiryAttempts, ENQUIRY_ATTEMPTS } from '../src/lib/contact/send';
 import { addressFromHeaders, addressOf } from '../src/lib/request/clientAddress';
+import { addressKey } from '../src/lib/request/rateLimit';
 import {
   addImages,
   asksForOrderNumber,
@@ -607,7 +608,9 @@ test('Aonik’s refusals, in the form’s own words — never its text', async (
   assert.deepEqual(await sendLive({ status: 503, body: { code: 'contact.unavailable', error: 'Unavailable.' } }), {
     status: 'error',
   });
-  assert.deepEqual(await sendLive({ status: 429 }), { status: 'error', limited: true });
+  // Aonik's 429 is its upload slots, or its limit counting the whole site (it
+  // sees only the storefront's address): never "you've sent several".
+  assert.deepEqual(await sendLive({ status: 429 }), { status: 'error' });
 });
 
 test('the address: the platform’s own entry, its port dropped, nothing that is not one', () => {
@@ -622,6 +625,21 @@ test('the address: the platform’s own entry, its port dropped, nothing that is
   assert.equal(from({}), null);
   assert.equal(addressOf('drop table'), null);
   assert.equal(addressOf('1.2.3.4:99999999'), null);
+  // Behind two proxies (a CDN in front), the customer is two from the end.
+  process.env.TRUSTED_PROXY_HOPS = '2';
+  try {
+    assert.equal(from({ 'x-forwarded-for': '1.2.3.4, 203.0.113.9, 198.51.100.200' }), '203.0.113.9');
+    assert.equal(from({ 'x-forwarded-for': '198.51.100.200' }), null, 'fewer entries than proxies: none trusted');
+  } finally {
+    delete process.env.TRUSTED_PROXY_HOPS;
+  }
+  // The /64 an IPv6 host can choose from is one key; IPv4 is itself.
+  assert.equal(addressKey('2001:db8:1:2::5'), '2001:db8:1:2::/64');
+  assert.equal(addressKey('2001:0db8:0001:0002:aaaa:bbbb:cccc:dddd'), '2001:db8:1:2::/64');
+  assert.equal(addressKey('2001:db8::1'), '2001:db8:0:0::/64');
+  assert.equal(addressKey('::1'), '0:0:0:0::/64');
+  assert.equal(addressKey('::ffff:203.0.113.9'), '203.0.113.9');
+  assert.equal(addressKey('203.0.113.9'), '203.0.113.9');
 });
 
 test('one address may send a few enquiries in a few minutes, then is asked to wait', async () => {
@@ -962,33 +980,94 @@ test('the route limits each address and reads only a few bodies at once', async 
   const held = new Promise<void>((resolve) => {
     release = resolve;
   });
+  let sends = 0;
   const original = globalThis.fetch;
   globalThis.fetch = (async () => {
+    sends += 1;
     await held;
     return new Response(JSON.stringify({ id: 'e-1' }), { status: 202, headers: { 'Content-Type': 'application/json' } });
   }) as typeof fetch;
+  /** Starts a post from `address` and waits until it is being sent (wrapped: awaiting it would wait for the answer). */
+  const sendFrom = async (address: string) => {
+    setRequestHeaders({ 'x-forwarded-for': address });
+    const before = sends;
+    const response = postEnquiryRoute(await measured(formOf({})));
+    for (let spin = 0; spin < 200 && sends === before; spin += 1) await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(sends, before + 1, `${address} is being sent`);
+    return { response };
+  };
   try {
-    // Five at once: four are read and sent, the fifth is told to try again.
-    setRequestHeaders({ 'x-forwarded-for': '203.0.113.31' });
-    const posts = await Promise.all([1, 2, 3, 4, 5].map(() => measured(formOf({}))));
-    const answers = posts.map((post) => postEnquiryRoute(post));
-    const busy = await Promise.race(answers);
+    const { response: first } = await sendFrom('203.0.113.31');
+    // The same address again while its first is in flight: busy, and no attempt spent.
+    const again = await postEnquiryRoute(await measured(formOf({})));
+    assert.equal(again.status, 503);
+    assert.deepEqual(await again.json(), { status: 'error' });
+    // Three more addresses fill the four slots; a fifth is told to try again.
+    const others = [
+      (await sendFrom('203.0.113.32')).response,
+      (await sendFrom('203.0.113.33')).response,
+      (await sendFrom('203.0.113.34')).response,
+    ];
+    setRequestHeaders({ 'x-forwarded-for': '203.0.113.35' });
+    const busy = await postEnquiryRoute(await measured(formOf({})));
     assert.equal(busy.status, 503);
-    assert.deepEqual(await busy.json(), { status: 'error' });
     release();
-    const settled = await Promise.all(answers);
-    assert.equal(settled.filter((response) => response.status === 200).length, 4);
+    const settled = await Promise.all([first, ...others]);
+    assert.deepEqual(settled.map((response) => response.status), [200, 200, 200, 200]);
 
-    // One address, past its limit: refused before its body is read.
-    setRequestHeaders({ 'x-forwarded-for': '203.0.113.40' });
-    for (let attempt = 0; attempt < ENQUIRY_ATTEMPTS; attempt += 1) {
-      assert.equal((await postEnquiryRoute(await measured(formOf({})))).status, 200);
+    // One address, past its limit: refused before its body is read. The busy
+    // refusal above cost 203.0.113.31 nothing, so it has seven left.
+    setRequestHeaders({ 'x-forwarded-for': '203.0.113.31' });
+    for (let attempt = 1; attempt < ENQUIRY_ATTEMPTS; attempt += 1) {
+      assert.equal((await postEnquiryRoute(await measured(formOf({})))).status, 200, String(attempt));
     }
     const limited = await postEnquiryRoute(await measured(formOf({})));
     assert.equal(limited.status, 429);
     assert.deepEqual(await limited.json(), { status: 'error', limited: true });
+    // An IPv6 host is counted by its /64: another address in it is the same customer.
+    clearEnquiryAttempts();
+    for (let attempt = 0; attempt < ENQUIRY_ATTEMPTS; attempt += 1) {
+      setRequestHeaders({ 'x-forwarded-for': `2001:db8:1:2::${attempt + 1}` });
+      assert.equal((await postEnquiryRoute(await measured(formOf({})))).status, 200);
+    }
+    setRequestHeaders({ 'x-forwarded-for': '2001:db8:1:2:ffff::9' });
+    assert.equal((await postEnquiryRoute(await measured(formOf({})))).status, 429);
   } finally {
     globalThis.fetch = original;
+    delete env.AONIK_DATA_MODE;
+    clearEnquiryAttempts();
+  }
+});
+
+test('a body that stalls is abandoned rather than holding its slot', async () => {
+  resetCookies();
+  clearEnquiryAttempts();
+  configureAonik({ AONIK_DATA_MODE: 'live' });
+  const warn = mock.method(console, 'warn', () => undefined);
+  mock.timers.enable({ apis: ['setTimeout'] });
+  try {
+    setRequestHeaders({ 'x-forwarded-for': '203.0.113.60' });
+    // Declares a body and sends a first chunk, then nothing.
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('--x\r\n'));
+      },
+    });
+    const request = new Request('http://shop.test/api/enquiries', {
+      method: 'POST',
+      body: stream,
+      headers: { 'content-type': 'multipart/form-data; boundary=x', 'content-length': '5000' },
+      duplex: 'half',
+    } as RequestInit);
+    const pending = postEnquiryRoute(request);
+    for (let spin = 0; spin < 50; spin += 1) await new Promise((resolve) => setImmediate(resolve));
+    mock.timers.tick(15_000);
+    const response = await pending;
+    assert.equal(response.status, 400);
+    assert.deepEqual(await response.json(), { status: 'error' });
+  } finally {
+    mock.timers.reset();
+    warn.mock.restore();
     delete env.AONIK_DATA_MODE;
     clearEnquiryAttempts();
   }
