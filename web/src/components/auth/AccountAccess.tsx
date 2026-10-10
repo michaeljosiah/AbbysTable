@@ -37,7 +37,9 @@ export function AccountAccess() {
 
   useEffect(() => {
     const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-    token.current = hash.get('token') ?? '';
+    // Strict mode runs this effect twice in development, and the second pass finds
+    // the fragment already stripped: it must keep the token the first one took.
+    token.current = hash.get('token') || token.current;
     if (window.location.hash) {
       window.history.replaceState(
         window.history.state,
