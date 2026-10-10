@@ -372,9 +372,9 @@ export function imagesProblem(files: readonly ImageCandidate[]): string | null {
  *
  * - `invalid`     the fields failed the shared rules (`errors`, `imageError`)
  * - `sent`        accepted by the endpoint; `email` is echoed on screen
- * - `error`       the endpoint failed; everything typed stays in the form
- * - `unavailable` this deployment cannot send (demo, or Aonik is not taking
- *                 enquiries for this tenant)
+ * - `error`       not sent (Aonik refused, was busy or down, or our own
+ *                 per-customer limit — `limited`); everything typed stays
+ * - `unavailable` this deployment cannot send (demo)
  *
  * `newSubmission` asks the form to send its next attempt under a fresh
  * submission reference: Aonik refused the one used, as belonging to different

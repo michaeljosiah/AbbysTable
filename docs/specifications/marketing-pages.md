@@ -496,13 +496,16 @@ form; demo mode SHALL NOT send or say it has (the newsletter's rule, #6).
 
 The scripted form SHALL post to `/api/enquiries` (a server action takes 1MB; three photos can be
 30), a route outside the middleware matcher that answers maintenance itself, refuses another
-site's origin (one matching neither `X-Forwarded-Host` nor `Host`, as Next does for actions), and
-reads no body in demo, past the customer's limit, over three full images' worth, without a declared
-length, or while four others are in flight; a post without JavaScript goes to the server action,
-text only. Aonik limits enquiries per address but sees only the storefront's, so the storefront
-SHALL limit each customer itself (8 sends per 10 minutes, keyed by the last `X-Forwarded-For` entry
-— the platform's, never the client's own) and say so: "You've sent several messages in a short
-time…". Both SHALL re-run every rule on what arrived and answer
+site's origin (one matching neither `X-Forwarded-Host` nor `Host`), and reads no body in demo, over
+three full images' worth, without a declared length, while four others or this address's own are
+in flight (busy, which costs no attempt), or past the customer's limit; a body that stalls for 15
+seconds or takes over three minutes is abandoned. A post without JavaScript goes to the server
+action, text only. Aonik limits enquiries per address but sees only the storefront's, so the
+storefront SHALL limit each customer itself (8 sends per 10 minutes, keyed by the
+`X-Forwarded-For` entry the platform appended — `TRUSTED_PROXY_HOPS` from the end — and an IPv6
+host by its /64) and say so: "You've sent several messages in a short time…". Aonik's own 429 is
+never that message: it is its busy slots or the site's allowance, and reads as "please try
+again". Both SHALL re-run every rule on what arrived and answer
 `sent` only after Aonik's 202. Each send SHALL carry a `submission_id` (UUID) the form keeps while
 the content is unchanged, so a retry after a lost answer cannot send twice, and takes afresh when
 anything changes or Aonik answers 409. Aonik's 422 SHALL be said in the form's own words (its

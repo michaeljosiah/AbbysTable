@@ -18,13 +18,15 @@
  * Aonik's refusals, in our words: a 422 naming fields or images is `invalid`
  * with the form's own messages (`enquiryRefusal`); a 413 is `invalid` on the
  * images; a 409 (the submission reference already used for other details) is
- * `error` with `newSubmission`; a 429 is `error`, `limited`; anything else —
- * a 503 included — is `error`, and the form keeps the reference, so trying
- * again replays the receipt if Aonik did save it. A 503 is nearly always
- * passing (its image slots are full, the virus scanner or storage is down, or
- * the commit's outcome is unknown; it sends `Retry-After: 60`), so it is never
- * "can't be sent from this page". In demo mode it answers `unavailable`
- * without sending.
+ * `error` with `newSubmission`; anything else — a 429 or a 503 included — is
+ * `error`, and the form keeps the reference, so trying again replays the
+ * receipt if Aonik did save it. Both are nearly always passing and neither is
+ * about this customer: Aonik's 429 is its upload slots being busy, or its
+ * per-address limit, which counts the whole site (it sees only the
+ * storefront's address); its 503 is image slots, the virus scanner or storage
+ * down, or a commit whose outcome is unknown. In demo mode it answers
+ * `unavailable` without sending. `limited` is for the storefront's own
+ * per-customer limit alone (`admitEnquiry`).
  *
  * Aonik limits enquiries per address, but sees only the storefront's (see
  * `@/lib/request/clientAddress`), so one script could use up the whole site's
@@ -54,7 +56,7 @@ import {
 import { isSubmissionId, newSubmissionId } from './submission';
 
 import { clientAddress } from '@/lib/request/clientAddress';
-import { AttemptLimiter } from '@/lib/request/rateLimit';
+import { addressKey, AttemptLimiter } from '@/lib/request/rateLimit';
 
 /** Enquiries sent from one address… (a retry counts: a customer makes a few at most) */
 export const ENQUIRY_ATTEMPTS = 8;
@@ -73,11 +75,11 @@ export const ENQUIRY_LIMITED: EnquiryState = { status: 'error', limited: true };
 
 /**
  * Records an attempt to send and answers whether it may go ahead. No address
- * to key on (local development): no limit.
+ * to key on: no limit.
  */
 export async function admitEnquiry(now = Date.now()): Promise<boolean> {
   const address = await clientAddress();
-  return address ? limiter.admit(address, now) : true;
+  return address ? limiter.admit(addressKey(address), now) : true;
 }
 
 /**
@@ -144,8 +146,9 @@ export async function sendEnquiryForm(
         return { status: 'error', newSubmission: true };
       }
       if (error.status === 429) {
-        console.warn('[contact] Aonik limited enquiries from this address');
-        return ENQUIRY_LIMITED;
+        // Not this customer's limit: Aonik's slots, or the site's allowance.
+        console.warn('[contact] Aonik is busy or limiting the storefront; not sent');
+        return { status: 'error' };
       }
     }
     // Never surface the failure's own text: it can carry internals. The form
