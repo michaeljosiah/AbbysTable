@@ -105,9 +105,9 @@ export const FORGOT_PASSWORD_HREF: string = '/forgot-password';
 /**
  * Takes `LOGIN_ITEM`'s place in the header and drawer once the customer is
  * signed in (behaviour guide §A2): same slot, new label and destination. The
- * order history is the account area's only page so far (My Account v2 is #35).
+ * overview (`/account`) is the account area's front door (My Account v2, #35).
  */
-export const ACCOUNT_ITEM: NavItem = { label: 'My Account', href: '/account/orders' };
+export const ACCOUNT_ITEM: NavItem = { label: 'My Account', href: '/account' };
 
 /**
  * The two legal documents (#20). Named by the newsletter consent line, the 500

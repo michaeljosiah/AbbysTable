@@ -30,7 +30,7 @@ export function AccountNav() {
         <p className={styles.navHeading}>Your account</p>
         <ul>
           {ACCOUNT_SECTIONS.map((section) => (
-            <li key={section.key}>
+            <li key={section.key} className={section.desktopOnly ? styles.navDesktopOnly : undefined}>
               <Link
                 href={section.href}
                 className={styles.navLink}

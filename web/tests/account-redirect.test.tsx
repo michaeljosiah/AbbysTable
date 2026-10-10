@@ -148,7 +148,7 @@ test('the refresh route never leaves the site', async () => {
 
   for (const next of ['//evil.example', 'https://evil.example', '/\\evil.example', '']) {
     const response = await refresh(new Request(`https://shop.test/account/refresh?next=${encodeURIComponent(next)}`));
-    assert.equal(response.headers.get('Location'), '/account/orders', JSON.stringify(next));
+    assert.equal(response.headers.get('Location'), '/account', JSON.stringify(next));
   }
 });
 

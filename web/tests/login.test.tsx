@@ -250,7 +250,7 @@ test('a signed-out request is sent to Log in with a return path, or the bare pag
   assert.equal(loginPathFor('//evil.example'), '/login');
   assert.equal(loginPathFor('https://evil.example'), '/login');
   assert.equal(sessionRefreshPath('/account/orders'), '/account/refresh?next=%2Faccount%2Forders');
-  assert.equal(sessionRefreshPath('//evil.example'), '/account/refresh?next=%2Faccount%2Forders');
+  assert.equal(sessionRefreshPath('//evil.example'), '/account/refresh?next=%2Faccount');
 });
 
 /* ---- The storefront's own limits ------------------------------------------------ */

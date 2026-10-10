@@ -7,7 +7,7 @@
  */
 
 /** Where sign-in goes when no destination was carried. */
-export const DEFAULT_POST_AUTH_PATH = '/account/orders';
+export const DEFAULT_POST_AUTH_PATH = '/account';
 
 /**
  * CR, LF and friends. Checked by codepoint rather than by a regex character

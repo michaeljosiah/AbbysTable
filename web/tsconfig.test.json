@@ -42,6 +42,7 @@
     "tests/account-redirect.test.tsx",
     "tests/account-access.test.tsx",
     "tests/account-orders.test.tsx",
+    "tests/account-overview.test.tsx",
     "tests/choose-box.test.tsx",
     "tests/shopping-state.test.tsx",
     "tests/email.test.ts",
