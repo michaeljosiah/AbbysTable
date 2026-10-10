@@ -17,9 +17,9 @@ import type { MappedOptionGroup } from './map';
  *
  * `Dish.heat` is OPTIONAL: a dish whose source has not published a heat level
  * carries none, and every surface leaves the heat out rather than guess one.
- * Live browse rows read it from the tenant's `attributesJson.heatStep` until
- * Aonik types it (michaeljosiah/aonik#359); a row without one used to be
- * mapped to "Medium" — a spice claim nobody had made.
+ * Live records read Aonik's typed `heat` (michaeljosiah/aonik#359), or the
+ * legacy `attributesJson.heatStep` from a source without it; a row without one
+ * used to be mapped to "Medium" — a spice claim nobody had made.
  */
 export type HeatLevel = 'none' | 'low' | 'medium' | 'high';
 
@@ -155,6 +155,8 @@ export interface Dish {
   parts?: string;
   description: string;
   imageUrl: string;
+  /** The photograph's authored alt text; absent, the dish's name stands in. */
+  imageAlt?: string;
   /** Absent when the source has not published one — never defaulted. */
   heat?: HeatLevel;
   /**

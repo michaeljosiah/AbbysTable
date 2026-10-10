@@ -30,6 +30,7 @@
     "tests/checkout-legal-return.test.tsx",
     "tests/homepage.test.tsx",
     "tests/contact.test.tsx",
+    "tests/business-profile.test.tsx",
     "tests/private-table.test.tsx",
     "tests/delivery-faqs.test.tsx",
     "tests/menu.test.tsx",

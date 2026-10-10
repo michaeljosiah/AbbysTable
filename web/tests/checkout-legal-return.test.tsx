@@ -175,8 +175,8 @@ for (const [name, Page] of [
   ['Terms of Sale', TermsOfSalePage],
   ['Privacy Policy', PrivacyPolicyPage],
 ] as const) {
-  test(`${name}: "← Back to checkout" is rendered hidden above the h1, revealed only by the gate`, () => {
-    const html = renderToStaticMarkup(<Page />);
+  test(`${name}: "← Back to checkout" is rendered hidden above the h1, revealed only by the gate`, async () => {
+    const html = renderToStaticMarkup(await Page());
     const row = html.indexOf('id="legal-checkout-return"');
     assert.ok(row > -1);
     assert.ok(row < html.indexOf('<h1'), 'above the h1');
