@@ -23,6 +23,12 @@ import type {
   PublicCollectionDto,
   ExtrasListDto,
 } from './dto';
+import {
+  BUSINESS_PROFILE_PATH,
+  BUSINESS_PROFILE_TIMEOUT_MS,
+  readBusinessProfile,
+  type BusinessProfile,
+} from './businessProfile';
 import { DemoCoverageLookup, HttpCoverageLookup, type CoverageLookup } from './coverage';
 import { AONIK_CODES, AonikError } from './errors';
 import { EXTRA_FIXTURES } from './extras';
@@ -116,6 +122,13 @@ export interface AonikClient {
    * for a list the tenant has published, with its published consent wording.
    */
   readonly signupLists: SignupLists | null;
+  /**
+   * The tenant's published contact routes, legal facts and opening hours
+   * (Aonik #358), or null where none is published. Every fact in it may be
+   * null: the pages fall back to `@/lib/content` configuration, and mark what
+   * neither knows "to be confirmed".
+   */
+  getBusinessProfile(): Promise<BusinessProfile | null>;
 }
 
 export interface ProductPage {
@@ -136,6 +149,14 @@ export class MockAonikClient implements AonikClient {
    * (`./signupLists`).
    */
   readonly signupLists: SignupLists | null = null;
+
+  /**
+   * None: demo has no tenant to publish one, and the designs' contact details
+   * are unverified placeholders that must never be served as a business's own.
+   */
+  async getBusinessProfile(): Promise<BusinessProfile | null> {
+    return null;
+  }
 
   async getDishes(): Promise<Dish[]> {
     return DISH_FIXTURES;
@@ -307,6 +328,28 @@ export class HttpAonikClient implements AonikClient {
       policy: 'catalog',
       query,
     });
+  }
+
+  /**
+   * Aonik's business profile (#358): 404 until an administrator publishes it,
+   * which is a state, not an error. A fact that does not read cleanly is left
+   * out and logged (`./businessProfile`), never guessed. Cached like the
+   * catalogue, as Aonik caches it for five minutes; bounded, because the legal
+   * pages and Contact wait for it.
+   */
+  async getBusinessProfile(): Promise<BusinessProfile | null> {
+    try {
+      const body = await aonikFetch<unknown>(BUSINESS_PROFILE_PATH, {
+        baseUrl: this.options.baseUrl,
+        tenantId: this.options.tenantId,
+        policy: 'catalog',
+        signal: AbortSignal.timeout(BUSINESS_PROFILE_TIMEOUT_MS),
+      });
+      return readBusinessProfile(body, (message) => console.warn(`[aonik] business profile: ${message}`));
+    } catch (error) {
+      if (error instanceof AonikError && error.isNotFound) return null;
+      throw error;
+    }
   }
 
   async getStorefrontConfig(): Promise<StorefrontConfig> {

@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { ContactView } from '@/components/contact/ContactView';
 import { enquiriesAvailable } from '@/lib/aonik/enquiries';
 import { sendEnquiryAction } from '@/lib/contact/actions';
-import { OPENING_HOURS, SUPPORT_CONTACT, WHATSAPP_CONTACT } from '@/lib/content/contact';
+import { resolveBusinessDetails } from '@/lib/content/business';
 import { PRIVATE_TABLE_WAITLIST_HREF } from '@/lib/content/marketing';
 import { CONTACT_HREF, DELIVERY_FAQS_HREF } from '@/lib/content/navigation';
 import { waitlistOpen } from '@/lib/private-table/availability';
@@ -13,8 +13,10 @@ import { waitlistOpen } from '@/lib/private-table/availability';
  *
  * PLACEHOLDER DETAILS NEVER SHIP: the design's phone, email, WhatsApp number,
  * QR code, opening hours and bank holidays are all unverified (build-handoff,
- * open items). Everything here comes from `@/lib/content/contact`, where each
- * is `null` until the owner confirms it, and the page marks what is missing.
+ * open items). Everything here is what the tenant has published in Aonik's
+ * business profile (aonik#358) over `@/lib/content/contact`, where each is
+ * `null` until the owner confirms it (`resolveBusinessDetails`); the page
+ * marks what neither knows.
  *
  * The form is given its send action only when an enquiry can really be sent
  * (`enquiriesAvailable`: live data and a configured Aonik, whose enquiry
@@ -39,13 +41,18 @@ export const metadata: Metadata = {
 };
 
 export default async function ContactPage() {
-  const [canSend, waitlist] = await Promise.all([enquiriesAvailable(), waitlistOpen()]);
+  const [canSend, waitlist, details] = await Promise.all([
+    enquiriesAvailable(),
+    waitlistOpen(),
+    resolveBusinessDetails(),
+  ]);
 
   return (
     <ContactView
-      support={SUPPORT_CONTACT}
-      whatsapp={WHATSAPP_CONTACT}
-      hours={OPENING_HOURS}
+      email={details.email}
+      phone={details.phone}
+      whatsapp={details.whatsapp}
+      hours={details.hours}
       // Only while Delivery & FAQs has a page of its own (since #23): before,
       // it took Contact's destination and this card would have linked here.
       faqsHref={DELIVERY_FAQS_HREF === CONTACT_HREF ? null : DELIVERY_FAQS_HREF}

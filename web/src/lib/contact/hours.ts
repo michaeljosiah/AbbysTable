@@ -7,10 +7,11 @@
  * one hours table in local UK time (Europe/London, so BST is handled), a
  * bank-holiday list, and a way to record exceptional closures, because an
  * indicator that says "Open now" during an unplanned closure is worse than
- * none. Production values are to come from Aonik (michaeljosiah/aonik#358,
- * not built yet) in this shape; until then `OPENING_HOURS` in
- * `@/lib/content/contact` is that configuration — and it is `null`, because
- * the design's hours (Mon–Fri 9–5, Sat 10–2, Sun closed) are unverified
+ * none. The tenant publishes them in Aonik's business profile
+ * (michaeljosiah/aonik#358; read into this shape by
+ * `@/lib/aonik/businessProfile`); where it has not, `OPENING_HOURS` in
+ * `@/lib/content/contact` is the configuration — and it is `null`, because the
+ * design's hours (Mon–Fri 9–5, Sat 10–2, Sun closed) are unverified
  * placeholders. With no hours there is no status: never a guessed one.
  *
  * Every calculation reads the wall clock in Europe/London, never the
@@ -227,6 +228,35 @@ function isCalendarDate(date: string): boolean {
   const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
   const utc = new Date(Date.UTC(year, month - 1, day));
   return utc.getUTCFullYear() === year && utc.getUTCMonth() === month - 1 && utc.getUTCDate() === day;
+}
+
+/**
+ * The instant a London calendar day begins, as ISO 8601 in UTC — or null for
+ * a date that does not exist. London is UTC or UTC+1 and changes its clocks at
+ * 01:00 UTC, so a day begins at 00:00 UTC (GMT) or 23:00 UTC the evening
+ * before (BST); never at an hour the clocks skip or repeat.
+ */
+export function ukDayStart(date: string): string | null {
+  if (!isCalendarDate(date)) return null;
+  const midnight = Date.UTC(Number(date.slice(0, 4)), Number(date.slice(5, 7)) - 1, Number(date.slice(8, 10)));
+  for (const at of [midnight - 3_600_000, midnight]) {
+    const clock = ukClock(new Date(at));
+    if (clock.date === date && clock.minutes === 0) return new Date(at).toISOString();
+  }
+  return null;
+}
+
+/**
+ * A whole local day, closed — the shape of Aonik's exceptional closures
+ * (aonik#358 publishes them as London dates) — as an absolute closure from
+ * that day's start to the next's. Null for a date that does not exist.
+ */
+export function wholeDayClosure(date: string): Closure | null {
+  const from = ukDayStart(date);
+  if (!from) return null;
+  const next = new Date(Date.UTC(Number(date.slice(0, 4)), Number(date.slice(5, 7)) - 1, Number(date.slice(8, 10)) + 1));
+  const until = ukDayStart(next.toISOString().slice(0, 10));
+  return until ? { from, until } : null;
 }
 
 /**

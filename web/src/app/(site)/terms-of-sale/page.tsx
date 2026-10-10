@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 
+import { CompanyProvider } from '@/components/legal/company';
 import { LegalDocument } from '@/components/legal/LegalDocument';
+import { resolveBusinessDetails } from '@/lib/content/business';
 import { TERMS_OF_SALE } from '@/lib/legal/terms';
 
 import { TERMS_CLAUSES } from './clauses';
@@ -25,16 +27,20 @@ export const metadata: Metadata = {
   openGraph: { title: "Terms of Sale — Abby's Table", description: DESCRIPTION, locale: 'en_GB' },
 };
 
-export default function TermsOfSalePage() {
+export default async function TermsOfSalePage() {
+  // The company details: the tenant's published profile over configuration.
+  const { company } = await resolveBusinessDetails();
   return (
-    <LegalDocument
-      doc={TERMS_OF_SALE}
-      title="Terms of Sale"
-      lede={DESCRIPTION}
-      statement={<strong>Nothing in these terms affects your statutory rights as a consumer.</strong>}
-      lastUpdated="6 September 2026"
-      linkTone="brass"
-      bodies={TERMS_CLAUSES}
-    />
+    <CompanyProvider company={company}>
+      <LegalDocument
+        doc={TERMS_OF_SALE}
+        title="Terms of Sale"
+        lede={DESCRIPTION}
+        statement={<strong>Nothing in these terms affects your statutory rights as a consumer.</strong>}
+        lastUpdated="6 September 2026"
+        linkTone="brass"
+        bodies={TERMS_CLAUSES}
+      />
+    </CompanyProvider>
   );
 }
