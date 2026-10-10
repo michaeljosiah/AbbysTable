@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
+import { allergenLine } from '@/lib/allergens';
 import { encodeSelection } from '@/lib/aonik/map';
 import {
   localSurcharge,
@@ -1206,10 +1207,18 @@ export function ExtrasStep({
                   {/* SAFETY: an absent declaration is NOT "None". Saying "None"
                       when nobody has declared would tell someone with an
                       allergy that this is safe for them. */}
+                  {/* …and an empty list is not "None" either: it records a
+                      reviewed list with none of the 14 declared, which is
+                      not an allergen-free claim (aonik#351). */}
                   {modalExtra.allergens ? (
                     <span>
-                      <strong>Allergens:</strong>{' '}
-                      {modalExtra.allergens.length > 0 ? modalExtra.allergens.join(', ') : 'None'}
+                      <strong>Allergens:</strong> {allergenLine(modalExtra.allergens)}
+                      {modalExtra.precautionaryStatement ? (
+                        <>
+                          <br />
+                          {modalExtra.precautionaryStatement}
+                        </>
+                      ) : null}
                     </span>
                   ) : (
                     <span>

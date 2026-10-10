@@ -172,6 +172,7 @@ export function DishInfoPanels({ dish, heating, compact, onBackToTop }: DishInfo
   const withheld = state?.declarationsWithheld ?? false;
   const ingredients = withheld ? undefined : dish.ingredients;
   const allergens = withheld ? undefined : dish.allergens;
+  const precaution = withheld ? undefined : dish.precautionaryStatement;
 
   /*
    * Figures fall back to the default block; declarations never do. Either flag
@@ -246,6 +247,13 @@ export function DishInfoPanels({ dish, heating, compact, onBackToTop }: DishInfo
             <AllergenIcon />
             <span>
               <strong>Allergens:</strong> {allergens}
+              {/* The kitchen's own statement, as authored (aonik#351). */}
+              {precaution ? (
+                <>
+                  <br />
+                  {precaution}
+                </>
+              ) : null}
             </span>
           </div>
         ) : (

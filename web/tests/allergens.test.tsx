@@ -1,0 +1,196 @@
+import './support/runtime';
+
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { renderToStaticMarkup } from 'react-dom/server';
+
+import { DishInfoPanels } from '../src/components/dish/DishInfoPanels';
+import {
+  ALLERGEN_NAMES,
+  allergenLine,
+  declaredAllergens,
+  NONE_DECLARED,
+  splitAllergenText,
+} from '../src/lib/allergens';
+import type { ExtraRowDto, ResolvedContentDto } from '../src/lib/aonik/dto';
+import { mapExtraRow, mapResolvedContent } from '../src/lib/aonik/map';
+import type { Dish } from '../src/lib/aonik/types';
+
+/*
+ * Controlled allergens (michaeljosiah/aonik#351): the 14 groups as Aonik
+ * declares them, an empty reviewed list that is never an allergen-free claim,
+ * and the kitchen's own precautionary statement. Never inferred, never
+ * dropped: a declaration that cannot be read whole is not shown at all.
+ */
+
+/** A resolved content block as Aonik sends it since #351. */
+function content(overrides: Partial<ResolvedContentDto> = {}): ResolvedContentDto {
+  return {
+    servingLabel: 'Per portion',
+    nutrition: { kcal: 520, proteinGrams: 40, carbsGrams: 50, fatGrams: 18, fibreGrams: 6, sugarsGrams: 4, saltGrams: 1.2 },
+    ingredients: 'Chicken, rice, tomato, peppers, onion, sesame oil.',
+    allergens: 'Sesame',
+    declarationsWithheld: false,
+    heating: [],
+    heatingWithheld: true,
+    isStandardPreparation: false,
+    isStale: false,
+    canonicalSelectionJson: '{}',
+    matchedVariantSelectionJson: null,
+    contentVersion: 3,
+    allergensPresent: ['Sesame'],
+    precautionaryStatement: null,
+    ...overrides,
+  };
+}
+
+test('the 14 groups, by the names a customer reads, in Aonik’s order', () => {
+  assert.equal(Object.keys(ALLERGEN_NAMES).length, 14);
+  assert.deepEqual(declaredAllergens(['CerealsContainingGluten', 'Milk', 'TreeNuts', 'Soybeans']), [
+    'Cereals containing gluten',
+    'Milk',
+    'Tree nuts',
+    'Soya',
+  ]);
+  assert.deepEqual(declaredAllergens(['Milk', 'Milk']), ['Milk']);
+  assert.deepEqual(declaredAllergens([]), []);
+  // One value we do not know makes the whole list unreadable: never one dropped.
+  assert.equal(declaredAllergens(['Milk', 'Kiwi']), null);
+  assert.equal(declaredAllergens(['Milk, Fish']), null);
+  assert.equal(declaredAllergens([3]), null);
+  assert.equal(declaredAllergens(null), null);
+  assert.equal(declaredAllergens('Milk'), null);
+});
+
+test('a reviewed list with none of the 14 is never "None" or "free from"', () => {
+  assert.equal(allergenLine([]), NONE_DECLARED);
+  assert.equal(NONE_DECLARED, 'None of the 14 regulated allergens declared');
+  assert.equal(allergenLine(['Milk', 'Fish']), 'Milk, Fish');
+  // An older Aonik's text: "None", or Aonik's own reviewed-and-none wording, is a declaration of none.
+  assert.deepEqual(splitAllergenText('None'), []);
+  assert.deepEqual(splitAllergenText(NONE_DECLARED), []);
+  assert.deepEqual(splitAllergenText('Milk, Fish; Sesame'), ['Milk', 'Fish', 'Sesame']);
+  assert.equal(splitAllergenText(undefined), undefined);
+});
+
+test('the dish line comes from the controlled list, with the kitchen’s statement as authored', () => {
+  const mapped = mapResolvedContent(
+    content({
+      allergens: 'Milk, Fish',
+      allergensPresent: ['Fish', 'Milk'],
+      precautionaryStatement: '  Made in a kitchen that also handles peanuts.  ',
+    }),
+  );
+  assert.equal(mapped.allergens, 'Fish, Milk');
+  assert.deepEqual(mapped.allergenNames, ['Fish', 'Milk']);
+  assert.equal(mapped.precautionaryStatement, 'Made in a kitchen that also handles peanuts.');
+  assert.equal(mapped.ingredients, 'Chicken, rice, tomato, peppers, onion, sesame oil.');
+
+  const none = mapResolvedContent(content({ allergens: NONE_DECLARED, allergensPresent: [] }));
+  assert.equal(none.allergens, NONE_DECLARED);
+  assert.deepEqual(none.allergenNames, []);
+});
+
+test('withheld, or a list that cannot be read whole: no allergens, no ingredients, no statement', () => {
+  // Aonik withholds an unreviewed or stale declaration…
+  const withheld = mapResolvedContent(
+    content({ declarationsWithheld: true, allergens: null, allergensPresent: null, precautionaryStatement: 'May contain nuts.' }),
+  );
+  assert.equal(withheld.allergens, undefined);
+  assert.equal(withheld.ingredients, undefined);
+  assert.equal(withheld.precautionaryStatement, undefined);
+  assert.equal(withheld.state.declarationsWithheld, true);
+
+  // …and one we cannot read whole is withheld here, ingredients and all.
+  const unknown = mapResolvedContent(content({ allergensPresent: ['Sesame', 'Kiwi'], allergens: 'Sesame, Kiwi' }));
+  assert.equal(unknown.allergens, undefined);
+  assert.equal(unknown.allergenNames, undefined);
+  assert.equal(unknown.ingredients, undefined);
+  assert.equal(unknown.state.declarationsWithheld, true);
+});
+
+test('an older Aonik without the controlled list: its text, as before', () => {
+  const legacy = content({ allergens: 'Milk; Fish' });
+  delete legacy.allergensPresent;
+  delete legacy.precautionaryStatement;
+  const mapped = mapResolvedContent(legacy);
+  assert.equal(mapped.allergens, 'Milk; Fish');
+  assert.deepEqual(mapped.allergenNames, ['Milk', 'Fish']);
+});
+
+function extraRow(contentDto: ResolvedContentDto | null): ExtraRowDto {
+  return {
+    productId: 'p-1',
+    productVariantId: 'v-1',
+    slug: 'chin-chin',
+    name: 'Chin chin',
+    description: null,
+    imageUrl: null,
+    tags: [],
+    attributesJson: null,
+    unitPrice: 4.5,
+    unitSurcharge: null,
+    currency: 'GBP',
+    content: contentDto,
+    optionGroups: [],
+  };
+}
+
+test('extras: the controlled names, [] for none declared — Aonik’s wording is never read as one allergen', () => {
+  assert.deepEqual(mapExtraRow(extraRow(content({ allergensPresent: ['Eggs', 'Milk'] }))).allergens, ['Eggs', 'Milk']);
+  const none = mapExtraRow(extraRow(content({ allergens: NONE_DECLARED, allergensPresent: [] })));
+  assert.deepEqual(none.allergens, []);
+  // An older Aonik's text with the same wording, too.
+  const legacy = content({ allergens: NONE_DECLARED });
+  delete legacy.allergensPresent;
+  assert.deepEqual(mapExtraRow(extraRow(legacy)).allergens, []);
+  assert.equal(
+    mapExtraRow(extraRow(content({ precautionaryStatement: 'May contain peanuts.' }))).precautionaryStatement,
+    'May contain peanuts.',
+  );
+  assert.equal(mapExtraRow(extraRow(null)).allergens, undefined, 'no content: not declared');
+});
+
+const DISH: Dish = {
+  id: 'd-1',
+  slug: 'jollof',
+  title: 'Jollof',
+  description: '',
+  imageUrl: '',
+  tags: [],
+  isSignature: false,
+  nutrition: {},
+  isFeatured: false,
+  wellness: [],
+  dietary: [],
+};
+
+test('the dish page shows the declaration and the statement — or says plainly it is not published', () => {
+  const declared = mapResolvedContent(
+    content({ allergensPresent: [], allergens: NONE_DECLARED, precautionaryStatement: 'Made in a kitchen that also handles peanuts.' }),
+  );
+  const html = renderToStaticMarkup(
+    <DishInfoPanels
+      dish={{
+        ...DISH,
+        ingredients: declared.ingredients,
+        allergens: declared.allergens,
+        precautionaryStatement: declared.precautionaryStatement,
+        contentState: declared.state,
+      }}
+      heating={[]}
+    />,
+  );
+  assert.match(html, /<strong>Allergens:<\/strong> None of the 14 regulated allergens declared<br\/>Made in a kitchen that also handles peanuts\./);
+  assert.doesNotMatch(html, /Allergens:<\/strong> None</);
+
+  const withheld = mapResolvedContent(content({ declarationsWithheld: true, allergensPresent: null, allergens: null }));
+  const quiet = renderToStaticMarkup(
+    <DishInfoPanels
+      dish={{ ...DISH, allergens: withheld.allergens, precautionaryStatement: 'May contain nuts.', contentState: withheld.state }}
+      heating={[]}
+    />,
+  );
+  assert.match(quiet, /Allergen information is not yet published for this dish\./);
+  assert.doesNotMatch(quiet, /May contain nuts/, 'never a statement without its declaration');
+});

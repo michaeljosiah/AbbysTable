@@ -33,6 +33,7 @@
     "tests/private-table.test.tsx",
     "tests/delivery-faqs.test.tsx",
     "tests/menu.test.tsx",
+    "tests/allergens.test.tsx",
     "tests/email.test.ts",
     "tests/signup-lists.test.tsx",
     "tests/support/*.ts",
