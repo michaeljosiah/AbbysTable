@@ -54,7 +54,9 @@ export interface AonikFetchOptions {
   signal?: AbortSignal;
   /**
    * The customer's address, sent as `X-Forwarded-For` where Aonik limits per
-   * customer (enquiries). Aonik honours it only from a proxy it trusts.
+   * customer (enquiries). Aonik honours it only from a proxy it trusts, and
+   * today reads just the hop its own ingress appends — the storefront's — so
+   * the storefront's own limits are the per-customer ones.
    */
   forwardedFor?: string;
 }

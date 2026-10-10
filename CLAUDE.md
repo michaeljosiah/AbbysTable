@@ -149,13 +149,16 @@ Conventions inside `web/` that are easy to get wrong:
   maintenance itself (`src/lib/status-pages/maintenance.ts`). The server action is the no-JS door
   (text only). Both run `sendEnquiryForm` (`src/lib/contact/send.ts`): re-check everything, answer
   `sent` only after Aonik's 202, map its 422 `fieldErrors`/`imageProblems` to OUR messages, 409 →
-  fresh submission reference, 503 → unavailable. Every send carries a `submission_id` kept while
-  the content is unchanged (`src/lib/contact/submission.ts`) so a retry can't send twice; images go
-  under names their type agrees with (`uploadName`) and the customer's address as
-  `X-Forwarded-For` (Aonik limits 10/min per address — per CUSTOMER only if Aonik trusts the
-  storefront in `ForwardedHeaders:KnownProxies` with a forward limit covering it; otherwise the
-  whole site shares one allowance). The thanks says "We'll send a confirmation to" — Aonik sends a
-  receipt, not a copy. Phone, email, WhatsApp (+ QR) and the hours come from
+  fresh submission reference, 429 → `limited`, and anything else — 503 included, it is nearly
+  always passing — → `error`, so a retry under the same reference replays a saved one. Every send
+  carries a `submission_id` kept while the content is unchanged (`src/lib/contact/submission.ts`)
+  so a retry can't send twice; images go under names Aonik accepts (`uploadName`: type-matched
+  extension, no path, `:`/`<`/`>`/controls, ≤150 units). Aonik's own 10/min limit sees only the
+  storefront's address (it reads one forwarded hop), so the storefront limits each customer itself
+  (`admitEnquiry`, 8 per 10 minutes, keyed by `clientAddress` — the LAST `X-Forwarded-For` entry,
+  the one the platform appended, never the client-written first). The route reads no body in demo,
+  past the limit, over 3×10MB, without a `Content-Length`, or while 4 others are in flight. The
+  thanks says "We'll send a confirmation to" — Aonik sends a receipt, not a copy. Phone, email, WhatsApp (+ QR) and the hours come from
   `src/lib/content/contact.ts` (all `null` → "to be confirmed", never a mailto:/tel:/wa.me with no
   value; values from aonik#358 later). Never copy the design's number, email, hours, bank holidays
   or placeholder QR. "Open now / Closed" is computed in the BROWSER in Europe/London from
