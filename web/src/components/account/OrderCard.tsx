@@ -4,6 +4,9 @@ import Link from 'next/link';
 import { useId, useState } from 'react';
 
 import { dishesToggleLabel } from '@/lib/account/orders';
+import { orderAgainLabel } from '@/lib/account/reorder';
+
+import { OrderAgainButton } from './OrderAgainButton';
 
 import styles from './Account.module.css';
 
@@ -22,6 +25,8 @@ export interface OrderCardData {
   dishCount: number;
   /** The order's own page (the price breakdown, points, refunds). */
   href: string;
+  /** Present when the order offers Order again. */
+  again?: { orderId: string; upcoming: boolean };
 }
 
 /**
@@ -96,6 +101,14 @@ export function OrderCard({ order }: { order: OrderCardData }) {
       ) : null}
 
       <div className={styles.actions}>
+        {order.again ? (
+          <OrderAgainButton
+            orderId={order.again.orderId}
+            upcoming={order.again.upcoming}
+            label={orderAgainLabel(order.heading)}
+            returnTo="/account/orders"
+          />
+        ) : null}
         <Link href={order.href} className={styles.textLink}>
           <span>View order details</span>
           <span aria-hidden="true">&rarr;</span>

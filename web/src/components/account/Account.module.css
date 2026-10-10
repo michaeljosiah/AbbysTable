@@ -1241,3 +1241,39 @@
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
 }
+
+/* ---- Order again ---- */
+
+.reorder {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.reorder .hint {
+  margin: 0;
+}
+
+.inlineLink {
+  color: var(--green-forest);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--brass);
+  text-underline-offset: 3px;
+}
+
+/* Information that is neither a success nor a fault (a refusal with a way on). */
+.note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--sand-2);
+  border-radius: 12px;
+  background: var(--blush);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--brown);
+}

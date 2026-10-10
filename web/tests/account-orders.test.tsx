@@ -223,6 +223,9 @@ function stubAonik(handlers: Record<string, AonikReply> = {}) {
   });
 }
 
+/** Pages render inside the root layout's cart provider. */
+const inCart = (node: React.ReactElement | null) => renderToStaticMarkup(<CartProvider mode="demo">{node}</CartProvider>);
+
 const ordersPage = (page?: string) => OrdersPage({ searchParams: Promise.resolve(page ? { page } : {}) });
 
 test('the Orders page shows Upcoming and Past as cards, with the dishes behind a toggle, and no sign-out of its own', async () => {
@@ -242,7 +245,7 @@ test('the Orders page shows Upcoming and Past as cards, with the dishes behind a
     },
   });
 
-  const html = renderToStaticMarkup(await ordersPage());
+  const html = inCart(await ordersPage());
   const read = text(html);
 
   assert.match(read, /Orders Upcoming/);
@@ -254,7 +257,9 @@ test('the Orders page shows Upcoming and Past as cards, with the dishes behind a
   assert.match(read, /Show dishes \(3\)/);
   assert.doesNotMatch(read, /AT-99999/, 'an unpaid order is not shown');
   assert.doesNotMatch(read, /Sign out|Signed in as/);
-  assert.doesNotMatch(read, /Order again|Need to change this delivery/);
+  assert.doesNotMatch(read, /Need to change this delivery/);
+  assert.equal((read.match(/Order again/g) ?? []).length, 2, 'the upcoming card and the paid past card');
+  assert.match(read, /This starts a new box\. Your delivery won’t change\./);
   assert.match(html, /href="\/account\/orders\/0b6c1e2a-1111-4222-8333-444455556666"/);
 });
 
@@ -281,7 +286,7 @@ test('a detail that cannot be read costs its address line, not the page', async 
     '/commerce/storefront/orders': { status: 200, body: { items: [summaryDto()], totalCount: 1, page: 1, pageSize: 20 } },
   });
 
-  const read = text(renderToStaticMarkup(await ordersPage()));
+  const read = text(inCart(await ordersPage()));
 
   assert.match(read, /Order AT-10517 Cooking/);
   assert.doesNotMatch(read, /High Street/);
@@ -322,7 +327,7 @@ test('an empty history says so, with a way to build a box', async () => {
   signedIn();
   stubAonik({ '/commerce/storefront/orders': { status: 200, body: { items: [], totalCount: 0, page: 1, pageSize: 20 } } });
 
-  const html = renderToStaticMarkup(await ordersPage());
+  const html = inCart(await ordersPage());
 
   assert.match(text(html), /No deliveries on the way\./);
   assert.match(text(html), /Delivered orders will appear here\./);
@@ -333,7 +338,7 @@ test('an outage is said plainly, with Try again', async () => {
   signedIn();
   stubAonik({ '/commerce/storefront/orders': { status: 503, body: { error: 'down' } } });
 
-  const html = renderToStaticMarkup(await ordersPage());
+  const html = inCart(await ordersPage());
 
   assert.match(text(html), /Your orders are unavailable right now/);
   assert.match(html, /href="\/account\/orders"[^>]*>Try again</);

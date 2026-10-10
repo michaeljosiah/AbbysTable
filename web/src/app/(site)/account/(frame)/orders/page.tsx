@@ -6,6 +6,7 @@ import { OrderCard, type OrderCardData } from '@/components/account/OrderCard';
 import styles from '@/components/account/Account.module.css';
 import type { OrderSummary } from '@/lib/aonik/orders';
 import { dishCount, orderBoxLabel, orderHeading, orderStatusLabel } from '@/lib/account/orders';
+import { canOrderAgain } from '@/lib/account/reorder';
 import { loadAccountOrders, type AccountOrders, type OrderExtras } from '@/lib/account/loadOrders';
 import { redirectToLogin, requireSignedIn } from '@/lib/auth/guard';
 import { SessionExpiredError } from '@/lib/auth/server';
@@ -39,7 +40,7 @@ function pageHref(page: number): string {
   return page <= 1 ? '/account/orders' : `/account/orders?page=${page}`;
 }
 
-function cardFor(order: OrderSummary, extras: OrderExtras | undefined): OrderCardData {
+function cardFor(order: OrderSummary, extras: OrderExtras | undefined, upcoming: boolean): OrderCardData {
   return {
     number: order.orderNumber,
     status: orderStatusLabel(order),
@@ -51,6 +52,7 @@ function cardFor(order: OrderSummary, extras: OrderExtras | undefined): OrderCar
     dishes: order.dishes,
     dishCount: dishCount(order),
     href: `/account/orders/${encodeURIComponent(order.orderId)}`,
+    again: canOrderAgain(order) ? { orderId: order.orderId, upcoming } : undefined,
   };
 }
 
@@ -118,7 +120,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
       ) : (
         <div className={styles.list}>
           {upcoming.map((order) => (
-            <OrderCard key={order.orderId} order={cardFor(order, extras.get(order.orderId))} />
+            <OrderCard key={order.orderId} order={cardFor(order, extras.get(order.orderId), true)} />
           ))}
         </div>
       )}
@@ -138,7 +140,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
       ) : (
         <div className={styles.list}>
           {past.map((order) => (
-            <OrderCard key={order.orderId} order={cardFor(order, extras.get(order.orderId))} />
+            <OrderCard key={order.orderId} order={cardFor(order, extras.get(order.orderId), false)} />
           ))}
         </div>
       )}
