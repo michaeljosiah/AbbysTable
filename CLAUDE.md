@@ -220,8 +220,14 @@ Conventions inside `web/` that are easy to get wrong:
   (`abbys-table:last-step:v1`) so VIEW BOX resumes there — never beyond what is valid, never
   before Extras for a complete box — and is forgotten with the box. Step 2 says "Your box needs N
   replacement(s)" (`ReplacementNotice`, copy verbatim from SHOPPING-STATE §5) and its rail reads
-  "5 of 6 dishes / Add 1 more dish to continue." Not built: an "Unavailable" label on the line in
-  Your Box, and a demo "completed in another tab" state (live has `cart.ordered`).
+  "5 of 6 dishes / Add 1 more dish to continue." **Aonik counts a flagged-unavailable dish in
+  `quote.unitsSelected` (and `isFull`) and refuses any add while it is in the box**, so
+  `readyDishCount(unitsSelected, unavailableUnits)` is what can be ordered, and arriving on Step 2
+  takes the unavailable dishes out (the notice remembers how many until the box is whole). An
+  unavailable add-on caps the box at Extras (`maxStep`). A failed cart READ is not a box that is
+  gone: guards and the last-step memory act only on an answer. `localStore()` wraps
+  `window.localStorage` (reading it can throw). Not built: a demo "completed in another tab"
+  state (live has `cart.ordered`).
 - **Choose Box (#28, Choose Box v2): `/box`; the entry rules are React-free in `src/lib/box/entry.ts`**
   (`tests/choose-box.test.tsx`). The demo box plan is ONE copy (`BOX_PLAN` in `fixtures.ts`):
   **£158 for six**, 6 to 99 dishes, delivery £5.95 charged — never struck through, and a

@@ -53,6 +53,7 @@ import {
   type CheckoutSyncAnswer,
 } from '@/lib/checkout/transport';
 import { PRIVACY_ITEM, TERMS_ITEM } from '@/lib/content/navigation';
+import { guardRedirect } from '@/lib/shopping-state';
 import { checkPostcode } from '@/lib/delivery/actions';
 import { formatDeliveryDateLong } from '@/lib/format';
 import { normalisePostcode } from '@/lib/delivery/postcode';
@@ -260,17 +261,23 @@ export function CheckoutView({
       const code = cart.error?.code;
       if (cart.error && code !== 'cart.missing' && code !== CART_ORDERED_CODE) return;
       // The box went (another tab ordered it, or it expired), or another tab made it incomplete.
+      // The shared shopping state decides where a box that cannot be checked out
+      // goes: no box → Step 1; short or a dish unavailable → Step 2 (with the
+      // "checkout details kept" wording); an unavailable add-on → Extras.
       if (!cart.quote) router.replace('/box');
-      else if (!cart.quote.isFull || cart.hasUnavailableLine) router.replace('/box/dishes?from=checkout');
+      else {
+        const back = guardRedirect('checkout', cart.shopping);
+        if (back) router.replace(back === '/box/dishes' ? `${back}?from=checkout` : back);
+      }
       return;
     }
     if (cart.boxSize === null && cart.lines.length === 0) router.replace('/box');
     else if (cart.boxSize === null || cart.dishCount < cart.boxSize) router.replace('/box/dishes?from=checkout');
-  }, [cart.hydrated, cart.error, cart.quote, cart.hasUnavailableLine, cart.boxSize, cart.lines.length, cart.dishCount, live, router]);
+  }, [cart.hydrated, cart.error, cart.quote, cart.shopping, cart.boxSize, cart.lines.length, cart.dishCount, live, router]);
 
   // Reaching checkout with a complete box is a step reached: VIEW BOX resumes here.
   const { rememberStep } = cart;
-  const reachable = cart.hydrated && cart.shopping.active && cart.shopping.complete;
+  const reachable = cart.hydrated && cart.shopping.active && cart.shopping.maxStep === 'checkout';
   useEffect(() => {
     if (reachable) rememberStep('checkout');
   }, [reachable, rememberStep]);

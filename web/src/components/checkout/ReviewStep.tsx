@@ -145,10 +145,12 @@ export function ReviewStep({
   }, [isServerCart, pending, revalidate, ordered]);
 
   useEffect(() => {
-    if (!isServerCart || !hydrated || gateRun.current) return;
+    // Not while the guard is sending the customer back: revalidating a box that
+    // cannot continue only leaves a refusal behind for Step 2 to show.
+    if (!isServerCart || !hydrated || guard.blocked || gateRun.current) return;
     gateRun.current = true;
     void runGate();
-  }, [isServerCart, hydrated, runGate]);
+  }, [isServerCart, hydrated, guard.blocked, runGate]);
 
   const [boxOpen, setBoxOpen] = useState(true);
   const [extrasOpen, setExtrasOpen] = useState(true);
@@ -342,6 +344,9 @@ export function ReviewStep({
     return (
       <div className={styles.noBox} role="status">
         <p className={styles.noBoxTitle}>Taking you back to your dishes</p>
+        <Link href="/box/dishes" className={styles.noBoxLink}>
+          Go to your dishes
+        </Link>
       </div>
     );
   }

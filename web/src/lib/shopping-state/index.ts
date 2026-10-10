@@ -30,16 +30,32 @@ export function isBoxStep(value: unknown): value is BoxStep {
   return typeof value === 'string' && (ORDER as readonly string[]).includes(value);
 }
 
+/**
+ * The dishes that can be ordered, from Aonik's count (`quote.unitsSelected`),
+ * which INCLUDES a dish flagged unavailable: that line stays in the box — and
+ * in the count — until it is removed, so a 6-box with one gone reads
+ * `unitsSelected = 6`, `isFull = true`, though only five can be ordered.
+ */
+export function readyDishCount(unitsSelected: number, unavailableUnits: number): number {
+  return Math.max(0, unitsSelected - unavailableUnits);
+}
+
 /** The cart's facts, as far as this reads them. */
 export interface ShoppingFacts {
   /** False until the cart has been read: nothing is decided before then. */
   hydrated: boolean;
   /** The size committed at Step 1, or null. */
   boxSize: number | null;
-  /** Dishes in the box that can be ordered (an unavailable dish is not counted). */
+  /**
+   * Dishes in the box that can be ordered. An unavailable dish is NOT counted:
+   * Aonik's own count (`unitsSelected`) includes it — a flagged line stays in
+   * the box until it is removed — so a caller subtracts `unavailableCount`.
+   */
   dishCount: number;
   /** Units held by dishes that are no longer available. */
   unavailableCount: number;
+  /** Add-ons (extras) that are no longer available: Extras is where they go. */
+  unavailableExtras?: number;
   /** The box already became an order (here, or in another tab). */
   ordered: boolean;
   /** The furthest step this browser reached for this box, if it remembers one. */
@@ -53,6 +69,8 @@ export interface ShoppingStatus {
   replacements: number;
   /** Dishes still to add to fill the box. */
   missing: number;
+  /** Dishes in the box that can be ordered (never an unavailable one). */
+  readyCount: number;
   /** Full, and holding nothing unavailable. */
   complete: boolean;
   /** The furthest step this box may be on right now. */
@@ -76,20 +94,36 @@ export function boxStatus(facts: ShoppingFacts): ShoppingStatus {
 
   // The earliest step that can still be satisfied: no size → Step 1; a box that
   // is not complete (short, or holding an unavailable dish) → Step 2.
-  const maxStep: BoxStep = !committed ? 'choose' : !complete ? 'dishes' : 'checkout';
+  // An unavailable add-on is mended on Extras, so nothing past it is open.
+  const maxStep: BoxStep = !committed
+    ? 'choose'
+    : !complete
+      ? 'dishes'
+      : (facts.unavailableExtras ?? 0) > 0
+        ? 'extras'
+        : 'checkout';
 
   // Resume where the customer got to, never beyond what is valid; a complete box
   // that last stood on Step 1 or 2 resumes on the step after them.
   let resume: BoxStep = maxStep;
   if (committed && complete && facts.lastStep !== null) {
     const reached = ORDER.indexOf(facts.lastStep);
-    resume = ORDER[Math.max(Math.min(reached, ORDER.indexOf(maxStep)), ORDER.indexOf('extras'))];
+    resume = ORDER[Math.min(Math.max(reached, ORDER.indexOf('extras')), ORDER.indexOf(maxStep))];
   } else if (committed && complete) {
     resume = 'extras';
   } else if (!committed && facts.dishCount > 0) {
     resume = 'choose';
   }
-  return { active, replacements, missing, complete, maxStep, resumeHref: STEP_HREFS[resume], ordered: facts.ordered };
+  return {
+    active,
+    replacements,
+    missing,
+    readyCount: facts.dishCount,
+    complete,
+    maxStep,
+    resumeHref: STEP_HREFS[resume],
+    ordered: facts.ordered,
+  };
 }
 
 /**
@@ -170,5 +204,18 @@ export function forgetStep(storage: Pick<Storage, 'removeItem'> | null | undefin
     storage?.removeItem(LAST_STEP_KEY);
   } catch {
     // Nothing to forget in storage that cannot be reached.
+  }
+}
+
+/**
+ * This browser's localStorage, or null. Evaluating `window.localStorage` can
+ * itself throw (a visitor with site data blocked) — and the cart provider is
+ * mounted on every page, so a throw here would take the whole app down.
+ */
+export function localStore(): Storage | null {
+  try {
+    return typeof window === 'undefined' ? null : window.localStorage;
+  } catch {
+    return null;
   }
 }

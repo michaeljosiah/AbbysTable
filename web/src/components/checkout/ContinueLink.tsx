@@ -30,8 +30,12 @@ export function ContinueLink({
   /** The page's own reason to hold it (Review: the box is still being checked). */
   disabled?: boolean;
 }) {
-  const { hasUnavailableLine, pending } = useCart();
-  const blocked = disabled || hasUnavailableLine || pending;
+  const { hasUnavailableLine, shopping, pending } = useCart();
+  // Step 2 → Extras is held only by a dish that cannot be ordered (an unavailable
+  // add-on is mended ON Extras, so it must not hold the way there); every later
+  // step is held by any unavailable line.
+  const toExtras = href === '/box/extras';
+  const blocked = disabled || (toExtras ? shopping.replacements > 0 : hasUnavailableLine) || pending;
 
   const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
     if (blocked) {

@@ -270,6 +270,9 @@ export function ExtrasStep({
       <div className={styles.noBox} role="status">
         <p className={styles.noBoxTitle}>Taking you back to your dishes</p>
         <p className={styles.noBoxCopy}>Your box needs a little more before you can add extras.</p>
+        <Link href="/box/dishes" className={styles.noBoxLink}>
+          Go to your dishes
+        </Link>
       </div>
     );
   }

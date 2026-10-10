@@ -320,9 +320,10 @@ export function BoxSummary({
 
   const preset = pricing.presets.find((offer) => offer.dishCount === boxSize);
   const boxLabel = preset?.name ?? `${boxSize}-dish box`;
-  const inBox = Math.min(dishCount, boxSize);
+  // The dishes that can be ordered: Aonik's own count includes one it flagged unavailable.
+  const inBox = Math.min(shopping.readyCount, boxSize);
   const isFull = inBox >= boxSize;
-  const spacesLeft = Math.max(0, boxSize - dishCount);
+  const spacesLeft = Math.max(0, boxSize - shopping.readyCount);
   const progress = Math.min(100, (inBox / boxSize) * 100);
 
   // A box holding a dish that is no longer available reads "5 of 6 dishes" and
@@ -337,7 +338,7 @@ export function BoxSummary({
   // When the box is full AND carrying extras, the breakdown line above says it
   // all — the template drops this note entirely in that state.
   const slotsLabel = needsReplacement
-    ? missingLine(Math.max(1, spacesLeft))
+    ? missingLine(spacesLeft)
     : isFull
     ? totals.extraDishes > 0
       ? ''

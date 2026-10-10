@@ -11,6 +11,12 @@ export interface DemoCartLine {
   quantity: number;
   personalisation?: PersonalisationSelection;
   surchargePence: number | undefined;
+  /**
+   * Live only: Aonik flagged this dish as no longer available. It stays in the
+   * box until it is removed, and Aonik still counts it — so it is not a dish
+   * that can be ordered (`@/lib/shopping-state`).
+   */
+  unavailable?: boolean;
 }
 
 export interface DemoCartState {

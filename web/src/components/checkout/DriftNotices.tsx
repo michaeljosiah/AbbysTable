@@ -138,6 +138,9 @@ export function DriftNotices() {
 
   const visible = changes
     .map((change, index) => ({ change, key: keyFor(change, index) }))
+    // An unavailable dish is Step 2's replacement notice (it takes the dish out and
+    // says how many to choose); this line would tell the customer to do it by hand.
+    .filter(({ change }) => change.reason !== 'unavailable')
     .filter(({ key }) => !dismissed.includes(key));
 
   if (!error && visible.length === 0) return null;

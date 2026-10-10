@@ -12,7 +12,9 @@ import {
   LAST_STEP_KEY,
   missingLine,
   progressLine,
+  localStore,
   readLastStep,
+  readyDishCount,
   rememberStep,
   replacementsBody,
   replacementsTitle,
@@ -65,8 +67,30 @@ test('a box is complete only when full and holding nothing unavailable; what it 
   );
   const short = boxStatus(facts({ boxSize: 6, dishCount: 5, unavailableCount: 1 }));
   assert.deepEqual({ complete: short.complete, missing: short.missing, replacements: short.replacements }, { complete: false, missing: 1, replacements: 1 });
-  assert.equal(boxStatus(facts({ boxSize: 6, dishCount: 6, unavailableCount: 1 })).complete, false, 'full, but one is no longer available');
   assert.equal(boxStatus(facts()).complete, false);
+  assert.equal(boxStatus(facts({ boxSize: 6, dishCount: 5 })).readyCount, 5);
+});
+
+test('live: Aonik counts a flagged dish in unitsSelected, so what can be ordered is what is left of it', () => {
+  // A 6-dish box with one dish no longer available: unitsSelected = 6, isFull = true.
+  assert.equal(readyDishCount(6, 1), 5);
+  assert.equal(readyDishCount(0, 3), 0, 'never negative');
+  const live = boxStatus(facts({ boxSize: 6, dishCount: readyDishCount(6, 1), unavailableCount: 1 }));
+  assert.deepEqual(
+    { ready: live.readyCount, missing: live.missing, replacements: live.replacements, complete: live.complete, maxStep: live.maxStep },
+    { ready: 5, missing: 1, replacements: 1, complete: false, maxStep: 'dishes' },
+    'the rail reads 5 of 6 and Add 1 more, and the box goes back to Step 2',
+  );
+});
+
+test('an unavailable add-on is mended on Extras: nothing past it is open, and VIEW BOX never goes beyond it', () => {
+  const status = boxStatus(facts({ boxSize: 6, dishCount: 6, unavailableExtras: 1, lastStep: 'checkout' }));
+  assert.equal(status.complete, true, 'the dishes are all there');
+  assert.equal(status.maxStep, 'extras');
+  assert.equal(status.resumeHref, STEP_HREFS.extras);
+  assert.equal(guardRedirect('extras', status), null);
+  assert.equal(guardRedirect('review', status), STEP_HREFS.extras);
+  assert.equal(guardRedirect('checkout', status), STEP_HREFS.extras);
 });
 
 test('step gates: a step can be entered only when every step before it is satisfied; the box is sent to the earliest that can mend it', () => {
@@ -154,4 +178,25 @@ test('the header pill, the drawer and the bar all read the same state, and agree
   // A cart without one (a plain object) keeps the bare rule.
   const bare = { hydrated: true, boxSize: 12, dishCount: 3 };
   assert.deepEqual(headerOrderCta(bare), { label: 'View box', href: '/box/dishes', continuing: true });
+});
+
+test('blocked site data: reading localStorage throws, and nothing here takes the app down', () => {
+  const g = globalThis as unknown as { window?: unknown };
+  const saved = g.window;
+  try {
+    g.window = {
+      get localStorage(): Storage {
+        throw new DOMException('The operation is insecure.', 'SecurityError');
+      },
+    };
+    assert.equal(localStore(), null);
+    assert.equal(readLastStep(localStore()), null);
+    rememberStep(localStore(), 'review');
+    forgetStep(localStore());
+    g.window = { localStorage: { getItem: () => null } };
+    assert.notEqual(localStore(), null);
+  } finally {
+    if (saved === undefined) delete g.window;
+    else g.window = saved;
+  }
 });

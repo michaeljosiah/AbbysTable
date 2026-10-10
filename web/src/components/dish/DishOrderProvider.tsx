@@ -147,6 +147,8 @@ export function DishOrderProvider({
     flash('Added to your box');
     swallowClicksFor(GHOST_TAP_MS);
     setHandingOff(true);
+    // Adding a dish goes to Step 2 (or Step 1 with no size yet) — deliberately not
+    // VIEW BOX's furthest-step resume, which is the chrome's job (`resumeHrefFor`).
     router.push(boxResumeHref(boxSize));
     // Should the hand-off never land (the customer goes Back mid-route, say),
     // the buttons come back rather than staying dead.
