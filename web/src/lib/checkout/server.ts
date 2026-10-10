@@ -277,14 +277,15 @@ export async function saveCheckoutBenefits(
   version: CartVersion,
 ): Promise<BoxCart> {
   const current = await cartCall<CheckoutDraftResponseDto>('/checkout-draft');
-  await cartCall<CheckoutDraftResponseDto>(
+  const written = await cartCall<CheckoutDraftResponseDto>(
     '/checkout-draft',
     { method: 'PUT', body: { ...(current.draft ?? {}), ...input } },
     version,
   );
   const cart = await getBoxCart();
   if (!cart) throw new CartMissingError();
-  return cart;
+  // Keep the write’s version: a later read must not adopt another tab’s draft unseen.
+  return { ...cart, version: written.cartVersion || cart.version };
 }
 
 /** Full gift codes stay in the request body; public state contains the backend mask only. */

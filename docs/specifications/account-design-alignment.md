@@ -72,13 +72,13 @@ Server cookies hold guest credentials, box-choice snapshots and email capabiliti
 
 
 ## Validation and remaining verification
-Main was fetched again and remains `142b679f67787b5e49a0c995bf4bd2efbb558752`; the earlier main pull was already up to date. This branch stacks on Gifting PR #88.
+Main was fetched again and remains `142b679f67787b5e49a0c995bf4bd2efbb558752`; the earlier main pull was already up to date. This branch is PR #89, stacked on Gifting PR #88; selected reorder is Aonik PR #392, stacked on #391.
 
 - Frontend: 728 tests pass; lint, typecheck and Next production build pass.
 - Backend selected reorder: 3,339 application tests pass, two existing skips; 33 checkout/reorder API tests pass; API build passes with existing package advisories. Backend PR stacks on the 1–10 gift-card change.
 - Contract scenarios cover signed history, masked sent gifts/empty 202 resend, displayed box versions, no automatic stale adoption retry, full draft preservation, gift funding split and no exposed bearer code, optional account creation without loyalty, and identity confirmation capability handling.
 - Desktop isolated rendering of the real Points and Gift cards components matches source geometry. Points balance block: 848.67 × 156.65 CSS px; How points work card: 848.67 × 346.02 CSS px, both equal the source at the same desktop width. The vertical offset is the omitted site header in the isolated render.
-- Phone checks use 375 × 812 viewport; the single-column components have no horizontal overflow. Evidence uses synthetic account data and real application components/styles; it is not a live auth/payment/email test. See `evidence/account-design-alignment/`.
+- Phone checks use 375 × 812 viewport; the single-column components have no horizontal overflow. At that width, both source and rendered Points balance blocks measure 316 × 242.91 CSS px, and both How points work cards measure 316 × 643.20 CSS px. Evidence uses synthetic account data and real application components/styles; it is not a live auth/payment/email test. See `evidence/account-design-alignment/`.
 - Automatic approval review rejected starting the preview with local test-auth environment settings (reason: “blocked by policy”, no detail). No retry of that action was made. Static component rendering needs no auth service or outbound API.
 - Order-again interaction and secure identity flows still require authenticated browser/release verification and independent PR review. No issue is closed on unmerged evidence.
 

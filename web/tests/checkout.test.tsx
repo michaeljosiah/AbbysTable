@@ -645,12 +645,13 @@ test('benefits save preserves every other draft section and uses the displayed v
   configureAonik({ AONIK_DATA_MODE: 'live' }); resetCookies(CART_COOKIE);
   const draft = { ...SAVED_DRAFT.draft!, gift: { giftIntent: true, hidePrices: true, includeGreetingCard: false, greetingCardMessage: '' }, deliveryNotes: 'Side entrance', requestedPoints: 200 };
   useAonik(r => {
-    if (r.path.endsWith('/checkout-draft')) return { status: 200, body: { ...SAVED_DRAFT, draft: r.method === 'GET' ? draft : r.body } };
-    if (r.path === '/commerce/carts/c1') return { status: 200, body: box({checkoutDraft: {...draft, createAccount: false}}) };
+    if (r.path.endsWith('/checkout-draft')) return { status: 200, body: { ...SAVED_DRAFT, cartVersion: r.method === 'GET' ? 'v1' : 'v2', draft: r.method === 'GET' ? draft : r.body } };
+    if (r.path === '/commerce/carts/c1') return { status: 200, body: box({cartVersion: 'v3', checkoutDraft: {...draft, createAccount: false}}) };
     return undefined;
   });
   const response = await call('PUT', 'benefits', { createAccount: false });
   assert.equal(response.status, 200);
+  assert.equal((await response.json()).cart.version, 'v2', 'do not adopt a newer draft unseen');
   const write = aonikRequests.find(r => r.method === 'PUT')!;
   assert.deepEqual(write.body, {...draft, createAccount: false});
   assert.equal(write.headers['x-cart-version'], 'v1');
