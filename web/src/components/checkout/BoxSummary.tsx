@@ -673,7 +673,9 @@ export function BoxSummary({
         <div className={styles.row}>
           <span>Delivery</span>
           <span className={styles.rowDelivery}>
-            <span className={styles.rowWas}>{formatPrice(pricing.delivery.listPence)}</span>
+            {pricing.delivery.listPence > pricing.delivery.pricePence ? (
+              <span className={styles.rowWas}>{formatPrice(pricing.delivery.listPence)}</span>
+            ) : null}
             <span className={styles.rowNow}>
               {pricing.delivery.pricePence === 0
                 ? 'Free'

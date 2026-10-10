@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 
+import { NavigationTrail } from '@/components/NavigationTrail';
 import { ConsentManager } from '@/components/consent/ConsentManager';
 import { DevDataMode } from '@/components/dev/DevDataMode';
 import { liveOrderingEnabled, resolveDataMode } from '@/lib/aonik/dataMode';
@@ -77,6 +78,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             (design/build-handoff.md §3s). Every non-essential tag gates on it
             through ConsentGate / onConsent. */}
         <ConsentManager />
+        {/* Remembers the page just left, for a real "Back" (renders nothing). */}
+        <NavigationTrail />
         {/* Renders nothing in production. */}
         <DevDataMode />
       </body>

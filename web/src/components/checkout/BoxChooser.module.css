@@ -1,7 +1,7 @@
 /* ===========================================================================
    Step 1 — box chooser.
    Two columns on desktop: cards on the left, a sticky "Your box" card on the
-   right. 861–1080px narrows the summary to 320px; at 860px it disappears in
+   right. 1024–1080px narrows the summary to 320px; below 1024px it disappears in
    favour of a fixed action bar + bottom sheet, the big cards become compact
    rows and the banner collapses — all following the template's breakpoints.
    =========================================================================== */
@@ -99,7 +99,7 @@
   color: var(--brass);
 }
 
-/* ---- Carried dish banner (compact, ≤860px) -------------------------------------- */
+/* ---- Carried dish banner (compact, ≤1023px) -------------------------------------- */
 
 .carry {
   display: none;
@@ -424,7 +424,7 @@
   color: var(--text-heading);
 }
 
-/* ---- Compact rows (≤860px) -------------------------------------------------------- */
+/* ---- Compact rows (≤1023px) -------------------------------------------------------- */
 
 .boxlist {
   display: none;
@@ -1552,7 +1552,7 @@
 
 /* ---- Responsive ---------------------------------------------------------------------------------- */
 
-@media (max-width: 1080px) and (min-width: 861px) {
+@media (max-width: 1080px) and (min-width: 1024px) {
   .shell {
     grid-template-columns: minmax(0, 1fr) 320px;
     gap: 30px;
@@ -1563,7 +1563,7 @@
   }
 }
 
-@media (max-width: 860px) {
+@media (max-width: 1023px) {
   .shell {
     grid-template-columns: minmax(0, 1fr);
     gap: 0;
@@ -1599,4 +1599,60 @@
   .rowIcon {
     transform: scale(0.9);
   }
+}
+
+/* ---- Set your own: a typeable quantity, and the line under it ---------------------------------- */
+
+.stepInput {
+  box-sizing: border-box;
+  width: 74px;
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  border-bottom: 1.5px solid var(--sand-2);
+  border-radius: 0;
+  background: transparent;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: var(--weight-medium);
+  font-size: 34px;
+  line-height: 1;
+  color: var(--text-heading);
+  appearance: textfield;
+}
+
+.stepInput:focus-visible {
+  outline: 2px solid var(--green-forest);
+  outline-offset: 4px;
+}
+
+.stepInput[aria-invalid='true'] {
+  border-bottom-color: var(--terracotta-ink);
+}
+
+.typedError[data-empty] {
+  display: none;
+}
+
+.typedError {
+  flex-basis: 100%;
+  margin: 8px 0 0;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--terracotta-ink);
+  text-align: center;
+}
+
+.held {
+  margin: 8px 0 0;
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.stepInputSm {
+  width: 56px;
+  font-size: 24px;
 }

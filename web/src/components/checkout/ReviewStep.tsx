@@ -478,7 +478,9 @@ export function ReviewStep({
         <div className={styles.summaryRow}>
           <span className={styles.summaryLabel}>Delivery</span>
           <span className={styles.summaryDelivery}>
-            <span className={styles.summaryWas}>{formatPrice(pricing.delivery.listPence)}</span>
+            {pricing.delivery.listPence > pricing.delivery.pricePence ? (
+              <span className={styles.summaryWas}>{formatPrice(pricing.delivery.listPence)}</span>
+            ) : null}
             <span className={styles.summaryNow}>
               {pricing.delivery.pricePence === 0
                 ? 'Free'

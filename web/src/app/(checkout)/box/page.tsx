@@ -1,72 +1,84 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 
+import { BackLink } from '@/components/checkout/BackLink';
 import { BoxChooser } from '@/components/checkout/BoxChooser';
+import { BoxPostcodeCheck } from '@/components/checkout/BoxPostcodeCheck';
 import { getAonikClient } from '@/lib/aonik/client';
+import { entrySizeFromLink, resolveEntrySize } from '@/lib/box/entry';
 import { formatDeliveryDate } from '@/lib/format';
 
 import styles from './page.module.css';
 
 export const metadata: Metadata = {
-  title: "Choose your box — Abby's Table",
-  description: "Pick a set box or build your own. You'll add the rest of your dishes next.",
+  title: "Build your box — Abby's Table",
+  description: "Choose a set box size or set your own quantity. You'll add your dishes next.",
 };
 
 /**
- * Step 1 of the box builder.
+ * Step 1 of the box builder (Choose Box v2).
  *
- * Server Component: box pricing and the delivery window are resolved here and
- * handed to `BoxChooser`, which owns the selection. Prices, dish counts and
- * savings are never written into the markup by hand — every figure on this page
- * comes out of `BoxPricing`, so a change in Aonik lands without a code edit.
+ * Server Component: box pricing, the delivery window and the entry size are
+ * resolved here and handed to `BoxChooser`, which owns the selection. Prices,
+ * dish counts and savings are never written into the markup by hand — every
+ * figure on this page comes out of `BoxPricing`, so a change in Aonik lands
+ * without a code edit.
  *
- * The step heading is built here rather than in the client component so the
- * static copy stays out of the client bundle; `BoxChooser` slots it into the
- * left column, where the template puts it, level with the summary card.
+ * `?dishes=6|12|18|custom` (How it works, contract §4c) preselects the size; a
+ * missing or unknown value falls back to the first tier, never an error. The
+ * postcode check renders only where a coverage lookup can answer
+ * (`AonikClient.coverage`) — otherwise there is no check, and nothing is faked.
  */
-export default async function ChooseBoxPage() {
+export default async function ChooseBoxPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const client = await getAonikClient();
+  const { dishes } = await searchParams;
 
-  const [pricing, delivery] = await Promise.all([
-    client.getBoxPricing(),
-    client.getDeliveryWindow(),
-  ]);
+  const [pricing, delivery] = await Promise.all([client.getBoxPricing(), client.getDeliveryWindow()]);
+  const initialSize = resolveEntrySize(dishes, pricing.presets, pricing.custom.minDishes);
 
   return (
     <div className={styles.page}>
-      <Link href="/menu" className={styles.back}>
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M15 6l-6 6 6 6" />
-        </svg>
-        <span>Back to menu</span>
-      </Link>
+      <div className={styles.backbar}>
+        <BackLink href="/menu" className={styles.back}>
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M15 6l-6 6 6 6" />
+          </svg>
+          <span>Back</span>
+        </BackLink>
+      </div>
 
-      <BoxChooser
-        pricing={pricing}
-        earliestDeliveryLabel={formatDeliveryDate(delivery?.earliestDeliveryDate)}
-        heading={
-          <div className={styles.stepHeading}>
-            {/* Bespoke sizes from the checkout template (50px display, 13px
-                eyebrow at .18em) — the site-wide Eyebrow/SectionHeading scale
-                doesn't apply here. */}
-            <span className={styles.stepEyebrow}>Step 1 of 5</span>
-            <h1 className={styles.heading}>Choose your box</h1>
-            <p className={styles.intro}>
-              Pick a set box or build your own. You&apos;ll add the rest of your dishes next.
-            </p>
-          </div>
-        }
-      />
+      {client.coverage ? <BoxPostcodeCheck /> : null}
+
+      <div className={styles.body}>
+        <BoxChooser
+          pricing={pricing}
+          earliestDeliveryLabel={formatDeliveryDate(delivery?.earliestDeliveryDate)}
+          initialSize={initialSize}
+          sizeFromLink={entrySizeFromLink(dishes, pricing.presets, pricing.custom.minDishes)}
+          heading={
+            <div className={styles.stepHeading}>
+              {/* The progress band above already says "Step 1 of 5". */}
+              <h1 className={styles.heading}>Build your box</h1>
+              <p className={styles.intro}>
+                Choose a set box size or set your own quantity. You&apos;ll add your dishes next.
+              </p>
+            </div>
+          }
+        />
+      </div>
     </div>
   );
 }

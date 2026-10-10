@@ -205,8 +205,8 @@ test('no "From" figure the plan does not publish', () => {
   assert.equal(purchaseBarOffer({ ...plan, maxSize: 3 }), null);
 });
 
-test('the demo fixtures flow through unchanged (still the £95 box until #28)', () => {
-  assert.deepEqual(purchaseBarOffer(STOREFRONT_CONFIG_FIXTURE.box), { minDishes: 6, fromPence: 9500 });
+test('the demo fixtures flow through unchanged: the six-dish box is £158', () => {
+  assert.deepEqual(purchaseBarOffer(STOREFRONT_CONFIG_FIXTURE.box), { minDishes: 6, fromPence: 15800 });
 });
 
 /* ---- Our Standards: its minimum and its bar are one read (marketing FR-02, T10) ---- */
@@ -320,7 +320,7 @@ test('no active box, no summary: the bar keeps selling', () => {
 
 test('a carried dish reads as Step 1 preselects it: the first preset, at its price', () => {
   const summary = activeBoxSummary(cart({ lines: [okra], dishCount: 1 }), pricing, null);
-  assert.deepEqual(summary, { label: '6-dish box', total: '£95', href: '/box' });
+  assert.deepEqual(summary, { label: '6-dish box', total: '£163.95', href: '/box' });
 });
 
 test('a committed box totals box, surcharges, overflow and extras, as the checkout does', () => {
@@ -334,8 +334,8 @@ test('a committed box totals box, surcharges, overflow and extras, as the checko
     pricing,
     null,
   );
-  // £170 box + 2 × £5 surcharge + 2 × £4.50 puff puff.
-  assert.deepEqual(summary, { label: '12-dish box', total: '£189', href: '/box/dishes' });
+  // £306 box + 2 × £5 surcharge + 2 × £4.50 puff puff + £5.95 delivery.
+  assert.deepEqual(summary, { label: '12-dish box', total: '£330.95', href: '/box/dishes' });
 });
 
 test('a demo delivery charge is in the total, as Review and the live quote count it', () => {
@@ -344,8 +344,8 @@ test('a demo delivery charge is in the total, as Review and the live quote count
     box: { ...BOX_PRICING_FIXTURE, delivery: { listPence: 1000, pricePence: 650 } },
   };
   const summary = activeBoxSummary(cart({ boxSize: 6, lines: [okra], dishCount: 1 }), charged, null);
-  // £95 box + £6.50 delivery.
-  assert.equal(summary?.total, '£101.50');
+  // £158 box + £6.50 delivery.
+  assert.equal(summary?.total, '£164.50');
 });
 
 test('a total the client cannot price is left out rather than guessed', () => {
@@ -410,7 +410,7 @@ test('server-rendered retracted: inert, and yielding to consent and overlays', (
 });
 
 test('the first render always sells: the box summary waits for the cart to hydrate', () => {
-  const html = render(<MobilePurchaseBar data={{ offer: { minDishes: 6, fromPence: 9500 }, pricing }} />);
+  const html = render(<MobilePurchaseBar data={{ offer: { minDishes: 6, fromPence: 15800 }, pricing }} />);
   assert.doesNotMatch(html, /View box/);
 });
 

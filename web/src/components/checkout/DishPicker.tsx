@@ -617,7 +617,7 @@ export function DishPicker({
   const boxFull = boxSize !== null && usedCount >= effectiveSize;
   const remaining = Math.max(0, effectiveSize - usedCount);
 
-  // "Updated estimated total": box + surcharges + extra dishes, as the summary bills them.
+  // "Updated estimated total": box + surcharges + extra dishes + delivery, as the summary bills them.
   const grandTotalPence = isServerCart
     ? undefined
     : boxSize === null

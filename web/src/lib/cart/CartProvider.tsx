@@ -579,7 +579,11 @@ export function boxPricePence(
   return customBoxPricePence(pricing, size);
 }
 
-/** Box price, personalisation surcharges, and any dishes beyond the box size. */
+/**
+ * Box price, personalisation surcharges, any dishes beyond the box size, and
+ * the delivery charge — the total the steps' rails show is what Review's demo
+ * quote and a live quote count (`buildDemoQuote`): delivery among it.
+ */
 export function cartTotals(
   state: Pick<CartState, 'boxSize' | 'isCustom' | 'lines'>,
   pricing: BoxPricing,
@@ -592,13 +596,15 @@ export function cartTotals(
   const overflow = state.boxSize === null ? 0 : Math.max(0, dishCount - state.boxSize);
   const extras = overflow * pricing.extraDishPence;
 
+  const delivery = pricing.delivery?.pricePence ?? 0;
   return {
     dishCount,
     boxPence: box,
     surchargePence: surcharges,
     extraDishes: overflow,
     extraPence: extras,
-    totalPence: surcharges === undefined ? undefined : box + surcharges + extras,
+    deliveryPence: delivery,
+    totalPence: surcharges === undefined ? undefined : box + surcharges + extras + delivery,
   };
 }
 

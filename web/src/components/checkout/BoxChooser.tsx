@@ -15,6 +15,7 @@ import {
 } from 'react';
 
 import { type BoxOffer, type BoxPricing } from '@/lib/aonik/types';
+import { deriveSelection, heldSizeCopy, readTypedSize, selectionForSize, sizeFloor, type EntrySize, type Selection } from '@/lib/box/entry';
 import {
   boxPricePence,
   cartTotals,
@@ -47,12 +48,18 @@ interface BoxChooserProps {
    * wrong date is worse than no date, so nothing is invented here.
    */
   earliestDeliveryLabel: string | null;
-  /** Step eyebrow, title and intro, rendered by the page. */
+  /** Step title and intro, rendered by the page. */
   heading: ReactNode;
+  /** The size the page opens on: a tier's card lit, or set-your-own open. */
+  initialSize: EntrySize;
+  /**
+   * Whether `?dishes=` chose it. A size in the link is this entry's choice and
+   * is not replaced by the size of an earlier visit.
+   */
+  sizeFromLink: boolean;
 }
 
 /** Which card is lit. A custom box takes its size from the stepper. */
-type Selection = { source: 'preset'; size: number } | { source: 'custom' };
 
 function presetFor(pricing: BoxPricing, size: number): BoxOffer | undefined {
   return pricing.presets.find((offer) => offer.dishCount === size);
@@ -87,10 +94,9 @@ function offerFor(pricing: BoxPricing, size: number) {
   return { pricePence: customBoxPricePence(pricing, size), listPence: undefined, savingPence: 0 };
 }
 
-export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChooserProps) {
+export function BoxChooser({ pricing, earliestDeliveryLabel, heading, initialSize, sizeFromLink }: BoxChooserProps) {
   const {
     boxSize,
-    isCustom: cartIsCustom,
     lines,
     hydrated,
     addLine,
@@ -104,13 +110,25 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
   const { minDishes, maxDishes } = pricing.custom;
   const summaryTitleId = useId();
   const sheetTitleId = useId();
+  const typedErrorId = useId();
+  const typedErrorIdSm = useId();
 
   // The template preselects the entry box rather than starting empty.
-  const [selection, setSelection] = useState<Selection>({
-    source: 'preset',
-    size: pricing.presets[0]?.dishCount ?? minDishes,
-  });
-  const [customQty, setCustomQty] = useState(minDishes);
+  const [chosen, setSelection] = useState<Selection>(
+    initialSize.kind === 'custom' ? { source: 'custom' } : { source: 'preset', size: initialSize.size },
+  );
+  const [chosenQty, setCustomQty] = useState(initialSize.kind === 'custom' ? initialSize.size : minDishes);
+  const [typed, setTyped] = useState<string | null>(null);
+  const [typedError, setTypedError] = useState<string | null>(null);
+
+  /*
+   * The smallest box this one can be: the dishes already in it. Nothing is
+   * deleted to make a smaller box fit; choosing a smaller tier raises it to
+   * the floor and says why (the rail's held-size line).
+   */
+  const heldDishes = !hydrated ? 0 : isServerCart ? (quote?.unitsSelected ?? 0) : lines.reduce((total, line) => total + line.quantity, 0);
+  const floor = sizeFloor(heldDishes, minDishes, maxDishes);
+  const { selection, customQty, raised } = deriveSelection({ chosen, chosenQty, floor, presets: pricing.presets });
 
   const [estOpen, setEstOpen] = useState(true);
   const [tipOpen, setTipOpen] = useState(false);
@@ -128,10 +146,13 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
 
   // Adopt a size chosen on an earlier visit, once storage has been read.
   useEffect(() => {
-    if (!hydrated || boxSize === null) return;
-    setSelection(cartIsCustom ? { source: 'custom' } : { source: 'preset', size: boxSize });
-    if (cartIsCustom) setCustomQty(boxSize);
-  }, [hydrated, boxSize, cartIsCustom]);
+    if (sizeFromLink || !hydrated || boxSize === null) return;
+    // A live box reports a plain size (never "custom"): a size that is no tier
+    // is set-your-own at that size, whatever the cart says.
+    const adopted = selectionForSize(boxSize, pricing.presets);
+    setSelection(adopted.selection);
+    if (adopted.customQty !== null) setCustomQty(adopted.customQty);
+  }, [sizeFromLink, hydrated, boxSize, pricing.presets]);
 
   const customSelected = selection.source === 'custom';
   const size = selection.source === 'custom' ? customQty : selection.size;
@@ -156,26 +177,49 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
   const carried = hydrated ? (lines[0] ?? null) : null;
   const carriedNote = carried?.personalisation ? 'Personalised on the dish page' : null;
 
+  // A smaller tier was chosen than the box can take: raised, and said.
+  const held = raised;
   const filled = Math.min(totals.dishCount, size);
   const remaining = size - filled;
   const boxLabel = `${size}-dish box`;
-  const totalLabel = isServerCart
+  /*
+   * A live quote is for the box it was made for. A size chosen here (a link,
+   * the cards, the field) that is not that box's would sit beside the old
+   * box's price, so the rail then shows the plan's own price for the chosen
+   * size until the choice is committed and Aonik quotes it.
+   */
+  const quoteIsForSize = !isServerCart || !quote || quote.boxSize === size;
+  const showServerQuote = isServerCart && quoteIsForSize;
+  const planTotalPence = cartTotals({ boxSize: size, isCustom, lines: [] }, pricing).totalPence;
+  const totalLabel = showServerQuote
     ? quote
       ? formatPrice(quote.totalPence)
       : ''
-    : totals.totalPence === undefined
-      ? 'Price unavailable'
-      : formatPrice(totals.totalPence);
+    : isServerCart
+      ? planTotalPence === undefined
+        ? 'Price unavailable'
+        : formatPrice(planTotalPence)
+      : totals.totalPence === undefined
+        ? 'Price unavailable'
+        : formatPrice(totals.totalPence);
 
-  const selectCustom = () => setSelection({ source: 'custom' });
+  const selectCustom = () => {
+    setTypedError(null);
+    setSelection({ source: 'custom' });
+  };
 
-  const selectPreset = (preset: BoxOffer) => () =>
+  const selectPreset = (preset: BoxOffer) => () => {
+    setTyped(null);
+    setTypedError(null);
     setSelection({ source: 'preset', size: preset.dishCount });
+  };
 
   const stepCustom = (delta: number) => (event: MouseEvent<HTMLButtonElement>) => {
     // The stepper sits inside a card that is itself a button.
     event.stopPropagation();
-    const next = Math.min(maxDishes, Math.max(minDishes, customQty + delta));
+    const next = Math.min(maxDishes, Math.max(floor, customQty + delta));
+    setTyped(null);
+    setTypedError(null);
     setCustomQty(next);
     // The template's stepper re-selects the matching preset card when the
     // count lands on one, so 6/12/18 always light their own tier.
@@ -183,6 +227,60 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
       presetFor(pricing, next) ? { source: 'preset', size: next } : { source: 'custom' },
     );
   };
+
+  /**
+   * A typed quantity is taken when the field is left or Enter is pressed. One
+   * we cannot use changes nothing: the field shows the quantity it had, with
+   * the range said beside it.
+   */
+  const takeTyped = () => {
+    if (typed === null) return;
+    const result = readTypedSize(typed, { min: minDishes, max: maxDishes, floor });
+    setTyped(null);
+    if (!result.ok) {
+      setTypedError(result.error);
+      return;
+    }
+    setTypedError(null);
+    setCustomQty(result.size);
+    setSelection(presetFor(pricing, result.size) ? { source: 'preset', size: result.size } : { source: 'custom' });
+  };
+
+  /** The quantity, typeable (both layouts): digits only, taken on blur or Enter. */
+  const quantityInput = (className: string, errorId: string) => (
+    <input
+      className={className}
+      type="text"
+      inputMode="numeric"
+      autoComplete="off"
+      maxLength={String(maxDishes).length}
+      value={typed ?? String(customQty)}
+      aria-label={`Number of dishes, ${minDishes} to ${maxDishes}`}
+      aria-invalid={typedError ? true : undefined}
+      aria-describedby={typedError ? errorId : undefined}
+      onClick={(event) => event.stopPropagation()}
+      onFocus={(event) => event.currentTarget.select()}
+      onChange={(event) => {
+        setTypedError(null);
+        setTyped(event.target.value.replace(/\D/g, ''));
+      }}
+      onBlur={takeTyped}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          takeTyped();
+        }
+      }}
+    />
+  );
+
+  // One id per layout: both are in the markup, one hidden by CSS.
+  // The status region stays mounted and is filled, so it is announced.
+  const typedErrorLine = (errorId: string) => (
+    <p className={styles.typedError} id={errorId} role="status" data-empty={typedError ? undefined : true}>
+      {typedError}
+    </p>
+  );
 
   const onCardKeyDown = (event: KeyboardEvent<HTMLDivElement>, select: () => void) => {
     // Ignore keys that belong to the stepper buttons inside the card.
@@ -275,7 +373,7 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
   }, [sheetOpen]);
 
   /** Itemised rows shared by the desktop panel and the sheet. */
-  const breakdownRows = isServerCart ? (
+  const breakdownRows = showServerQuote ? (
     quote ? (
       <>
         {quote.components.map((component, index) => (
@@ -320,7 +418,9 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
         <div className={styles.estRow}>
           <span>Delivery</span>
           <span className={styles.estDelivery}>
-            <span className={styles.estWas}>{formatPrice(pricing.delivery.listPence)}</span>
+            {pricing.delivery.listPence > pricing.delivery.pricePence ? (
+              <span className={styles.estWas}>{formatPrice(pricing.delivery.listPence)}</span>
+            ) : null}
             <span className={styles.estNow}>
               {pricing.delivery.pricePence === 0 ? 'Free' : formatPrice(pricing.delivery.pricePence)}
             </span>
@@ -360,7 +460,7 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
 
           {carried ? (
             <>
-              {/* Compact banner, ≤860px. */}
+              {/* Compact banner, ≤1023px. */}
               <div className={styles.carry}>
                 <Image
                   src={carried.imageUrl}
@@ -506,7 +606,7 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
                 <BuildGlyph size={52} />
               </span>
 
-              <span className={styles.cardTitle}>Build your own</span>
+              <span className={styles.cardTitle}>Set your own</span>
 
               {customSelected ? (
                 <>
@@ -515,14 +615,12 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
                       type="button"
                       className={styles.stepButton}
                       onClick={stepCustom(-1)}
-                      disabled={customQty <= minDishes}
+                      disabled={customQty <= floor}
                       aria-label="Fewer dishes"
                     >
                       −
                     </button>
-                    <span className={styles.stepValue} aria-live="polite">
-                      {customQty}
-                    </span>
+                    {quantityInput(styles.stepInput, typedErrorId)}
                     <button
                       type="button"
                       className={styles.stepButton}
@@ -533,6 +631,8 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
                       +
                     </button>
                   </span>
+
+                  {typedErrorLine(typedErrorId)}
 
                   <span className={styles.priceRow} data-variant="open">
                     {customOffer.listPence !== undefined ? (
@@ -574,7 +674,7 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
             </div>
           </div>
 
-          {/* Compact rows, ≤860px. */}
+          {/* Compact rows, ≤1023px. */}
           <div className={styles.boxlist}>
             {pricing.presets.map((preset, index) => {
               const selected = selection.source === 'preset' && selection.size === preset.dishCount;
@@ -661,7 +761,7 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
                 </span>
 
                 <span className={styles.rowMain}>
-                  <span className={styles.rowTitle}>Build your own</span>
+                  <span className={styles.rowTitle}>Set your own</span>
                   <span className={styles.rowBlurb}>Savings update as you add dishes</span>
                 </span>
 
@@ -686,14 +786,12 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
                       className={styles.stepButton}
                       data-size="sm"
                       onClick={stepCustom(-1)}
-                      disabled={customQty <= minDishes}
+                      disabled={customQty <= floor}
                       aria-label="Fewer dishes"
                     >
                       −
                     </button>
-                    <span className={styles.rowStepValue} aria-live="polite">
-                      {customQty}
-                    </span>
+                    {quantityInput(`${styles.stepInput} ${styles.stepInputSm}`, typedErrorIdSm)}
                     <button
                       type="button"
                       className={styles.stepButton}
@@ -705,6 +803,7 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
                       +
                     </button>
                   </span>
+                  {typedErrorLine(typedErrorIdSm)}
                   <span className={styles.rowPriceCol}>
                     <span className={styles.rowPriceLine}>
                       {customOffer.listPence !== undefined ? (
@@ -753,6 +852,7 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
                 <p className={styles.remaining}>
                   {remaining} {remaining === 1 ? 'space' : 'spaces'} left to fill
                 </p>
+                {held ? <p className={styles.held}>{heldSizeCopy(heldDishes)}</p> : null}
 
                 <span className={styles.rule} aria-hidden="true" />
 
@@ -935,7 +1035,7 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
         </aside>
       </div>
 
-      {/* Sticky action bar, ≤860px. */}
+      {/* Sticky action bar, ≤1023px. */}
       <div className={styles.mobileBar} data-consent-yield>
         <button
           type="button"
@@ -1007,6 +1107,7 @@ export function BoxChooser({ pricing, earliestDeliveryLabel, heading }: BoxChoos
               <p className={styles.remaining}>
                 {remaining} {remaining === 1 ? 'space' : 'spaces'} left to fill
               </p>
+              {held ? <p className={styles.held}>{heldSizeCopy(heldDishes)}</p> : null}
             </div>
 
             <div className={styles.sheetScroll}>
