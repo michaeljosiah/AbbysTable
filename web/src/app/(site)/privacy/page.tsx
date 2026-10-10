@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 
+import { CompanyProvider } from '@/components/legal/company';
 import { LegalDocument } from '@/components/legal/LegalDocument';
+import { resolveBusinessDetails } from '@/lib/content/business';
 import { PRIVACY_POLICY } from '@/lib/legal/privacy';
 
 import { PRIVACY_CLOSING, PRIVACY_SECTIONS } from './sections';
@@ -29,16 +31,20 @@ export const metadata: Metadata = {
   openGraph: { title: "Privacy Policy — Abby's Table", description: DESCRIPTION, locale: 'en_GB' },
 };
 
-export default function PrivacyPolicyPage() {
+export default async function PrivacyPolicyPage() {
+  // The company details: the tenant's published profile over configuration.
+  const { company } = await resolveBusinessDetails();
   return (
-    <LegalDocument
-      doc={PRIVACY_POLICY}
-      title="Privacy Policy"
-      lede={DESCRIPTION}
-      lastUpdated="6 September 2026"
-      linkTone="green"
-      bodies={PRIVACY_SECTIONS}
-      closing={PRIVACY_CLOSING}
-    />
+    <CompanyProvider company={company}>
+      <LegalDocument
+        doc={PRIVACY_POLICY}
+        title="Privacy Policy"
+        lede={DESCRIPTION}
+        lastUpdated="6 September 2026"
+        linkTone="green"
+        bodies={PRIVACY_SECTIONS}
+        closing={PRIVACY_CLOSING}
+      />
+    </CompanyProvider>
   );
 }

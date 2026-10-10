@@ -26,14 +26,16 @@ the v2 design in [`design/`](design/) is #9):
   `isSignature` flag — the two dish-detail templates are one page, not two.
 - **`/terms-of-sale`** and **`/privacy`** — the legal documents, each one continuous document with a
   grouped index (sticky column on desktop, bottom sheet on a phone). Section slugs are a public
-  contract ([`web/src/lib/legal/`](web/src/lib/legal/)); company details come from
-  [`web/src/lib/content/company.ts`](web/src/lib/content/company.ts) and print "to be confirmed"
-  until set. Opened from checkout's legal line (`?from=checkout`, a new tab), each shows "← Back
+  contract ([`web/src/lib/legal/`](web/src/lib/legal/)); company details are the tenant's published
+  business profile (Aonik, aonik#358) over
+  [`web/src/lib/content/company.ts`](web/src/lib/content/company.ts), and print "to be confirmed"
+  until either sets them. Opened from checkout's legal line (`?from=checkout`, a new tab), each shows "← Back
   to checkout" above its h1 ([`web/src/lib/legal/checkoutReturn.ts`](web/src/lib/legal/checkoutReturn.ts)).
 - **`/contact`** — Contact us: WhatsApp, email and phone cards, opening hours with an "Open now /
-  Closed" indicator, and the message form, in one 12-column grid. Details and hours come from
-  [`web/src/lib/content/contact.ts`](web/src/lib/content/contact.ts) and print "to be confirmed"
-  until set; the form sends to Aonik's enquiry endpoint in live mode (aonik#356) and is held back
+  Closed" indicator, and the message form, in one 12-column grid. Details and hours are the
+  tenant's published business profile (Aonik, aonik#358) over
+  [`web/src/lib/content/contact.ts`](web/src/lib/content/contact.ts), and print "to be confirmed"
+  until either sets them; the form sends to Aonik's enquiry endpoint in live mode (aonik#356) and is held back
   in demo. Rules in
   [`web/src/lib/contact/`](web/src/lib/contact/).
 - **`/delivery-and-faqs`** — the postcode checker (shown only where a coverage lookup exists: the

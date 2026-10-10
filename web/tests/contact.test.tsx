@@ -753,7 +753,8 @@ test('none of the design’s placeholder details is anywhere on the page', async
 const sendStub: EnquiryAction = async () => ({ status: 'error' });
 
 const CONFIGURED: ContactViewProps = {
-  support: { email: 'hello@example.test', phone: { display: '01632 960000', e164: '+441632960000' } },
+  email: 'hello@example.test',
+  phone: { display: '01632 960000', e164: '+441632960000' },
   whatsapp: { e164: '+44 7700 900123', qrSrc: '/assets/test-qr.png' },
   hours: HOURS,
   faqsHref: '/delivery-and-faqs',

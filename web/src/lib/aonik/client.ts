@@ -23,6 +23,7 @@ import type {
   PublicCollectionDto,
   ExtrasListDto,
 } from './dto';
+import { fetchBusinessProfile, type BusinessProfile } from './businessProfile';
 import { DemoCoverageLookup, HttpCoverageLookup, type CoverageLookup } from './coverage';
 import { AONIK_CODES, AonikError } from './errors';
 import { EXTRA_FIXTURES } from './extras';
@@ -116,6 +117,13 @@ export interface AonikClient {
    * for a list the tenant has published, with its published consent wording.
    */
   readonly signupLists: SignupLists | null;
+  /**
+   * The tenant's published contact routes, legal facts and opening hours
+   * (Aonik #358), or null where none is published. Every fact in it may be
+   * null: the pages fall back to `@/lib/content` configuration, and mark what
+   * neither knows "to be confirmed".
+   */
+  getBusinessProfile(): Promise<BusinessProfile | null>;
 }
 
 export interface ProductPage {
@@ -136,6 +144,14 @@ export class MockAonikClient implements AonikClient {
    * (`./signupLists`).
    */
   readonly signupLists: SignupLists | null = null;
+
+  /**
+   * None: demo has no tenant to publish one, and the designs' contact details
+   * are unverified placeholders that must never be served as a business's own.
+   */
+  async getBusinessProfile(): Promise<BusinessProfile | null> {
+    return null;
+  }
 
   async getDishes(): Promise<Dish[]> {
     return DISH_FIXTURES;
@@ -318,6 +334,15 @@ export class HttpAonikClient implements AonikClient {
       policy: 'catalog',
       query,
     });
+  }
+
+  /**
+   * Aonik's business profile (#358): 404 until an administrator publishes it,
+   * which is a state, not an error. Read and reused by `./businessProfile`,
+   * never through Next's data cache.
+   */
+  getBusinessProfile(): Promise<BusinessProfile | null> {
+    return fetchBusinessProfile(this.options);
   }
 
   async getStorefrontConfig(): Promise<StorefrontConfig> {

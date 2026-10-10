@@ -14,6 +14,9 @@ export interface AonikRequest {
   path: string;
   headers: Record<string, string>;
   body: unknown;
+  /** The fetch's own cache options: Next's data cache is `next.revalidate`. */
+  cache?: RequestCache;
+  next?: unknown;
 }
 
 export interface AonikReply {
@@ -35,6 +38,8 @@ export function useAonik(responder: (request: AonikRequest) => AonikReply | unde
       path: `${url.pathname}${url.search}`,
       headers: Object.fromEntries(new Headers(init?.headers).entries()),
       body: typeof init?.body === 'string' ? JSON.parse(init.body) : undefined,
+      cache: init?.cache,
+      next: (init as { next?: unknown } | undefined)?.next,
     };
     aonikRequests.push(request);
 
