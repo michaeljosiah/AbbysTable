@@ -303,3 +303,8 @@
   margin-top: 4px;
   white-space: pre-line;
 }
+
+.nutritionSwitch { display: flex; flex-wrap: wrap; gap: 10px; border: 0; padding: 0; margin: 0 0 16px; }
+.nutritionSwitch legend { font-size: 14px; margin-bottom: 8px; }
+.nutritionSwitch label { display: flex; align-items: center; gap: 8px; min-height: 44px; border: 1px solid var(--green-mist); border-radius: 999px; padding: 8px 16px; cursor: pointer; }
+.nutritionSwitch input { accent-color: var(--green-forest); }

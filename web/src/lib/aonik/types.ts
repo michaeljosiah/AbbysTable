@@ -381,7 +381,7 @@ export interface StorefrontConfig {
 /* ---- Extras (Step 3) ------------------------------------------------------ */
 
 export const EXTRA_CATEGORIES = ['Small chops', 'Sides', 'Snacks', 'Drinks', 'Sauces'] as const;
-export type ExtraCategory = (typeof EXTRA_CATEGORIES)[number];
+export type ExtraCategory = string;
 
 export type ExtraServeStyle = 'hot' | 'chilled' | 'ambient';
 
@@ -391,6 +391,8 @@ export type ExtraServeStyle = 'hot' | 'chilled' | 'ambient';
  */
 export interface Extra {
   id: string;
+  slug?: string;
+  contentState?: DishContentState;
   name: string;
   category: ExtraCategory;
   pricePence: number;

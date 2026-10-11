@@ -1,4 +1,5 @@
 'use client';
+import type { ReactNode } from 'react';
 
 import { DishCard } from '@/components/sections/DishCard';
 import type { Dish } from '@/lib/aonik/types';
@@ -7,6 +8,8 @@ import { MENU_EMPTY } from '@/lib/content/menu';
 import styles from './MenuGrid.module.css';
 
 interface MenuGridProps {
+  renderDish?: (dish: Dish) => ReactNode;
+  gridClassName?: string;
   /** The visible slice of the filtered catalogue. */
   dishes: Dish[];
   resultLabel: string;
@@ -30,6 +33,8 @@ export function MenuGrid({
   showLoadMore,
   onLoadMore,
   onClearAll,
+  renderDish,
+  gridClassName,
 }: MenuGridProps) {
   return (
     <div className={styles.results} data-pending={pending || undefined}>
@@ -42,10 +47,10 @@ export function MenuGrid({
       </div>
 
       {dishes.length > 0 ? (
-        <ul className={styles.grid} role="list" data-menu-grid="">
+        <ul className={gridClassName ?? styles.grid} role="list" data-menu-grid="">
           {dishes.map((dish) => (
             <li key={dish.id} className={styles.cell}>
-              <DishCard dish={dish} variant="grid" href={`/menu/${dish.slug}`} headingLevel={2} />
+              {renderDish ? renderDish(dish) : <DishCard dish={dish} variant="grid" href={`/menu/${dish.slug}`} headingLevel={2} />}
             </li>
           ))}
         </ul>

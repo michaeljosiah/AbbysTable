@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import { FlowBack } from '@/components/checkout/ReviewReturn';
 
 import { ReviewStep } from '@/components/checkout/ReviewStep';
 import { getAonikClient } from '@/lib/aonik/client';
 import { formatDeliveryDate } from '@/lib/format';
 
-import styles from './page.module.css';
+import styles from '@/components/checkout/Flow.module.css';
 
 export const metadata: Metadata = {
   title: "Review your order — Abby's Table",
@@ -16,8 +16,6 @@ export const metadata: Metadata = {
 export default async function BoxReviewPage() {
   const client = await getAonikClient();
 
-  // `heating` feeds the shared info panels inside the edit-personalisation
-  // modal, exactly as on Step 2.
   const [dishes, extras, pricing, delivery, heating] = await Promise.all([
     client.getDishes(),
     client.getExtras(),
@@ -26,9 +24,7 @@ export default async function BoxReviewPage() {
     client.getHeatingInstructions(),
   ]);
 
-  // Per-dish option groups, for the same reason as Step 2: Aonik attaches them
-  // per product, so the edit-personalisation modal has nothing to offer without
-  // them. See the note on `/box/dishes`.
+  // Authored portion labels for the read-only dish summary.
   const optionGroupsBySlug = Object.fromEntries(
     await Promise.all(
       dishes.map(async (dish) => {
@@ -40,22 +36,7 @@ export default async function BoxReviewPage() {
 
   return (
     <div className={styles.page}>
-      <Link href="/box/extras" className={styles.back}>
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M15 6l-6 6 6 6" />
-        </svg>
-        <span>Back to extras</span>
-      </Link>
+      <FlowBack step="review" className={styles.back} />
 
       <ReviewStep
         dishes={dishes}
@@ -66,14 +47,8 @@ export default async function BoxReviewPage() {
         earliestDeliveryLabel={formatDeliveryDate(delivery?.earliestDeliveryDate)}
         heading={
           <>
-            <span className={styles.eyebrow}>Step 4 of 5</span>
             <h1 className={styles.heading}>Review your order</h1>
-            <p className={styles.intro}>
-              Tap a dish to see its details and tweak how it&rsquo;s made.
-            </p>
-            <p className={styles.introMobile}>
-              Check everything over, then continue to checkout.
-            </p>
+            <p className={styles.intro}>Check everything over, then continue to checkout.</p>
           </>
         }
       />

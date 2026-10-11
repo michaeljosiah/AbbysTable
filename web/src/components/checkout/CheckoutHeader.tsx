@@ -31,7 +31,7 @@ export interface CheckoutStep {
 }
 
 export const CHECKOUT_STEPS: CheckoutStep[] = [
-  { number: 1, label: 'Choose box', href: '/box' },
+  { number: 1, label: 'Build your box', href: '/box' },
   { number: 2, label: 'Add dishes', href: '/box/dishes' },
   { number: 3, label: 'Extras', href: '/box/extras' },
   { number: 4, label: 'Review', href: '/box/review' },
@@ -55,7 +55,7 @@ export function CheckoutHeader() {
   return (
     // data-help-open lifts this stacking context while the help drawer, which
     // renders inside it, is open (CheckoutHeader.module.css).
-    <header className={styles.header} data-help-open={helpOpen || undefined}>
+    <header className={styles.header} data-flow-v2={current.number >= 2 && current.number <= 4 || undefined} data-help-open={helpOpen || undefined}>
       <div className={styles.row}>
         <Link href="/" aria-label="Abby's Table — home" className={styles.logoLink}>
           {/* Sized entirely from CSS so the ≤640px / ≤440px overrides apply. */}

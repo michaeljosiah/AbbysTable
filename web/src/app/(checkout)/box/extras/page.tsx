@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import { FlowBack } from '@/components/checkout/ReviewReturn';
 
 import { ExtrasStep } from '@/components/checkout/ExtrasStep';
 import { getAonikClient } from '@/lib/aonik/client';
 import { formatDeliveryDate } from '@/lib/format';
 
-import styles from './page.module.css';
+import styles from '@/components/checkout/Flow.module.css';
 
 export const metadata: Metadata = {
   title: "Add extras — Abby's Table",
@@ -22,49 +22,30 @@ export const metadata: Metadata = {
 export default async function BoxExtrasPage() {
   const client = await getAonikClient();
 
-  const [extras, pricing, delivery] = await Promise.all([
+  const [extras, pricing, delivery, dishes] = await Promise.all([
     client.getExtras(),
     client.getBoxPricing(),
     client.getDeliveryWindow(),
+    client.getDishes(),
   ]);
 
+  const optionGroupsBySlug = Object.fromEntries(await Promise.all(dishes.map(async (dish) => [dish.slug, await client.getDishOptionGroups(dish.slug).catch(() => [])])));
   return (
     <div className={styles.page}>
-      <Link href="/box/dishes" className={styles.back}>
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M15 6l-6 6 6 6" />
-        </svg>
-        <span>Back to add dishes</span>
-      </Link>
+      <FlowBack step="extras" className={styles.back} />
 
       <ExtrasStep
         extras={extras}
+        dishes={dishes}
+        optionGroupsBySlug={optionGroupsBySlug}
         pricing={pricing}
         earliestDeliveryLabel={formatDeliveryDate(delivery?.earliestDeliveryDate)}
         heading={
           <>
-            <span className={styles.eyebrow}>Step 3 of 5</span>
             <h1 className={styles.heading}>
-              Add extras <span className={styles.optional}>(optional)</span>
+              Extras <span className={styles.optional}>Optional</span>
             </h1>
-            <p className={styles.intro}>
-              Small chops, sides, drinks and more to round out your table. Each is priced
-              individually and added on top of your box — add as many as you like, or skip
-              straight to review.
-            </p>
-            <p className={styles.introMobile}>
-              Add as many extras as you like, or skip straight to review.
-            </p>
+            <p className={styles.intro}>Add sides, snacks, drinks and sauces to your box, or skip straight to review.</p>
           </>
         }
       />

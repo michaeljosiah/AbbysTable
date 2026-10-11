@@ -48,7 +48,9 @@ export function summaryRows(quote: BoxQuote, options: { deliveryDate: string | n
           ...(quote.deliveryListPence > 0 ? { was: formatPriceExact(quote.deliveryListPence) } : {}),
         });
       } else {
-        rows.push({ key, label, value: formatPriceExact(component.amountPence) });
+        rows.push({ key, label, value: formatPriceExact(component.amountPence),
+          ...(quote.deliveryListPence > component.amountPence ? { was: formatPriceExact(quote.deliveryListPence) } : {}),
+        });
       }
       return;
     }

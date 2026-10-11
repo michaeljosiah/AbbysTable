@@ -1,9 +1,25 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import {
+  useEffect,
+  useId,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
 
-import type { PersonalisationSelection } from '@/lib/aonik/map';
+import {
+  encodeSelection,
+  type MappedOptionGroup,
+  type PersonalisationSelection,
+} from '@/lib/aonik/map';
+import {
+  linePortion,
+  portionModel,
+  portionSelection,
+  type PortionKey,
+} from '@/lib/dish/portions';
 import type { Dish, HeatingInstruction } from '@/lib/aonik/types';
 import { CONTACT_HREF } from '@/lib/content/navigation';
 
@@ -16,6 +32,7 @@ import { useSelectionContent, type SelectionView } from './useSelectionContent';
  * allergens, and reheating guidance.
  */
 interface DishInfoPanelsProps {
+  afterNutrition?: ReactNode;
   dish: Dish;
   heating: HeatingInstruction[];
   /**
@@ -23,6 +40,7 @@ interface DishInfoPanelsProps {
    * compact scale (19px titles, ringed chevrons, 4-column nutrition rows).
    */
   compact?: boolean;
+  optionGroups?: MappedOptionGroup[];
   /** Where "Back to top" should scroll — the modal passes its own scroller. */
   onBackToTop?: () => void;
   /**
@@ -61,7 +79,17 @@ function AllergenIcon() {
 
 const PANEL_ICONS: Record<PanelId, ReactNode> = {
   nutrition: (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      width="26"
+      height="26"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="var(--green-forest)"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <path d="M3 20h18" />
       <path d="M6 20v-6" />
       <path d="M12 20V5" />
@@ -69,14 +97,34 @@ const PANEL_ICONS: Record<PanelId, ReactNode> = {
     </svg>
   ),
   ingredients: (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      width="26"
+      height="26"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="var(--green-forest)"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <path d="M12 21V8" />
       <path d="M12 8c0-2.2-1.4-4-3.2-4C8.8 6.2 10.2 8 12 8z" />
       <path d="M12 8c0-2.2 1.4-4 3.2-4C15.2 6.2 13.8 8 12 8z" />
     </svg>
   ),
   heating: (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      width="26"
+      height="26"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="var(--green-forest)"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <path d="M8 15c-1-1-1-2.4 0-3.4C9 10.6 9 9.2 8 8.2" />
       <path d="M12 15c-1-1-1-2.4 0-3.4 1-1 1-2.4 0-3.4" />
       <path d="M16 15c-1-1-1-2.4 0-3.4 1-1 1-2.4 0-3.4" />
@@ -89,7 +137,6 @@ function Panel({
   title,
   open,
   onToggle,
-  onBackToTop,
   children,
 }: {
   id: PanelId;
@@ -99,8 +146,6 @@ function Panel({
   onBackToTop?: () => void;
   children: ReactNode;
 }) {
-  const backToTop = onBackToTop ?? (() => window.scrollTo({ top: 0, behavior: 'smooth' }));
-
   return (
     <section className={styles.panel} id={`dish-${id}`}>
       <h2 className={styles.headingWrap}>
@@ -115,23 +160,6 @@ function Panel({
             {PANEL_ICONS[id]}
           </span>
           <span className={styles.title}>{title}</span>
-          <span
-            className={styles.backToTop}
-            role="button"
-            tabIndex={0}
-            onClick={(event) => {
-              event.stopPropagation();
-              backToTop();
-            }}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.stopPropagation();
-                backToTop();
-              }
-            }}
-          >
-            Back to top
-          </span>
           <svg
             className={styles.chevron}
             data-open={open || undefined}
@@ -158,11 +186,102 @@ function Panel({
   );
 }
 
-export function DishInfoPanels({ dish: standard, heating: standardHeating, compact, onBackToTop, selection }: DishInfoPanelsProps) {
+export function DishInfoPanels({
+  dish: standard,
+  heating: standardHeating,
+  compact,
+  onBackToTop,
+  selection,
+  optionGroups,
+  afterNutrition,
+}: DishInfoPanelsProps) {
   const order = useOptionalDishOrder();
-  const chosen = selection === undefined ? (order?.choice.personalisation ?? null) : selection;
+  const chosen =
+    selection === undefined
+      ? (order?.choice.personalisation ?? null)
+      : selection;
+  const groups = optionGroups ?? order?.optionGroups ?? [];
+  const model = portionModel(groups);
+  const controlName = useId();
+  const extraGroup =
+    !model && groups.length === 1 && groups[0].selectionMode === 'One'
+      ? groups[0]
+      : null;
+  const purchaseKey = JSON.stringify(chosen);
+  const [extraPreview, setExtraPreview] = useState<{
+    purchaseKey: string;
+    choice: string;
+  } | null>(null);
+  const extraChoice =
+    extraPreview?.purchaseKey === purchaseKey
+      ? extraPreview.choice
+      : extraGroup
+        ? String(chosen?.[extraGroup.key] ?? extraGroup.defaultChoiceKey)
+        : '';
+  const purchased = linePortion(chosen ?? undefined) ?? 'light';
+  const [preview, setPreview] = useState<{
+    purchase: PortionKey;
+    portion: PortionKey;
+  } | null>(null);
+  const portion = preview?.purchase === purchased ? preview.portion : purchased;
   const view = useSelectionContent(standard, standardHeating, chosen);
-  return <DishInfoPanelsView view={view} compact={compact} onBackToTop={onBackToTop} />;
+  const nutritionView = useSelectionContent(
+    standard,
+    standardHeating,
+    model
+      ? (portionSelection(portion) ?? null)
+      : extraGroup
+        ? (encodeSelection(groups, { [extraGroup.key]: [extraChoice] }) ?? null)
+        : chosen,
+  );
+  const controls = model ? (
+    <fieldset className={styles.nutritionSwitch}>
+      <legend>Nutrition per portion</legend>
+      {model.choices.map((choice) => (
+        <label key={choice.key}>
+          <input
+            type="radio"
+            name={controlName}
+            checked={portion === choice.key}
+            onChange={() =>
+              setPreview({
+                purchase: purchased,
+                portion: choice.key as PortionKey,
+              })
+            }
+          />
+          {choice.label}
+        </label>
+      ))}
+    </fieldset>
+  ) : extraGroup ? (
+    <fieldset className={styles.nutritionSwitch}>
+      <legend>Compare nutrition</legend>
+      {extraGroup.choices.map((choice) => (
+        <label key={choice.key}>
+          <input
+            type="radio"
+            name={controlName}
+            checked={extraChoice === choice.key}
+            onChange={() =>
+              setExtraPreview({ purchaseKey, choice: choice.key })
+            }
+          />
+          {choice.label}
+        </label>
+      ))}
+    </fieldset>
+  ) : undefined;
+  return (
+    <DishInfoPanelsView
+      view={view}
+      compact={compact}
+      onBackToTop={onBackToTop}
+      nutritionView={model || extraGroup ? nutritionView : undefined}
+      nutritionControls={controls}
+      afterNutrition={afterNutrition}
+    />
+  );
 }
 
 /** The panels for one view of the dish (`useSelectionContent`): what they say in each state. */
@@ -170,7 +289,13 @@ export function DishInfoPanelsView({
   view: { dish, heating, forSelection, state: selectionState },
   compact,
   onBackToTop,
+  nutritionView,
+  nutritionControls,
+  afterNutrition,
 }: {
+  afterNutrition?: ReactNode;
+  nutritionView?: SelectionView;
+  nutritionControls?: ReactNode;
   view: SelectionView;
   compact?: boolean;
   onBackToTop?: () => void;
@@ -183,7 +308,8 @@ export function DishInfoPanelsView({
     heating: true,
   });
 
-  const toggle = (id: PanelId) => setOpen((current) => ({ ...current, [id]: !current[id] }));
+  const toggle = (id: PanelId) =>
+    setOpen((current) => ({ ...current, [id]: !current[id] }));
 
   /*
    * SAFETY (Aonik Spec 067). Declarations are gated on the resolution FLAG, not
@@ -210,15 +336,20 @@ export function DishInfoPanelsView({
    */
   const figuresCaption =
     [
-      state?.figuresAreStandardPreparation ? 'These figures are for the standard preparation.' : '',
+      state?.figuresAreStandardPreparation
+        ? 'These figures are for the standard preparation.'
+        : '',
       // Both when both hold: the standard block standing in for other choices
       // can itself be under review, and that must not be lost.
-      state?.figuresAreStale ? 'These figures are under review and may not reflect the current recipe.' : '',
+      state?.figuresAreStale
+        ? 'These figures are under review and may not reflect the current recipe.'
+        : '',
     ]
       .filter(Boolean)
       .join(' ') || undefined;
 
-  const servingCaption = state?.servingLabel ?? 'Per serving, as Abby designed it.';
+  const servingCaption =
+    state?.servingLabel ?? 'Per serving, as Abby designed it.';
 
   /* Heating withheld (or never authored) means the caller passed the generic
      catalogue-wide steps, which must be framed as such. */
@@ -245,18 +376,43 @@ export function DishInfoPanelsView({
           ? 'Ingredients and allergens updated for your choices.'
           : 'Allergen information for the choices you’ve made is not yet published.';
 
-  const { nutrition } = dish;
+  const nutritionDish = nutritionView?.dish ?? dish;
+  const exact =
+    !nutritionView ||
+    (!nutritionDish.contentState?.figuresAreStale &&
+      (nutritionView.state === 'standard' ||
+        (nutritionView.state === 'resolved' &&
+          !nutritionDish.contentState?.figuresAreStandardPreparation)));
+  const nutrition = exact ? nutritionDish.nutrition : {};
   const cells: { label: string; value: string }[] = [
-    nutrition.calories !== undefined && { label: 'kcal', value: String(nutrition.calories) },
+    nutrition.calories !== undefined && {
+      label: 'kcal',
+      value: String(nutrition.calories),
+    },
     nutrition.proteinGrams !== undefined && {
       label: 'Protein',
       value: `${nutrition.proteinGrams}g`,
     },
-    nutrition.carbsGrams !== undefined && { label: 'Carbs', value: `${nutrition.carbsGrams}g` },
-    nutrition.fatGrams !== undefined && { label: 'Fat', value: `${nutrition.fatGrams}g` },
-    nutrition.fibreGrams !== undefined && { label: 'Fibre', value: `${nutrition.fibreGrams}g` },
-    nutrition.sugarsGrams !== undefined && { label: 'Sugars', value: `${nutrition.sugarsGrams}g` },
-    nutrition.saltGrams !== undefined && { label: 'Salt', value: `${nutrition.saltGrams}g` },
+    nutrition.carbsGrams !== undefined && {
+      label: 'Carbs',
+      value: `${nutrition.carbsGrams}g`,
+    },
+    nutrition.fatGrams !== undefined && {
+      label: 'Fat',
+      value: `${nutrition.fatGrams}g`,
+    },
+    nutrition.fibreGrams !== undefined && {
+      label: 'Fibre',
+      value: `${nutrition.fibreGrams}g`,
+    },
+    nutrition.sugarsGrams !== undefined && {
+      label: 'Sugars',
+      value: `${nutrition.sugarsGrams}g`,
+    },
+    nutrition.saltGrams !== undefined && {
+      label: 'Salt',
+      value: `${nutrition.saltGrams}g`,
+    },
   ].filter(Boolean) as { label: string; value: string }[];
 
   return (
@@ -266,13 +422,24 @@ export function DishInfoPanelsView({
       </p>
       <Panel
         id={PANEL_IDS[0]}
-        title="Full nutrition"
+        title="Nutrition"
         open={open.nutrition}
         onToggle={() => toggle('nutrition')}
         onBackToTop={onBackToTop}
       >
-        <p className={styles.caption}>{servingCaption}</p>
-        <dl className={styles.nutritionGrid} style={{ '--cells': cells.length } as CSSProperties}>
+        <>
+          {nutritionControls}
+          <p className={styles.caption}>
+            {nutritionView?.dish.contentState?.servingLabel ?? servingCaption}
+          </p>
+          {cells.length === 0 && (
+            <p>Nutrition for this portion is not yet available.</p>
+          )}
+        </>
+        <dl
+          className={styles.nutritionGrid}
+          style={{ '--cells': cells.length } as CSSProperties}
+        >
           {cells.map((cell) => (
             <div key={cell.label} className={styles.nutritionCell}>
               <dt className={styles.nutritionLabel}>{cell.label}</dt>
@@ -280,9 +447,11 @@ export function DishInfoPanelsView({
             </div>
           ))}
         </dl>
-        {figuresCaption ? <p className={styles.figuresNote}>{figuresCaption}</p> : null}
+        {!nutritionView && figuresCaption ? (
+          <p className={styles.figuresNote}>{figuresCaption}</p>
+        ) : null}
       </Panel>
-
+      {afterNutrition}
       <Panel
         id={PANEL_IDS[1]}
         title="Ingredients & allergens"
@@ -310,7 +479,9 @@ export function DishInfoPanelsView({
             <span>
               <strong>Allergens:</strong> {allergens}
               {/* The kitchen's own statement, as authored (aonik#351). */}
-              {precaution ? <span className={styles.precaution}>{precaution}</span> : null}
+              {precaution ? (
+                <span className={styles.precaution}>{precaution}</span>
+              ) : null}
             </span>
           </div>
         ) : checking ? (
@@ -336,8 +507,7 @@ export function DishInfoPanelsView({
                     ? 'Allergen information for the choices you’ve made is not yet published.'
                     : 'Allergen information is not yet published for this dish.'}
               </strong>{' '}
-              If you have
-              an allergy or intolerance, please{' '}
+              If you have an allergy or intolerance, please{' '}
               <Link href={CONTACT_HREF} className={styles.allergensLink}>
                 contact us
               </Link>{' '}
@@ -349,7 +519,7 @@ export function DishInfoPanelsView({
 
       <Panel
         id={PANEL_IDS[2]}
-        title="How to heat"
+        title="Heating & storage"
         open={open.heating}
         onToggle={() => toggle('heating')}
         onBackToTop={onBackToTop}
@@ -358,7 +528,9 @@ export function DishInfoPanelsView({
           <ul className={styles.heating}>
             {heating.map((instruction) => (
               <li key={instruction.method} className={styles.heatingItem}>
-                <span className={styles.heatingMethod}>{instruction.method}</span>
+                <span className={styles.heatingMethod}>
+                  {instruction.method}
+                </span>
                 <p className={styles.heatingBody}>{instruction.body}</p>
               </li>
             ))}
@@ -382,7 +554,8 @@ export function DishInfoPanelsView({
             authored steps or none (`useSelectionContent`). */}
         {isGenericHeating && heating.length > 0 && !forSelection ? (
           <p className={styles.heatingNote}>
-            General guidance — specific instructions for this dish have not been published yet.
+            General guidance — specific instructions for this dish have not been
+            published yet.
           </p>
         ) : null}
       </Panel>

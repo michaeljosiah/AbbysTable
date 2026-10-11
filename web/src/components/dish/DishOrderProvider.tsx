@@ -18,6 +18,7 @@ import { useCart } from '@/lib/cart/CartProvider';
 import { CartRequestError } from '@/lib/cart/transport';
 import { swallowClicksFor } from '@/lib/dom/ghostClicks';
 import { boxResumeHref } from '@/lib/purchase-bar/activeBox';
+import { linePortion, portionModel } from '@/lib/dish/portions';
 
 import styles from './DishOrderPanel.module.css';
 
@@ -90,7 +91,7 @@ export function DishOrderProvider({
   children: ReactNode;
 }) {
   const router = useRouter();
-  const { addLine, boxSize, pending, error } = useCart();
+  const { addLine, boxSize, dishCount, pending, error } = useCart();
   const [choice, setChoice] = useState<DishChoice>({ surchargePence: 0 });
   const [toast, setToast] = useState<Toast | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -117,7 +118,11 @@ export function DishOrderProvider({
   );
 
   const addToBox = useCallback(async () => {
-    if (pending || inFlight.current) return;
+    if (pending || inFlight.current || !portionModel(optionGroups)) return;
+    if (boxSize !== null && dishCount >= boxSize) {
+      router.push(`/box/dishes?dish=${encodeURIComponent(dish.slug)}&portion=${linePortion(choice.personalisation) ?? 'light'}`);
+      return;
+    }
     inFlight.current = true;
     try {
       await addLine({
@@ -149,14 +154,14 @@ export function DishOrderProvider({
     setHandingOff(true);
     // Adding a dish goes to Step 2 (or Step 1 with no size yet) — deliberately not
     // VIEW BOX's furthest-step resume, which is the chrome's job (`resumeHrefFor`).
-    router.push(boxResumeHref(boxSize));
+    router.push(boxSize ? boxResumeHref(boxSize) : `/box?dish=${encodeURIComponent(dish.slug)}`);
     // Should the hand-off never land (the customer goes Back mid-route, say),
     // the buttons come back rather than staying dead.
     handOffTimer.current = setTimeout(() => {
       inFlight.current = false;
       setHandingOff(false);
     }, HANDOFF_RELEASE_MS);
-  }, [pending, addLine, dish, choice, flash, router, boxSize]);
+  }, [pending, addLine, dish, choice, flash, router, boxSize, dishCount, optionGroups]);
 
   const value = useMemo<DishOrderState>(
     () => ({ dish, optionGroups, choice, setChoice, addToBox, pending, handingOff, error }),

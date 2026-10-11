@@ -2,6 +2,8 @@ import { AonikError } from '../aonik/errors';
 import type { BoxLine, PersonalisationSelection } from '../aonik/map';
 
 export interface ProjectedExtraLine {
+  name?: string;
+  unavailable?: boolean;
   lineId: string;
   variantId: string;
   quantity: number;
@@ -17,6 +19,8 @@ export function projectAddOnLines(lines: BoxLine[]): ProjectedExtraLine[] {
     .filter((line) => line.kind === 'AddOn')
     .map((line) => ({
       lineId: line.lineId,
+      name: line.name,
+      ...(line.isUnavailable ? { unavailable: true } : {}),
       variantId: line.variantId,
       quantity: line.quantity,
       personalisation: line.personalisation,

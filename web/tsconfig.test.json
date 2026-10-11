@@ -10,6 +10,7 @@
     "rootDir": "."
   },
   "include": [
+    "tests/portion-model.test.tsx",
     "tests/effective-option-groups.test.ts",
     "tests/rendered-option-groups.test.tsx",
     "tests/live-cart-convergence.test.ts",

@@ -6,6 +6,18 @@
   border-bottom: 1px solid var(--sand);
 }
 
+/* Steps 2–4 use the approved v2 two-row checkout header. */
+.header[data-flow-v2] .row { display: grid; grid-template-columns: 1fr auto; gap: 0; padding-block: 12px 18px; }
+.header[data-flow-v2] .spacer { display: none; }
+.header[data-flow-v2] .logoLink { grid-column: 1; grid-row: 1; min-height: 52px; }
+.header[data-flow-v2] .help { grid-column: 2; grid-row: 1; }
+.header[data-flow-v2] .mobileStepper { grid-column: 1 / -1; grid-row: 2; margin-top: 16px; }
+.header[data-flow-v2] .stepper { grid-column: 1 / -1; grid-row: 2; width: min(740px, 100%); justify-self: center; margin-top: 18px; }
+@media (min-width: 861px) {
+  .header[data-flow-v2] .stepper { display: flex; }
+  .header[data-flow-v2] .mobileStepper { display: none; }
+}
+
 /* The help drawer (HelpPanel, z 200) renders inside this header, so the
    header's stacking context caps it at 50: under the purchase bars (60 / 90)
    and the cookie banner (70). While it is open, the header rises to the

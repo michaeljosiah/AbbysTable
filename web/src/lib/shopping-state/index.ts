@@ -90,7 +90,7 @@ export function boxStatus(facts: ShoppingFacts): ShoppingStatus {
   const active = facts.hydrated && (committed || facts.dishCount > 0 || facts.unavailableCount > 0);
   const missing = committed ? Math.max(0, (facts.boxSize ?? 0) - facts.dishCount) : 0;
   const replacements = facts.unavailableCount;
-  const complete = committed && missing === 0 && replacements === 0;
+  const complete = committed && facts.dishCount === facts.boxSize && replacements === 0;
 
   // The earliest step that can still be satisfied: no size → Step 1; a box that
   // is not complete (short, or holding an unavailable dish) → Step 2.
