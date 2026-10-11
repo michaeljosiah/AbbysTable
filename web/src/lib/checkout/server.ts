@@ -30,7 +30,12 @@ import { mapBoxCart, type BoxCart } from '@/lib/aonik/map';
 import { sessionNeedsRefresh } from '@/lib/auth/server';
 import { CartMissingError } from '@/lib/cart/cartMissing';
 import { readCartCookie } from '@/lib/cart/cartCookie';
-import { cartCall, getBoxCart, readStoredBoxCart, type CartVersion } from '@/lib/cart/server';
+import {
+  cartCall,
+  getBoxCart,
+  readStoredBoxCart,
+  type CartVersion,
+} from '@/lib/cart/server';
 
 import { detailsFromDraft, draftSections, type CheckoutDetails } from './form';
 import { readReservation, type ReservationView } from './reservation';
@@ -50,7 +55,12 @@ export type CheckoutEntry =
   | { kind: 'payment' }
   /** Not full, or holding a dish that is no longer available: back to the dishes. */
   | { kind: 'incomplete' }
-  | { kind: 'ready'; cart: BoxCart; details: CheckoutDetails; reservation: ReservationView | null };
+  | {
+      kind: 'ready';
+      cart: BoxCart;
+      details: CheckoutDetails;
+      reservation: ReservationView | null;
+    };
 
 /** The box with its draft and hold, as a tab re-syncs from after another tab's change. */
 export interface CheckoutSync {
@@ -70,10 +80,16 @@ export class CheckoutReloadError extends Error {
 async function reservationOf(dto: BoxCartDto): Promise<ReservationView | null> {
   const draftDate = dto.checkoutDraft?.deliveryDate ?? null;
   try {
-    return readReservation(await cartCall<CartDeliveryReservationDto>('/delivery-reservation'), draftDate);
+    return readReservation(
+      await cartCall<CartDeliveryReservationDto>('/delivery-reservation'),
+      draftDate,
+    );
   } catch (error) {
     // Unknown is never "held": a date we cannot confirm is shown as one to choose again.
-    console.error('[checkout] the delivery reservation could not be read', error);
+    console.error(
+      '[checkout] the delivery reservation could not be read',
+      error,
+    );
     return readReservation(null, draftDate);
   }
 }
@@ -97,7 +113,8 @@ export async function loadCheckout(): Promise<CheckoutEntry> {
     const payment = await cartCall<CartPaymentStateDto>('/payment');
     if (!payment.canEdit) return { kind: 'payment' };
   }
-  if (!dto.quote.isFull || dto.box.lines.some((line) => line.isUnavailable)) return { kind: 'incomplete' };
+  if (!dto.quote.isFull || dto.box.lines.some((line) => line.isUnavailable))
+    return { kind: 'incomplete' };
 
   return {
     kind: 'ready',
@@ -112,7 +129,9 @@ export async function loadCheckout(): Promise<CheckoutEntry> {
  * when the tab finds the box has moved on. Null when there is no open box;
  * `locked` while a payment attempt holds it.
  */
-export async function readCheckoutSync(): Promise<(CheckoutSync & { locked: boolean }) | null> {
+export async function readCheckoutSync(): Promise<
+  (CheckoutSync & { locked: boolean }) | null
+> {
   const dto = await readStoredBoxCart();
   if (!dto || (dto.status && dto.status !== 'Open')) return null;
   return {
@@ -120,7 +139,9 @@ export async function readCheckoutSync(): Promise<(CheckoutSync & { locked: bool
     details: detailsFromDraft(dto.checkoutDraft),
     reservation: await reservationOf(dto),
     // An attempt holds the box until Aonik proves it closed unpaid (recovery).
-    locked: dto.orderId ? !(await cartCall<CartPaymentStateDto>('/payment')).canEdit : false,
+    locked: dto.orderId
+      ? !(await cartCall<CartPaymentStateDto>('/payment')).canEdit
+      : false,
   };
 }
 
@@ -145,13 +166,30 @@ export async function saveCheckoutDetails(
     acceptedTermsVersion: saved.acceptedTermsVersion ?? null,
     requestedPoints: saved.requestedPoints ?? 0,
     ...draftSections(details),
-    ...(saved.gift?.giftIntent ? {
-      recipient: { name: `${details.firstName} ${details.lastName}`.trim(), phone: details.phone },
-      purchaser: { email: details.email, firstName: saved.purchaser?.firstName ?? '', lastName: saved.purchaser?.lastName ?? '', phone: saved.purchaser?.phone ?? '' },
-    } : {}),
+    ...(saved.gift?.giftIntent
+      ? {
+          recipient: {
+            name: `${details.firstName} ${details.lastName}`.trim(),
+            phone: details.phone,
+          },
+          purchaser: {
+            email: details.email,
+            firstName: saved.purchaser?.firstName ?? '',
+            lastName: saved.purchaser?.lastName ?? '',
+            phone: saved.purchaser?.phone ?? '',
+          },
+        }
+      : {}),
   };
-  const response = await cartCall<CheckoutDraftResponseDto>('/checkout-draft', { method: 'PUT', body }, version);
-  return { version: response.cartVersion, details: detailsFromDraft(response.draft) };
+  const response = await cartCall<CheckoutDraftResponseDto>(
+    '/checkout-draft',
+    { method: 'PUT', body },
+    version,
+  );
+  return {
+    version: response.cartVersion,
+    details: detailsFromDraft(response.draft),
+  };
 }
 
 /**
@@ -160,8 +198,13 @@ export async function saveCheckoutDetails(
  * the box, draft and hold a tab is showing, so a tab that finds it moved on
  * re-syncs all three (`readCheckoutSync`) instead of taking the number alone.
  */
-export async function readCheckoutReservation(): Promise<{ boxVersion: string; reservation: ReservationView | null }> {
-  const dto = await cartCall<CartDeliveryReservationDto>('/delivery-reservation');
+export async function readCheckoutReservation(): Promise<{
+  boxVersion: string;
+  reservation: ReservationView | null;
+}> {
+  const dto = await cartCall<CartDeliveryReservationDto>(
+    '/delivery-reservation',
+  );
   return { boxVersion: dto.cartVersion, reservation: readReservation(dto) };
 }
 
@@ -184,28 +227,75 @@ export async function reserveDeliveryDate(
  * then refused at the next write and re-synced, rather than taken without its
  * draft. A write that took but cannot be read back is said as such.
  */
-async function boxAfter(write: Promise<CartDiscountQuoteDto>, saved: string): Promise<BoxCart> {
+async function boxAfter(
+  write: Promise<{ cartVersion: string }>,
+  saved: string,
+): Promise<BoxCart> {
   const written = await write;
   let cart: BoxCart | null;
   try {
     cart = await getBoxCart();
   } catch (error) {
     if (error instanceof CartMissingError) throw error;
-    console.error('[checkout] the box could not be read back after a code change', error);
-    throw new CheckoutReloadError(`${saved} Reload the page to see your total.`);
+    console.error(
+      '[checkout] the box could not be read back after a code change',
+      error,
+    );
+    throw new CheckoutReloadError(
+      `${saved} Reload the page to see your total.`,
+    );
   }
   if (!cart) throw new CartMissingError();
   return { ...cart, version: written.cartVersion || cart.version };
 }
 
 /** Applies a code: Aonik checks it at once, and a refusal keeps the previous one. */
-export function applyDiscountCode(code: string, version: CartVersion): Promise<BoxCart> {
+export function applyDiscountCode(
+  code: string,
+  version: CartVersion,
+): Promise<BoxCart> {
   return boxAfter(
-    cartCall<CartDiscountQuoteDto>('/discount', { method: 'PUT', body: { code } }, version),
-    `${code} has been applied.`,
+    cartCall<CartDiscountQuoteDto>(
+      '/discount',
+      { method: 'PUT', body: { code } },
+      version,
+    ),
+    'Your code has been applied.',
   );
 }
 
 export function removeDiscountCode(version: CartVersion): Promise<BoxCart> {
-  return boxAfter(cartCall<CartDiscountQuoteDto>('/discount', { method: 'DELETE' }, version), 'Your code has been removed.');
+  return boxAfter(
+    cartCall<CartDiscountQuoteDto>('/discount', { method: 'DELETE' }, version),
+    'Your code has been removed.',
+  );
+}
+
+/** Save only the account/points choice, echoing the complete draft and the shown version. */
+export async function saveCheckoutBenefits(
+  input: { createAccount?: boolean; requestedPoints?: number },
+  version: CartVersion,
+): Promise<BoxCart> {
+  const current = await cartCall<CheckoutDraftResponseDto>('/checkout-draft');
+  const written = await cartCall<CheckoutDraftResponseDto>(
+    '/checkout-draft',
+    { method: 'PUT', body: { ...(current.draft ?? {}), ...input } },
+    version,
+  );
+  const cart = await getBoxCart();
+  if (!cart) throw new CartMissingError();
+  // Keep the write’s version: a later read must not adopt another tab’s draft unseen.
+  return { ...cart, version: written.cartVersion || cart.version };
+}
+
+/** Full gift codes stay in the request body; public state contains the backend mask only. */
+export async function applyGiftTender(code: string, version: CartVersion): Promise<BoxCart> {
+  const current = await getBoxCart();
+  if (!current) throw new CartMissingError();
+  return boxAfter(cartCall<{ cartVersion: string }>('/gift-card-tender', {
+    method: 'PUT', body: { code, requestedAmount: current.quote.totalPence / 100 },
+  }, version), 'Your gift card has been applied.');
+}
+export function removeGiftTender(version: CartVersion): Promise<BoxCart> {
+  return boxAfter(cartCall<{ cartVersion: string }>('/gift-card-tender', { method: 'DELETE' }, version), 'Your gift card has been removed.');
 }

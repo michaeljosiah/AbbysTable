@@ -27,6 +27,12 @@ import { readAonikConfig } from '@/lib/aonik/dataMode';
 import { currentSession } from '@/lib/auth/server';
 import { isExpired, readSession } from '@/lib/auth/session';
 
+import {
+  choiceFromConflict,
+  storeBoxChoice,
+  clearBoxChoice,
+  readBoxChoice,
+} from './adoptionChoice';
 import { clearCartCookie, readCartCookie, writeCartCookie } from './cartCookie';
 import { CartMissingError, cartOrderedError } from './cartMissing';
 import { cartExistsAfterProbe } from './convergence';
@@ -72,9 +78,15 @@ function connection(): { baseUrl: string; tenantId: string } {
   return config;
 }
 
-type CartFetchOptions = Omit<AonikFetchOptions, 'baseUrl' | 'tenantId' | 'policy'>;
+type CartFetchOptions = Omit<
+  AonikFetchOptions,
+  'baseUrl' | 'tenantId' | 'policy'
+>;
 
-async function cartFetch<T>(path: string, options: CartFetchOptions = {}): Promise<T> {
+async function cartFetch<T>(
+  path: string,
+  options: CartFetchOptions = {},
+): Promise<T> {
   return aonikFetch<T>(path, {
     ...connection(),
     // Cart traffic is never cached, on any verb.
@@ -96,7 +108,11 @@ export interface CartOperationResult {
 export async function createBoxCart(input: {
   bundleProductId: string;
   size: number;
-  firstLine?: { productVariantId: string; quantity: number; personalisation?: PersonalisationSelection };
+  firstLine?: {
+    productVariantId: string;
+    quantity: number;
+    personalisation?: PersonalisationSelection;
+  };
 }): Promise<CartOperationResult> {
   const dto = await cartFetch<BoxCartDto>('/commerce/carts/box', {
     method: 'POST',
@@ -133,17 +149,48 @@ export async function createBoxCart(input: {
   const jar = await cookies();
   const pendingRaw = jar.get('abbys-table-box-gift-pending')?.value;
   if (pendingRaw) {
-    const pending = JSON.parse(pendingRaw) as { gift?: import('@/lib/aonik/dto').CartGiftDraftDto; card?: import('@/lib/gifting/model').GiftDraft };
-    const draft = await cartCall<import('@/lib/aonik/dto').CheckoutDraftResponseDto>('/checkout-draft', {
-      method: 'PUT', body: { gift: pending.gift ?? null, giftCardDraft: pending.card ?? null },
-    }, dto.cartVersion);
+    const pending = JSON.parse(pendingRaw) as {
+      gift?: import('@/lib/aonik/dto').CartGiftDraftDto;
+      card?: import('@/lib/gifting/model').GiftDraft;
+    };
+    const draft = await cartCall<
+      import('@/lib/aonik/dto').CheckoutDraftResponseDto
+    >(
+      '/checkout-draft',
+      {
+        method: 'PUT',
+        body: {
+          gift: pending.gift ?? null,
+          giftCardDraft: pending.card ?? null,
+        },
+      },
+      dto.cartVersion,
+    );
     if (pending.card) {
-      const { giftOptions, purchaseSelection } = await import('@/lib/gifting/server');
+      const { giftOptions, purchaseSelection } = await import(
+        '@/lib/gifting/server'
+      );
       const options = await giftOptions();
-      if (!options.enabled || options.draftVersion < 1 || pending.card.quantity > options.maximumQuantity) throw new Error('Your food box is saved, but gift-card purchasing is not open yet.');
-      await cartCall('/gift-card-purchase', { method: 'PUT', body: purchaseSelection(pending.card, options) }, draft.cartVersion);
+      if (
+        !options.enabled ||
+        options.draftVersion < 1 ||
+        pending.card.quantity > options.maximumQuantity
+      )
+        throw new Error(
+          'Your food box is saved, but gift-card purchasing is not open yet.',
+        );
+      await cartCall(
+        '/gift-card-purchase',
+        { method: 'PUT', body: purchaseSelection(pending.card, options) },
+        draft.cartVersion,
+      );
     }
-    jar.set('abbys-table-box-gift-pending', 'deleted', { httpOnly: true, sameSite: 'lax', path: '/', maxAge: 0 });
+    jar.set('abbys-table-box-gift-pending', 'deleted', {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 0,
+    });
     const cart = await getBoxCart();
     if (cart) return { cart };
   }
@@ -206,9 +253,16 @@ async function withCart<T>(
   try {
     // Only a write carries the version: it is the precondition Aonik checks
     // before changing the box, and a read has nothing to check.
-    return await run(cookie.cartId, version ? { ...auth, cartVersion: version } : auth);
+    return await run(
+      cookie.cartId,
+      version ? { ...auth, cartVersion: version } : auth,
+    );
   } catch (error) {
-    if (error instanceof AonikError && error.isCartWriteRefused && isFinished(error.cartStatus)) {
+    if (
+      error instanceof AonikError &&
+      error.isCartWriteRefused &&
+      isFinished(error.cartStatus)
+    ) {
       await clearCartCookie();
       throw finishedCartError(error.cartStatus);
     }
@@ -249,8 +303,13 @@ async function withRequiredCart<T>(
 export type CartVersion = string | undefined;
 
 /** Whether the cart still resolves for us; only Aonik not-found means gone. */
-async function cartStillExists(cartId: string, auth: CartFetchOptions): Promise<boolean> {
-  return cartExistsAfterProbe(() => cartFetch<BoxCartDto>(`/commerce/carts/${cartId}`, auth));
+async function cartStillExists(
+  cartId: string,
+  auth: CartFetchOptions,
+): Promise<boolean> {
+  return cartExistsAfterProbe(() =>
+    cartFetch<BoxCartDto>(`/commerce/carts/${cartId}`, auth),
+  );
 }
 
 /**
@@ -274,7 +333,9 @@ async function cartStillExists(cartId: string, auth: CartFetchOptions): Promise<
  * adopted box answers only to its bearer, so without one the box would read
  * as gone — and the next size or dish would start a second box over it.
  */
-async function cartAuth(cartToken: string | undefined): Promise<CartFetchOptions> {
+async function cartAuth(
+  cartToken: string | undefined,
+): Promise<CartFetchOptions> {
   const auth: CartFetchOptions = { cartToken };
   const session = await currentSession();
   if (session) auth.accessToken = session.accessToken;
@@ -299,7 +360,9 @@ async function readBoxCart(): Promise<BoxCartDto | null> {
 
 /** The stored box exactly as Aonik answers it, finished or not. */
 function fetchBoxCart(): Promise<BoxCartDto | null> {
-  return withCart((cartId, auth) => cartFetch<BoxCartDto>(`/commerce/carts/${cartId}`, auth));
+  return withCart((cartId, auth) =>
+    cartFetch<BoxCartDto>(`/commerce/carts/${cartId}`, auth),
+  );
 }
 
 /**
@@ -323,7 +386,8 @@ export function cartCall<T>(
   version?: CartVersion,
 ): Promise<T> {
   return withRequiredCart(
-    (cartId, auth) => cartFetch<T>(`/commerce/carts/${cartId}${path}`, { ...options, ...auth }),
+    (cartId, auth) =>
+      cartFetch<T>(`/commerce/carts/${cartId}${path}`, { ...options, ...auth }),
     version,
   );
 }
@@ -368,22 +432,28 @@ async function resolveForCart(slug: string): Promise<{
   }
 
   // The same read answers both questions, so encoding costs no extra request.
-  return { variantId: variant.id, groups: mapOptionGroups(product.effectiveOptionGroups) };
+  return {
+    variantId: variant.id,
+    groups: mapOptionGroups(product.effectiveOptionGroups),
+  };
 }
 
-export async function addBoxLine(input: {
-  /** Public product slug; resolved to a variant id here. */
-  slug: string;
-  quantity: number;
-  /**
-   * Chosen option key per GROUP key (`{portion: 'full', heat: '3'}`), as the UI
-   * holds them. Encoded here rather than client-side because encoding needs the
-   * product's groups — `Multi` wants an array where `One` wants a bare string,
-   * and an all-defaults selection must become `undefined` — and this is the
-   * only side of the seam that knows them.
-   */
-  choices?: PersonalisationSelection;
-}, version?: CartVersion): Promise<BoxCart | null> {
+export async function addBoxLine(
+  input: {
+    /** Public product slug; resolved to a variant id here. */
+    slug: string;
+    quantity: number;
+    /**
+     * Chosen option key per GROUP key (`{portion: 'full', heat: '3'}`), as the UI
+     * holds them. Encoded here rather than client-side because encoding needs the
+     * product's groups — `Multi` wants an array where `One` wants a bare string,
+     * and an all-defaults selection must become `undefined` — and this is the
+     * only side of the seam that knows them.
+     */
+    choices?: PersonalisationSelection;
+  },
+  version?: CartVersion,
+): Promise<BoxCart | null> {
   const { variantId, groups } = await resolveForCart(input.slug);
   // The UI has already applied add policy: an all-default add sends no choices.
   // Once choices are present (custom add or edit), retain their complete canonical
@@ -426,7 +496,11 @@ export async function addBoxLine(input: {
   const created = await createBoxCart({
     bundleProductId: plan.bundleProductId,
     size: plan.minSize,
-    firstLine: { productVariantId: variantId, quantity: input.quantity, personalisation },
+    firstLine: {
+      productVariantId: variantId,
+      quantity: input.quantity,
+      personalisation,
+    },
   });
   return created.cart;
 }
@@ -438,7 +512,11 @@ export async function addBoxLine(input: {
  */
 export async function updateBoxLine(
   lineId: string,
-  input: { quantity?: number; personalisation?: PersonalisationSelection; applyToUnits?: number },
+  input: {
+    quantity?: number;
+    personalisation?: PersonalisationSelection;
+    applyToUnits?: number;
+  },
   version?: CartVersion,
 ): Promise<BoxCart> {
   const dto = await withRequiredCart(
@@ -453,7 +531,10 @@ export async function updateBoxLine(
   return mapBoxCart(dto);
 }
 
-export async function removeBoxLine(lineId: string, version?: CartVersion): Promise<BoxCart> {
+export async function removeBoxLine(
+  lineId: string,
+  version?: CartVersion,
+): Promise<BoxCart> {
   const dto = await withRequiredCart(
     (cartId, auth) =>
       cartFetch<BoxCartDto>(`/commerce/carts/${cartId}/lines/${lineId}`, {
@@ -483,7 +564,10 @@ export async function removeBoxLine(lineId: string, version?: CartVersion): Prom
  * (`boxPrice(target) − boxPrice(current)`), computed server-side — it may bend
  * around preset price points and is never a flat per-dish figure.
  */
-export async function setBoxSize(size: number, version?: CartVersion): Promise<BoxCart | null> {
+export async function setBoxSize(
+  size: number,
+  version?: CartVersion,
+): Promise<BoxCart | null> {
   const dto = await withCart(
     (cartId, auth) =>
       cartFetch<BoxCartDto>(`/commerce/carts/${cartId}/size`, {
@@ -498,7 +582,8 @@ export async function setBoxSize(size: number, version?: CartVersion): Promise<B
   // No cookie means the customer is starting a box. Confirmed stale carts throw
   // above so this activation cannot silently replace a previously projected box.
   const plan = await defaultBoxPlan();
-  return (await createBoxCart({ bundleProductId: plan.bundleProductId, size })).cart;
+  return (await createBoxCart({ bundleProductId: plan.bundleProductId, size }))
+    .cart;
 }
 
 /**
@@ -511,7 +596,9 @@ export async function setBoxSize(size: number, version?: CartVersion): Promise<B
  * ever answer with a fabricated bundle id.
  */
 async function defaultBoxPlan(): Promise<BoxPlanDto> {
-  const config = await cartFetch<StorefrontConfigDto>('/commerce/config/storefront');
+  const config = await cartFetch<StorefrontConfigDto>(
+    '/commerce/config/storefront',
+  );
   if (!config.defaultBoxSlug) {
     throw new Error(
       'No defaultBoxSlug in the storefront config — the tenant has not named a box bundle, ' +
@@ -549,7 +636,10 @@ export async function addBoxExtra(
 export async function continueBoxCart(version?: CartVersion): Promise<BoxCart> {
   const dto = await withRequiredCart(
     (cartId, auth) =>
-      cartFetch<BoxCartDto>(`/commerce/carts/${cartId}/continue`, { ...auth, method: 'POST' }),
+      cartFetch<BoxCartDto>(`/commerce/carts/${cartId}/continue`, {
+        ...auth,
+        method: 'POST',
+      }),
     version,
   );
   return mapBoxCart(dto);
@@ -577,11 +667,10 @@ export async function continueBoxCart(version?: CartVersion): Promise<BoxCart> {
  *    account has no customer profile to adopt into. Different facts, same
  *    response here: leave the cart alone and carry on.
  *  - **409 `commerce.box_choice_required`** → the account already holds a
- *    different box (Aonik #348). Choosing between them is SHOPPING-STATE §54's
- *    KEEP THIS BOX / USE SAVED BOX, not built yet (#14), so the guest box stays
- *    a guest box and nothing is lost. `cart_locked` / `cart_conflict` likewise:
+ *    different box (Aonik #348). SHOPPING-STATE §54 offers KEEP THIS BOX / USE SAVED BOX with both shown versions.
+ *    Until the customer chooses, the guest box stays accessible. `cart_locked` / `cart_conflict` likewise:
  *    the box is mid-payment or changed as we read it, so adoption waits; and
- *    `box_choice_stale` / `multiple_active_boxes` are that same unbuilt choice.
+ *    `box_choice_stale` / `multiple_active_boxes` remain protected until a fresh explicit choice.
  *  - **a finished guest box** (expired, or already an order) → nothing to bring
  *    along: its cookie is cleared, and adoption is not attempted.
  *
@@ -589,7 +678,9 @@ export async function continueBoxCart(version?: CartVersion): Promise<BoxCart> {
  * first, from the guest box itself: unlike an edit, adoption changes who owns
  * the box, not what is in it, so there is no customer-seen state to protect.
  */
-export async function adoptBoxCart(): Promise<'adopted' | 'nothing-to-adopt' | 'skipped'> {
+export async function adoptBoxCart(): Promise<
+  'adopted' | 'nothing-to-adopt' | 'skipped' | 'choice-required'
+> {
   const cookie = await readCartCookie();
   // No cart, or one that already authorizes by session — nothing to do.
   if (!cookie?.cartToken) return 'nothing-to-adopt';
@@ -598,9 +689,12 @@ export async function adoptBoxCart(): Promise<'adopted' | 'nothing-to-adopt' | '
   if (!session || isExpired(session)) return 'nothing-to-adopt';
 
   try {
-    const guest = await cartFetch<BoxCartDto>(`/commerce/carts/${cookie.cartId}`, {
-      cartToken: cookie.cartToken,
-    });
+    const guest = await cartFetch<BoxCartDto>(
+      `/commerce/carts/${cookie.cartId}`,
+      {
+        cartToken: cookie.cartToken,
+      },
+    );
     if (isFinished(guest.status)) {
       await clearCartCookie();
       return 'skipped';
@@ -614,6 +708,7 @@ export async function adoptBoxCart(): Promise<'adopted' | 'nothing-to-adopt' | '
     });
 
     await writeCartCookie({ cartId: cookie.cartId });
+    await clearBoxChoice();
     return 'adopted';
   } catch (error) {
     if (error instanceof AonikError && error.isNotFound) {
@@ -627,6 +722,17 @@ export async function adoptBoxCart(): Promise<'adopted' | 'nothing-to-adopt' | '
       error.code === AONIK_CODES.storefrontValidation
     ) {
       return 'skipped';
+    }
+
+    if (
+      error instanceof AonikError &&
+      error.code === AONIK_CODES.boxChoiceRequired
+    ) {
+      const choice = choiceFromConflict(error.body);
+      if (choice) {
+        await storeBoxChoice(choice);
+        return 'choice-required';
+      }
     }
 
     if (
@@ -648,3 +754,54 @@ export async function adoptBoxCart(): Promise<'adopted' | 'nothing-to-adopt' | '
 
 /** Exposed for the money adapter's benefit in request bodies we may add later. */
 export { toMajor };
+
+/** Resolve only the two versions the customer was shown; never auto-retry a stale choice. */
+export async function chooseSignedInBox(
+  decision: 'KeepGuest' | 'UseSaved',
+): Promise<'chosen' | 'stale' | 'refresh' | 'failed'> {
+  const cookie = await readCartCookie(),
+    choice = await readBoxChoice(),
+    session = await currentSession();
+  if (
+    !cookie?.cartToken ||
+    !choice ||
+    !session ||
+    cookie.cartId !== choice.guest.cartId
+  )
+    return 'failed';
+  try {
+    await cartFetch<unknown>(`/commerce/carts/${cookie.cartId}/adopt`, {
+      method: 'POST',
+      cartToken: cookie.cartToken,
+      accessToken: session.accessToken,
+      cartVersion: choice.guest.cartVersion,
+      body: {
+        decision,
+        expectedSavedCartId: choice.saved.cartId,
+        expectedSavedCartVersion: choice.saved.cartVersion,
+        expectedGuestCartVersion: choice.guest.cartVersion,
+      },
+    });
+    await writeCartCookie({
+      cartId:
+        decision === 'UseSaved' ? choice.saved.cartId : choice.guest.cartId,
+    });
+    await clearBoxChoice();
+    return 'chosen';
+  } catch (error) {
+    if (
+      error instanceof AonikError &&
+      [
+        AONIK_CODES.boxChoiceStale,
+        AONIK_CODES.cartConflict,
+        AONIK_CODES.boxChoiceRequired,
+      ].includes(error.code as typeof AONIK_CODES.boxChoiceStale)
+    ) {
+      const updated = choiceFromConflict(error.body);
+      if (updated) await storeBoxChoice(updated);
+      else return 'refresh';
+      return 'stale';
+    }
+    return 'failed';
+  }
+}

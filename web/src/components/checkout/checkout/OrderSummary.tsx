@@ -48,6 +48,10 @@ function Rows({ quote, deliveryDate }: { quote: BoxQuote; deliveryDate: string |
           </dd>
         </div>
       ))}
+      {quote.giftTender && !quote.giftTender.reasonCode ? <>
+        <div className={styles.row}><dt>Gift card ({quote.giftTender.maskedCode ?? 'applied'})</dt><dd>−{formatPriceExact(quote.giftTender.giftAmountPence)}</dd></div>
+        <div className={styles.row}><dt>Pay by card</dt><dd>{formatPriceExact(quote.giftTender.cardAmountPence)}</dd></div>
+      </> : null}
     </dl>
   );
 }
@@ -64,7 +68,7 @@ export interface PaymentControls {
   paying: boolean;
 }
 
-function Cta({ id, controls, ctaRef }: { id?: string; controls: PaymentControls; ctaRef?: RefObject<HTMLButtonElement | null> }) {
+function Cta({ id, controls, ctaRef, giftFunded = false }: { id?: string; controls: PaymentControls; ctaRef?: RefObject<HTMLButtonElement | null>; giftFunded?: boolean }) {
   return (
     <>
       <p className={styles.need} role="status">
@@ -106,7 +110,7 @@ function Cta({ id, controls, ctaRef }: { id?: string; controls: PaymentControls;
       <p className={styles.message} role="status">
         {controls.message}
       </p>
-      <p className={styles.stripe}>You’ll review and pay securely on Stripe.</p>
+      <p className={styles.stripe}>{giftFunded ? 'Your gift card covers this order. Continue to confirm.' : 'You’ll review and pay securely on Stripe.'}</p>
     </>
   );
 }
@@ -193,7 +197,7 @@ export function OrderSummary({
               <span>Total</span>
               <span>{total}</span>
             </div>
-            <Cta id="ck-continue" controls={controls} ctaRef={ctaRef} />
+            <Cta id="ck-continue" controls={controls} ctaRef={ctaRef} giftFunded={quote.giftTender?.cardAmountPence === 0 && !quote.giftTender?.reasonCode} />
           </div>
         </div>
       </aside>
@@ -250,7 +254,7 @@ export function OrderSummary({
                 <span>Total</span>
                 <span>{total}</span>
               </div>
-              <Cta controls={controls} />
+              <Cta controls={controls} giftFunded={quote.giftTender?.cardAmountPence === 0 && !quote.giftTender?.reasonCode} />
             </div>
           </div>
         </>

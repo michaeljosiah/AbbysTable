@@ -39,6 +39,7 @@ const COMPONENT_LABELS: Record<string, string> = {
   extraDishes: 'Extra dishes',
   deliveryCharged: 'Delivery',
   discount: 'Discount',
+  points: 'Points used',
   tax: 'Tax',
   greetingCard: 'Greeting card',
   giftCardValue: 'Gift card',

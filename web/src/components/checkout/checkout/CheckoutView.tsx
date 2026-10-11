@@ -12,15 +12,36 @@ import {
   type ReactNode,
 } from 'react';
 
+import type { CustomerAddress } from '@/lib/aonik/addresses';
 import type { BoxCart } from '@/lib/aonik/map';
 import type { BoxPricing, DeliveryCalendar, Extra } from '@/lib/aonik/types';
 import { GiftFoodOptions } from '@/components/gifting/GiftFoodOptions';
 import { useCart } from '@/lib/cart/CartProvider';
-import { ORDERING_DISABLED_CODE, ORDERING_DISABLED_MESSAGE } from '@/lib/cart/ordering';
+import {
+  ORDERING_DISABLED_CODE,
+  ORDERING_DISABLED_MESSAGE,
+} from '@/lib/cart/ordering';
 import { useCartQuote } from '@/lib/cart/quote';
-import { CART_CONFLICT_CODE, CART_LOCKED_CODE, CART_RELOAD_CODE } from '@/lib/cart/transport';
-import { addDays, addMonths, monthOf, monthRange, readDayStatus, type DayStatus } from '@/lib/checkout/calendar';
-import { appliedLine, CODE_MAX_LENGTH, lapsedLine, normaliseCode } from '@/lib/checkout/codes';
+import {
+  CART_CONFLICT_CODE,
+  CART_LOCKED_CODE,
+  CART_RELOAD_CODE,
+} from '@/lib/cart/transport';
+import {
+  addDays,
+  addMonths,
+  monthOf,
+  monthRange,
+  readDayStatus,
+  type DayStatus,
+} from '@/lib/checkout/calendar';
+import {
+  appliedLine,
+  isGiftCardCode,
+  CODE_MAX_LENGTH,
+  lapsedLine,
+  normaliseCode,
+} from '@/lib/checkout/codes';
 import {
   blockerTarget,
   checkoutBlockers,
@@ -40,7 +61,13 @@ import {
   type DetailField,
   type HoldState,
 } from '@/lib/checkout/form';
-import { holdAnnouncement, holdPhase, HOLD_MINUTES, type HoldPhase, type ReservationView } from '@/lib/checkout/reservation';
+import {
+  holdAnnouncement,
+  holdPhase,
+  HOLD_MINUTES,
+  type HoldPhase,
+  type ReservationView,
+} from '@/lib/checkout/reservation';
 import {
   CHECKOUT_CODES,
   type CheckoutCodeAnswer,
@@ -57,9 +84,15 @@ import { guardRedirect } from '@/lib/shopping-state';
 import { checkPostcode } from '@/lib/delivery/actions';
 import { formatDeliveryDateLong } from '@/lib/format';
 import { normalisePostcode } from '@/lib/delivery/postcode';
-import { checkoutLegalHref, CHECKOUT_LEGAL_LINK, NEW_TAB_NOTE } from '@/lib/legal/checkoutReturn';
+import {
+  checkoutLegalHref,
+  CHECKOUT_LEGAL_LINK,
+  NEW_TAB_NOTE,
+} from '@/lib/legal/checkoutReturn';
 
 import styles from './Checkout.module.css';
+import { CheckoutLogin } from './CheckoutLogin';
+import { CheckoutBenefits } from './CheckoutBenefits';
 import { DeliveryDate } from './DeliveryDate';
 import { OrderSummary } from './OrderSummary';
 
@@ -68,17 +101,26 @@ const CALENDAR_MONTHS_AHEAD = 3;
 /** A field's save waits this long after it is left, so a run of tabs saves once. */
 const SAVE_SETTLE_MS = 400;
 
-const DATE_FULL = 'That date has just filled. Please choose another available date.';
+const DATE_FULL =
+  'That date has just filled. Please choose another available date.';
 const DATE_FAILED = 'We couldn’t save that date just now. Please try again.';
-const DATE_CHANGED = 'Your checkout changed in another window. Please choose your date again.';
-const DATE_UNKNOWN = 'We can’t confirm delivery availability right now. Please try again.';
-const SYNCED = 'Your checkout was updated in another window, so we’ve brought it up to date here.';
+const DATE_CHANGED =
+  'Your checkout changed in another window. Please choose your date again.';
+const DATE_UNKNOWN =
+  'We can’t confirm delivery availability right now. Please try again.';
+const SYNCED =
+  'Your checkout was updated in another window, so we’ve brought it up to date here.';
 /* Not designed: Aonik's refusals at payment start, said plainly. Nothing was charged. */
-const TOTAL_CHANGED = 'Your total has changed. Please check your order summary, then continue to payment again.';
-const BOX_CHANGED = 'Your box has changed. Please check your order summary, then continue to payment again.';
-const TERMS_CHANGED = 'Our Terms of Sale have been updated. Please read them, then continue to payment again.';
-const SAVE_FAILED = 'We couldn’t save your details just now. They’re still here, and we’ll try again as you go.';
-const CONTINUE_UNSAVED = 'We couldn’t save your details just now. Please try again.';
+const TOTAL_CHANGED =
+  'Your total has changed. Please check your order summary, then continue to payment again.';
+const BOX_CHANGED =
+  'Your box has changed. Please check your order summary, then continue to payment again.';
+const TERMS_CHANGED =
+  'Our Terms of Sale have been updated. Please read them, then continue to payment again.';
+const SAVE_FAILED =
+  'We couldn’t save your details just now. They’re still here, and we’ll try again as you go.';
+const CONTINUE_UNSAVED =
+  'We couldn’t save your details just now. Please try again.';
 
 /** The fields' names, for the one live line that reads out a field's error as it is left. */
 const FIELD_NAMES: Record<DetailField, string> = {
@@ -95,10 +137,13 @@ const FIELD_NAMES: Record<DetailField, string> = {
 
 export interface CheckoutViewProps {
   /** Live (Aonik's box and draft) or demo (the box held in this browser; nothing is reserved). */
+  savedAddresses?: CustomerAddress[];
+  signedIn?: boolean;
   live: boolean;
   /** The box as the page was rendered with — the summary until the cart provider has read it. */
   initialCart: BoxCart | null;
   initialDetails: CheckoutDetails;
+  initialSavedDetails?: CheckoutDetails;
   initialReservation: ReservationView | null;
   /** From today for 62 days: the suggestion and the first months' availability. */
   calendar: DeliveryCalendar | null;
@@ -113,12 +158,20 @@ export interface CheckoutViewProps {
 type MonthStatuses = Map<string, DayStatus>;
 
 /** The statuses a calendar read gives, and which whole months it covered. */
-function readCalendar(calendar: DeliveryCalendar | null): { statuses: MonthStatuses; months: string[] } {
+function readCalendar(calendar: DeliveryCalendar | null): {
+  statuses: MonthStatuses;
+  months: string[];
+} {
   const statuses: MonthStatuses = new Map();
-  for (const day of calendar?.days ?? []) statuses.set(day.date, readDayStatus(day.status));
+  for (const day of calendar?.days ?? [])
+    statuses.set(day.date, readDayStatus(day.status));
   const months: string[] = [];
   if (calendar) {
-    for (let month = monthOf(calendar.fromDate); month <= monthOf(calendar.toDate); month = addMonths(month, 1)) {
+    for (
+      let month = monthOf(calendar.fromDate);
+      month <= monthOf(calendar.toDate);
+      month = addMonths(month, 1)
+    ) {
       const { fromDate, days } = monthRange(month);
       // Covered to its last day (earlier days of the first month are past, so not needed).
       if (calendar.toDate >= addDays(fromDate, days - 1)) months.push(month);
@@ -130,7 +183,16 @@ function readCalendar(calendar: DeliveryCalendar | null): { statuses: MonthStatu
 function ErrorLine({ id, children }: { id: string; children: ReactNode }) {
   return (
     <span className={styles.error} id={id}>
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--chilli)" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+      <svg
+        width="15"
+        height="15"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="var(--chilli)"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        aria-hidden="true"
+      >
         <path d="M12 3.5l8.5 16h-17z" />
         <path d="M12 10v4M12 16.8h.01" />
       </svg>
@@ -155,9 +217,12 @@ function ErrorLine({ id, children }: { id: string; children: ReactNode }) {
  * ordering is not open, and nothing is ordered or charged.
  */
 export function CheckoutView({
+  signedIn = false,
+  savedAddresses = [],
   live,
   initialCart,
   initialDetails,
+  initialSavedDetails,
   initialReservation,
   calendar: initialCalendar,
   today,
@@ -171,14 +236,19 @@ export function CheckoutView({
     (dishId: string) => signatureUpgrades[dishId] ?? 0,
     [signatureUpgrades],
   );
-  const liveQuote = useCartQuote(pricing, { extrasCatalogue: extras, signatureUpgradeFor });
+  const liveQuote = useCartQuote(pricing, {
+    extrasCatalogue: extras,
+    signatureUpgradeFor,
+  });
   const quote = liveQuote ?? initialCart?.quote ?? null;
 
   /* ---- The form --------------------------------------------------------------- */
 
   const { checkoutRequest } = cart;
   const [details, setDetails] = useState<CheckoutDetails>(initialDetails);
-  const [touched, setTouched] = useState<ReadonlySet<DetailField>>(() => new Set());
+  const [touched, setTouched] = useState<ReadonlySet<DetailField>>(
+    () => new Set(),
+  );
   const [attempted, setAttempted] = useState(false);
   const [syncNote, setSyncNote] = useState<string | null>(null);
   const [saveNote, setSaveNote] = useState<string | null>(null);
@@ -191,7 +261,7 @@ export function CheckoutView({
   const latest = useRef(details);
   latest.current = details;
   /** What Aonik holds: the base for a three-way merge after another tab's save. */
-  const saved = useRef(initialDetails);
+  const saved = useRef(initialSavedDetails ?? initialDetails);
   /**
    * The box version the form, the hold and the code on screen were read with.
    * Every write from here is based on it — not on the cart engine's, which a
@@ -199,7 +269,9 @@ export function CheckoutView({
    * and re-synced, never allowed to save over a newer one.
    */
   const basis = useRef(initialCart?.version);
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
   const mounted = useRef(true);
   /** The control to focus once the change that puts it on screen has rendered. */
   const focusNext = useRef<string | null>(null);
@@ -212,7 +284,10 @@ export function CheckoutView({
 
   /* ---- The date and its hold ---------------------------------------------------- */
 
-  const [reservation, setReservation] = useState<{ view: ReservationView | null; at: number }>(() => ({
+  const [reservation, setReservation] = useState<{
+    view: ReservationView | null;
+    at: number;
+  }>(() => ({
     view: initialReservation,
     at: Date.now(),
   }));
@@ -223,29 +298,50 @@ export function CheckoutView({
   const [dateBusy, setDateBusy] = useState(false);
   const [dateError, setDateError] = useState<string | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
-  const [earliest, setEarliest] = useState<string | null>(initialCalendar?.earliestDeliveryDate ?? null);
+  const [earliest, setEarliest] = useState<string | null>(
+    initialCalendar?.earliestDeliveryDate ?? null,
+  );
   const [holdLive, setHoldLive] = useState('');
 
-  const initialRead = useMemo(() => readCalendar(initialCalendar), [initialCalendar]);
+  const initialRead = useMemo(
+    () => readCalendar(initialCalendar),
+    [initialCalendar],
+  );
   const [statuses, setStatuses] = useState<MonthStatuses>(initialRead.statuses);
-  const [loadedMonths, setLoadedMonths] = useState<ReadonlySet<string>>(() => new Set(initialRead.months));
+  const [loadedMonths, setLoadedMonths] = useState<ReadonlySet<string>>(
+    () => new Set(initialRead.months),
+  );
   const requested = useRef(new Set<string>(initialRead.months));
 
   /* ---- Code, payment, sheet ------------------------------------------------------- */
 
   const [codeInput, setCodeInput] = useState('');
-  const [codeMessage, setCodeMessage] = useState<{ text: string; bad: boolean } | null>(null);
+  const [codeMessage, setCodeMessage] = useState<{
+    text: string;
+    bad: boolean;
+  } | null>(null);
   const [codeBusy, setCodeBusy] = useState(false);
+  const [benefitsBusy, setBenefitsBusy] = useState(false);
+  const [createAccount, setCreateAccount] = useState(
+    initialCart?.createAccount ?? false,
+  );
   const [message, setMessage] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
 
   /* ---- Derived ---------------------------------------------------------------------- */
 
   const view = reservation.view;
-  const remainingMs = view?.status === 'held' ? view.remainingMs - (now - reservation.at) : 0;
+  const remainingMs =
+    view?.status === 'held' ? view.remainingMs - (now - reservation.at) : 0;
   const date = live ? (view?.date ?? null) : demoDate;
-  const hold: HoldState = !live || !view ? 'none' : view.status === 'held' && remainingMs > 0 ? 'held' : 'ended';
-  const phase: HoldPhase | null = live && view ? (hold === 'held' ? holdPhase(remainingMs) : 'ended') : null;
+  const hold: HoldState =
+    !live || !view
+      ? 'none'
+      : view.status === 'held' && remainingMs > 0
+        ? 'held'
+        : 'ended';
+  const phase: HoldPhase | null =
+    live && view ? (hold === 'held' ? holdPhase(remainingMs) : 'ended') : null;
   const appliedCode = quote?.discount;
 
   const blockers = checkoutBlockers({
@@ -254,7 +350,7 @@ export function CheckoutView({
     date,
     hold,
     availabilityKnown: Boolean(earliest),
-    codeRefused: Boolean(appliedCode?.reasonCode),
+    codeRefused: Boolean(appliedCode?.reasonCode || quote?.giftTender?.reasonCode),
   });
   const need = attempted ? needText(blockers) : null;
 
@@ -272,17 +368,35 @@ export function CheckoutView({
       if (!cart.quote) router.replace('/box');
       else {
         const back = guardRedirect('checkout', cart.shopping);
-        if (back) router.replace(back === '/box/dishes' ? `${back}?from=checkout` : back);
+        if (back)
+          router.replace(
+            back === '/box/dishes' ? `${back}?from=checkout` : back,
+          );
       }
       return;
     }
-    if (cart.boxSize === null && cart.lines.length === 0) router.replace('/box');
-    else if (cart.boxSize === null || cart.dishCount < cart.boxSize) router.replace('/box/dishes?from=checkout');
-  }, [cart.hydrated, cart.readFailed, cart.quote, cart.shopping, cart.boxSize, cart.lines.length, cart.dishCount, live, router]);
+    if (cart.boxSize === null && cart.lines.length === 0)
+      router.replace('/box');
+    else if (cart.boxSize === null || cart.dishCount < cart.boxSize)
+      router.replace('/box/dishes?from=checkout');
+  }, [
+    cart.hydrated,
+    cart.readFailed,
+    cart.quote,
+    cart.shopping,
+    cart.boxSize,
+    cart.lines.length,
+    cart.dishCount,
+    live,
+    router,
+  ]);
 
   // Reaching checkout with a complete box is a step reached: VIEW BOX resumes here.
   const { rememberStep } = cart;
-  const reachable = cart.hydrated && cart.shopping.active && cart.shopping.maxStep === 'checkout';
+  const reachable =
+    cart.hydrated &&
+    cart.shopping.active &&
+    cart.shopping.maxStep === 'checkout';
   useEffect(() => {
     if (reachable) rememberStep('checkout');
   }, [reachable, rememberStep]);
@@ -293,7 +407,12 @@ export function CheckoutView({
     const header = document.querySelector('header');
     const page = pageRef.current;
     if (!header || !page) return;
-    const observer = new ResizeObserver(() => page.style.setProperty('--ck-h', `${header.getBoundingClientRect().height}px`));
+    const observer = new ResizeObserver(() =>
+      page.style.setProperty(
+        '--ck-h',
+        `${header.getBoundingClientRect().height}px`,
+      ),
+    );
     observer.observe(header);
     return () => observer.disconnect();
   }, []);
@@ -319,23 +438,27 @@ export function CheckoutView({
    * the box as it is now.
    */
   const checkCoverageRef = useRef<() => Promise<void>>(async () => undefined);
-  const adopt = useCallback((sync: CheckoutSyncAnswer, announce: 'always' | 'if-changed') => {
-    const before = reservationRef.current.view;
-    const changed =
-      !sameDetails(saved.current, sync.details) ||
-      before?.date !== sync.reservation?.date ||
-      before?.status !== sync.reservation?.status;
-    const merged = mergeDetails(saved.current, latest.current, sync.details);
-    saved.current = sync.details;
-    latest.current = merged;
-    basis.current = sync.cart.version;
-    setDetails(merged);
-    setReservation({ view: sync.reservation, at: Date.now() });
-    setNow(Date.now());
-    if (announce === 'always' || changed) setSyncNote(SYNCED);
-    // A postcode that arrived with the sync is judged as one the customer typed.
-    void checkCoverageRef.current();
-  }, []);
+  const adopt = useCallback(
+    (sync: CheckoutSyncAnswer, announce: 'always' | 'if-changed') => {
+      const before = reservationRef.current.view;
+      const changed =
+        !sameDetails(saved.current, sync.details) ||
+        before?.date !== sync.reservation?.date ||
+        before?.status !== sync.reservation?.status;
+      const merged = mergeDetails(saved.current, latest.current, sync.details);
+      saved.current = sync.details;
+      latest.current = merged;
+      basis.current = sync.cart.version;
+      setDetails(merged);
+      setCreateAccount(sync.cart.createAccount ?? false);
+      setReservation({ view: sync.reservation, at: Date.now() });
+      setNow(Date.now());
+      if (announce === 'always' || changed) setSyncNote(SYNCED);
+      // A postcode that arrived with the sync is judged as one the customer typed.
+      void checkCoverageRef.current();
+    },
+    [],
+  );
 
   /** Adopts what a refusal carried. True when it was handled (the caller says nothing more). */
   const reconcile = useCallback(
@@ -343,7 +466,11 @@ export function CheckoutView({
       // Left behind (the customer moved on while it was in flight): nothing to
       // show it on, but the next write (a flushed save) follows the box as it is.
       if (!mounted.current) {
-        if (refusal.code === CART_CONFLICT_CODE && refusal.cart && refusal.details) {
+        if (
+          refusal.code === CART_CONFLICT_CODE &&
+          refusal.cart &&
+          refusal.details
+        ) {
           saved.current = refusal.details;
           basis.current = refusal.cart.version;
         }
@@ -358,8 +485,19 @@ export function CheckoutView({
         router.replace('/box');
         return true;
       }
-      if (refusal.code === CART_CONFLICT_CODE && refusal.cart && refusal.details) {
-        adopt({ cart: refusal.cart, details: refusal.details, reservation: refusal.reservation ?? null }, 'always');
+      if (
+        refusal.code === CART_CONFLICT_CODE &&
+        refusal.cart &&
+        refusal.details
+      ) {
+        adopt(
+          {
+            cart: refusal.cart,
+            details: refusal.details,
+            reservation: refusal.reservation ?? null,
+          },
+          'always',
+        );
         return true;
       }
       if (refusal.code === CART_RELOAD_CODE) {
@@ -392,13 +530,20 @@ export function CheckoutView({
       reconcile(result.payload as CheckoutRefusal);
       return;
     }
-    if (result.payload.boxVersion && result.payload.boxVersion !== basis.current) {
+    if (
+      result.payload.boxVersion &&
+      result.payload.boxVersion !== basis.current
+    ) {
       await resync();
       return;
     }
     setReservation((current) => ({
       // None at all after one was shown: it lapsed and went — ended, not vanished.
-      view: result.payload.reservation ?? (current.view ? { ...current.view, status: 'ended', remainingMs: 0 } : null),
+      view:
+        result.payload.reservation ??
+        (current.view
+          ? { ...current.view, status: 'ended', remainingMs: 0 }
+          : null),
       at: Date.now(),
     }));
     setNow(Date.now());
@@ -433,15 +578,25 @@ export function CheckoutView({
    * one queued behind another (or behind a merge) sends what is current then.
    */
   const save = useCallback(
-    async (options?: { keepalive?: boolean }): Promise<'saved' | 'merged' | 'failed'> => {
+    async (options?: {
+      keepalive?: boolean;
+    }): Promise<'saved' | 'merged' | 'failed'> => {
       clearTimeout(saveTimer.current);
       saveTimer.current = undefined;
       if (!live) return 'saved';
-      const result = await checkoutRequest<CheckoutDraftAnswer>('/draft', () => {
-        const snapshot = latest.current;
-        if (sameDetails(snapshot, saved.current)) return null;
-        return { method: 'PUT', body: { details: snapshot }, version: basis.current, keepalive: options?.keepalive };
-      });
+      const result = await checkoutRequest<CheckoutDraftAnswer>(
+        '/draft',
+        () => {
+          const snapshot = latest.current;
+          if (sameDetails(snapshot, saved.current)) return null;
+          return {
+            method: 'PUT',
+            body: { details: snapshot },
+            version: basis.current,
+            keepalive: options?.keepalive,
+          };
+        },
+      );
       if (result.skipped) return 'saved';
       if (result.ok) {
         saved.current = result.payload.details;
@@ -472,7 +627,10 @@ export function CheckoutView({
       if (document.visibilityState === 'hidden') flush();
     };
     const flush = () => {
-      if (saveTimer.current !== undefined || !sameDetails(latest.current, saved.current)) {
+      if (
+        saveTimer.current !== undefined ||
+        !sameDetails(latest.current, saved.current)
+      ) {
         void saveRef.current({ keepalive: true });
       }
     };
@@ -492,12 +650,27 @@ export function CheckoutView({
     const postcode = normalisePostcode(latest.current.postcode);
     if (!postcode) return;
     const current = coverageRef.current;
-    if (current.status !== 'idle' && current.status !== 'unavailable' && current.postcode === postcode) return;
+    if (
+      current.status !== 'idle' &&
+      current.status !== 'unavailable' &&
+      current.postcode === postcode
+    )
+      return;
     setCoverage({ status: 'checking', postcode });
-    const answer = await checkPostcode(postcode).catch(() => ({ status: 'unavailable' as const }));
+    const answer = await checkPostcode(postcode).catch(() => ({
+      status: 'unavailable' as const,
+    }));
     // An answer about a postcode no longer in the field is no answer.
     if (normalisePostcode(latest.current.postcode) !== postcode) return;
-    setCoverage({ status: answer.status === 'serves' || answer.status === 'not-served' || answer.status === 'invalid' ? answer.status : 'unavailable', postcode });
+    setCoverage({
+      status:
+        answer.status === 'serves' ||
+        answer.status === 'not-served' ||
+        answer.status === 'invalid'
+          ? answer.status
+          : 'unavailable',
+      postcode,
+    });
   }, []);
 
   checkCoverageRef.current = checkCoverage;
@@ -512,22 +685,32 @@ export function CheckoutView({
   const change = (field: DetailField, raw: string) => {
     const clean = cleanInput(field, raw);
     const value = field === 'postcode' ? formatPostcodeInput(clean) : clean;
-    setDetails((current) => ({ ...current, [field]: value.slice(0, FIELD_LIMITS[field]) }));
+    setDetails((current) => ({
+      ...current,
+      [field]: value.slice(0, FIELD_LIMITS[field]),
+    }));
     setSyncNote(null);
   };
 
   const leave = (field: DetailField) => {
-    setTouched((current) => (current.has(field) ? current : new Set(current).add(field)));
+    setTouched((current) =>
+      current.has(field) ? current : new Set(current).add(field),
+    );
     scheduleSave();
     if (field === 'postcode') void checkCoverage();
     // A postcode we deliver to or not is said by its own eligibility line.
-    const error = field === 'postcode' ? postcodeError(details, coverageRef.current) : fieldError(field, details[field]);
+    const error =
+      field === 'postcode'
+        ? postcodeError(details, coverageRef.current)
+        : fieldError(field, details[field]);
     setFieldLive(error ? `${FIELD_NAMES[field]}: ${error}` : '');
   };
 
   const errorOf = (field: DetailField): string | null => {
     if (!touched.has(field) && !attempted) return null;
-    return field === 'postcode' ? postcodeError(details, coverage) : fieldError(field, details[field]);
+    return field === 'postcode'
+      ? postcodeError(details, coverage)
+      : fieldError(field, details[field]);
   };
 
   /* ---- The hold's clock ------------------------------------------------------------------- */
@@ -550,7 +733,11 @@ export function CheckoutView({
 
   const lastPhase = useRef<HoldPhase | null>(phase);
   useEffect(() => {
-    const said = holdAnnouncement(lastPhase.current, phase ?? 'ended', remainingMs);
+    const said = holdAnnouncement(
+      lastPhase.current,
+      phase ?? 'ended',
+      remainingMs,
+    );
     if (phase !== lastPhase.current && said) setHoldLive(said);
     lastPhase.current = phase;
   }, [phase, remainingMs]);
@@ -566,15 +753,25 @@ export function CheckoutView({
       requested.current.add(month);
       const { fromDate, days } = monthRange(month);
       const from = fromDate < today ? today : fromDate;
-      const count = days - Math.max(0, Math.round((Date.parse(from) - Date.parse(fromDate)) / 86_400_000));
+      const count =
+        days -
+        Math.max(
+          0,
+          Math.round((Date.parse(from) - Date.parse(fromDate)) / 86_400_000),
+        );
       fetch(`/api/checkout/dates?from=${from}&days=${count}`)
-        .then(async (response) => (response.ok ? ((await response.json()) as CheckoutDatesAnswer).calendar : null))
+        .then(async (response) =>
+          response.ok
+            ? ((await response.json()) as CheckoutDatesAnswer).calendar
+            : null,
+        )
         .catch(() => null)
         .then((calendar) => {
           if (calendar) {
             setStatuses((current) => {
               const next = new Map(current);
-              for (const day of calendar.days) next.set(day.date, readDayStatus(day.status));
+              for (const day of calendar.days)
+                next.set(day.date, readDayStatus(day.status));
               return next;
             });
           }
@@ -597,7 +794,8 @@ export function CheckoutView({
       // What was known about it is stale: a failed re-read offers no dates, never old ones.
       setStatuses((current) => {
         const next = new Map(current);
-        for (const day of next.keys()) if (monthOf(day) === month) next.delete(day);
+        for (const day of next.keys())
+          if (monthOf(day) === month) next.delete(day);
         return next;
       });
       loadMonth(month);
@@ -606,8 +804,12 @@ export function CheckoutView({
   );
 
   const retryAvailability = useCallback(async () => {
-    const response = await fetch(`/api/checkout/dates?from=${today}&days=62`).catch(() => null);
-    const calendar = response?.ok ? ((await response.json()) as CheckoutDatesAnswer).calendar : null;
+    const response = await fetch(
+      `/api/checkout/dates?from=${today}&days=62`,
+    ).catch(() => null);
+    const calendar = response?.ok
+      ? ((await response.json()) as CheckoutDatesAnswer).calendar
+      : null;
     if (!calendar) return;
     const read = readCalendar(calendar);
     setStatuses(read.statuses);
@@ -639,11 +841,14 @@ export function CheckoutView({
       }
       if (dateBusy) return;
       setDateBusy(true);
-      const result = await checkoutRequest<CheckoutReservationAnswer>('/reservation', () => ({
-        method: 'PUT',
-        body: { date: chosen },
-        version: basis.current,
-      }));
+      const result = await checkoutRequest<CheckoutReservationAnswer>(
+        '/reservation',
+        () => ({
+          method: 'PUT',
+          body: { date: chosen },
+          version: basis.current,
+        }),
+      );
       // The version is recorded even when the page has been left: a save
       // flushed as it was left is queued behind this write and is based on it.
       if (result.ok) basis.current = result.payload.version;
@@ -655,7 +860,9 @@ export function CheckoutView({
         setNow(Date.now());
         focusNext.current = 'ck-date';
         if (result.payload.reservation?.status === 'held') {
-          setHoldLive(`${formatDeliveryDateLong(chosen) ?? chosen} is saved for you for ${HOLD_MINUTES} minutes.`);
+          setHoldLive(
+            `${formatDeliveryDateLong(chosen) ?? chosen} is saved for you for ${HOLD_MINUTES} minutes.`,
+          );
         }
         return;
       }
@@ -700,22 +907,28 @@ export function CheckoutView({
       return;
     }
     if (!live) {
-      setCodeMessage({ text: 'Codes can’t be applied on demo data.', bad: true });
+      setCodeMessage({
+        text: 'Codes can’t be applied on demo data.',
+        bad: true,
+      });
       return;
     }
     if (codeBusy) return;
     setCodeBusy(true);
-    const result = await checkoutRequest<CheckoutCodeAnswer>('/discount', () => ({
-      method: 'PUT',
-      body: { code },
-      version: basis.current,
-    }));
+    const result = await checkoutRequest<CheckoutCodeAnswer>(
+      isGiftCardCode(code) ? '/gift-tender' : '/discount',
+      () => ({
+        method: 'PUT',
+        body: { code },
+        version: basis.current,
+      }),
+    );
     if (result.ok) basis.current = result.payload.cart.version;
     if (!mounted.current) return;
     setCodeBusy(false);
     if (result.ok) {
       setCodeInput('');
-      setCodeMessage({ text: appliedLine(code), bad: false });
+      setCodeMessage({ text: isGiftCardCode(code) ? 'Your gift card has been applied to your order.' : appliedLine(code), bad: false });
       focusNext.current = 'ck-code-remove';
       return;
     }
@@ -723,20 +936,30 @@ export function CheckoutView({
     if (!reconcile(refusal)) setCodeMessage({ text: refusal.error, bad: true });
   };
 
-  const removeCode = async () => {
-    if (!appliedCode || codeBusy) return;
+  const removeCode = async (gift = false) => {
+    if ((!gift && !appliedCode) || codeBusy) return;
     setCodeBusy(true);
-    const result = await checkoutRequest<CheckoutCodeAnswer>('/discount', () => ({ method: 'DELETE', version: basis.current }));
+    const result = await checkoutRequest<CheckoutCodeAnswer>(
+      gift ? '/gift-tender' : '/discount',
+      () => ({ method: 'DELETE', version: basis.current }),
+    );
     if (result.ok) basis.current = result.payload.cart.version;
     if (!mounted.current) return;
     setCodeBusy(false);
     if (result.ok) {
-      setCodeMessage({ text: `${appliedCode.code} has been removed.`, bad: false });
+      setCodeMessage({
+        text: gift ? 'Your gift card has been removed.' : `${appliedCode?.code} has been removed.`,
+        bad: false,
+      });
       focusNext.current = 'ck-code';
       return;
     }
     const refusal = result.payload as CheckoutRefusal;
-    if (!reconcile(refusal)) setCodeMessage({ text: 'We couldn’t remove that code just now. Please try again.', bad: true });
+    if (!reconcile(refusal))
+      setCodeMessage({
+        text: 'We couldn’t remove that code just now. Please try again.',
+        bad: true,
+      });
   };
 
   /* ---- CONTINUE TO PAYMENT ----------------------------------------------------------------- */
@@ -744,7 +967,7 @@ export function CheckoutView({
   const [continuing, setContinuing] = useState(false);
 
   const onContinue = async () => {
-    if (continuing) return;
+    if (continuing || benefitsBusy) return;
     setAttempted(true);
     setMessage(null);
     if (blockers.length > 0) {
@@ -752,17 +975,23 @@ export function CheckoutView({
       // just under the header and its control focused. Nothing typed is cleared.
       setTouched(new Set(DETAIL_FIELDS));
       setSheetOpen(false);
-      const target = blockerTarget(blockers[0], { hasSuggestion: Boolean(earliest) });
+      const target = blockerTarget(blockers[0], {
+        hasSuggestion: Boolean(earliest),
+      });
       requestAnimationFrame(() => {
         const element = document.getElementById(target);
-        const label = document.querySelector<HTMLElement>(`label[for="${target}"]`) ?? element;
+        const label =
+          document.querySelector<HTMLElement>(`label[for="${target}"]`) ??
+          element;
         label?.scrollIntoView({ block: 'start', behavior: 'smooth' });
         element?.focus({ preventScroll: true });
       });
       return;
     }
     if (!live) {
-      setMessage('Ordering is turned off on demo data. Switch to live mode to place a real order.');
+      setMessage(
+        'Ordering is turned off on demo data. Switch to live mode to place a real order.',
+      );
       return;
     }
     if (!cart.orderingEnabled) {
@@ -790,7 +1019,10 @@ export function CheckoutView({
    * (Aonik resumes the same attempt), then left to the payment page, which
    * reads what really happened.
    */
-  const pay = async (expectedTotalPence: number, retried: boolean): Promise<void> => {
+  const pay = async (
+    expectedTotalPence: number,
+    retried: boolean,
+  ): Promise<void> => {
     const result = await checkoutRequest<CheckoutPayAnswer>('/pay', () => ({
       method: 'POST',
       body: { expectedTotalPence },
@@ -799,12 +1031,17 @@ export function CheckoutView({
     if (!mounted.current) return;
     if (result.ok) {
       const answer = result.payload;
-      if (answer.kind === 'redirect' && answer.checkoutUrl.startsWith('https://')) {
+      if (
+        answer.kind === 'redirect' &&
+        answer.checkoutUrl.startsWith('https://')
+      ) {
         // Off to Stripe: "Taking you to secure payment…" stays until the page goes.
         window.location.assign(answer.checkoutUrl);
         return;
       }
-      window.location.assign(answer.kind === 'paid' ? '/box/confirmation' : '/box/payment');
+      window.location.assign(
+        answer.kind === 'paid' ? '/box/confirmation' : '/box/payment',
+      );
       return;
     }
     if (result.status === 0) {
@@ -816,7 +1053,10 @@ export function CheckoutView({
     const refusal = result.payload as CheckoutRefusal;
     // Starting may have recorded the terms first — a write — and a refusal's
     // box moved the engine on: the page's own version follows, by a check.
-    const checked = refusal.code === CART_CONFLICT_CODE || refusal.code === CART_LOCKED_CODE ? null : check();
+    const checked =
+      refusal.code === CART_CONFLICT_CODE || refusal.code === CART_LOCKED_CODE
+        ? null
+        : check();
     switch (refusal.code) {
       case ORDERING_DISABLED_CODE:
         setMessage(ORDERING_DISABLED_MESSAGE);
@@ -825,7 +1065,12 @@ export function CheckoutView({
         setMessage(TOTAL_CHANGED);
         return;
       case CHECKOUT_CODES.boxChanged:
-        if (refusal.cart?.lines.some((line) => line.isUnavailable && line.kind === 'BoxDish')) router.push('/box/dishes?from=checkout');
+        if (
+          refusal.cart?.lines.some(
+            (line) => line.isUnavailable && line.kind === 'BoxDish',
+          )
+        )
+          router.push('/box/dishes?from=checkout');
         else setMessage(BOX_CHANGED);
         return;
       case CHECKOUT_CODES.dateFull:
@@ -848,13 +1093,22 @@ export function CheckoutView({
         return;
       }
       case CHECKOUT_CODES.coverageUnavailable:
-        setMessage('We couldn’t check your postcode just now. Please try again in a moment.');
+        setMessage(
+          'We couldn’t check your postcode just now. Please try again in a moment.',
+        );
         return;
       case CHECKOUT_CODES.invalid:
-        setMessage(/^AcceptedTermsVersion/i.test(refusal.error) ? TERMS_CHANGED : `${refusal.error}`);
+        setMessage(
+          /^AcceptedTermsVersion/i.test(refusal.error)
+            ? TERMS_CHANGED
+            : `${refusal.error}`,
+        );
         return;
       default:
-        if (!reconcile(refusal)) setMessage('We couldn’t start your payment just now. Please try again.');
+        if (!reconcile(refusal))
+          setMessage(
+            'We couldn’t start your payment just now. Please try again.',
+          );
     }
   };
 
@@ -870,12 +1124,18 @@ export function CheckoutView({
   const field = (
     name: DetailField,
     label: string,
-    input: Omit<InputHTMLAttributes<HTMLInputElement>, 'id' | 'value' | 'onChange' | 'onBlur'>,
+    input: Omit<
+      InputHTMLAttributes<HTMLInputElement>,
+      'id' | 'value' | 'onChange' | 'onBlur'
+    >,
     className?: string,
   ) => {
     const error = errorOf(name);
     // A refused postcode takes the error border with no second sentence: the eligibility line says it.
-    const refused = name === 'postcode' && !error && coverageFor(details, coverage).status === 'not-served';
+    const refused =
+      name === 'postcode' &&
+      !error &&
+      coverageFor(details, coverage).status === 'not-served';
     const errorId = `${FIELD_IDS[name]}-err`;
     return (
       <div className={styles.field}>
@@ -894,17 +1154,58 @@ export function CheckoutView({
           aria-invalid={Boolean(error) || refused || undefined}
           aria-describedby={error ? errorId : refused ? 'ck-elig' : undefined}
         />
-        <p className={styles.status}>{error ? <ErrorLine id={errorId}>{error}</ErrorLine> : null}</p>
+        <p className={styles.status}>
+          {error ? <ErrorLine id={errorId}>{error}</ErrorLine> : null}
+        </p>
       </div>
     );
   };
+
+  async function benefits(input: {
+    createAccount?: boolean;
+    requestedPoints?: number;
+  }) {
+    if (benefitsBusy) return;
+    setBenefitsBusy(true);
+    if (!live) {
+      if (input.createAccount !== undefined)
+        setCreateAccount(input.createAccount);
+      setBenefitsBusy(false);
+      return;
+    }
+    const stored = await save();
+    if (stored !== 'saved') {
+      setBenefitsBusy(false);
+      return;
+    }
+    const result = await checkoutRequest<CheckoutCodeAnswer>(
+      '/benefits',
+      () => ({ method: 'PUT', body: input, version: basis.current }),
+    );
+    if (result.ok) {
+      basis.current = result.payload.cart.version;
+      setCreateAccount(result.payload.cart.createAccount ?? false);
+    } else if (!reconcile(result.payload as CheckoutRefusal))
+      setMessage('We couldn’t save your points choice. Please try again.');
+    setBenefitsBusy(false);
+  }
 
   const eligibility = coverageFor(details, coverage);
 
   return (
     <div ref={pageRef} className={styles.page}>
       <Link href="/box/review" className={styles.back}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
           <path d="M15 6l-6 6 6 6" />
         </svg>
         <span>Back to Review</span>
@@ -914,7 +1215,9 @@ export function CheckoutView({
         <div className={styles.main}>
           <h1 className={styles.h1}>Checkout</h1>
           <p className={styles.status} role="status">
-            {syncNote ?? saveNote ? <span className={styles.message}>{syncNote ?? saveNote}</span> : null}
+            {(syncNote ?? saveNote) ? (
+              <span className={styles.message}>{syncNote ?? saveNote}</span>
+            ) : null}
           </p>
           <p className="visuallyHidden" role="status">
             {fieldLive}
@@ -938,6 +1241,20 @@ export function CheckoutView({
                 spellCheck: false,
                 placeholder: 'Email address',
               })}
+              {signedIn ? (
+                <p className={styles.status}>✓ You’re signed in.</p>
+              ) : (
+                <CheckoutLogin
+                  beforeLogin={async () => (await save()) === 'saved'}
+                />
+              )}
+              <CheckoutBenefits
+                loyalty={quote?.loyalty}
+                signedIn={signedIn}
+                createAccount={createAccount}
+                busy={benefitsBusy}
+                onChange={benefits}
+              />
             </section>
 
             <section className={styles.section} aria-labelledby="ck-addr-h">
@@ -949,9 +1266,56 @@ export function CheckoutView({
                   Send to
                 </h2>
               </div>
+              {savedAddresses.length ? (
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="ck-saved-address">
+                    Saved address
+                  </label>
+                  <select
+                    id="ck-saved-address"
+                    className={styles.input}
+                    defaultValue=""
+                    onChange={(event) => {
+                      const selected = savedAddresses.find(
+                        (a) => a.id === event.target.value,
+                      );
+                      if (!selected) return;
+                      const next = {
+                        ...latest.current,
+                        line1: selected.fields.line1,
+                        line2: [selected.fields.line2, selected.fields.line3]
+                          .filter(Boolean)
+                          .join(', '),
+                        city: selected.fields.city,
+                        postcode: formatPostcodeInput(selected.fields.postcode),
+                      };
+                      latest.current = next;
+                      setDetails(next);
+                      setSyncNote(null);
+                      scheduleSave();
+                      void checkCoverage();
+                    }}
+                  >
+                    <option value="">Choose a saved address</option>
+                    {savedAddresses.map((address) => (
+                      <option key={address.id} value={address.id}>
+                        {address.lines.join(', ')}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
               <div className={styles.two}>
-                {field('firstName', cart.gift?.giftIntent ? 'Recipient first name' : 'First name', { type: 'text', autoComplete: 'given-name' })}
-                {field('lastName', cart.gift?.giftIntent ? 'Recipient last name' : 'Last name', { type: 'text', autoComplete: 'family-name' })}
+                {field(
+                  'firstName',
+                  cart.gift?.giftIntent ? 'Recipient first name' : 'First name',
+                  { type: 'text', autoComplete: 'given-name' },
+                )}
+                {field(
+                  'lastName',
+                  cart.gift?.giftIntent ? 'Recipient last name' : 'Last name',
+                  { type: 'text', autoComplete: 'family-name' },
+                )}
               </div>
               {field('line1', 'Address line 1', {
                 type: 'text',
@@ -963,7 +1327,10 @@ export function CheckoutView({
                 autoComplete: 'address-line2',
                 placeholder: 'Flat, building or company',
               })}
-              {field('city', 'Town or city', { type: 'text', autoComplete: 'address-level2' })}
+              {field('city', 'Town or city', {
+                type: 'text',
+                autoComplete: 'address-level2',
+              })}
               {field(
                 'postcode',
                 'Postcode',
@@ -979,43 +1346,89 @@ export function CheckoutView({
               <p className={styles.status} role="status">
                 {eligibility.status === 'serves' ? (
                   <span className={`${styles.elig} ${styles.eligOk}`}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green-forest)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="var(--green-forest)"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
                       <path d="m5 12.5 4.5 4.5L19 7" />
                     </svg>
                     We deliver to this address
                   </span>
                 ) : eligibility.status === 'not-served' ? (
-                  <span id="ck-elig" className={`${styles.elig} ${styles.eligNo}`}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--terracotta-ink)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <span
+                    id="ck-elig"
+                    className={`${styles.elig} ${styles.eligNo}`}
+                  >
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="var(--terracotta-ink)"
+                      strokeWidth="1.9"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
                       <circle cx="12" cy="12" r="9" />
                       <path d="M12 7.5V13M12 16.4h.01" />
                     </svg>
                     We don’t currently deliver to this postcode.
                   </span>
                 ) : eligibility.status === 'checking' ? (
-                  <span className={`${styles.elig} ${styles.eligWait}`}>Checking we deliver to this postcode…</span>
+                  <span className={`${styles.elig} ${styles.eligWait}`}>
+                    Checking we deliver to this postcode…
+                  </span>
                 ) : eligibility.status === 'unavailable' ? (
                   <span className={`${styles.elig} ${styles.eligWait}`}>
                     <span>
-                      We couldn’t check that postcode just now. Please try again in a moment.
-                      <button type="button" className={`${styles.textAction} ${styles.eligRetry}`} onClick={() => void checkCoverage()}>
+                      We couldn’t check that postcode just now. Please try again
+                      in a moment.
+                      <button
+                        type="button"
+                        className={`${styles.textAction} ${styles.eligRetry}`}
+                        onClick={() => void checkCoverage()}
+                      >
                         <span>Try again</span>
                       </button>
                     </span>
                   </span>
                 ) : null}
               </p>
-              {field('phone', cart.gift?.giftIntent ? 'Recipient phone' : 'Phone number', {
-                type: 'tel',
-                autoComplete: 'tel',
-                inputMode: 'tel',
-                placeholder: 'Mobile or landline',
-              })}
-              {cart.gift?.giftIntent ? <p className={styles.status}>For the courier, in case they need to contact the recipient about delivery.</p> : null}
+              {field(
+                'phone',
+                cart.gift?.giftIntent ? 'Recipient phone' : 'Phone number',
+                {
+                  type: 'tel',
+                  autoComplete: 'tel',
+                  inputMode: 'tel',
+                  placeholder: 'Mobile or landline',
+                },
+              )}
+              {cart.gift?.giftIntent ? (
+                <p className={styles.status}>
+                  For the courier, in case they need to contact the recipient
+                  about delivery.
+                </p>
+              ) : null}
             </section>
 
             <DeliveryDate
-              state={{ date, phase, remainingMs, earliest, busy: dateBusy, error: dateError }}
+              state={{
+                date,
+                phase,
+                remainingMs,
+                earliest,
+                busy: dateBusy,
+                error: dateError,
+              }}
               calendarOpen={calendarOpen}
               onCalendar={openCalendar}
               onUse={() => earliest && void choose(earliest)}
@@ -1032,7 +1445,11 @@ export function CheckoutView({
               holdLive={holdLive}
             >
               <div className={styles.field}>
-                <label className={styles.label} htmlFor={FIELD_IDS.notes} id="ck-notes-l">
+                <label
+                  className={styles.label}
+                  htmlFor={FIELD_IDS.notes}
+                  id="ck-notes-l"
+                >
                   Delivery notes (optional)
                 </label>
                 <div className={styles.counted}>
@@ -1053,20 +1470,21 @@ export function CheckoutView({
               </div>
             </DeliveryDate>
 
-
             <section className={styles.section} aria-labelledby="ck-code-h">
               <div className={styles.sectionTop}>
                 <span className={styles.num} aria-hidden="true">
                   4
                 </span>
                 <h2 className={styles.sectionH} id="ck-code-h">
-                  Discount code
+                  Gift cards, rewards and vouchers
                 </h2>
               </div>
               {appliedCode ? (
                 <div className={styles.applied}>
                   <span>
-                    <span className={styles.appliedCode}>{appliedCode.code}</span>
+                    <span className={styles.appliedCode}>
+                      {appliedCode.code}
+                    </span>
                     {appliedCode.reasonCode ? null : ' applied'}
                   </span>
                   <button
@@ -1080,9 +1498,18 @@ export function CheckoutView({
                     <span>Remove</span>
                   </button>
                 </div>
-              ) : (
+              ) : null}
+              {quote?.giftTender ? (
+                <div className={styles.applied}>
+                  <span><span className={styles.appliedCode}>{quote.giftTender.maskedCode ?? 'Gift card'}</span>{quote.giftTender.reasonCode ? ' cannot be used' : ' applied'}</span>
+                  <button type="button" className={styles.textAction} onClick={() => void removeCode(true)} aria-disabled={codeBusy || undefined} aria-label="Remove gift card"><span>Remove</span></button>
+                </div>
+              ) : null}
+              {(!appliedCode || !quote?.giftTender) ? (
                 <>
-                  <p className={styles.sectionP}>Have a code? Enter it and we’ll apply it to your order.</p>
+                  <p className={styles.sectionP}>
+                    Have a code? Enter it and we’ll apply it to your order.
+                  </p>
                   <div className={styles.code}>
                     <label className="visuallyHidden" htmlFor="ck-code">
                       Code
@@ -1092,7 +1519,9 @@ export function CheckoutView({
                       className={styles.input}
                       value={codeInput}
                       maxLength={CODE_MAX_LENGTH}
-                      onChange={(event) => setCodeInput(event.target.value.toUpperCase())}
+                      onChange={(event) =>
+                        setCodeInput(event.target.value.toUpperCase())
+                      }
                       onKeyDown={(event) => {
                         if (event.key === 'Enter') {
                           event.preventDefault();
@@ -1102,29 +1531,53 @@ export function CheckoutView({
                       autoComplete="off"
                       autoCapitalize="characters"
                       spellCheck={false}
-                      placeholder="Discount code"
+                      placeholder="Gift card, reward or voucher code"
                       aria-describedby="ck-code-msg"
                     />
-                    <button type="button" className={styles.apply} onClick={() => void applyCode()} aria-disabled={codeBusy || undefined}>
+                    <button
+                      type="button"
+                      className={styles.apply}
+                      onClick={() => void applyCode()}
+                      aria-disabled={codeBusy || undefined}
+                    >
                       Apply
                     </button>
                   </div>
                 </>
-              )}
-              <p className={styles.codeMsg} id="ck-code-msg" role="status" data-bad={codeMessage?.bad || Boolean(appliedCode?.reasonCode) || undefined}>
-                {appliedCode?.reasonCode ? lapsedLine(appliedCode.code, appliedCode.reasonCode) : (codeMessage?.text ?? '')}
+              ) : null}
+              <p
+                className={styles.codeMsg}
+                id="ck-code-msg"
+                role="status"
+                data-bad={
+                  codeMessage?.bad ||
+                  Boolean(appliedCode?.reasonCode) ||
+                  undefined
+                }
+              >
+                {appliedCode?.reasonCode
+                  ? lapsedLine(appliedCode.code, appliedCode.reasonCode)
+                  : quote?.giftTender?.reasonCode ? 'Your gift card can’t be used on this order. Remove it to continue.' : (codeMessage?.text ?? '')}
               </p>
             </section>
           </div>
 
           <p className={styles.terms}>
             By continuing, you agree to our{' '}
-            <a href={checkoutLegalHref(TERMS_ITEM.href)} {...CHECKOUT_LEGAL_LINK}>
-              Terms of Sale<span className="visuallyHidden">{NEW_TAB_NOTE}</span>
+            <a
+              href={checkoutLegalHref(TERMS_ITEM.href)}
+              {...CHECKOUT_LEGAL_LINK}
+            >
+              Terms of Sale
+              <span className="visuallyHidden">{NEW_TAB_NOTE}</span>
             </a>{' '}
             and acknowledge our{' '}
-            <a href={checkoutLegalHref(PRIVACY_ITEM.href)} {...CHECKOUT_LEGAL_LINK}>
-              Privacy Policy<span className="visuallyHidden">{NEW_TAB_NOTE}</span>
+            <a
+              href={checkoutLegalHref(PRIVACY_ITEM.href)}
+              {...CHECKOUT_LEGAL_LINK}
+            >
+              Privacy Policy
+              <span className="visuallyHidden">{NEW_TAB_NOTE}</span>
             </a>
             .
           </p>
@@ -1133,7 +1586,13 @@ export function CheckoutView({
         <OrderSummary
           quote={quote}
           deliveryDate={hold === 'held' || !live ? date : null}
-          controls={{ onContinue: () => void onContinue(), busy: continuing, need, message, paying: continuing }}
+          controls={{
+            onContinue: () => void onContinue(),
+            busy: continuing,
+            need,
+            message,
+            paying: continuing,
+          }}
           sheetOpen={sheetOpen}
           onSheet={setSheetOpen}
         />

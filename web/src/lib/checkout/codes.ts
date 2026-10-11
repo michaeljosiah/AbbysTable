@@ -50,3 +50,6 @@ export function appliedLine(code: string): string {
 export function lapsedLine(code: string, reasonCode: string | undefined): string {
   return `${code} can no longer be applied. ${codeRefusal(reasonCode)} Remove it to continue.`;
 }
+
+/** Issued Aonik cards currently use 128-bit uppercase hexadecimal bearer codes. */
+export function isGiftCardCode(code: string): boolean { return /^[A-F0-9]{32}$/.test(code); }

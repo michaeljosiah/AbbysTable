@@ -7,6 +7,10 @@ import { CheckoutView } from '@/components/checkout/checkout/CheckoutView';
 import { getAonikClient } from '@/lib/aonik/client';
 import { resolveDataMode } from '@/lib/aonik/dataMode';
 import type { DeliveryCalendar } from '@/lib/aonik/types';
+import { getMyProfile } from '@/lib/account/profile';
+import { getMyAddressBook } from '@/lib/aonik/addresses';
+import { phoneForInput } from '@/lib/account/phone';
+import { readSessionView } from '@/lib/auth/session';
 import { EMPTY_DETAILS } from '@/lib/checkout/form';
 import { loadCheckout } from '@/lib/checkout/server';
 import { londonToday } from '@/lib/delivery/checker';
@@ -49,11 +53,16 @@ export default async function BoxCheckoutPage() {
   if (entry?.kind === 'completed') return <CheckoutStatus kind="completed" />;
 
   const [calendar, pricing, extras, dishes] = await Promise.all([
-    client.getDeliveryCalendar(today, FIRST_READ_DAYS).catch((error: unknown): DeliveryCalendar | null => {
-      // Unknown is said as unknown (SHOPPING-STATE §22): no date is offered, and payment waits.
-      console.error('[checkout] the delivery calendar could not be read', error);
-      return null;
-    }),
+    client
+      .getDeliveryCalendar(today, FIRST_READ_DAYS)
+      .catch((error: unknown): DeliveryCalendar | null => {
+        // Unknown is said as unknown (SHOPPING-STATE §22): no date is offered, and payment waits.
+        console.error(
+          '[checkout] the delivery calendar could not be read',
+          error,
+        );
+        return null;
+      }),
     client.getBoxPricing(),
     client.getExtras().catch(() => []),
     // Live already has separate authoritative quote components. Demo needs
@@ -62,17 +71,59 @@ export default async function BoxCheckoutPage() {
   ]);
 
   const ready = entry?.kind === 'ready' ? entry : null;
+  const session = await readSessionView();
+  const [profile, addresses] = session.isSignedIn
+    ? await Promise.all([
+        getMyProfile().catch(() => null),
+        getMyAddressBook().catch(() => null),
+      ])
+    : [null, null];
+  const details = { ...(ready?.details ?? EMPTY_DETAILS) };
+  if (profile) {
+    if (!details.email) details.email = profile.email;
+    if (
+      !ready?.cart.gift?.giftIntent &&
+      !details.firstName &&
+      !details.lastName &&
+      !details.phone
+    ) {
+      details.firstName = profile.firstName ?? '';
+      details.lastName = profile.lastName ?? '';
+      details.phone = phoneForInput(profile.phone);
+    }
+  }
+  if (
+    !ready?.cart.gift?.giftIntent &&
+    !details.line1 &&
+    !details.city &&
+    !details.postcode &&
+    addresses?.defaultAddress?.country === 'GB'
+  ) {
+    const f = addresses.defaultAddress.fields;
+    details.line1 = f.line1;
+    details.line2 = [f.line2, f.line3].filter(Boolean).join(', ');
+    details.city = f.city;
+    details.postcode = f.postcode;
+  }
+
   return (
     <CheckoutView
+      signedIn={session.isSignedIn}
+      savedAddresses={
+        addresses?.addresses.filter((address) => address.country === 'GB') ?? []
+      }
       live={mode === 'live'}
       initialCart={ready?.cart ?? null}
-      initialDetails={ready?.details ?? EMPTY_DETAILS}
+      initialDetails={details}
+      initialSavedDetails={ready?.details ?? EMPTY_DETAILS}
       initialReservation={ready?.reservation ?? null}
       calendar={calendar}
       today={today}
       pricing={pricing}
       extras={extras}
-      signatureUpgrades={Object.fromEntries(dishes.map((dish) => [dish.id, dish.upgradePence ?? 0]))}
+      signatureUpgrades={Object.fromEntries(
+        dishes.map((dish) => [dish.id, dish.upgradePence ?? 0]),
+      )}
     />
   );
 }

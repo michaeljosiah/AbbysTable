@@ -9,8 +9,11 @@
 import { revalidatePath } from 'next/cache';
 
 import { AonikError } from '@/lib/aonik/errors';
-import { admitPasswordReset, requestPasswordReset } from '@/lib/auth/passwordReset';
-import { SessionExpiredError } from '@/lib/auth/server';
+import {
+  admitPasswordReset,
+  requestPasswordReset,
+} from '@/lib/auth/passwordReset';
+import { aonikAuthedFetch, SessionExpiredError } from '@/lib/auth/server';
 import { clientAddress } from '@/lib/request/clientAddress';
 
 import {
@@ -29,17 +32,24 @@ export type SaveDetailsResult =
   | { status: 'failed'; message: string }
   | { status: 'ended' };
 
-export async function saveDetailsAction(input: DetailsFormValues): Promise<SaveDetailsResult> {
+export async function saveDetailsAction(
+  input: DetailsFormValues,
+): Promise<SaveDetailsResult> {
   const values = trimmedDetails(input);
   // A phone left empty is judged against what is stored, below.
   const early = detailsFormErrors(values);
-  if (Object.keys(early).length > 0) return { status: 'invalid', errors: early };
+  if (Object.keys(early).length > 0)
+    return { status: 'invalid', errors: early };
 
   try {
     // Read first: the write sends back what the form does not ask for (title,
     // country), and a stored phone cannot be cleared here.
     const current = await getMyProfile();
-    if (!values.phone && current.phone) return { status: 'invalid', errors: { phone: DETAILS_MESSAGES.phoneKept } };
+    if (!values.phone && current.phone)
+      return {
+        status: 'invalid',
+        errors: { phone: DETAILS_MESSAGES.phoneKept },
+      };
     const saved = await updateMyProfile(current, {
       firstName: values.firstName.slice(0, 128),
       lastName: values.lastName.slice(0, 128),
@@ -50,15 +60,25 @@ export async function saveDetailsAction(input: DetailsFormValues): Promise<SaveD
     // What Aonik now holds, not what was typed: the form shows the truth.
     return {
       status: 'saved',
-      values: { firstName: saved.firstName ?? '', lastName: saved.lastName ?? '', phone: phoneForInput(saved.phone) },
+      values: {
+        firstName: saved.firstName ?? '',
+        lastName: saved.lastName ?? '',
+        phone: phoneForInput(saved.phone),
+      },
       said: DETAILS_MESSAGES.saved,
     };
   } catch (error) {
     if (error instanceof SessionExpiredError) return { status: 'ended' };
-    if (error instanceof AonikError && (error.status === 400 || error.status === 403 || error.status === 422)) {
+    if (
+      error instanceof AonikError &&
+      (error.status === 400 || error.status === 403 || error.status === 422)
+    ) {
       return { status: 'failed', message: DETAILS_MESSAGES.refused };
     }
-    console.error('[account] details could not be saved', error instanceof AonikError ? error.status : error);
+    console.error(
+      '[account] details could not be saved',
+      error instanceof AonikError ? error.status : error,
+    );
     return { status: 'failed', message: DETAILS_MESSAGES.unavailable };
   }
 }
@@ -83,7 +103,8 @@ export async function sendPasswordResetLinkAction(): Promise<SendResetResult> {
   }
 
   const address = await clientAddress();
-  if (!admitPasswordReset(email, address)) return { status: 'failed', message: DETAILS_MESSAGES.resetLimited };
+  if (!admitPasswordReset(email, address))
+    return { status: 'failed', message: DETAILS_MESSAGES.resetLimited };
 
   const outcome = await requestPasswordReset(email, address ?? undefined);
   switch (outcome.status) {
@@ -95,5 +116,39 @@ export async function sendPasswordResetLinkAction(): Promise<SendResetResult> {
       return { status: 'failed', message: DETAILS_MESSAGES.resetLimited };
     default:
       return { status: 'failed', message: DETAILS_MESSAGES.resetFailed };
+  }
+}
+
+/** Email changes are issued by the identity service, never a direct profile write. */
+export async function requestEmailChangeAction(
+  email: string,
+): Promise<{ status: 'requested' | 'failed' | 'ended'; message: string }> {
+  const value = typeof email === 'string' ? email.trim() : '';
+  if (!value || value.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
+    return { status: 'failed', message: 'Enter a valid email address.' };
+  const address = await clientAddress();
+  if (!admitPasswordReset(value, address))
+    return {
+      status: 'failed',
+      message: 'Please wait before requesting another email change.',
+    };
+  try {
+    await aonikAuthedFetch('/profiles/customers/me/email', {
+      method: 'PUT',
+      body: { newEmail: value },
+      ignoreBody: true,
+    });
+    return {
+      status: 'requested',
+      message:
+        'If this change is eligible, we’ll email a link to confirm your new address. You may need to sign in again first.',
+    };
+  } catch (error) {
+    if (error instanceof SessionExpiredError)
+      return { status: 'ended', message: '' };
+    return {
+      status: 'failed',
+      message: 'We couldn’t request that email change. Please try again later.',
+    };
   }
 }

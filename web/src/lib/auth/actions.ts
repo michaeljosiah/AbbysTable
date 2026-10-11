@@ -15,6 +15,7 @@
 
 import { redirect } from 'next/navigation';
 
+import { clearBoxChoice } from '@/lib/cart/adoptionChoice';
 import { adoptBoxCart } from '@/lib/cart/server';
 import { clientAddress } from '@/lib/request/clientAddress';
 import { addressKey } from '@/lib/request/rateLimit';
@@ -24,7 +25,12 @@ import { LOGIN_MESSAGES, SIGN_IN_REFUSED, emailProblem } from './messages';
 import { admitPasswordReset, requestPasswordReset } from './passwordReset';
 import { safePostAuthPath } from './redirect';
 
-import { AccountsUnavailableError, CredentialError, signIn, signOut } from './server';
+import {
+  AccountsUnavailableError,
+  CredentialError,
+  signIn,
+  signOut,
+} from './server';
 
 export interface AuthActionState {
   status: 'idle' | 'error' | 'unavailable' | 'sent';
@@ -73,7 +79,10 @@ function toState(error: unknown): AuthActionState {
  * redirect. Adopting before the session exists would have no bearer to use.
  */
 async function completeSignIn(redirectTo: string): Promise<never> {
-  await adoptBoxCart();
+  await clearBoxChoice();
+  const adoption = await adoptBoxCart();
+  if (adoption === 'choice-required')
+    redirect(`/account/box-choice?next=${encodeURIComponent(redirectTo)}`);
   // `redirect` throws by design; it must sit outside any try/catch that would
   // swallow it, which is why it is here and not inside the action's try block.
   redirect(redirectTo);
@@ -91,12 +100,16 @@ export async function loginAction(
   const emailError = emailProblem(email);
   if (emailError) fieldErrors.email = emailError;
   if (!password) fieldErrors.password = LOGIN_MESSAGES.passwordMissing;
-  if (Object.keys(fieldErrors).length > 0) return { status: 'error', fieldErrors };
+  if (Object.keys(fieldErrors).length > 0)
+    return { status: 'error', fieldErrors };
 
   // The storefront's own per-address limit: Aonik sees only this server's.
   const address = await clientAddress();
   if (address && !loginByAddress.admit(addressKey(address))) {
-    return { status: 'error', message: 'Too many attempts. Please wait a few minutes and try again.' };
+    return {
+      status: 'error',
+      message: 'Too many attempts. Please wait a few minutes and try again.',
+    };
   }
 
   try {
@@ -122,11 +135,16 @@ export async function requestPasswordResetAction(
 ): Promise<AuthActionState> {
   const email = text(form, 'email');
   const emailError = emailProblem(email);
-  if (emailError) return { status: 'error', fieldErrors: { email: emailError }, email };
+  if (emailError)
+    return { status: 'error', fieldErrors: { email: emailError }, email };
 
   const address = await clientAddress();
   if (!admitPasswordReset(email, address)) {
-    return { status: 'error', email, message: 'Too many requests. Please wait a few minutes and try again.' };
+    return {
+      status: 'error',
+      email,
+      message: 'Too many requests. Please wait a few minutes and try again.',
+    };
   }
   const outcome = await requestPasswordReset(email, address ?? undefined);
   switch (outcome.status) {
@@ -144,12 +162,14 @@ export async function requestPasswordResetAction(
       return {
         status: 'error',
         email,
-        message: 'We couldn’t send that just now. Please try again in a moment.',
+        message:
+          'We couldn’t send that just now. Please try again in a moment.',
       };
   }
 }
 
 export async function signOutAction(): Promise<void> {
+  await clearBoxChoice();
   await signOut();
   redirect('/');
 }

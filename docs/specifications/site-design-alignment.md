@@ -151,7 +151,7 @@ states, production integrations or unapproved legal/food content.
 | How It Works v2 | `/how-it-works`, browser | Corrected media spacing; responsive composition aligned. Prices and food declarations remain sourced. |
 | Abby's Story v2 | `/our-story`, browser | Major headings, layout and type aligned after fonts loaded. |
 | Standards v2 | `/standards`, browser | Type and composition aligned. Authored nutrition/allergen content can change section height. |
-| Gifting v2 | No `/gifting` route | Missing: #26. Gift intent and navigation cannot be signed off. |
+| Gifting v2 | `/gifting`, follow-up PR #88 | Gifting and food-gift intent implemented; see gifting-checkout spec/evidence. Unmerged; live release checks pending. |
 | Private Table v2 | `/private-table`, browser | Layout/type aligned. Waitlist is withheld when unpublished/closed; the prototype's successful submission state is not a production capability. |
 | Delivery and FAQs | `/delivery-and-faqs`, browser | Topic-heading geometry and responsive layout aligned. Coverage and availability remain data-driven. |
 | Contact Us | `/contact`, browser | Header/type aligned. Published contact details, hours and form capability intentionally determine the available cards and page height. |
@@ -163,8 +163,8 @@ states, production integrations or unapproved legal/food content.
 | Add Dishes v2 | `/box/dishes`, browser + source | PR #86 supplies portion-only selection/removal/return journey; verified shared chrome and date treatment here. |
 | Extras v2 | `/box/extras`, browser + source | PR #86 supplies category/portion-flow changes; checked shared chrome and retained extra pricing on return to Step 1. |
 | Review v2 | `/box/review`, browser + source | PR #86 supplies revised review; verified responsive rail/header clearance and totals. Gift line still requires real gift state. |
-| Checkout v2 | `/box/checkout`, browser | Corrected shared header/footer. Existing form/summary inspected; logged-in prefill, address lookup, account setup, points/gifts and delivery-window details are not fully implemented (#31 and linked work). |
-| Gift Card Checkout | No dedicated route | Missing: #27. |
+| Checkout v2 | `/box/checkout`, browser + account follow-up | Source chrome, signed-in prefill/login, account intent, points and gift-card tender implemented. Address lookup, paid delivery-window contracts and multiple gift-card tenders remain outstanding. |
+| Gift Card Checkout | `/gift-card/checkout`, follow-up PR #88 | Email/post standalone cart, 1–10 cards, payment/confirmation implemented. Depends on Aonik #391 and release configuration. |
 | Order Confirmation v2 | Actual component, fixture browser render | Layout/type checked for a member order, including points. Real order/address and membership data produce extra rows. No live payment confirmation tested. |
 | Payment Processing | Actual component, fixture browser render | Desktop/phone status composition and typography aligned. No payment submitted. |
 | Payment Not Completed | Actual component, fixture browser render | Desktop/phone status composition aligned; outcome wording follows actual payment state. |
@@ -173,23 +173,13 @@ states, production integrations or unapproved legal/food content.
 | Something Went Wrong | `/500.html`, browser + source | Static type/composition inspected. Unpublished support details are withheld. Serving this asset is not proof of a working CDN outage fallback (#13). |
 | Back Shortly | `/maintenance.html`, browser + middleware tests | Static layout/type inspected; missing support details explain vertical centring differences. Actual maintenance activation was not performed. |
 | Link Expired | `/account/access`, browser + source | Expired-link presentation checked after hydration. Resend/signup handoff remains identity work (#34). |
-| My Account | Actual overview/orders/addresses/details, fixture browser renders | Responsive fixes above. Orders fixture was the empty state; authenticated mutations and populated-order permutations were not exercised. Points/Gift cards sections, saved-box choice, editable email and per-dish reorder parity remain incomplete (#35). |
+| My Account | Actual components, isolated renders; account follow-up branch | Points/Gift cards, saved-box choice, editable email and selected reorder implemented. See account-design-alignment spec/evidence; authenticated release verification and review pending. |
 
 #### Outstanding before a site-wide 1:1 sign-off
 
-- **#26 / #27:** Gifting and Gift Card Checkout, including gift intent, recipient,
-  message and hide-price state. Related Review/Checkout lines cannot be shown as
-  working until that state exists.
-- **#35:** keep-this-box/use-saved-box choice at sign-in; dedicated Points and Gift
-  cards sections; the designed reorder interaction and editable-email workflow.
-  Current Order again reconstructs the whole box and opens Step 2. Email remains
-  read-only under the current identity contract.
-- **#36:** complete points integration across Checkout and Account. The current
-  account overview and confirmation components already contain points UI, so the
-  earlier statement that no points UI exists anywhere is no longer accurate.
-- **#31:** remaining checkout capability/state checklist, including customer
-  prefill and account setup, address lookup, gift/points behaviour and delivery
-  details. Visual shell corrections alone do not close the issue.
+- **#26 / #27:** implementation is in follow-up PR #88 and Aonik #391, including gift intent, 1–10 cards and dedicated checkout/payment/confirmation. Unmerged; expiry/send-time decisions and live provider checks remain.
+- **#35 / #36:** account/checkout implementation is in the account follow-up branch and selected reorder backend change. The requested missing sections/choices and editable email now exist. Independent review and real identity/loyalty/payment checks remain; do not close on unmerged work.
+- **#31:** signed-in prefill, account intent, points and one gift tender alongside a voucher are now implemented. UK address lookup, paid delivery-window details, multiple gift-card tenders and release-service checks still prevent full checklist closure.
 - **#13:** CDN/host outage routing and production verification. The static files
   and tested maintenance middleware do not establish infrastructure completion.
 - **Support:** a live-chat service or real inline message endpoint is needed to
