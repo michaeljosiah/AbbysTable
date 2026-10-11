@@ -8,6 +8,7 @@
  * SERVER-ONLY.
  */
 
+import { cookies } from 'next/headers';
 import type { BoxCartDto, BoxPlanDto, ProductDto } from '@/lib/aonik/dto';
 import { AONIK_CODES, AonikError } from '@/lib/aonik/errors';
 import { aonikFetch, type AonikFetchOptions } from '@/lib/aonik/http';
@@ -129,7 +130,23 @@ export async function createBoxCart(input: {
    * confirmation to a refresh, which customers reliably do on that page.
    */
   await clearPaymentCookie();
-
+  const jar = await cookies();
+  const pendingRaw = jar.get('abbys-table-box-gift-pending')?.value;
+  if (pendingRaw) {
+    const pending = JSON.parse(pendingRaw) as { gift?: import('@/lib/aonik/dto').CartGiftDraftDto; card?: import('@/lib/gifting/model').GiftDraft };
+    const draft = await cartCall<import('@/lib/aonik/dto').CheckoutDraftResponseDto>('/checkout-draft', {
+      method: 'PUT', body: { gift: pending.gift ?? null, giftCardDraft: pending.card ?? null },
+    }, dto.cartVersion);
+    if (pending.card) {
+      const { giftOptions, purchaseSelection } = await import('@/lib/gifting/server');
+      const options = await giftOptions();
+      if (!options.enabled || options.draftVersion < 1 || pending.card.quantity > options.maximumQuantity) throw new Error('Your food box is saved, but gift-card purchasing is not open yet.');
+      await cartCall('/gift-card-purchase', { method: 'PUT', body: purchaseSelection(pending.card, options) }, draft.cartVersion);
+    }
+    jar.set('abbys-table-box-gift-pending', 'deleted', { httpOnly: true, sameSite: 'lax', path: '/', maxAge: 0 });
+    const cart = await getBoxCart();
+    if (cart) return { cart };
+  }
   return { cart: mapBoxCart(dto) };
 }
 

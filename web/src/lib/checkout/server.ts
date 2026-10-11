@@ -136,6 +136,7 @@ export async function saveCheckoutDetails(
   const current = await cartCall<CheckoutDraftResponseDto>('/checkout-draft');
   const saved: CheckoutDraftDto = current.draft ?? {};
   const body: CheckoutDraftDto = {
+    giftCardDraft: saved.giftCardDraft ?? null,
     recipient: saved.recipient ?? null,
     deliveryDate: saved.deliveryDate ?? null,
     gift: saved.gift ?? null,
@@ -144,6 +145,10 @@ export async function saveCheckoutDetails(
     acceptedTermsVersion: saved.acceptedTermsVersion ?? null,
     requestedPoints: saved.requestedPoints ?? 0,
     ...draftSections(details),
+    ...(saved.gift?.giftIntent ? {
+      recipient: { name: `${details.firstName} ${details.lastName}`.trim(), phone: details.phone },
+      purchaser: { email: details.email, firstName: saved.purchaser?.firstName ?? '', lastName: saved.purchaser?.lastName ?? '', phone: saved.purchaser?.phone ?? '' },
+    } : {}),
   };
   const response = await cartCall<CheckoutDraftResponseDto>('/checkout-draft', { method: 'PUT', body }, version);
   return { version: response.cartVersion, details: detailsFromDraft(response.draft) };

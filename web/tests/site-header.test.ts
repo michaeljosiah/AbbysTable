@@ -64,7 +64,7 @@ test('desktop auto-hide never reaches dish pages, Allergens, legal, account, log
   }
   // Unbuilt marketing routes join when they land: until then they are a 404,
   // and error pages keep a static header.
-  for (const path of ['/gifting', '/nope']) {
+  for (const path of ['/nope']) {
     assert.equal(autoHidesOnDesktop(path), false, path);
   }
   assert.equal(autoHidesOnDesktop(null), false);
@@ -272,7 +272,7 @@ test('the header links: the v2 five, in order — Gifting only once its page exi
 });
 
 test('no chrome link 404s or points at an anchor the v2 homepage drops', () => {
-  const BUILT = new Set(['/menu', '/how-it-works', '/our-story', '/standards', '/contact', '/delivery-and-faqs', '/private-table', '/allergens', '/privacy', '/terms-of-sale', '/box', '/login', '/account', '/account/orders']);
+  const BUILT = new Set(['/gifting', '/menu', '/how-it-works', '/our-story', '/standards', '/contact', '/delivery-and-faqs', '/private-table', '/allergens', '/privacy', '/terms-of-sale', '/box', '/login', '/account', '/account/orders']);
   const links = [...NAV_ITEMS, ...FOOTER_COLUMNS.flatMap((column) => column.links)];
   for (const link of links) {
     // Pages only: every interim homepage anchor (`/#private`, #25) is gone.

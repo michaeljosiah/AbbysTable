@@ -14,6 +14,7 @@ import {
 
 import type { BoxCart } from '@/lib/aonik/map';
 import type { BoxPricing, DeliveryCalendar, Extra } from '@/lib/aonik/types';
+import { GiftFoodOptions } from '@/components/gifting/GiftFoodOptions';
 import { useCart } from '@/lib/cart/CartProvider';
 import { ORDERING_DISABLED_CODE, ORDERING_DISABLED_MESSAGE } from '@/lib/cart/ordering';
 import { useCartQuote } from '@/lib/cart/quote';
@@ -919,6 +920,7 @@ export function CheckoutView({
             {fieldLive}
           </p>
 
+          <GiftFoodOptions />
           <div className={styles.form}>
             <section className={styles.section} aria-labelledby="ck-contact-h">
               <div className={styles.sectionTop}>
@@ -948,8 +950,8 @@ export function CheckoutView({
                 </h2>
               </div>
               <div className={styles.two}>
-                {field('firstName', 'First name', { type: 'text', autoComplete: 'given-name' })}
-                {field('lastName', 'Last name', { type: 'text', autoComplete: 'family-name' })}
+                {field('firstName', cart.gift?.giftIntent ? 'Recipient first name' : 'First name', { type: 'text', autoComplete: 'given-name' })}
+                {field('lastName', cart.gift?.giftIntent ? 'Recipient last name' : 'Last name', { type: 'text', autoComplete: 'family-name' })}
               </div>
               {field('line1', 'Address line 1', {
                 type: 'text',
@@ -1003,12 +1005,13 @@ export function CheckoutView({
                   </span>
                 ) : null}
               </p>
-              {field('phone', 'Phone number', {
+              {field('phone', cart.gift?.giftIntent ? 'Recipient phone' : 'Phone number', {
                 type: 'tel',
                 autoComplete: 'tel',
                 inputMode: 'tel',
                 placeholder: 'Mobile or landline',
               })}
+              {cart.gift?.giftIntent ? <p className={styles.status}>For the courier, in case they need to contact the recipient about delivery.</p> : null}
             </section>
 
             <DeliveryDate

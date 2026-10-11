@@ -1,0 +1,67 @@
+.gift {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  column-gap: 12px;
+  align-items: start;
+  margin: 18px 0;
+  padding: 16px;
+  border: 1px solid var(--sand-2);
+  border-radius: 16px;
+  background: var(--white);
+}
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  color: var(--brass-ink);
+}
+.heading {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  min-height: 44px;
+  font: 500 20px/1.2 var(--font-display);
+  color: var(--green-forest);
+}
+.gift input {
+  accent-color: var(--green-forest);
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.body {
+  display: grid;
+  gap: 12px;
+  font: 16px/1.5 var(--font-sans);
+  color: var(--brown);
+}
+.body p {
+  margin: 0;
+}
+.body label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+}
+.body textarea {
+  border: 1px solid var(--sand-2);
+  border-radius: 14px;
+  padding: 13px 15px;
+  font: 16px/1.5 var(--font-sans);
+  color: var(--brown);
+  width: 100%;
+  box-sizing: border-box;
+}
+.body span {
+  justify-self: end;
+  font-size: 14px;
+}
+@media (min-width: 640px) {
+  .gift {
+    padding: 20px 24px;
+    column-gap: 18px;
+  }
+}

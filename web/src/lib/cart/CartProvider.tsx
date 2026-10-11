@@ -45,6 +45,7 @@ import {
 import { deleteExtra, patchDishPersonalisation, patchExtra, postExtra } from './mutations';
 import { useServerCart, type ServerCartEngine } from './serverEngine';
 import { CartRequestError } from './transport';
+import type { GiftDraft } from '@/lib/gifting/model';
 
 /**
  * The box a customer is building.
@@ -76,6 +77,9 @@ const LEGACY_STORAGE_KEY = 'abbys-table:box:v1';
 
 interface CartContextValue extends CartState {
   gift?: BoxCart['gift'];
+  setGiftIntent: (intent: boolean) => Promise<void>;
+  setGift: (gift: NonNullable<BoxCart['gift']>) => Promise<void>;
+  setBoxGiftCard: (card: GiftDraft | null) => Promise<void>;
   refresh: () => Promise<void>;
   /** False during the first client render, before storage or the server answered. */
   hydrated: boolean;
@@ -207,13 +211,14 @@ function projectServerCart(
   // extras in it.
   const extras = projectAddOnLines(cart.lines);
 
-  return { boxSize: cart.quote.boxSize, isCustom: false, lines, extras };
+  return { boxSize: cart.quote.boxSize, isCustom: false, lines, extras, giftCard: cart.giftCard };
 }
 
 export function CartProvider({
   mode = 'demo',
   liveOrdering = false,
   signedIn = false,
+  initialGift = null,
   children,
 }: {
   /** Resolved server-side; decides which engine runs. */
@@ -231,6 +236,7 @@ export function CartProvider({
    * sign-out the box is no longer this browser's to show.
    */
   signedIn?: boolean;
+  initialGift?: BoxCart['gift'];
   children: ReactNode;
 }) {
   const isServerCart = mode === 'live';
@@ -577,6 +583,21 @@ export function CartProvider({
     }
   }, [isServerCart, server.hydrated, hydrated, readFailed, shopping.active, shopping.ordered]);
 
+  const [pendingGift, setPendingGift] = useState<BoxCart['gift']>(initialGift);
+  const setGift = useCallback(async (gift: NonNullable<BoxCart['gift']>) => {
+    if (!isServerCart) { setState(current => ({ ...current, gift })); return; }
+    const result = await server.checkoutRequest('/api/box-gift', { method: 'PUT', body: { gift } });
+    if (!result.ok) throw new Error((result.payload as { message?: string }).message ?? 'Your gift could not be saved.');
+    setPendingGift(gift);
+  }, [isServerCart, server]);
+  const setGiftIntent = useCallback(async (intent: boolean) => {
+    await setGift({ giftIntent: intent, hidePrices: true, includeGreetingCard: false, greetingCardMessage: null });
+  }, [setGift]);
+  const setBoxGiftCard = useCallback(async (card: GiftDraft | null) => {
+    if (!isServerCart) { setState(current => ({ ...current, giftCard: card })); return; }
+    const result = await server.checkoutRequest('/api/box-gift', { method: 'PUT', body: { card } });
+    if (!result.ok) throw new Error((result.payload as { message?: string }).message ?? 'Your gift card could not be saved.');
+  }, [isServerCart, server]);
   const refreshRequest = server.request;
   const value = useMemo<CartContextValue>(
     () => ({
@@ -600,7 +621,8 @@ export function CartProvider({
       unavailableDishes,
       rememberStep,
       quote: server.cart?.quote ?? null,
-      gift: server.cart?.gift ?? null,
+      gift: isServerCart ? server.cart ? server.cart.gift ?? null : pendingGift : effectiveState.gift ?? null,
+      setGift, setGiftIntent, setBoxGiftCard,
       refresh: async () => { if (isServerCart) await refreshRequest('', { method: 'GET' }); },
       changes: server.cart?.changes ?? [],
       hasUnavailableLine: server.cart?.lines.some((line) => line.isUnavailable) ?? false,
@@ -635,6 +657,7 @@ export function CartProvider({
       revalidate,
       server.checkoutRequest,
       refreshRequest,
+      pendingGift, setGift, setGiftIntent, setBoxGiftCard,
       shopping,
       unavailableDishes,
       rememberStep,

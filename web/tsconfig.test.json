@@ -10,6 +10,8 @@
     "rootDir": "."
   },
   "include": [
+    "tests/gifting.test.ts",
+    "tests/gifting-routes.test.ts",
     "tests/portion-model.test.tsx",
     "tests/effective-option-groups.test.ts",
     "tests/rendered-option-groups.test.tsx",

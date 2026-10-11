@@ -1,5 +1,8 @@
 import type { MappedOptionGroup, PersonalisationSelection } from '../aonik/map';
 
+import { decodeGiftDraft, type GiftDraft } from '../gifting/model';
+import type { CartGiftDraftDto } from '../aonik/dto';
+
 import type { ProjectedExtraLine } from './convergence';
 
 export interface DemoCartLine {
@@ -20,6 +23,8 @@ export interface DemoCartLine {
 }
 
 export interface DemoCartState {
+  gift?: CartGiftDraftDto | null;
+  giftCard?: GiftDraft | null;
   boxSize: number | null;
   isCustom: boolean;
   lines: DemoCartLine[];
@@ -133,6 +138,8 @@ export function decodeDemoCart(value: unknown): DemoCartState | null {
     : [];
 
   return {
+    ...(record(source.gift) ? { gift: { giftIntent: record(source.gift)!.giftIntent === true, hidePrices: record(source.gift)!.hidePrices !== false, includeGreetingCard: record(source.gift)!.includeGreetingCard === true, greetingCardMessage: typeof record(source.gift)!.greetingCardMessage === 'string' ? String(record(source.gift)!.greetingCardMessage).slice(0, 240) : null } } : {}),
+    ...(decodeGiftDraft(source.giftCard) ? { giftCard: decodeGiftDraft(source.giftCard) } : {}),
     boxSize,
     isCustom: source.isCustom === true,
     lines: source.lines.flatMap((value) => {

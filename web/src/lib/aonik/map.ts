@@ -719,6 +719,7 @@ export interface BoxChange {
 }
 
 export interface BoxCart {
+  giftCard?: import('./dto').CheckoutDraftDto['giftCardDraft'];
   gift?: CartGiftDraftDto | null;
   cartId: string;
   bundleProductId: string;
@@ -799,6 +800,7 @@ export function mapBoxChange(dto: BoxChangeDto): BoxChange {
 /** Every mutation returns the whole box; the provider replaces state wholesale. */
 export function mapBoxCart(dto: BoxCartDto): BoxCart {
   return {
+    ...(dto.checkoutDraft?.giftCardDraft ? { giftCard: dto.checkoutDraft.giftCardDraft } : {}),
     ...(dto.checkoutDraft?.gift ? { gift: dto.checkoutDraft.gift } : {}),
     cartId: dto.box.cartId,
     bundleProductId: dto.box.bundleProductId,

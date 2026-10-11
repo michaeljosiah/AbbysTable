@@ -1,3 +1,4 @@
+import { cookies } from 'next/headers';
 import type { Metadata } from 'next';
 
 import { NavigationTrail } from '@/components/NavigationTrail';
@@ -40,6 +41,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // Which cart engine runs is a server decision — the client is told, never
   // asked, so a browser cannot elect itself onto the live cart.
   const { mode } = await resolveDataMode();
+  let pendingGift: import('@/lib/aonik/dto').CartGiftDraftDto | null = null;
+  if (mode === 'live') { try { pendingGift = JSON.parse((await cookies()).get('abbys-table-box-gift-pending')?.value ?? 'null')?.gift ?? null; } catch { /* Invalid pending intent is absent. */ } }
   // Whose box it is can change under a mounted provider: signing in adopts the
   // guest box (a write, which moves its version) and signing out hands it back.
   // A cookie read only — it cannot block or fail.
@@ -71,7 +74,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       suppressHydrationWarning
     >
       <body>
-        <CartProvider mode={mode} liveOrdering={liveOrderingEnabled()} signedIn={isSignedIn}>
+        <CartProvider mode={mode} liveOrdering={liveOrderingEnabled()} signedIn={isSignedIn} initialGift={pendingGift}>
           {children}
         </CartProvider>
         {/* Mounted ONCE, here, so it covers every route group — never per page

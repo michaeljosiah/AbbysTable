@@ -16,7 +16,7 @@ import styles from './Flow.module.css';
 
 interface Removal {
   label: string;
-  kind: 'dish' | 'extra';
+  kind: 'dish' | 'extra' | 'gift-card';
   restore: () => Promise<void>;
   focusKey: string;
 }

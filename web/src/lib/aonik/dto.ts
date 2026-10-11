@@ -378,6 +378,7 @@ export interface CartGiftDraftDto {
  * every section it does not own.
  */
 export interface CheckoutDraftDto {
+  giftCardDraft?: import('../gifting/model').GiftDraft | null;
   purchaser?: CheckoutContactDto | null;
   address?: DeliveryAddressDto | null;
   recipient?: DeliveryRecipientDto | null;
