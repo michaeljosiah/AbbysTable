@@ -2,20 +2,8 @@
   position: sticky;
   top: 0;
   z-index: 50;
-  background: var(--surface-raised);
+  background: var(--cream);
   border-bottom: 1px solid var(--sand);
-}
-
-/* Steps 2–4 use the approved v2 two-row checkout header. */
-.header[data-flow-v2] .row { display: grid; grid-template-columns: 1fr auto; gap: 0; padding-block: 12px 18px; }
-.header[data-flow-v2] .spacer { display: none; }
-.header[data-flow-v2] .logoLink { grid-column: 1; grid-row: 1; min-height: 52px; }
-.header[data-flow-v2] .help { grid-column: 2; grid-row: 1; }
-.header[data-flow-v2] .mobileStepper { grid-column: 1 / -1; grid-row: 2; margin-top: 16px; }
-.header[data-flow-v2] .stepper { grid-column: 1 / -1; grid-row: 2; width: min(740px, 100%); justify-self: center; margin-top: 18px; }
-@media (min-width: 861px) {
-  .header[data-flow-v2] .stepper { display: flex; }
-  .header[data-flow-v2] .mobileStepper { display: none; }
 }
 
 /* The help drawer (HelpPanel, z 200) renders inside this header, so the
@@ -29,39 +17,47 @@
 .row {
   display: flex;
   align-items: center;
-  gap: 26px;
+  justify-content: space-between;
+  gap: 14px;
   max-width: var(--frame-max);
   margin-inline: auto;
-  padding: 16px 48px;
+  padding: 13px 22px;
 }
 
 .logoLink {
-  /* inline-flex so the link hugs the 29px mark instead of adding line-box
-     slack below it — the template row is exactly 58px of content. */
   display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   color: var(--green-forest);
   text-decoration: none;
   flex: 0 0 auto;
 }
 
 .logo {
-  --logo-width: 168px;
-  --logo-height: 29px;
-  --logo-registered-size: 15px;
+  --logo-width: clamp(108px, 36vw, 168px);
+  --logo-height: calc(var(--logo-width) * 32 / 186);
 }
 
-/* Flexible gutters either side keep the stepper truly centred between the
-   logo and the help link, matching the template's spacer divs. */
-.spacer {
-  flex: 1 1 auto;
+.progress {
+  background: var(--cream-2);
+  border-top: 1px solid var(--sand);
+}
+
+.progressInner {
+  display: flex;
+  justify-content: center;
+  max-width: var(--frame-max);
+  margin-inline: auto;
+  padding: 12px 22px 14px;
 }
 
 /* ---- Stepper ------------------------------------------------------------------ */
 
 .stepper {
-  display: flex;
+  display: none;
   align-items: flex-start;
-  flex: 0 1 720px;
+  flex: 1 1 720px;
+  max-width: 760px;
   min-width: 0;
   margin: 0;
   padding: 0;
@@ -153,7 +149,7 @@
 /* ---- Compact stepper ------------------------------------------------------------ */
 
 .mobileStepper {
-  display: none;
+  display: flex;
   flex-direction: column;
   align-items: center;
   gap: 7px;
@@ -170,11 +166,11 @@
 .mobileCount {
   font-family: var(--font-sans);
   font-weight: var(--weight-semibold);
-  font-size: 11px;
+  font-size: 13px;
   line-height: normal;
-  letter-spacing: var(--track-wide);
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--brass);
+  color: var(--brass-ink);
 }
 
 .mobileLabel {
@@ -206,14 +202,15 @@
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
+  min-height: 44px;
   background: none;
   border: none;
   cursor: pointer;
   padding: 0;
   font-family: var(--font-sans);
-  font-weight: var(--weight-semibold);
-  font-size: 14px;
+  font-weight: var(--weight-regular);
+  font-size: 16px;
   line-height: normal;
   color: var(--green-forest);
   transition: color 0.16s ease;
@@ -223,60 +220,51 @@
   color: var(--brass);
 }
 
+.help svg {
+  color: var(--brass-ink);
+}
+
 .helpLabel {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  text-decoration-color: var(--brass);
+  border-bottom: 1px solid var(--brass);
+  padding-bottom: 1px;
 }
 
-@media (max-width: 1080px) {
+.optional {
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 1.2;
+  color: var(--brass-ink);
+}
+
+@media (min-width: 641px) {
   .row {
-    padding: 12px 22px;
-    flex-wrap: wrap;
-    gap: 10px 14px;
+    padding: 15px 34px;
   }
-
-  .spacer {
-    display: none;
+  .progressInner {
+    padding: 14px 34px 16px;
   }
+}
 
-  .stepper {
-    display: none;
-  }
-
-  .logoLink {
-    order: 1;
-  }
-
-  .help {
-    order: 3;
-    margin-left: auto;
-  }
-
-  .mobileStepper {
+@media (min-width: 861px) {
+  .header:not([data-choose-box]) .stepper {
     display: flex;
-    order: 4;
-    flex: 1 1 100%;
+  }
+  .header:not([data-choose-box]) .mobileStepper {
+    display: none;
   }
 }
 
-@media (max-width: 640px) {
+@media (min-width: 1081px) {
   .row {
-    padding: 12px 16px;
+    padding: 17px 48px;
   }
-
-  .logo {
-    --logo-width: 138px;
-    --logo-height: 24px;
+  .progressInner {
+    padding: 18px 48px 20px;
   }
-
-  /* The template *declares* the label hidden ≤640px, but its later ≤1080px
-     `display: inline !important` rule wins the cascade — so as rendered, the
-     "Questions?" label stays visible at every width. Match the rendering. */
-}
-
-@media (max-width: 440px) {
-  .logo {
-    --logo-width: 120px;
+  .stepper {
+    display: flex;
+  }
+  .mobileStepper {
+    display: none;
   }
 }

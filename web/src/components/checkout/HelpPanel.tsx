@@ -1,11 +1,15 @@
 'use client';
 
-import { useEffect, useId, useState, type FormEvent } from 'react';
+import Link from 'next/link';
+import { useEffect, useId, useRef, useState } from 'react';
+
+import { CONTACT_HREF } from '@/lib/content/navigation';
+import { useOverlay } from './checkout/useOverlay';
 
 import styles from './HelpPanel.module.css';
 
 /**
- * The "Questions?" slide-over: searchable FAQs, live chat and an email form.
+ * The "Questions?" slide-over: searchable FAQs and the published contact route.
  *
  * Controlled by the caller so whatever owns the checkout chrome decides when it
  * opens; the panel owns everything inside it.
@@ -23,7 +27,7 @@ export interface Faq {
   answer: string;
 }
 
-/** Verbatim from the step 1 design template. */
+/** Approved FAQ structure, with answers limited to supported storefront behaviour. */
 const FAQS: Faq[] = [
   {
     id: 'allergens',
@@ -35,43 +39,44 @@ const FAQS: Faq[] = [
     id: 'cater',
     question: 'Can Abby’s Table cater for allergies?',
     answer:
-      'Yes. Every dish is labelled, and you can note things to leave out when you personalise your box. For severe allergies, email us before ordering and we’ll advise.',
+      'If you have a food allergy or intolerance, please review the allergen information carefully before placing your order. If anything is unclear, contact us before ordering.',
   },
   {
     id: 'kitchen',
-    question: 'Are your meals prepared in a kitchen that handles nuts or shellfish?',
+    question:
+      'Are your meals prepared in a kitchen that handles nuts or shellfish?',
     answer:
-      'Our Kent kitchen handles nuts, shellfish and other allergens. We follow strict separation, but we can’t guarantee zero cross-contact.',
+      'Different allergens are handled within our kitchen. Please check the current allergen information and precautionary wording for each dish before ordering.',
   },
   {
     id: 'remove',
     question: 'Can I remove an ingredient I’m allergic to?',
     answer:
-      'Many dishes can be adapted. Add a note when personalising, or email us and we’ll confirm what’s possible for your box.',
+      'The portion choice changes the amount of food, not the recipe. Check each dish’s current ingredients and allergen information, and contact us before ordering if anything is unclear.',
   },
   {
     id: 'size',
     question: 'Which box size is right for me?',
     answer:
-      'Most tables start with 12 dishes — a balanced week for two. Six is our minimum; eighteen suits larger households or cooking ahead.',
+      'Choose a set box size or set your own quantity. The available sizes and prices are shown on Build your box.',
   },
   {
     id: 'build',
     question: 'What does ‘build your own’ mean?',
     answer:
-      'Choose any number of dishes from six upwards. Your per-dish price is better than buying singly, and the saving grows as you add more.',
+      'Set your own dish quantity on Build your box. The price and any available savings update with your choice.',
   },
   {
     id: 'delivery',
     question: 'When will my box be delivered?',
     answer:
-      'Boxes are cooked to order and delivered chilled, UK-wide, on your chosen day. You’ll pick a delivery date at checkout.',
+      'Check your postcode for delivery coverage. You’ll choose an available delivery date at checkout.',
   },
   {
     id: 'keep',
     question: 'How long do the meals keep?',
     answer:
-      'Chilled meals keep for up to 5 days in the fridge, or freeze on arrival for up to 3 months. Heating guidance is on every dish.',
+      'Follow the storage, use-by and heating instructions supplied with your dish. Dishes suitable for home freezing are clearly marked.',
   },
   {
     id: 'change',
@@ -84,10 +89,6 @@ const FAQS: Faq[] = [
 /** How many questions show before "View all questions". */
 const POPULAR_COUNT = 4;
 
-const EMAIL_PATTERN = /.+@.+\..+/;
-
-const EMPTY_MESSAGE = { name: '', email: '', question: '' };
-
 export function HelpPanel({ open, onClose, faqs = FAQS }: HelpPanelProps) {
   const titleId = useId();
   const fieldId = useId();
@@ -95,34 +96,25 @@ export function HelpPanel({ open, onClose, faqs = FAQS }: HelpPanelProps) {
   const [query, setQuery] = useState('');
   const [openIds, setOpenIds] = useState<Record<string, boolean>>({});
   const [expanded, setExpanded] = useState(false);
-  const [chatStarted, setChatStarted] = useState(false);
-  const [emailOpen, setEmailOpen] = useState(false);
-  const [sentTo, setSentTo] = useState<string | null>(null);
-  const [message, setMessage] = useState(EMPTY_MESSAGE);
-
-  // Escape closes; the page behind must not scroll while the panel is up.
+  const panel = useRef<HTMLDivElement>(null);
+  const scrim = useRef<HTMLButtonElement>(null);
+  const opener = useRef<HTMLElement | null>(null);
   useEffect(() => {
     if (!open) return;
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    document.addEventListener('keydown', onKeyDown);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [open, onClose]);
+    opener.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    panel.current?.querySelector<HTMLButtonElement>('button')?.focus();
+  }, [open]);
+  useOverlay({ open, modal: true, onClose, panel, scrim, opener });
 
   if (!open) return null;
 
   const term = query.trim().toLowerCase();
   const matches = faqs.filter(
-    (faq) => !term || `${faq.question} ${faq.answer}`.toLowerCase().includes(term),
+    (faq) =>
+      !term || `${faq.question} ${faq.answer}`.toLowerCase().includes(term),
   );
   const shown = !term && !expanded ? matches.slice(0, POPULAR_COUNT) : matches;
   const showViewAll = !term && matches.length > POPULAR_COUNT;
@@ -131,33 +123,32 @@ export function HelpPanel({ open, onClose, faqs = FAQS }: HelpPanelProps) {
     ? `Showing ${matches.length} result${matches.length === 1 ? '' : 's'} for “${query.trim()}”`
     : 'Popular questions';
 
-  const canSend =
-    message.name.trim().length > 0 &&
-    EMAIL_PATTERN.test(message.email) &&
-    message.question.trim().length > 0;
-
   const toggleFaq = (id: string) =>
     setOpenIds((current) => ({ ...current, [id]: !current[id] }));
 
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!canSend) return;
-    // TODO(aonik): post the message to the support inbox once the API exists.
-    // Until then the form only confirms locally — nothing is transmitted.
-    setSentTo(message.email);
-  };
-
-  const resetMessage = () => {
-    setSentTo(null);
-    setMessage(EMPTY_MESSAGE);
-  };
-
   return (
     <div className={styles.root}>
-      <button type="button" className={styles.scrim} aria-label="Close questions" onClick={onClose} />
+      <button
+        ref={scrim}
+        type="button"
+        className={styles.scrim}
+        aria-label="Close questions"
+        onClick={onClose}
+      />
 
-      <div className={styles.panel} role="dialog" aria-modal="true" aria-labelledby={titleId}>
-        <button type="button" className={styles.close} onClick={onClose} aria-label="Close">
+      <div
+        ref={panel}
+        className={styles.panel}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+      >
+        <button
+          type="button"
+          className={styles.close}
+          onClick={onClose}
+          aria-label="Close"
+        >
           ×
         </button>
 
@@ -203,8 +194,13 @@ export function HelpPanel({ open, onClose, faqs = FAQS }: HelpPanelProps) {
                 >
                   ?
                 </button>
-                <span id={`${fieldId}-hint`} role="tooltip" className={styles.hintTip}>
-                  The questions customers ask most. Search above or view all for the full list.
+                <span
+                  id={`${fieldId}-hint`}
+                  role="tooltip"
+                  className={styles.hintTip}
+                >
+                  The questions customers ask most. Search above or view all for
+                  the full list.
                 </span>
               </span>
             ) : null}
@@ -227,7 +223,10 @@ export function HelpPanel({ open, onClose, faqs = FAQS }: HelpPanelProps) {
                       <ChevronIcon open={isOpen} />
                     </button>
                     {isOpen ? (
-                      <p id={`${fieldId}-${faq.id}`} className={styles.faqAnswer}>
+                      <p
+                        id={`${fieldId}-${faq.id}`}
+                        className={styles.faqAnswer}
+                      >
                         {faq.answer}
                       </p>
                     ) : null}
@@ -237,7 +236,8 @@ export function HelpPanel({ open, onClose, faqs = FAQS }: HelpPanelProps) {
             </div>
           ) : (
             <p className={styles.empty}>
-              No matching questions. Try another search, or send us a message below.
+              No matching questions. Try another search, or send us a message
+              below.
             </p>
           )}
 
@@ -247,123 +247,33 @@ export function HelpPanel({ open, onClose, faqs = FAQS }: HelpPanelProps) {
               className={styles.viewAll}
               onClick={() => setExpanded((current) => !current)}
             >
-              <span>{expanded ? 'Show fewer questions' : 'View all questions'}</span>
+              <span>
+                {expanded ? 'Show fewer questions' : 'View all questions'}
+              </span>
               <ArrowIcon />
             </button>
           ) : null}
 
           <p className={styles.stillNeedHelp}>Still need help?</p>
 
-          {/* TODO(aonik): hand off to the live-chat provider. */}
-          <button
-            type="button"
+          <Link
+            href={CONTACT_HREF}
             className={`${styles.action} ${styles.chat}`}
-            onClick={() => setChatStarted(true)}
+            onClick={onClose}
           >
             <span className={styles.actionIcon}>
-              <ChatIcon />
+              <MailIcon />
             </span>
             <span className={styles.actionText}>
-              <span className={styles.actionTitle}>Live chat</span>
+              <span className={styles.actionTitle}>Contact us</span>
               <span className={styles.actionSub}>
-                {chatStarted
-                  ? 'A team member will be with you shortly.'
-                  : 'Typically replies in a few minutes'}
+                View our contact details and message form.
               </span>
             </span>
             <span className={styles.actionArrow}>
               <ArrowIcon />
             </span>
-          </button>
-
-          <div className={styles.email} data-open={emailOpen || undefined}>
-            <button
-              type="button"
-              className={`${styles.action} ${styles.emailHead}`}
-              onClick={() => setEmailOpen((current) => !current)}
-              aria-expanded={emailOpen}
-            >
-              <span className={styles.actionIcon}>
-                <MailIcon />
-              </span>
-              <span className={styles.actionText}>
-                <span className={styles.actionTitle}>Email us</span>
-                <span className={styles.actionSub}>
-                  We&apos;ll get back to you as soon as we can.
-                </span>
-              </span>
-              <ChevronIcon open={emailOpen} />
-            </button>
-
-            {emailOpen ? (
-              sentTo === null ? (
-                <form className={styles.form} onSubmit={onSubmit}>
-                  <label className={styles.label} htmlFor={`${fieldId}-name`}>
-                    Your name
-                  </label>
-                  <input
-                    id={`${fieldId}-name`}
-                    className={styles.input}
-                    value={message.name}
-                    onChange={(event) =>
-                      setMessage((current) => ({ ...current, name: event.target.value }))
-                    }
-                    placeholder="e.g. Esther"
-                  />
-
-                  <label className={styles.label} htmlFor={`${fieldId}-email`}>
-                    Email address
-                  </label>
-                  <input
-                    id={`${fieldId}-email`}
-                    type="email"
-                    className={styles.input}
-                    value={message.email}
-                    onChange={(event) =>
-                      setMessage((current) => ({ ...current, email: event.target.value }))
-                    }
-                    placeholder="e.g. esther@example.com"
-                  />
-
-                  <label className={styles.label} htmlFor={`${fieldId}-question`}>
-                    Your question
-                  </label>
-                  <textarea
-                    id={`${fieldId}-question`}
-                    className={styles.input}
-                    rows={3}
-                    value={message.question}
-                    onChange={(event) =>
-                      setMessage((current) => ({ ...current, question: event.target.value }))
-                    }
-                    placeholder="Type your question here..."
-                  />
-
-                  <button type="submit" className={styles.send} disabled={!canSend}>
-                    Send email
-                  </button>
-                </form>
-              ) : (
-                <div className={styles.sent}>
-                  <span className={styles.sentTick}>
-                    <CheckIcon />
-                  </span>
-                  <p className={styles.sentTitle}>Your message is on its way</p>
-                  <p className={styles.sentBody}>
-                    We&apos;ll reply to {sentTo} within a few hours.
-                  </p>
-                  <button type="button" className={styles.sentAgain} onClick={resetMessage}>
-                    Send another message
-                  </button>
-                </div>
-              )
-            ) : null}
-          </div>
-
-          <p className={styles.footNote}>
-            <ClockIcon />
-            <span>We aim to reply within a few hours.</span>
-          </p>
+          </Link>
         </div>
       </div>
     </div>
@@ -429,24 +339,6 @@ function ArrowIcon() {
   );
 }
 
-function ChatIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M4 5h16v11H8l-4 4z" />
-    </svg>
-  );
-}
-
 function MailIcon() {
   return (
     <svg
@@ -462,43 +354,6 @@ function MailIcon() {
     >
       <rect x="3" y="5" width="18" height="14" rx="2" />
       <path d="M4 7l8 6 8-6" />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.4"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M5 12.5l4.5 4.5L19 7" />
-    </svg>
-  );
-}
-
-function ClockIcon() {
-  return (
-    <svg
-      width="17"
-      height="17"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7.5V12l3 2" />
     </svg>
   );
 }

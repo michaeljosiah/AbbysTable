@@ -1,3 +1,4 @@
+import { upcomingDeliveryDate } from '@/lib/delivery/checker';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -50,7 +51,7 @@ export default async function DishPage({ params }: DishPageProps) {
   if (!data) notFound();
 
   const { dish, related, boxes, delivery, optionGroups, heating } = data;
-  const earliestDeliveryLabel = formatDeliveryDate(delivery?.earliestDeliveryDate);
+  const earliestDeliveryLabel = formatDeliveryDate(upcomingDeliveryDate(delivery?.earliestDeliveryDate));
 
   // "Boxes start at ..." is derived from the cheapest offer rather than hardcoded.
   const entryBox = [...boxes].sort((a, b) => a.pricePence - b.pricePence)[0];

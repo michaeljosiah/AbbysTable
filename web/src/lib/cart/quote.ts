@@ -33,7 +33,7 @@ import { boxPricePence, extraUnitPence, useCart, type CartState } from './CartPr
  */
 const COMPONENT_LABELS: Record<string, string> = {
   boxPrice: 'Box',
-  personalisation: 'Personalisation',
+  personalisation: 'Full Table portions',
   unitSurcharges: 'Signature upgrades',
   addOns: 'Extras',
   extraDishes: 'Extra dishes',

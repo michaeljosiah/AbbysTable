@@ -112,7 +112,7 @@
 /* Geometry is reserved by the aspect ratio before the image loads. */
 .media {
   position: relative;
-  margin: 26px 0 0;
+  margin: 26px 0 16px;
   aspect-ratio: 5 / 4;
   overflow: hidden;
   border: var(--border-hairline) solid var(--border-light);

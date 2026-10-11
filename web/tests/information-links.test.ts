@@ -191,7 +191,7 @@ const IN_PAGE_LINKS: Array<{ file: string; contact: number; faqs: number; why: s
     faqs: 0,
     why: 'the allergen fallback says "please contact us" — a person, not /allergens',
   },
-  { file: 'app/(checkout)/layout.tsx', contact: 1, faqs: 0, why: '"Questions about your order? Contact us"' },
+  { file: 'components/checkout/HelpPanel.tsx', contact: 1, faqs: 0, why: 'Checkout help routes to the published Contact page' },
   {
     file: 'app/(site)/box/confirmation/page.tsx',
     contact: 1,

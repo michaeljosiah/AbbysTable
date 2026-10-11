@@ -3,6 +3,7 @@ import { FlowBack } from '@/components/checkout/ReviewReturn';
 
 import { ExtrasStep } from '@/components/checkout/ExtrasStep';
 import { getAonikClient } from '@/lib/aonik/client';
+import { upcomingDeliveryDate } from '@/lib/delivery/checker';
 import { formatDeliveryDate } from '@/lib/format';
 
 import styles from '@/components/checkout/Flow.module.css';
@@ -39,7 +40,7 @@ export default async function BoxExtrasPage() {
         dishes={dishes}
         optionGroupsBySlug={optionGroupsBySlug}
         pricing={pricing}
-        earliestDeliveryLabel={formatDeliveryDate(delivery?.earliestDeliveryDate)}
+        earliestDeliveryLabel={formatDeliveryDate(upcomingDeliveryDate(delivery?.earliestDeliveryDate))}
         heading={
           <>
             <h1 className={styles.heading}>

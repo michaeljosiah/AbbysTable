@@ -48,7 +48,7 @@ export default async function BoxCheckoutPage() {
   if (entry?.kind === 'payment') redirect('/box/payment/return?outcome=reopen');
   if (entry?.kind === 'completed') return <CheckoutStatus kind="completed" />;
 
-  const [calendar, pricing, extras] = await Promise.all([
+  const [calendar, pricing, extras, dishes] = await Promise.all([
     client.getDeliveryCalendar(today, FIRST_READ_DAYS).catch((error: unknown): DeliveryCalendar | null => {
       // Unknown is said as unknown (SHOPPING-STATE §22): no date is offered, and payment waits.
       console.error('[checkout] the delivery calendar could not be read', error);
@@ -56,6 +56,9 @@ export default async function BoxCheckoutPage() {
     }),
     client.getBoxPricing(),
     client.getExtras().catch(() => []),
+    // Live already has separate authoritative quote components. Demo needs
+    // the same catalogue supplements as Review to split Full Table/Signature.
+    mode === 'demo' ? client.getDishes() : Promise.resolve([]),
   ]);
 
   const ready = entry?.kind === 'ready' ? entry : null;
@@ -69,6 +72,7 @@ export default async function BoxCheckoutPage() {
       today={today}
       pricing={pricing}
       extras={extras}
+      signatureUpgrades={Object.fromEntries(dishes.map((dish) => [dish.id, dish.upgradePence ?? 0]))}
     />
   );
 }

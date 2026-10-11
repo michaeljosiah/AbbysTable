@@ -4,7 +4,6 @@ import { Logo } from '@/components/brand/Logo';
 import { CheckoutHeader } from '@/components/checkout/CheckoutHeader';
 import {
   CHECKOUT_FOOTER_LINKS,
-  CONTACT_HREF,
   COOKIE_PREFERENCES_ITEM,
 } from '@/lib/content/navigation';
 
@@ -25,11 +24,11 @@ export default function CheckoutLayout({ children }: { children: React.ReactNode
       <CheckoutHeader />
       <main className={styles.main}>{children}</main>
 
-      <footer className={styles.footer}>
+      <footer className={styles.footer} data-purchase-bar-stop>
         <div className={styles.inner}>
           <div className={styles.top}>
             <Link href="/" aria-label="Abby's Table — home" className={styles.logoLink}>
-              <Logo width={176} height={30} />
+              <Logo width={156} height={27} withRegistered={false} />
             </Link>
 
             <nav className={styles.nav} aria-label="Order information">
@@ -41,15 +40,7 @@ export default function CheckoutLayout({ children }: { children: React.ReactNode
             </nav>
           </div>
 
-          <div className={styles.divider} />
-
           <div className={styles.bottom}>
-            <span className={styles.help}>
-              Questions about your order?{' '}
-              <Link href={CONTACT_HREF} className={styles.helpLink}>
-                Contact us
-              </Link>
-            </span>
             <span className={styles.legal}>
               <span className={styles.copyright}>© 2026 Abby&apos;s Table</span>
               {/* The checkout footer's © row carries the consent trigger too
@@ -62,9 +53,9 @@ export default function CheckoutLayout({ children }: { children: React.ReactNode
               >
                 {COOKIE_PREFERENCES_ITEM.label}
               </Link>
-              <span className={styles.legalDivider} aria-hidden="true" />
-              <span className={styles.signoff}>Abby x</span>
+
             </span>
+            <span className={styles.signoff}>Abby x</span>
           </div>
         </div>
       </footer>
