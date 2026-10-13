@@ -73,3 +73,5 @@ jobs:
           AONIK_TENANT_ID: ${{ secrets.AONIK_TENANT_ID }}
           AONIK_DATA_MODE: ${{ secrets.AONIK_DATA_MODE }}
           AONIK_AUTH_CLIENT_ID: ${{ secrets.AONIK_AUTH_CLIENT_ID }}
+          LIVE_ORDERING_ENABLED: ${{ vars.LIVE_ORDERING_ENABLED }}
+          STOREFRONT_ORIGIN: ${{ vars.STOREFRONT_ORIGIN }}
