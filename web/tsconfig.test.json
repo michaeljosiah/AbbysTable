@@ -12,6 +12,7 @@
   "include": [
     "tests/gifting.test.ts",
     "tests/gifting-routes.test.ts",
+    "tests/gifting-availability.test.tsx",
     "tests/portion-model.test.tsx",
     "tests/effective-option-groups.test.ts",
     "tests/rendered-option-groups.test.tsx",
@@ -44,6 +45,7 @@
     "tests/login.test.tsx",
     "tests/account-redirect.test.tsx",
     "tests/account-access.test.tsx",
+    "tests/account-setup.test.tsx",
     "tests/account-orders.test.tsx",
     "tests/account-overview.test.tsx",
     "tests/account-details.test.tsx",

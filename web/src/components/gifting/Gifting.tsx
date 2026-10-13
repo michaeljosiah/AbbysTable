@@ -233,7 +233,7 @@ export function Gifting({
   };
   return (
     <>
-      {reminder && resume ? (
+      {options.enabled && reminder && resume ? (
         <div className={c('gf-resume-wrap')}>
           <section className={c('gf-resume')} aria-labelledby="gift-resume">
             <span className={c('gf-resume-ic')} aria-hidden="true">
@@ -325,17 +325,18 @@ export function Gifting({
                 Send a gift card — they choose their dishes
               </h2>
               <p className={c('gf-route-p')}>
-                Choose a value and send it by email, by post, or inside a food
-                box. They can use it towards any Abby’s Table order.
+                {options.enabled
+                  ? 'Choose a value and a delivery method below. They can use it towards any Abby’s Table order.'
+                  : 'Gift-card purchasing is currently unavailable. You can still send a food box.'}
               </p>
-              <div className={c('gf-route-ctas')}>
+              {options.enabled ? <div className={c('gf-route-ctas')}>
                 <a className={c('gf-cta', 'gf-cta-light')} href="#gift-card">
                   Order a gift card
                 </a>
                 <a className={c('gf-link')} href="#gift-card">
                   <span>See the options →</span>
                 </a>
-              </div>
+              </div> : null}
             </div>
           </article>
         </div>
@@ -399,7 +400,7 @@ export function Gifting({
           </div>
         </div>
       </section>
-      <section className={c('gf-sec', 'gf-dark', 'gf-step-sec')} id="gift-card">
+      {options.enabled ? <section className={c('gf-sec', 'gf-dark', 'gf-step-sec')} id="gift-card">
         <div className={c('inner')}>
           <h2 className={c('gf-h2')}>Send a gift card</h2>
           <p className={c('gf-lede')}>
@@ -659,6 +660,7 @@ export function Gifting({
           </div>
         </div>
       </section>
+      : null}
       <a className={c('gf-top')} href="#top">
         ↑ Top
       </a>

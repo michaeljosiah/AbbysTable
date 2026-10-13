@@ -8,6 +8,7 @@
 
 import { clientAddress } from '@/lib/request/clientAddress';
 import { addressKey } from '@/lib/request/rateLimit';
+import { accountSetupAvailable, startAccountSetup, type SetupStart } from './accountSetup';
 
 import {
   checkByAddress,
@@ -20,7 +21,12 @@ import {
 export async function resolveAccessLinkAction(token: string): Promise<AccessLinkOutcome> {
   const address = await clientAddress();
   if (address && !checkByAddress.admit(addressKey(address))) return 'failed';
-  return resolveAccessLink(token, address ?? undefined);
+  const result = await resolveAccessLink(token, address ?? undefined);
+  return result === 'ready' && !accountSetupAvailable() ? 'unavailable' : result;
+}
+
+export async function startAccountSetupAction(token: string): Promise<SetupStart> {
+  return startAccountSetup(token);
 }
 
 export type ResendAccessLinkState = 'requested' | 'unavailable' | 'failed';

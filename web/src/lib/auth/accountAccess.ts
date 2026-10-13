@@ -64,7 +64,7 @@ export async function resolveAccessLink(token: unknown, forwardedFor?: string): 
   } catch (error) {
     if (error instanceof AccountsUnavailableError) return 'unavailable';
     if (error instanceof AonikError && error.status === 410) return 'gone';
-    console.error('[auth] an account link could not be checked', error instanceof AonikError ? error.status : error);
+    console.error('[auth] an account link could not be checked', error instanceof AonikError ? error.status : "unavailable");
     return 'failed';
   }
 }
@@ -92,7 +92,7 @@ export async function resendAccessLink(
     if (error instanceof AccountsUnavailableError) return 'unavailable';
     // Throttled resends are neutral on Aonik's side too.
     if (error instanceof AonikError && error.status === 429) return 'requested';
-    console.error('[auth] a new account link could not be requested', error instanceof AonikError ? error.status : error);
+    console.error('[auth] a new account link could not be requested', error instanceof AonikError ? error.status : "unavailable");
     return 'failed';
   }
 }
