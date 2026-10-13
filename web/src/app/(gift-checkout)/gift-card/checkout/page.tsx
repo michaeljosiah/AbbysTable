@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { GiftCheckout } from '@/components/gifting/GiftCheckout';
+import { GiftUnavailable } from '@/components/gifting/GiftUnavailable';
 import { giftOptions, readGift, giftPayment } from '@/lib/gifting/server';
 import { DESIGN_GIFT_OPTIONS, giftEntry } from '@/lib/gifting/model';
 import { readSessionView } from '@/lib/auth/session';
@@ -10,5 +11,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   if (payment?.paymentIntentId && !payment.canEdit) redirect('/gift-card/payment');
   const params = await searchParams;
   const [options, initial, session] = await Promise.all([giftOptions().catch(() => ({ ...DESIGN_GIFT_OPTIONS, enabled: false })), readGift().catch(() => null), readSessionView()]);
+  if (!options.enabled) return <GiftUnavailable />;
   return <GiftCheckout options={options} initial={initial} entry={giftEntry(params)} signedIn={session.isSignedIn} signedEmail={session.email} />;
 }

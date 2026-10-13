@@ -3,9 +3,8 @@
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 
 import { StatusMessage } from '@/components/status/StatusMessage';
-import { resendAccessLinkAction, resolveAccessLinkAction } from '@/lib/auth/accessActions';
+import { resendAccessLinkAction, resolveAccessLinkAction, startAccountSetupAction } from '@/lib/auth/accessActions';
 import { ACCESS_COPY } from '@/lib/content/accountAccess';
-import { CONTACT_HREF } from '@/lib/content/navigation';
 
 import styles from './AccountAccess.module.css';
 
@@ -31,6 +30,21 @@ export function AccountAccess() {
   const sentRef = useRef<HTMLParagraphElement>(null);
   /** A ref, not state: two clicks before a render must not both send. */
   const sending = useRef(false);
+  const starting = useRef(false);
+  const [continuing, setContinuing] = useState(false);
+
+  const continueSetup = () => {
+    if (starting.current) return;
+    starting.current = true;
+    setContinuing(true);
+    void startAccountSetupAction(token.current).then((result) => {
+      if (result.status === 'redirect') window.location.assign(result.url);
+      else setView(result.status);
+    }, () => setView('failed')).finally(() => {
+      starting.current = false;
+      setContinuing(false);
+    });
+  };
 
   const check = () => {
     setView('checking');
@@ -104,7 +118,8 @@ export function AccountAccess() {
           eyebrow={ACCESS_COPY.eyebrow}
           title={ACCESS_COPY.ready.heading}
           lede={ACCESS_COPY.ready.lede}
-          primary={{ label: ACCESS_COPY.ready.contact, href: CONTACT_HREF }}
+          primary={continuing ? undefined : { label: ACCESS_COPY.ready.continue, onClick: continueSetup }}
+          inPlace={continuing ? <p role="status">Opening secure account setup…</p> : undefined}
           secondary={{ label: ACCESS_COPY.login, href: '/login' }}
         />
       );

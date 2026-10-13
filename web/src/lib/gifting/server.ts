@@ -95,7 +95,8 @@ export async function giftOptions(): Promise<GiftOptions> {
     ...live,
     maximumQuantity: live.maximumQuantity ?? 1,
     draftVersion: live.draftVersion ?? 0,
-    values: live.values?.length ? live.values : DESIGN_GIFT_OPTIONS.values,
+    values: live.values ?? [],
+    enabled: live.enabled === true && liveOrderingEnabled(),
   };
 }
 export async function readGift(): Promise<GiftSession | null> {
@@ -131,6 +132,8 @@ export async function startGift(
   entry: Partial<GiftDraft>,
   reset = false,
 ): Promise<GiftSession> {
+  if ((await resolveDataMode()).mode === 'live' && !(await giftOptions()).enabled)
+    throw new Error('Gift-card purchasing is currently unavailable. You can still send a food box.');
   const current = await readGift();
   if (current && !reset) return current;
   const draft = {

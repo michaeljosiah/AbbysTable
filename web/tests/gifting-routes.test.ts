@@ -171,6 +171,15 @@ test('disabled purchase sends no purchase or checkout mutation', async () => {
   assert.equal(response.status, 400);
   assert.ok(!aonikRequests.some((request) => request.method !== 'GET'));
 });
+
+test('disabled gift cards refuse a new draft before creating a cart or storing private proof', async () => {
+  backend(request => request.path.endsWith('/gift-cards/options')
+    ? { status: 200, body: { ...options, enabled: false, postage: 0 } } : undefined);
+  const response = await call('start');
+  assert.equal(response.status, 400);
+  assert.ok(!aonikRequests.some(request => request.method !== 'GET'));
+  assert.equal(cookieValue('abbys-table-gift-cart'), undefined);
+});
 test('foreign-origin mutation is refused before backend requests', async () => {
   backend();
   const response = await POST(

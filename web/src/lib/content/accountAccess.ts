@@ -18,11 +18,11 @@ export const ACCESS_COPY = {
     sendFailed: 'We couldn’t send that just now. Please try again in a moment.',
     sendUnavailable: 'New links aren’t available yet. Please contact us and we’ll help.',
   },
-  /** The link is good, but finishing set-up here needs the identity provider's sign-up hand-off. */
+  /** Registration and email verification happen with the configured identity provider. */
   ready: {
     heading: 'Your link is ready.',
-    lede: 'We can’t finish setting up your account from this page yet. Your order is not affected.',
-    contact: 'Contact us',
+    lede: 'Continue to create an account or sign in using the email address on your order. Complete email verification if prompted, then we’ll bring you back to your account.',
+    continue: 'Continue to account setup',
   },
   failed: {
     heading: 'We couldn’t check this link.',

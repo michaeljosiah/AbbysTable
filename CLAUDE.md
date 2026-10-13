@@ -393,11 +393,11 @@ Conventions inside `web/` that are easy to get wrong:
   `resendByAddress`). A second link opened in the same tab (`hashchange`) is read and stripped
   likewise; Next's router can re-write the canonical URL on a `router.refresh()`, so the strip is
   best-effort against that (known, rare). Reload after the strip is "no longer valid" by design.
-  NOT built: the "Continue" hand-off (identity-provider registration with PKCE,
-  then `POST /identity/account-access/complete` with the bearer) — it needs the operator to enable
-  registration + email verification and a PKCE public client in the realm, so a good link says
-  "your link is ready… we can't finish set-up from this page yet" and points at Contact. Pinned by
-  `tests/account-access.test.tsx`.
+  The Continue handoff is implemented with authorization code + S256 PKCE and an encrypted,
+  Secure, HttpOnly ten-minute cookie. Aonik validates the access token and paid link before
+  a session is written. Configure the public identity client, issuer/audience, exact callback,
+  verified-email/auth_time claims and ACCOUNT_SETUP_COOKIE_KEY before enabling it in a deployment.
+  See `docs/specifications/launch-foundations.md`; deployed registration still needs an end-to-end check.
 - **My Account (#35), built in four PRs; PR 1 = the frame and Orders.** Sections are ROUTES
   (`/account/orders` …), not the prototype's hash views. `(site)/account/layout.tsx` draws the
   frame — hero "Hello, {first name}" (`getMyProfile`; a profile that can't be read costs the name,
